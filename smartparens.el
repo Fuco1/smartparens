@@ -80,7 +80,7 @@
 ;; global custom
 (defcustom sp-ignore-modes-list '(calc-mode dired-mode minibuffer-inactive-mode)
   "Modes where smartparens mode is inactive if allowed globally."
-  :type 'list
+  :type '(repeat symbol)
   :group 'smartparens)
 
 ;; function custom
@@ -124,6 +124,13 @@ would produce (|word."
 (defcustom sp-autoskip-closing-pair t
   "If non-nil, skip the following closing pair. See
 `sp-skip-closing-pair' for more info."
+  :type 'boolean
+  :group 'smartparens)
+
+(defcustom sp-cancel-autoskip-on-backward-movement t
+  "If non-nil, autoskip of closing pair is cancelled not only
+when point is moved outside of the pair, but also if the point
+moved backwards. See `sp-skip-closing-pair' for more info."
   :type 'boolean
   :group 'smartparens)
 
@@ -346,7 +353,8 @@ should be highlighted."
   "Remove all pair overlays that doesn't have point inside them,
 are of zero length, or if point moved backwards."
   ;; if the point moved backwards, remove all overlays
-  (if (< (point) sp-previous-point)
+  (if (and sp-cancel-autoskip-on-backward-movement
+           (< (point) sp-previous-point))
       (dolist (o sp-pair-overlay-list) (sp-remove-overlay o))
     ;; else only remove the overlays where point is outside them or
     ;; their length is zero
@@ -480,8 +488,12 @@ typed, we shouldn't insert it again but skip forward.
 
 For example, pressing ( is followed by inserting the pair (|). If
 we then type 'word' and follow by ), the result should be (word)|
-instead of (word)|). If the user moved backwards or outside the
-pair, this behaviour is cancelled.
+instead of (word)|).
+
+If the user moved backwards or outside the
+pair, this behaviour is cancelled. This behaviour can be globally
+disabled by setting `sp-cancel-autoskip-on-backward-movement' to
+nil.
 
 This behaviour can be globally disabled by setting
 `sp-autoskip-closing-pair' to nil."

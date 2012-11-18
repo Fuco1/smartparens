@@ -26,6 +26,7 @@ Structure of global list is (command...)
 * Escape quotes within strings
 - [ ] When typing " or ' inside a string, automatically escape it with \.
 - [ ] When wrapping a region with " (or other "quote" character), automatically escape included quotes. Do not double-escape quotes! (that is, already escaped quotes are not escaped again)
+- [ ] When wrapping inside a quoted region, autoescape quotes. (do we need to define what a quote is?)
 - [ ] Pair deletion should also work inside quoted strings.
 
 
