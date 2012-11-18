@@ -146,6 +146,14 @@ moved backwards. See `sp-skip-closing-pair' for more info."
   :type 'boolean
   :group 'smartparens)
 
+(defcustom sp-autodelete-wrap t
+  "If non-nil, auto delete both opening and closing pair of most
+recent wrapping. Deletion command must be the very first
+command after the insertion, otherwise normal behaviour is
+applied."
+  :type 'boolean
+  :group 'smartparens)
+
 (defvar sp-delete-selection-mode nil
   "If non-nil, smartparens will emulate
   `delete-selection-mode'. You must also disable the
@@ -682,7 +690,8 @@ it as a whole. That is, \{\}| turns to \{|, \{| turns to |. Can be
 disabled by setting `sp-autodelete-closing-pair' and
 `sp-autodelete-opening-pair' to nil."
   (when smartparens-mode
-    (if (eq sp-last-operation 'sp-wrap-region)
+    (if (and sp-autodelete-wrap
+             (eq sp-last-operation 'sp-wrap-region))
         (let ((p (point))
               (s (nth 0 sp-last-wrapped-region))
               (e (nth 1 sp-last-wrapped-region))
