@@ -1,0 +1,36 @@
+Dev notes :P
+
+All functions are in global mode by default. That means they work in any mode. Each function can be turned off globally or for specific modes and also only turned on for specific modes. That means, there will be black-lists and allow-lists. The order of evaluation is:
+
+1. global allow - function enabled everywhere (default)
+2. local ban - function disabled in specific modes
+3. global ban - function disabled everywhere
+4. local allow - function enabled in specific modes. If a function is in this list, it is automatically globally banned
+
+Structure of local lists is ((command . (modes...))...)
+Structure of global list is (command...)
+
+* customize/mode stuff
+-  [X] added as mode and globalized mode
+
+* auto-pair
+** when pair character/string is inserted, insert the closing pair, place cursor inside
+- [X] For example, on (, insert ). On \{, insert \}, on ", insert closing ". If typopunct is enabled, replace quotes with "typo quotes". This should be somehow provided by typopunct package, but if not possible, we should reimplement it ourselves.
+- [ ] There can be a special treatment, for example after {, if followed by <ret> place the ending } with a new line inbetween.
+- [X] If user types the closing pair, it should skip the auto-inserted one
+- [X] When the pair is empty and the point is inside -- (|), on backspace the whole pair should be deleted. If the pair is multi-character and the point is after the closing pair, it should be deleted as a whole. For example: /* */| after backspace should be /* |
+** when a region is active, wrap it with the char/pair/string
+- [ ] If we have an active region, instead of inserting the pair, we wrap the region in the pair.
+- [ ] There should also be an unwrap command. If we're at the of a "pair-wrapped region", after running the command, it should unwrap.
+
+* Escape quotes within strings
+- [ ] When typing " or ' inside a string, automatically escape it with \.
+- [ ] When wrapping a region with " (or other "quote" character), automatically escape included quotes. Do not double-escape quotes! (that is, already escaped quotes are not escaped again)
+- [ ] Pair deletion should also work inside quoted strings.
+
+
+Each pair is uniquely determined by the open bracket (so it will be used as an "ID" for the pair)
+Pair format:
+- Open bracket (=id)
+- Close bracket
+- (optional) trigger for wrapping with this pair
