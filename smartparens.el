@@ -8,6 +8,7 @@
 ;; Version: 0.1
 ;; Keywords: abbrev convenience editing
 ;; Package-Requires: ((dash "1.0"))
+;; URL: https://github.com/Fuco1/smartparens
 
 ;; This file is not part of GNU Emacs.
 
@@ -28,7 +29,7 @@
 
 ;;; Commentary:
 
-;; See github readme.
+;; See github readme at https://github.com/Fuco1/smartparens
 
 ;;; Code:
 
@@ -41,6 +42,7 @@
   "Smartparens minor mode"
   :group 'editor)
 
+;;;###autoload
 (define-minor-mode smartparens-mode
   "Toggle smartparens mode"
   :init-value nil
@@ -62,16 +64,19 @@
 (defvar smartparens-disabled-hook nil
   "Called after `smartparens-mode' is turned off.")
 
+;;;###autoload
 (define-globalized-minor-mode smartparens-global-mode
   smartparens-mode
   turn-on-smartparens-mode)
 
+;;;###autoload
 (defun turn-on-smartparens-mode ()
   "Turn on `smartparens-mode'."
   (interactive)
   (unless (member major-mode sp-ignore-modes-list)
     (smartparens-mode t)))
 
+;;;###autoload
 (defun turn-off-smartparens-mode ()
   "Turn off `smartparens-mode'."
   (interactive)
@@ -172,17 +177,17 @@ disabled in other modes automatically.
 List of elements of type (command . '(list of modes)).")
 
 (defvar sp-pair-list '(
-                       ("\\\\(" "\\\\)") ;; emacs regexp parens
-                       ("\\{" "\\}")
-                       ("\\(" "\\)")
-                       ("\\\"" "\\\"")
-                       ("/*" "*/")
-                       ("\"" "\"")
-                       ("'" "'")
-                       ("(" ")")
-                       ("[" "]")
-                       ("{" "}")
-                       ("`" "'") ;; tap twice for tex double quotes
+                       ("\\\\(" . "\\\\)") ;; emacs regexp parens
+                       ("\\{"   . "\\}")
+                       ("\\("   . "\\)")
+                       ("\\\""  . "\\\"")
+                       ("/*"    . "*/")
+                       ("\""    . "\"")
+                       ("'"     . "'")
+                       ("("     . ")")
+                       ("["     . "]")
+                       ("{"     . "}")
+                       ("`"     . "'") ;; tap twice for tex double quotes
                        )
   "List of pairs for auto-insertion or wrapping. Maximum length
 of opening or closing pair is 10 characters.")
@@ -250,11 +255,30 @@ as usual.")
   "Cons pair of wrap overlays.")
 (make-variable-buffer-local 'sp-wrap-overlays)
 
-(defvar sp-previous-point 1
+(defvar sp-previous-point -1
   "Location of point before last command. This is only updated
 when some pair-overlay is active. Do not rely on the value of
 this variable anywhere else!")
 (make-variable-buffer-local 'sp-previous-point)
+
+(defvar sp-wrap-point nil
+  "Save the value of point before attemt to wrap a region. Used
+for restoring the original state if the wrapping is
+cancelled.")
+(make-variable-buffer-local 'sp-wrap-point)
+
+(defvar sp-wrap-mark nil
+  "Save the value of point before attemt to wrap a region. Used
+for restoring the original state if the wrapping is
+cancelled.")
+(make-variable-buffer-local 'sp-wrap-mark)
+
+(defvar sp-delete-selection-mode delete-selection-mode
+  "We need to remember if delete-selection-mode is active or
+not. It is disabled for wrapping. If the wrapping is cancelled,
+the mode is re-enabled. That is actually achieved by simply
+calling delete-selection-pre-hook manually after pre-wrapping
+state is restored.")
 
 (defvar sp-pair-overlay-keymap (make-sparse-keymap)
   "Keymap for the pair overlays.")
@@ -293,52 +317,47 @@ tracking the position of the point."
     (sp-pair-overlay-fix-highlight)
     (add-hook 'post-command-hook 'sp-pair-overlay-post-command-handler nil t)))
 
-(defun sp-wrap-overlay-create ()
-  "Create wrap overlay."
-  (let* ((start (region-beginning))
-         (end (region-end))
-         (oleft (make-overlay start start nil nil t))
-         (oright (make-overlay end end nil nil t))
-         )
-    (setq sp-wrap-overlays (cons oleft oright))
-    (when sp-highlight-wrap-overlay
-      (overlay-put oleft 'face 'sp-wrap-overlay-face)
-      (overlay-put oright 'face 'sp-wrap-overlay-face))
-    (overlay-put oleft 'priority 100)
-    (overlay-put oright 'priority 100)
-    (overlay-put oleft 'keymap sp-wrap-overlay-keymap)
-    (overlay-put oleft 'type 'wrap)
-    (add-hook 'post-command-hook 'sp-wrap-overlay-post-command-handler nil t)
-    (deactivate-mark)
-    (goto-char start)
-    )
-  )
-
 ;; delete-selection-mode !!!
 
 (defun sp-wrap-overlay-post-command-handler ()
   "Cancel the wrap editing if the point moved outside the left
 overlay or if point moved backwards."
-  (when (sp-get-active-overlay)
-    (let* ((overlay (sp-get-active-overlay))
+  ;; sanity check
+  (when sp-wrap-overlays
+    (let* ((overlay (car sp-wrap-overlays))
            (start (overlay-start overlay))
            (end (overlay-end overlay))
            (p (point)))
       (when (or (< p sp-previous-point)
-                (and (> p end)
-                     (< p start)))
+                (> p end)
+                (< p start))
         (sp-wrap-cancel))))
-  (setq sp-previous-point (point)))
+  (when sp-wrap-overlays
+    (setq sp-previous-point (point))))
 
 (defun sp-wrap-cancel ()
   "Cancel the active wrapping."
+  (interactive)
   (remove-hook 'post-command-hook 'sp-wrap-overlay-post-command-handler t)
   (let ((oleft (car sp-wrap-overlays))
-        (oright (cadr sp-wrap-overlays)))
+        (oright (cdr sp-wrap-overlays)))
     (delete-region (overlay-start oleft) (overlay-end oleft))
     (delete-region (overlay-start oright) (overlay-end oright))
     (delete-overlay oleft)
     (delete-overlay oright)
+    (setq sp-wrap-overlays nil)
+    (setq sp-previous-point -1)
+    ;;(message "Removing wrap-overlays")
+    ;; restore the original state
+    (goto-char sp-wrap-point)
+    (set-mark sp-wrap-mark)
+    (activate-mark)
+
+    ;;(set-mark-command 1)
+    ;;(pop-to-mark-command)
+    ;;
+    ;;(setq sp-wrap-point nil)
+    ;;(setq sp-wrap-mark nil)
   ))
 
 (defun sp-pair-overlay-fix-highlight ()
@@ -362,7 +381,8 @@ are of zero length, or if point moved backwards."
                               (> (sp-get-overlay-length it) 0))
                          sp-pair-overlay-list))
       (sp-remove-overlay o)))
-  (setq sp-previous-point (point)))
+  (when sp-pair-overlay-list
+    (setq sp-previous-point (point))))
 
 (defun sp-remove-active-overlay ()
   "Deactivate the active overlay.  See `sp-get-active-overlay'."
@@ -382,7 +402,7 @@ are of zero length, or if point moved backwards."
     ;; is active. Therefore, we need to reset this to 1. If not, newly
     ;; created overlay could be removed right after creation - if
     ;; sp-previous-point was greater than actual point
-    (setq sp-previous-point 1))
+    (setq sp-previous-point -1))
   (message "Removing pair-insertion overlay %s" overlay)
   (delete-overlay overlay)
   (sp-pair-overlay-fix-highlight))
@@ -409,10 +429,85 @@ are of zero length, or if point moved backwards."
 (defun sp-post-self-insert-handler ()
   "Main handler of post-self-insert events."
   (when smartparens-mode
-    (if (region-active-p)
-        (sp-wrap-region)
+    (cond
+     ((region-active-p)
+      (sp-wrap-region-init))
+     (sp-wrap-overlays
+      (sp-wrap-region))
+     (t
       (sp-insert-pair)
-      (sp-skip-closing-pair))))
+      (sp-skip-closing-pair)))))
+
+(defvar sp-last-inserted-character ""
+  "If wrapping is cancelled, these character are re-inserted to
+the location of point before the wrapping.")
+(make-variable-buffer-local 'sp-last-inserted-character)
+
+(defmacro !concat (list a)
+  "Desctructive: Sets LIST to (concat LIST A)."
+  `(setq ,list (concat ,a ,list)))
+
+(defun sp-wrap-region-init ()
+  "Initialize the region wrapping."
+  ;; only do anything if the last command was self-insert-command
+  (when (eq this-command 'self-insert-command)
+    (let* ((p (point))
+           (m (mark))
+           (ostart (if (> p m) m (1- p)))
+           (oend (if (> p m) (1- p) m))
+           (keys (mapcar 'single-key-description (recent-keys)))
+           (last-keys (apply #'concat (-take 10 (reverse keys))))
+           (active-pair (--first (string-prefix-p (reverse-string (car it)) last-keys) sp-pair-list))
+           )
+
+      (deactivate-mark)
+      ;; if we can wrap right away, do it without creating overlays,
+      ;; we can save ourselves a lot of needless trouble :)
+      (if active-pair
+          (if (< p m)
+              (save-excursion
+                (goto-char m)
+                (insert (cdr active-pair)))
+              (delete-backward-char 1)
+              (insert (cdr active-pair))
+              (goto-char m)
+              (insert (car active-pair))
+              (goto-char (1+ p)))
+
+        ;; save the position and point so we can restore it on cancel. 1-
+        ;; because we've already inserted some character.
+        (setq sp-wrap-point (1- p))
+        (setq sp-wrap-mark m)
+
+        ;; We need to remember what was removed in case wrap is
+        ;; cancelled. Then these characters are re-inserted.
+        (setq sp-last-inserted-character (single-key-description last-command-event))
+
+        ;; if point > mark, we need to remove the character at the end and
+        ;; insert it to the front.
+        (when (> p m)
+          (delete-backward-char 1)
+          (goto-char ostart)
+          (insert sp-last-inserted-character))
+
+        (let* ((oleft (make-overlay ostart (1+ ostart) nil nil t))
+               (oright (make-overlay oend oend nil nil t))
+               )
+          ;; insert the possible pair into end overlay
+          ;; ()
+
+          (setq sp-wrap-overlays (cons oleft oright))
+          (when sp-highlight-wrap-overlay
+            (overlay-put oleft 'face 'sp-wrap-overlay-face)
+            (overlay-put oright 'face 'sp-wrap-overlay-face))
+          (overlay-put oleft 'priority 100)
+          (overlay-put oright 'priority 100)
+          (overlay-put oleft 'keymap sp-wrap-overlay-keymap)
+          (overlay-put oleft 'type 'wrap)
+
+          (goto-char (1+ ostart))
+          (add-hook 'post-command-hook 'sp-wrap-overlay-post-command-handler nil t)
+          )))))
 
 (defun sp-wrap-region ()
   "Wrap region."
@@ -457,7 +552,7 @@ followed by word. It is disabled by default. See
            ;; the closing pair
            (active-pair (--first (string-prefix-p (reverse-string (car it)) last-keys) sp-pair-list))
            (open-pair (car active-pair))
-           (close-pair (cadr active-pair))
+           (close-pair (cdr active-pair))
            )
       (when (and active-pair
                  (sp-insert-pair-p open-pair major-mode)
@@ -501,7 +596,7 @@ This behaviour can be globally disabled by setting
              (sp-get-active-overlay))
     (let* ((overlay (sp-get-active-overlay))
            (open-pair (overlay-get overlay 'pair-id))
-           (close-pair (cadr (assoc open-pair sp-pair-list)))
+           (close-pair (cdr (assoc open-pair sp-pair-list)))
            ;; how many chars have we already typed
            (already-skipped (- (length close-pair) (- (overlay-end overlay) (point))))
            )
@@ -541,18 +636,18 @@ disabled by setting `sp-autodelete-closing-pair' and
   (when smartparens-mode
     (let* ((p (point))
            (inside-pair (--first (and (looking-back (regexp-quote (car it)) (- p 10))
-                                      (looking-at (regexp-quote (cadr it))))
+                                      (looking-at (regexp-quote (cdr it))))
                                  sp-pair-list))
-           (behind-pair (--first (looking-back (regexp-quote (cadr it)) (- p 10)) sp-pair-list))
+           (behind-pair (--first (looking-back (regexp-quote (cdr it)) (- p 10)) sp-pair-list))
            (opening-pair (--first (looking-back (regexp-quote (car it)) (- p 10)) sp-pair-list)))
       (cond
        ;; we're inside a pair
        ((and inside-pair sp-autodelete-pair)
-        (delete-forward-char (length (cadr inside-pair)))
+        (delete-forward-char (length (cdr inside-pair)))
         (delete-backward-char (1- (length (car inside-pair)))))
        ;; we're behind a closing pair
        ((and behind-pair sp-autodelete-closing-pair)
-        (delete-backward-char (1- (length (cadr behind-pair)))))
+        (delete-backward-char (1- (length (cdr behind-pair)))))
        ;; we're behind an opening pair and there's no closing pair
        ((and opening-pair sp-autodelete-opening-pair)
         (delete-backward-char (1- (length (car opening-pair)))))
