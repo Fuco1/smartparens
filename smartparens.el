@@ -112,24 +112,9 @@ map to `self-insert-command'."
   :type '(repeat symbol)
   :group 'smartparens)
 
-;; function custom
+;; insert custom
 (defcustom sp-autoinsert-pair t
   "If non-nil, auto insert pairs.  See `sp-insert-pair'."
-  :type 'boolean
-  :group 'smartparens)
-
-(defcustom sp-autodelete-pair t
-  "If non-nil, auto delete pairs.  See `sp-delete-pair'."
-  :type 'boolean
-  :group 'smartparens)
-
-(defcustom sp-autodelete-closing-pair t
-  "If non-nil, auto delete the whole closing-pair.  See `sp-delete-pair'."
-  :type 'boolean
-  :group 'smartparens)
-
-(defcustom sp-autodelete-opening-pair t
-  "If non-nil, auto delete the whole opening-pair.  See `sp-delete-pair'."
   :type 'boolean
   :group 'smartparens)
 
@@ -178,6 +163,23 @@ moved backwards. See `sp-skip-closing-pair' for more info."
   :type 'boolean
   :group 'smartparens)
 
+;; delete custom
+(defcustom sp-autodelete-pair t
+  "If non-nil, auto delete pairs.  See `sp-delete-pair'."
+  :type 'boolean
+  :group 'smartparens)
+
+(defcustom sp-autodelete-closing-pair t
+  "If non-nil, auto delete the whole closing-pair.  See `sp-delete-pair'."
+  :type 'boolean
+  :group 'smartparens)
+
+(defcustom sp-autodelete-opening-pair t
+  "If non-nil, auto delete the whole opening-pair.  See `sp-delete-pair'."
+  :type 'boolean
+  :group 'smartparens)
+
+;; wrap custom
 (defcustom sp-autowrap-region t
   "If non-nil, wrap the active region with pair. See `sp-wrap-region' and `sp-wrap-region-init'"
   :type 'boolean
@@ -275,6 +277,15 @@ of opening or closing pair is 10 characters.")
 (defun reverse-string (str)
   "Reverse the string STR."
   (concat (reverse (append str nil))))
+
+(defun sp-point-in-string (&optional p)
+  "Return t if point is inside string, documentation string or a
+comment. If optional argument P is present, test this instead of
+point."
+  (let ((face (plist-get (text-properties-at (if p p (point))) 'face)))
+    (or (eq 'font-lock-string-face face)
+        (eq 'font-lock-doc-face face)
+        (eq 'font-lock-comment-face face))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Adding/removing of pairs/bans/allows etc.
@@ -840,6 +851,23 @@ disabled by setting `sp-autodelete-closing-pair' and
              (behind-pair (--first (looking-back (regexp-quote (cdr it)) (- p 10)) sp-pair-list))
              (opening-pair (--first (looking-back (regexp-quote (car it)) (- p 10)) sp-pair-list)))
         (cond
+         ;; we're just before the closing quote of a string. If there
+         ;; is an opening or closing pair behind the point, remove
+         ;; it. This is only really relevant if the pair ends in the
+         ;; same character as string quote. We almost never want to
+         ;; delete it as an autopair (it would "open up the string").
+         ;; So, word\"|" and <backspace> should produce word\|" or
+         ;; word|" (if \" is autopair) instead of word\|.
+         ((and (sp-point-in-string)
+               (not (sp-point-in-string (1+ p)))
+               (sp-point-in-string (- p 2))) ;; the string isn't empty
+          (cond ;; oh, you ugly duplication :/
+           ((and behind-pair sp-autodelete-closing-pair)
+            (delete-forward-char (- (1- (length (car behind-pair)))))
+            (setq sp-last-operation 'sp-delete-pair-closing))
+           ((and opening-pair sp-autodelete-opening-pair)
+            (delete-forward-char (- (1- (length (car opening-pair)))))
+            (setq sp-last-operation 'sp-delete-pair-opening))))
          ;; we're inside a pair
          ((and inside-pair sp-autodelete-pair)
           (delete-forward-char (length (cdr inside-pair)))
