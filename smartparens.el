@@ -48,8 +48,10 @@
   :init-value nil
   :lighter " SP"
   :group 'smartparens
+  :keymap sp-keymap
   (if smartparens-mode
       (progn
+        (sp-update-pair-triggers)
         (defadvice delete-backward-char (before sp-delete-pair-advice activate)
           (sp-delete-pair (ad-get-arg 0)))
         (add-hook 'post-command-hook 'sp-post-command-hook-handler nil t)
@@ -58,6 +60,26 @@
     (remove-hook 'post-command-hook 'sp-post-command-hook-handler t)
     (remove-hook 'pre-command-hook 'sp-pre-command-hook-handler t)
     (run-hooks 'smartparens-disabled-hook)
+    ))
+
+(defvar sp-keymap (make-sparse-keymap)
+  "Keymap used for smartparens-mode. Remaps all the trigger keys
+to `self-insert-command'. This means we lose some functionality
+in some modes (like c-electric keys).")
+
+(defun sp-update-pair-triggers ()
+  "Update the `sp-keymap' to include all trigger keys. Trigger
+key is any character present in any pair. Each trigger key must
+map to `self-insert-command'."
+  (setcdr sp-keymap nil)
+  (let ((triggers (-distinct
+            (split-string
+             (apply #'concat
+                    (--reduce-from (cons (car it)
+                                         (cons (cdr it) acc))
+                                   nil sp-pair-list))
+             "" t))))
+    (--each triggers (define-key sp-keymap it 'self-insert-command))
     ))
 
 (defvar smartparens-enabled-hook nil
@@ -282,6 +304,7 @@ should be banned by default. BANNED-MODES can also be a list."
     (setq sp-pair-list
           (sp-add-to-ordered-list (cons open close) sp-pair-list #'sp-order-pairs))
     (sp-add-local-ban-insert-pair open banned-modes)
+    (sp-update-pair-triggers)
   ))
 
 (defun sp-remove-pair (open)
@@ -290,7 +313,8 @@ for current list."
   (setq sp-pair-list
         (--remove (equal open (car it)) sp-pair-list))
   (sp-remove-local-ban-insert-pair open)
-  (sp-remove-local-allow-insert-pair open))
+  (sp-remove-local-allow-insert-pair open)
+  (sp-update-pair-triggers))
 
 ;; sp-global-ban-insert-pair
 
