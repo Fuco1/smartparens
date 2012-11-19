@@ -609,29 +609,32 @@ are of zero length, or if point moved backwards."
 
 (defadvice self-insert-command (after self-insert-command-post-hook activate)
   (when  smartparens-mode
-    (if (= 1 (ad-get-arg 0))
-        (progn
-          (setq op sp-last-operation)
-          (cond
-           ((region-active-p)
-            (sp-wrap-region-init))
-           (sp-wrap-overlays
-            (sp-wrap-region))
-           (t
-            (sp-insert-pair)
-            (sp-skip-closing-pair)))
-          ;; if nothing happened, we just inserted a character, so set
-          ;; the apropriate action
-          (when (eq op sp-last-operation)
-            (setq sp-last-operation 'sp-self-insert)
-            ;; if it was a quote, escape it
-            (when (eq (char-syntax (preceding-char)) ?\")
-              (save-excursion
-                (backward-char 1)
-                (insert sp-escape-char)))
-            ))
-      (setq sp-last-operation 'sp-self-insert)
-      )))
+    (let (op cp)
+      (if (= 1 (ad-get-arg 0))
+          (progn
+            (setq op sp-last-operation)
+            (cond
+             ((region-active-p)
+              (sp-wrap-region-init))
+             (sp-wrap-overlays
+              (sp-wrap-region))
+             (t
+              (sp-insert-pair)
+              (setq cp (sp-skip-closing-pair))))
+            ;; if nothing happened, we just inserted a character, so set
+            ;; the apropriate action
+            (when (and (eq op sp-last-operation)
+                       (not cp))
+              (setq sp-last-operation 'sp-self-insert)
+              ;; if it was a quote, escape it
+              (when (and sp-autoescape-string-quote
+                         (eq (char-syntax (preceding-char)) ?\"))
+                (save-excursion
+                  (backward-char 1)
+                  (insert sp-escape-char)))
+              ))
+        (setq sp-last-operation 'sp-self-insert)
+        ))))
 
 (defun sp-pre-command-hook-handler ()
   "Main handler of pre-command-hook. Handle the
