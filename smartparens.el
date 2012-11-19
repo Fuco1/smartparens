@@ -111,20 +111,35 @@
   :type 'boolean
   :group 'smartparens)
 
-(defcustom sp-autoinsert-if-followed-by-same nil
-  "If non-nil, auto insert the whole pair even if followed by the same
-opening pair.
+(defcustom sp-autoinsert-if-followed-by-same 2
+  "Customizes behaviour of pair insertion if the point is followed by
+the same opening pair as currently inserted pair.
 
-For example |() followed by ( would produce (|)(). If nil, it would
-produce (|() instead."
-  :type 'boolean
+The first option does not change the insertion behaviour and pairs are
+inserted normally. For example |() followed by ( would produce (|)().
+
+The second option inserts the pair only if the opening pair
+following point is not the same as currently inserted pair. For
+example |() followed by ( would produce (|(). If next character
+isn't part of any pair, insert normally.
+
+The third option behaves as second, but if the opening and closing
+pairs are the same, and we are looking at the closing pair, insert the
+whole pair. For example \"|\" followed by \" produce \"\"|\"\". This
+is useful in modes where pairs of same characters have special
+meaning, such as `markdown-mode' and * for italics and ** for bold."
+  :type '(radio
+          (const :tag "Insert the pair normally" 0)
+          (const :tag "Insert the pair only if not followed by same" 1)
+          (const :tag "Insert the pair only if not followed by same, but if the closing pair is the same as opening, insert new pair (useful for nested quote insertion)" 2)
+          )
   :group 'smartparens)
 
 (defcustom sp-autoinsert-if-followed-by-word nil
-  "If non-nil, auto insert the whole pair even if followed by word.
+  "If non-nil, auto insert the whole pair even if point is followed by word.
 
-For example |word followed by ( would produce (|)word.  If nil, it
-would produce (|word."
+For example |word followed by ( would produce (|)word.  If nil,
+it would produce (|word."
   :type 'boolean
   :group 'smartparens)
 
@@ -142,7 +157,7 @@ moved backwards. See `sp-skip-closing-pair' for more info."
   :group 'smartparens)
 
 (defcustom sp-autowrap-region t
-  "If non-nil, wrap the active region with pair. See `sp-wrap-region'"
+  "If non-nil, wrap the active region with pair. See `sp-wrap-region' and `sp-wrap-region-init'"
   :type 'boolean
   :group 'smartparens)
 
@@ -680,17 +695,19 @@ followed by word. It is disabled by default. See
                  (sp-insert-pair-p open-pair major-mode)
                  (if sp-autoinsert-if-followed-by-word t
                      (not (eq (char-syntax (following-char)) ?w)))
-                 (if sp-autoinsert-if-followed-by-same t
-                   ;; Open and close pair must be different! If they
-                   ;; are the same, we only insert if the active
-                   ;; overlay is NOT of the same type.  TODO: it still
-                   ;; does not handle pairs like "--" "--" correctly,
-                   ;; but I guess that is so rare use case that it's
-                   ;; not as important now
-                   (if (equal open-pair close-pair)
-                       (or (not (sp-get-active-overlay))
-                           (not (equal (overlay-get (sp-get-active-overlay) 'pair-id) open-pair)))
-                       (not (looking-at (regexp-quote open-pair))))))
+                 (cond
+                  ((eq sp-autoinsert-if-followed-by-same 0) t)
+                  ((eq sp-autoinsert-if-followed-by-same 1)
+                   (not (looking-at (regexp-quote open-pair))))
+                  ((eq sp-autoinsert-if-followed-by-same 2)
+                   (or (not (looking-at (regexp-quote open-pair)))
+                       (and (equal open-pair close-pair)
+                            (eq sp-last-operation 'sp-insert-pair)
+                            (save-excursion
+                              (backward-char 1)
+                              (looking-back (regexp-quote open-pair) (- (point) 10)))
+                            )))
+                  ))
         (insert close-pair)
         (backward-char (length close-pair))
         (sp-pair-overlay-create (- (point) (length open-pair))
@@ -732,11 +749,15 @@ This behaviour can be globally disabled by setting
           (when (and (looking-at (regexp-quote close-pair-rest))
                      ;; start deletion only if point is not right
                      ;; after the opening pair *after* the potential
-                     ;; closing character was inserted
+                     ;; closing character was inserted (if opening
+                     ;; pair and closing pair are the same, it would
+                     ;; delete it right after the insertion otherwise)
                      (> (- (point) (overlay-start overlay)) (length open-pair)))
             (if (equal (single-key-description last) (substring close-pair-rest 0 1))
-                (progn (forward-char 1)
-                       (delete-backward-char 1))
+                (progn
+                  (forward-char 1)
+                  (delete-forward-char (- 1))
+                  (setq sp-last-operation 'sp-skip-closing-pair))
               ;; Charactar that is not part of the closing pair was
               ;; typed. Only remove overlays if we're inside the
               ;; closing pair. If we are at the beginning, we are
