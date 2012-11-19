@@ -40,7 +40,7 @@ Pairs defined by this function are used both for wrapping and auto insertion. Ho
 You can also automatically disable pair autoinsertion for newly added pair in certain major modes. Simply add the list of modes as additional arguments. You can also just specify the modes as arguments themselves:
 
     (sp-add-pair "\{" "\}" 'c-mode 'java-mode) ;; will disable \{ pair in c-mode and java-mode
-    (sp-add-pair "@@" ";" '(c-mode java-mode)) ;; will disable \{ pair in c-mode and java-mode
+    (sp-add-pair "@@" ";" '(c-mode java-mode)) ;; will disable @@ pair in c-mode and java-mode
     (sp-add-pair "{-" "-}" 'c-mode '(emacs-lisp-mode)) ;; will disable {- pair in c-mode and emacs-lisp-mode
 
 The calling conventions will probably change after the wrapping is done. The first optional argument will serve for insertion ban, the rest will be for wrapping ban. Therefore, use the style from 2nd line (specify bans as a list).
@@ -69,7 +69,7 @@ You can remove pairs by calling `sp-remove-pair`. This will also automatically d
     (sp-remove-pair "'")
 
 (Customized pairs for major-modes will probably be supported too.)
-n
+
 Auto pairing
 ===========
 
