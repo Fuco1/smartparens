@@ -50,8 +50,8 @@
   :group 'smartparens
   (if smartparens-mode
       (progn
-        (defadvice backward-delete-char-untabify (before sp-delete-pair-advice activate) (sp-delete-pair))
-        (defadvice backward-delete-char (before sp-delete-pair-advice activate) (sp-delete-pair))
+        (defadvice delete-backward-char (before sp-delete-pair-advice activate)
+          (sp-delete-pair (ad-get-arg 0)))
         (add-hook 'post-command-hook 'sp-post-command-hook-handler nil t)
         (add-hook 'pre-command-hook 'sp-pre-command-hook-handler nil t)
         (run-hooks 'smartparens-enabled-hook))
@@ -745,7 +745,7 @@ This behaviour can be globally disabled by setting
                 (dolist (o sp-pair-overlay-list) (sp-remove-overlay o)))
               )))))))
 
-(defun sp-delete-pair ()
+(defun sp-delete-pair (&optional arg)
   "Automatically delete opening or closing pair, or both, depending on
 position of point.
 
@@ -757,7 +757,14 @@ If the point is behind a closing pair or behind an opening pair delete
 it as a whole. That is, \{\}| turns to \{|, \{| turns to |. Can be
 disabled by setting `sp-autodelete-closing-pair' and
 `sp-autodelete-opening-pair' to nil."
-  (when smartparens-mode
+  ;; NOTE: Only use delete-forward-char inside this function, so we
+  ;; don't activate the advice recursively!
+
+  ;; only activate if argument is 1 (this is 0-th argument of the
+  ;; delete-backward-char), otherwise the user wants to delete
+  ;; multiple character, so let him do that
+  (when (and (= arg 1)
+             smartparens-mode)
     (if (and sp-autodelete-wrap
              (eq sp-last-operation 'sp-wrap-region))
         (let ((p (point))
@@ -771,13 +778,13 @@ disabled by setting `sp-autodelete-closing-pair' and
           (cond
            ((= p (+ s o))
             (save-excursion
-              (delete-backward-char (1- o))
+              (delete-forward-char (- (1- o)))
               (goto-char (- e o))
-              (delete-backward-char c))
+              (delete-forward-char (- c)))
             (setq sp-last-operation 'sp-delete-pair-wrap))
            ((= p e)
             (save-excursion
-              (delete-backward-char (1- c))
+              (delete-forward-char (- (1- c)))
               (goto-char s)
               (delete-forward-char o))
             (setq sp-last-operation 'sp-delete-pair-wrap))))
@@ -791,15 +798,15 @@ disabled by setting `sp-autodelete-closing-pair' and
          ;; we're inside a pair
          ((and inside-pair sp-autodelete-pair)
           (delete-forward-char (length (cdr inside-pair)))
-          (delete-backward-char (1- (length (car inside-pair))))
+          (delete-forward-char (- (1- (length (car inside-pair)))))
           (setq sp-last-operation 'sp-delete-pair))
          ;; we're behind a closing pair
          ((and behind-pair sp-autodelete-closing-pair)
-          (delete-backward-char (1- (length (cdr behind-pair))))
+          (delete-forward-char (- (1- (length (cdr behind-pair)))))
           (setq sp-last-operation 'sp-delete-pair-closing))
          ;; we're behind an opening pair and there's no closing pair
          ((and opening-pair sp-autodelete-opening-pair)
-          (delete-backward-char (1- (length (car opening-pair))))
+          (delete-forward-char (- (1- (length (car opening-pair)))))
           (setq sp-last-operation 'sp-delete-pair-opening))
          )))))
 
