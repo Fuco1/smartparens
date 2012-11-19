@@ -258,8 +258,8 @@ is leq to B."
     (>= la lb)))
 
 (defun sp-add-pair (open close &rest banned-modes)
-  "Adds a pair formed by OPEN and CLOSE to the pair list. See variable `sp-pair-list' for
-current list.
+  "Adds a pair formed by OPEN and CLOSE to the pair list. See
+variable `sp-pair-list' for current list.
 
 Additional arguments are interpreted as modes where this pair
 should be banned by default. BANNED-MODES can also be a list."
@@ -273,7 +273,9 @@ should be banned by default. BANNED-MODES can also be a list."
   "Remove a pair from the pair list. See variable `sp-pair-list'
 for current list."
   (setq sp-pair-list
-        (--remove (equal open (car it)) sp-pair-list)))
+        (--remove (equal open (car it)) sp-pair-list))
+  (sp-remove-local-ban-insert-pair open)
+  (sp-remove-local-allow-insert-pair open))
 
 ;; sp-global-ban-insert-pair
 
@@ -309,24 +311,26 @@ permissions system for more details."
 
 (defmacro sp-remove-pair-from-permission-list (open list &rest modes)
   "Removes MODES from the pair with id OPEN in the LIST. See
-permissions system for more details."
+permissions system for more details. If modes is nil, remove the
+pair entirely."
   (let ((m (make-symbol "new-modes")))
     `(let ((,m (-flatten modes)))
-       (when ,m
+       (if ,m
          (let ((current (--first (equal ,open (car it)) ,list)))
            (when current
              (setcdr current (-difference (cdr current) ,m))
              (unless (cdr current)
-               (setq ,list (--remove (equal ,open (car it)) ,list)))))))))
+               (setq ,list (--remove (equal ,open (car it)) ,list)))))
+         (setq ,list (--remove (equal ,open (car it)) ,list))))))
 
 (defun sp-remove-local-ban-insert-pair (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
-modes MODES."
+modes MODES. If MODES is nil, remove all the modes."
   (sp-remove-pair-from-permission-list open sp-local-ban-insert-pair modes))
 
 (defun sp-remove-local-allow-insert-pair (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
-modes MODES."
+modes MODES. If MODES is nil, remove all the modes"
   (sp-remove-pair-from-permission-list open sp-local-allow-insert-pair modes))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
