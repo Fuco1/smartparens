@@ -54,6 +54,11 @@
         (sp-update-pair-triggers)
         (defadvice delete-backward-char (before sp-delete-pair-advice activate)
           (sp-delete-pair (ad-get-arg 0)))
+        ;; set the escape char
+        (dotimes (char 256)
+          (unless sp-escape-char
+            (if (= ?\\ (char-syntax char))
+                (setq sp-escape-char (string char)))))
         (add-hook 'post-command-hook 'sp-post-command-hook-handler nil t)
         (add-hook 'pre-command-hook 'sp-pre-command-hook-handler nil t)
         (run-hooks 'smartparens-enabled-hook))
@@ -215,6 +220,12 @@ applied."
   (setq sp-delete-selection-mode nil)
   )
 
+;; escaping custom
+(defcustom sp-autoescape-string-quote t
+  "If non-nil, autoescape string quotes if typed inside string."
+  :type 'boolean
+  :group 'smartparens)
+
 ;; ui custom
 (defcustom sp-highlight-pair-overlay t
   "If non-nil, auto-inserted pairs are highlighted until point
@@ -266,6 +277,10 @@ of opening or closing pair is 10 characters.")
 (defvar sp-last-operation nil
   "Symbol holding the last successful operation.")
 
+(defvar sp-escape-char nil
+  "Character used to escape quotes inside strings.")
+(make-variable-buffer-local 'sp-escape-char)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Misc functions
 
@@ -279,9 +294,18 @@ of opening or closing pair is 10 characters.")
   (concat (reverse (append str nil))))
 
 (defun sp-point-in-string (&optional p)
+  "Return t if point is inside string or documentation string. If
+optional argument P is present, test this instead of point."
+  (let ((face (plist-get (text-properties-at (if p p (point))) 'face)))
+    (or (eq 'font-lock-string-face face)
+        (eq 'font-lock-doc-face face) ;; I wonder how this works
+                                      ;; outside emacs-lisp-mode
+        )))
+
+(defun sp-point-in-string-or-comment (&optional p)
   "Return t if point is inside string, documentation string or a
-comment. If optional argument P is present, test this instead of
-point."
+comment. If optional argument P is present, test this instead
+of point."
   (let ((face (plist-get (text-properties-at (if p p (point))) 'face)))
     (or (eq 'font-lock-string-face face)
         (eq 'font-lock-doc-face face)
@@ -577,18 +601,37 @@ are of zero length, or if point moved backwards."
     (unless (eq this-command 'self-insert-command)
       (setq sp-last-operation nil))))
 
+(defvar sp-point-inside-string nil
+  "t if point is inside a string.")
+
+(defadvice self-insert-command (before self-insert-command-pre-hook activate)
+  (setq sp-point-inside-string (sp-point-in-string)))
+
 (defadvice self-insert-command (after self-insert-command-post-hook activate)
-  (when (and smartparens-mode
-             (= 1 (ad-get-arg 0)))
-    (cond
-     ((region-active-p)
-      (sp-wrap-region-init))
-     (sp-wrap-overlays
-      (sp-wrap-region))
-     (t
-      (sp-insert-pair)
-      (sp-skip-closing-pair)))
-    ))
+  (when  smartparens-mode
+    (if (= 1 (ad-get-arg 0))
+        (progn
+          (setq op sp-last-operation)
+          (cond
+           ((region-active-p)
+            (sp-wrap-region-init))
+           (sp-wrap-overlays
+            (sp-wrap-region))
+           (t
+            (sp-insert-pair)
+            (sp-skip-closing-pair)))
+          ;; if nothing happened, we just inserted a character, so set
+          ;; the apropriate action
+          (when (eq op sp-last-operation)
+            (setq sp-last-operation 'sp-self-insert)
+            ;; if it was a quote, escape it
+            (when (eq (char-syntax (preceding-char)) ?\")
+              (save-excursion
+                (backward-char 1)
+                (insert sp-escape-char)))
+            ))
+      (setq sp-last-operation 'sp-self-insert)
+      )))
 
 (defun sp-pre-command-hook-handler ()
   "Main handler of pre-command-hook. Handle the
@@ -731,6 +774,7 @@ followed by word. It is disabled by default. See
            (close-pair (cdr active-pair))
            )
       (when (and active-pair
+                 (not (eq sp-last-operation 'sp-skip-closing-pair))
                  (sp-insert-pair-p open-pair major-mode)
                  (if sp-autoinsert-if-followed-by-word t
                      (not (eq (char-syntax (following-char)) ?w)))
@@ -752,6 +796,25 @@ followed by word. It is disabled by default. See
         (sp-pair-overlay-create (- (point) (length open-pair))
                                 (+ (point) (length close-pair))
                                 open-pair)
+
+        ;; we only autoescape if the pair is a single character string
+        ;; delimiter. More elaborate pairs are probably already
+        ;; escaped. We leave the responsibility to the user, since
+        ;; it's not that common and the usecases might vary -> there's
+        ;; no good "default" case.
+        (when (and sp-autoescape-string-quote
+                   sp-point-inside-string
+                   (eq (char-syntax (string-to-char open-pair)) ?\")
+                   (eq (char-syntax (string-to-char close-pair)) ?\")
+                   (= 1 (length open-pair))
+                   (= 1 (length close-pair)))
+          (save-excursion
+            (backward-char 1)
+            (insert sp-escape-char)
+            (forward-char 1)
+            (insert sp-escape-char))
+          (overlay-put (sp-get-active-overlay) 'pair-id "\\\""))
+
         (setq sp-last-operation 'sp-insert-pair)
         ))))
 
@@ -862,7 +925,10 @@ disabled by setting `sp-autodelete-closing-pair' and
          ;; delete it as an autopair (it would "open up the string").
          ;; So, word\"|" and <backspace> should produce word\|" or
          ;; word|" (if \" is autopair) instead of word\|.
-         ((and (sp-point-in-string)
+         ((and font-lock-mode ;; who doesn't use this? but... to be
+                              ;; sure, since this is not a
+                              ;; customizable option
+               (sp-point-in-string)
                (not (sp-point-in-string (1+ p)))
                (sp-point-in-string (- p 2))) ;; the string isn't empty
           (cond ;; oh, you ugly duplication :/
