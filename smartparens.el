@@ -244,8 +244,7 @@ of opening or closing pair is 10 characters.")
 
 (defun sp-add-to-ordered-list (elm list order)
   "Add ELM to the LIST ordered by comparator ORDER. The list is
-ordered in descending order. This function is destructive, it
-sets LIST to the newly created list with ELM in it."
+ordered in descending order."
   (if (not list) (list elm)
   (if (funcall order elm (car list))
       (cons elm list)
@@ -258,11 +257,77 @@ is leq to B."
         (lb (length (car b))))
     (>= la lb)))
 
-(defun sp-add-pair (open close)
-  "Adds a pair to the pair list. See variable `sp-pair-list' for
-current list."
+(defun sp-add-pair (open close &rest banned-modes)
+  "Adds a pair formed by OPEN and CLOSE to the pair list. See variable `sp-pair-list' for
+current list.
+
+Additional arguments are interpreted as modes where this pair
+should be banned by default. BANNED-MODES can also be a list."
+  (unless (--any? (equal open (car it)) sp-pair-list)
+    (setq sp-pair-list
+          (sp-add-to-ordered-list (cons open close) sp-pair-list #'sp-order-pairs))
+    (sp-add-local-ban-insert-pair open banned-modes)
+  ))
+
+(defun sp-remove-pair (open)
+  "Remove a pair from the pair list. See variable `sp-pair-list'
+for current list."
   (setq sp-pair-list
-        (sp-add-to-ordered-list `(,open ,close) sp-pair-list #'sp-order-pairs)))
+        (--remove (equal open (car it)) sp-pair-list)))
+
+;; sp-global-ban-insert-pair
+
+(defun -union (list1 list2)
+  "Return a new list containing the elements of LIST1 and
+elements of LIST2 that were not present in LIST1. The test for
+equality is done with `equal', or with `-compare-fn' if that's
+non-nil."
+  (let ((result (nreverse list1)))
+    (--each list2 (when (not (-contains? result it)) (!cons it result)))
+    (nreverse result)))
+
+(defmacro sp-add-pair-to-permission-list (open list &rest modes)
+  "Add MODES to the pair with id OPEN in the LIST. See
+permissions system for more details."
+  (let ((m (make-symbol "new-modes")))
+    `(let ((,m (-flatten modes)))
+       (when ,m
+         (let ((current (--first (equal ,open (car it)) ,list)))
+           (if current
+               (setcdr current (-union (cdr current) ,m))
+             (!cons (cons ,open ,m) ,list)))))))
+
+(defun sp-add-local-ban-insert-pair (open &rest modes)
+  "Ban autoinsertion of pair with id OPEN in modes MODES. See
+`sp-insert-pair'."
+  (sp-add-pair-to-permission-list open sp-local-ban-insert-pair modes))
+
+(defun sp-add-local-allow-insert-pair (open &rest modes)
+  "Allow autoinsertion of pair with id OPEN in modes MODES. See
+`sp-insert-pair'."
+  (sp-add-pair-to-permission-list open sp-local-allow-insert-pair modes))
+
+(defmacro sp-remove-pair-from-permission-list (open list &rest modes)
+  "Removes MODES from the pair with id OPEN in the LIST. See
+permissions system for more details."
+  (let ((m (make-symbol "new-modes")))
+    `(let ((,m (-flatten modes)))
+       (when ,m
+         (let ((current (--first (equal ,open (car it)) ,list)))
+           (when current
+             (setcdr current (-difference (cdr current) ,m))
+             (unless (cdr current)
+               (setq ,list (--remove (equal ,open (car it)) ,list)))))))))
+
+(defun sp-remove-local-ban-insert-pair (open &rest modes)
+  "Remove previously set restriction on pair with id OPEN in
+modes MODES."
+  (sp-remove-pair-from-permission-list open sp-local-ban-insert-pair modes))
+
+(defun sp-remove-local-allow-insert-pair (open &rest modes)
+  "Remove previously set restriction on pair with id OPEN in
+modes MODES."
+  (sp-remove-pair-from-permission-list open sp-local-allow-insert-pair modes))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Overlay management
@@ -344,8 +409,6 @@ tracking the position of the point."
     (!cons overlay sp-pair-overlay-list)
     (sp-pair-overlay-fix-highlight)
     (add-hook 'post-command-hook 'sp-pair-overlay-post-command-handler nil t)))
-
-;; delete-selection-mode !!!
 
 (defun sp-wrap-overlay-post-command-handler ()
   "Cancel the wrap editing if the point moved outside the left
@@ -528,8 +591,7 @@ the location of point before the wrapping.")
                         (list p (+ len m) oplen cplen)
                       (list m (+ len p) oplen cplen))))
 
-          ;; save the position and point so we can restore it on cancel. 1-
-          ;; because we've already inserted some character.
+          ;; save the position and point so we can restore it on cancel.
           (setq sp-wrap-point p)
           (setq sp-wrap-mark m)
 
@@ -581,12 +643,14 @@ context. It is determined in this order:
 
 1. Global allow - all pairs are allowed by default in every mode.
 
-2. Local ban - you can ban specific pair in specific modes.
+2. Local ban - you can ban specific pair in specific modes. See
+`sp-add-local-ban-insert-pair'.
 
 3. Global ban - you can globally ban specific pair.
 
-4. Local allow - you can allow specific pair in specific modes. It is
-disabled in all other modes (as if you globally banned it first).
+4. Local allow - you can allow specific pair in specific
+modes. It is disabled in all other modes (as if you globally
+banned it first). See `sp-add-local-allow-insert-pair'.
 
 You can disable this feature completely for all modes and all pairs by
 setting `sp-autoinsert-pair' to nil.
