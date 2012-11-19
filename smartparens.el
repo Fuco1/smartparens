@@ -574,17 +574,21 @@ are of zero length, or if point moved backwards."
 (defun sp-post-command-hook-handler ()
   "Main handler of post-self-insert events."
   (when smartparens-mode
-    (if (eq this-command 'self-insert-command)
-        (cond
-         ((region-active-p)
-          (sp-wrap-region-init))
-         (sp-wrap-overlays
-          (sp-wrap-region))
-         (t
-          (sp-insert-pair)
-          (sp-skip-closing-pair)))
-      (setq sp-last-operation nil)
-      )))
+    (unless (eq this-command 'self-insert-command)
+      (setq sp-last-operation nil))))
+
+(defadvice self-insert-command (after self-insert-command-post-hook activate)
+  (when (and smartparens-mode
+             (= 1 (ad-get-arg 0)))
+    (cond
+     ((region-active-p)
+      (sp-wrap-region-init))
+     (sp-wrap-overlays
+      (sp-wrap-region))
+     (t
+      (sp-insert-pair)
+      (sp-skip-closing-pair)))
+    ))
 
 (defun sp-pre-command-hook-handler ()
   "Main handler of pre-command-hook. Handle the
