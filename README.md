@@ -24,7 +24,15 @@ The basic setup is as follows:
     (require 'smartparens)
     (smartparens-global-mode 1)
 
+If you've installed this as a package, you don't need to require it, as there is an autoload on `smartparens-global-mode`.
+
 You can disable smartparens in specific global modes by customizing `sp-ignore-mode-list`.
+
+This package depends on [dash](https://github.com/magnars/dash.el). If you've installed smartparens via package-install, it should resolve dependencies automatically (dash is on melpa and marmalade). If not, you'd need to install it manually. See the installation information on their homepage.
+
+*(Note: smartparens is not yet available as package, so you need to do manual installation for now)*
+
+If you use `delete-selection-mode`, you **MUST** disable it and set appropriate emulation by smartparens. See the Wrapping section for more info.
 
 Pair management
 ===========
@@ -47,7 +55,7 @@ The calling conventions will probably change after the wrapping is done. The fir
 
 Pairs have to be **prefix-free**, that means no opening pair should be a prefix of some other pair. This is reasonable and in fact necessary for correct function. For example, with autoinsertion of pair `"("  ")"` and pair `"(/"  "/)"` (which has as a prefix the one parens version), the program wouldn't know you might want to insert the longer version and simply inserts `(|)`. This can techincally be fixed with "look-ahead" and then backward alteration of input text, but it will be confusing and probably not very useful anyway.
 
-*(I’ve found a way to fix this, so the prefix-free requirement will probably be removed in the future)*
+*(I’ve found a way to fix this, so the prefix-free requirement will probably be removed in the future.)*
 
 Pairs included by default:
 
@@ -68,17 +76,17 @@ You can remove pairs by calling `sp-remove-pair`. This will also automatically d
     (sp-remove-pair "\{")
     (sp-remove-pair "'")
 
-(Customized pairs for major-modes will probably be supported too.)
+*(Customized pairs for major-modes will probably be supported too. This means overwriting a default pair. For example changing `' into \`\` in markdown-mode. I'm not sure on the actual mechanism, but I'd like the simplest possible one)*
 
 Auto pairing
 ===========
 
 Autopairing of each pair can be enabled or disabled by variety of permissions. The basic order of evaluation is:
 
-1. Globally allowed - each pair is by default allowed in every major mode
-2. Locally banned - you can disable specific pair in specific major modes (for example ' pairing in lisp-related modes)
-3. Globally banned - you can disable auto-pairing of a pair globally. The same pair can still be used for wrapping.
-4. Locally allowed - you can enable a pair only in specific major modes. In other modes, it will be disabled automatically.
+1. Globally allowed - each pair is by default allowed in every major mode.
+2. Locally banned - specific pair won't auto-pair in specific major modes (for example ' pairing in lisp-related modes).
+3. Globally banned - specific pair won't auto-pair globally (= disabled in all major modes). The same pair can still be used for wrapping.
+4. Locally allowed - specific pair only auto-pairs in specific major modes. In other modes, it will be disabled automatically.
 
 Each of the "next" levels overrides the previous.
 
@@ -94,5 +102,30 @@ You can remove local bans with `sp-remove-local-ban-insert-pair` function. If ca
 
 Similar functions work for the allow list. They are called `sp-add-local-allow-insert-pair` and `sp-remove-local-allow-insert-pair`. The calling conventions are the same.
 
+*(following functionality not implemented yet)*
 
-To change behaviours of the autopairing, see `customize-group` for available options.
+In addition to these restrictions, you can also disable all or specific pairs only inside comments and strings (strings from now on) or only in code (everything except strings). For example, the `'  '` pair is really annoying in strings, since it's used as apostrophe in english and other languages. Likewise, `` '` is annoying inside lisp code (backtick is used in macros), but is used in emacs lisp documentation.
+
+By default, auto-pairing is allowed in both strings and code. The order of evaluation is as follows:
+
+1. Allowed in this mode? (see ban/allow mechanics above).
+2. Locally banned in strings - specific pair won't auto-pair in strings in specific major modes.
+3. Globally banned - specific pair will never auto-pair in strings.
+4. Locally allowed - specific pair will only auto-pair in strings in specific major modes.
+
+The same hierarchy works for banning/allowing insertion in code. Note that if you disable insertion in commends and also in code, you might consider disabling the pair by the regular ban/allow mechanism, it will make for cleaner configuration :)
+
+*(above mentioned functionality not implemented yet)*
+
+To change behaviours of the autopairing, see `M-x customize-group smartparens` for available options.
+
+Wrapping
+===========
+
+*(This feature is only partially implemented. Currently, 1 character wrapping works, multicharacter wrapping is not fully functional)*
+
+If you select a region and start typing any of the pairs, the active region will be wrapped with the pair. For multi-character pairs, a special insertion mode is entered, where point jumps to the beginning of the region. If you insert a complete pair, the region is wrapped and point returns to the original position.
+
+If you insert a character that can't possibly complete a pair, the wrapping is cancelled, the point returns to the original position and the typed text is inserted.
+
+If you use `delete-selection-mode`, you **MUST** disable it and enable an emulation by running `sp-turn-on-delete-selection-mode`. This behaves in the exact same way as original `delete-selection-mode`, indeed, it simply calls the `delete-selection-pre-hook` when appropriate. However, it intercepts it and handle the wrapping if needed.

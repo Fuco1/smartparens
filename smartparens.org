@@ -19,6 +19,7 @@ Structure of global list is (command...)
 - [ ] There can be a special treatment, for example after {, if followed by <ret> place the ending } with a new line inbetween.
 - [X] If user types the closing pair, it should skip the auto-inserted one
 - [X] When the pair is empty and the point is inside -- (|), on backspace the whole pair should be deleted. If the pair is multi-character and the point is after the closing pair, it should be deleted as a whole. For example: /* */| after backspace should be /* |
+- [ ] Since we remap all the trigger keys to self-insert, some behaviour might be lost (c-electric or other auto-indentation hackery). We should add some support for defining special behaviours for these events (similar to point 2)
 ** when a region is active, wrap it with the char/pair/string
 - [ ] If we have an active region, instead of inserting the pair, we wrap the region in the pair.
 - [ ] There should also be an unwrap command. If we're at the of a "pair-wrapped region", after running the command, it should unwrap.
