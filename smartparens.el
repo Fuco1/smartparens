@@ -644,7 +644,7 @@ are of zero length, or if point moved backwards."
   (when sp-delete-selection-mode
     (let ((delete-selection-mode t))
       (delete-selection-pre-hook)
-      )))
+      (when (< m p) (insert last-command-event)))))
 
 (defun sp-pre-command-hook-handler ()
   "Main handler of pre-command-hook. Handle the
@@ -670,9 +670,7 @@ the location of point before the wrapping.")
     (if (--none? (string-prefix-p (single-key-description last-command-event) (car it)) sp-pair-list)
         (let ((p (1- (point)))
               (m (mark)))
-          (message "%s" mark-active)
-          (sp-delete-selection-mode-handle)
-          (when (< m p) (insert last-command-event)))
+          (sp-delete-selection-mode-handle))
       (let* ((p (1- (point))) ;; we want the point *before* the
                               ;; insertion of the character
              (m (mark))
