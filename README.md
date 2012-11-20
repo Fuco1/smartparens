@@ -10,11 +10,11 @@ Modern lightweight smart parens/auto-insert/wrapping package for Emacs. This pac
 * [/] wraps region in defined pairs or defined tag pairs for "tag-modes" (xml/html...). Partially implemented, now support single-character wrapping.
   * Different tags are supported, for example, languages that would use `{tag}` instead of `<tag>` or different opening pair and closing pair syntax, for example opening with `(tag` and closing with `)` (a.k.a. s-expression)
 * automatically escape strings if wrapped with another string. `this "string"` turns to `"this \"string\""` automaticaly.
-* automatically escape typed quotes inside a string
+* [x] automatically escape typed quotes inside a string
 
 **All features** are fully customizable. You can turn every behaviour on or off for best user experience (yay buzzwords).
 
-This is a developement version NOT ready for use yet. Features marked with [x] are somewhat completed.
+This is a developement version NOT ready for use yet. Features marked with [x] are somewhat completed. However, feel free to install it and report bugs :)
 
 Installation
 ===========
@@ -129,3 +129,20 @@ If you select a region and start typing any of the pairs, the active region will
 If you insert a character that can't possibly complete a pair, the wrapping is cancelled, the point returns to the original position and the typed text is inserted.
 
 If you use `delete-selection-mode`, you **MUST** disable it and enable an emulation by running `sp-turn-on-delete-selection-mode`. This behaves in the exact same way as original `delete-selection-mode`, indeed, it simply calls the `delete-selection-pre-hook` when appropriate. However, it intercepts it and handle the wrapping if needed.
+
+Automatic escaping
+============
+
+Warning: this feature needs `font-lock-mode` enabled (but seriously, who doesn't use it).
+
+If `sp-autoescape-string-quote` is enabled, all quotes (by this string delimiters are understood) are escaped if the point is within a string. The quote pair, if auto inserted, is escaped as well.
+
+If you want automatic deletion of escaped quote, you need to add it as a new pair definition with `sp-add-pair`. For example, both `"` and `\"` need to be defined as pairs (these two are included by default as they are by far the most common).
+
+Some example situations:
+
+* `"a|sd"`, user hits `"`, result: `"a\"|sd"`
+* `"some | word"`, user hits `"`, result: `"some \"|\" word"`
+* `"some | word"`, user types `\"`, result: `"some \"|\" word"` (the quote is not escaped again)
+
+It's best if you try this feature during actual editing to see if you like it or not. Please post suggestions. Also, there are some corner cases where the behaviour might not be expected, but they are so rare that fixing them is not a priority right now. However, if you find any suspicious behaviour do not hesitate to report it.

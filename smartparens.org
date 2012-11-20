@@ -25,10 +25,10 @@ Structure of global list is (command...)
 - [ ] There should also be an unwrap command. If we're at the of a "pair-wrapped region", after running the command, it should unwrap.
 
 * Escape quotes within strings
-- [ ] When typing " or ' inside a string, automatically escape it with \.
+- [X] When typing " inside a string, automatically escape it with \.
 - [ ] When wrapping a region with " (or other "quote" character), automatically escape included quotes. Do not double-escape quotes! (that is, already escaped quotes are not escaped again)
 - [ ] When wrapping inside a quoted region, autoescape quotes. (do we need to define what a quote is?)
-- [ ] Pair deletion should also work inside quoted strings.
+- [X] Pair deletion should also work inside quoted strings.
 
 
 Each pair is uniquely determined by the open bracket (so it will be used as an "ID" for the pair)
