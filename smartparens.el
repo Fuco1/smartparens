@@ -5,7 +5,7 @@
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
 ;; Created: 17 Nov 2012
-;; Version: 0.1
+;; Version: 0.4
 ;; Keywords: abbrev convenience editing
 ;; Package-Requires: ((dash "1.0"))
 ;; URL: https://github.com/Fuco1/smartparens
@@ -42,6 +42,11 @@
   "Smartparens minor mode"
   :group 'editor)
 
+(defvar sp-keymap (make-sparse-keymap)
+  "Keymap used for smartparens-mode. Remaps all the trigger keys
+to `self-insert-command'. This means we lose some functionality
+in some modes (like c-electric keys).")
+
 ;;;###autoload
 (define-minor-mode smartparens-mode
   "Toggle smartparens mode"
@@ -66,11 +71,6 @@
     (remove-hook 'pre-command-hook 'sp-pre-command-hook-handler t)
     (run-hooks 'smartparens-disabled-hook)
     ))
-
-(defvar sp-keymap (make-sparse-keymap)
-  "Keymap used for smartparens-mode. Remaps all the trigger keys
-to `self-insert-command'. This means we lose some functionality
-in some modes (like c-electric keys).")
 
 (defun sp-update-pair-triggers ()
   "Update the `sp-keymap' to include all trigger keys. Trigger
@@ -488,26 +488,9 @@ tracking the position of the point."
     (sp-pair-overlay-fix-highlight)
     (add-hook 'post-command-hook 'sp-pair-overlay-post-command-handler nil t)))
 
-(defun sp-wrap-overlay-post-command-handler ()
-  "Cancel the wrap editing if the point moved outside the left
-overlay or if point moved backwards."
-  ;; sanity check
-  (when sp-wrap-overlays
-    (let* ((overlay (car sp-wrap-overlays))
-           (start (overlay-start overlay))
-           (end (overlay-end overlay))
-           (p (point)))
-      (when (or (< p sp-previous-point)
-                (> p end)
-                (< p start))
-        (sp-wrap-cancel))))
-  (when sp-wrap-overlays
-    (setq sp-previous-point (point))))
-
 (defun sp-wrap-cancel ()
   "Cancel the active wrapping."
   (interactive)
-  (remove-hook 'post-command-hook 'sp-wrap-overlay-post-command-handler t)
   (let ((oleft (car sp-wrap-overlays))
         (oright (cdr sp-wrap-overlays)))
     (delete-region (overlay-start oleft) (overlay-end oleft))
@@ -598,6 +581,19 @@ are of zero length, or if point moved backwards."
 (defun sp-post-command-hook-handler ()
   "Main handler of post-self-insert events."
   (when smartparens-mode
+    ;; handle the wrap overlays
+    (when sp-wrap-overlays
+      (let* ((overlay (car sp-wrap-overlays))
+             (start (overlay-start overlay))
+             (end (overlay-end overlay))
+             (p (point)))
+        (when (or (< p sp-previous-point)
+                  (> p end)
+                  (< p start))
+          (sp-wrap-cancel))))
+    (when sp-wrap-overlays
+      (setq sp-previous-point (point)))
+
     (unless (eq this-command 'self-insert-command)
       (setq sp-last-operation nil))))
 
@@ -613,7 +609,7 @@ are of zero length, or if point moved backwards."
      (progn ,@forms)))
 
 (defadvice self-insert-command (after self-insert-command-post-hook activate)
-  (when  smartparens-mode
+  (when smartparens-mode
     (let (op action)
       (if (= 1 (ad-get-arg 0))
           (progn
@@ -643,17 +639,20 @@ are of zero length, or if point moved backwards."
         (setq sp-last-operation 'sp-self-insert)
         ))))
 
+(defun sp-delete-selection-mode-handle ()
+  "Call the original `delete-selection-pre-hook'."
+  (when sp-delete-selection-mode
+    (let ((delete-selection-mode t))
+      (delete-selection-pre-hook)
+      )))
+
 (defun sp-pre-command-hook-handler ()
   "Main handler of pre-command-hook. Handle the
 delete-selection-mode stuff here."
   (if (not (eq this-command 'self-insert-command))
       ;; if not self-insert, just run the hook from
       ;; delete-selection-mode if enabled
-      (when sp-delete-selection-mode
-        (setq delete-selection-mode t)
-        (delete-selection-pre-hook)
-        (setq delete-selection-mode nil)
-        (setq sp-attempt-wrap nil))
+      (sp-delete-selection-mode-handle)
     ))
 
 (defvar sp-last-inserted-character ""
@@ -664,12 +663,16 @@ the location of point before the wrapping.")
 (defun sp-wrap-region-init ()
   "Initialize the region wrapping."
   ;; only do anything if the last command was self-insert-command
-  (when (and sp-autowrap-region
-             (eq this-command 'self-insert-command))
+  (when sp-autowrap-region
     ;; if we can't possibly form a wrap, just insert the char and do
     ;; nothing. If delete-selection-mode is enabled, run
     ;; delete-selection-pre-hook
-    (when t
+    (if (--none? (string-prefix-p (single-key-description last-command-event) (car it)) sp-pair-list)
+        (let ((p (1- (point)))
+              (m (mark)))
+          (message "%s" mark-active)
+          (sp-delete-selection-mode-handle)
+          (when (< m p) (insert last-command-event)))
       (let* ((p (1- (point))) ;; we want the point *before* the
                               ;; insertion of the character
              (m (mark))
