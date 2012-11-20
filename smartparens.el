@@ -607,9 +607,14 @@ are of zero length, or if point moved backwards."
 (defadvice self-insert-command (before self-insert-command-pre-hook activate)
   (setq sp-point-inside-string (sp-point-in-string)))
 
+(defmacro setaction (action &rest forms)
+  `(if (not action)
+       (setq action (progn ,@forms))
+     (progn ,@forms)))
+
 (defadvice self-insert-command (after self-insert-command-post-hook activate)
   (when  smartparens-mode
-    (let (op cp)
+    (let (op action)
       (if (= 1 (ad-get-arg 0))
           (progn
             (setq op sp-last-operation)
@@ -619,20 +624,22 @@ are of zero length, or if point moved backwards."
              (sp-wrap-overlays
               (sp-wrap-region))
              (t
-              (sp-insert-pair)
-              (setq cp (sp-skip-closing-pair))))
-            ;; if nothing happened, we just inserted a character, so set
-            ;; the apropriate action
-            (when (and (eq op sp-last-operation)
-                       (not cp))
-              (setq sp-last-operation 'sp-self-insert)
+              (setaction action (sp-insert-pair))
+              (setaction action (sp-skip-closing-pair))
+              ;; if nothing happened, we just inserted a character, so set
+              ;; the apropriate operation
+              (when (not action)
+                (setq sp-last-operation 'sp-self-insert))
               ;; if it was a quote, escape it
-              (when (and sp-autoescape-string-quote
+              (when (and (eq sp-last-operation 'sp-self-insert)
+                         sp-autoescape-string-quote
                          (eq (char-syntax (preceding-char)) ?\"))
                 (save-excursion
                   (backward-char 1)
                   (insert sp-escape-char)))
               ))
+
+            )
         (setq sp-last-operation 'sp-self-insert)
         ))))
 
