@@ -336,7 +336,7 @@ is leq to B."
     (>= la lb)))
 
 (defun sp-add-pair (open close &rest banned-modes)
-  "Adds a pair formed by OPEN and CLOSE to the pair list. See
+  "Add a pair formed by OPEN and CLOSE to the pair list. See
 variable `sp-pair-list' for current list.
 
 Additional arguments are interpreted as modes where this pair
@@ -357,7 +357,16 @@ for current list."
   (sp-remove-local-allow-insert-pair open)
   (sp-update-pair-triggers))
 
-;; sp-global-ban-insert-pair
+(defun sp-add-ban-insert-pair (&rest open)
+  "Add the pairs with ids in OPEN to the global insertion
+banlist. That means that these pairs will never be used for auto
+insertion. They can still be used for wrapping."
+  (setq sp-global-ban-insert-pair (-union sp-global-ban-insert-pair (-flatten open))))
+
+(defun sp-remove-ban-insert-pair (&rest open)
+  "Remove the pairs with ids in OPEN from the global insertion
+banlist."
+  (setq sp-global-ban-insert-pair (-difference sp-global-ban-insert-pair (-flatten open))))
 
 (defun -union (list1 list2)
   "Return a new list containing the elements of LIST1 and
@@ -377,7 +386,7 @@ non-nil."
        ,n)))
 
 (defun -last (pred list)
-  "Returns the first x in LIST where (PRED x) is non-nil, else nil."
+  "Return the first x in LIST where (PRED x) is non-nil, else nil."
   (--first (funcall pred it) list))
 
 (defmacro sp-add-pair-to-permission-list (open list &rest modes)
@@ -408,11 +417,11 @@ pair entirely."
   (let ((m (make-symbol "new-modes")))
     `(let ((,m (-flatten modes)))
        (if ,m
-         (let ((current (--first (equal ,open (car it)) ,list)))
-           (when current
-             (setcdr current (-difference (cdr current) ,m))
-             (unless (cdr current)
-               (setq ,list (--remove (equal ,open (car it)) ,list)))))
+           (let ((current (--first (equal ,open (car it)) ,list)))
+             (when current
+               (setcdr current (-difference (cdr current) ,m))
+               (unless (cdr current)
+                 (setq ,list (--remove (equal ,open (car it)) ,list)))))
          (setq ,list (--remove (equal ,open (car it)) ,list))))))
 
 (defun sp-remove-local-ban-insert-pair (open &rest modes)
@@ -524,7 +533,8 @@ tracking the position of the point."
     (setq sp-previous-point -1)
 
     (goto-char sp-wrap-point)
-    (insert sp-last-inserted-character)
+    (when can-delete
+      (insert sp-last-inserted-character))
   ))
 
 (defun sp-pair-overlay-fix-highlight ()
