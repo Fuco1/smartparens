@@ -249,20 +249,43 @@ of editing the wrapping pair."
 ;; Variables
 
 (defvar sp-local-ban-insert-pair '(("'" . (emacs-lisp-mode)))
-  "Pairs on this list are locally disabled in specified modes.
+  "For pairs on this list auto insertion is locally disabled in
+specified modes.
 
 List of elements of type (command . '(list of modes)).")
 
 (defvar sp-global-ban-insert-pair '()
-  "Pairs on this list are disabled globally.
+  "For pairs on this list auto insertion is disabled globally.
 
 List of pair IDs.")
 
 (defvar sp-local-allow-insert-pair '()
-  "Pairs on this list are locally enabled in specified modes. They are
-disabled in other modes automatically.
+  "For pairs on this list auto insertion is locally enabled in
+specified modes. It is disabled in all other modes automatically.
 
 List of elements of type (command . '(list of modes)).")
+
+(defvar sp-local-ban-insert-pair-in-string '()
+  "For pairs on this list auto insertion is locally disabled in
+specific modes if the point is inside string, docstring or
+comment.
+
+List of elements of type (command . '(list of modes)).")
+
+(defvar sp-global-ban-insert-pair-in-string '("'")
+  "For pairs on this list auto insertion is disabled globally if
+the point is inside string, docstring or comment.
+
+List of pair IDs.")
+
+(defvar sp-local-allow-insert-pair-in-string '()
+  "For pairs on this list auto insertion is locally enabled in
+specific modes if the point is inside string, docstring or
+comment. It is disabled in all other modes automatically.
+
+List of elements of type (command . '(list of modes)).")
+
+
 
 (defvar sp-pair-list '(
                        ("\\\\(" . "\\\\)") ;; emacs regexp parens
@@ -368,6 +391,18 @@ insertion. They can still be used for wrapping."
 banlist."
   (setq sp-global-ban-insert-pair (-difference sp-global-ban-insert-pair (-flatten open))))
 
+(defun sp-add-ban-insert-pair-in-string (&rest open)
+  "Add the pairs with ids in OPEN to the global \"in string\"
+insertion banlist. That means that these pairs will never be used
+for auto insertion if the point is inside string. They can still
+be used for wrapping."
+  (setq sp-global-ban-insert-pair-in-string (-union sp-global-ban-insert-pair-in-string (-flatten open))))
+
+(defun sp-remove-ban-insert-pair-in-string (&rest open)
+  "Remove the pairs with ids in OPEN from the global \"in
+string\" insertion banlist."
+  (setq sp-global-ban-insert-pair-in-string (-difference sp-global-ban-insert-pair-in-string (-flatten open))))
+
 (defun -union (list1 list2)
   "Return a new list containing the elements of LIST1 and
 elements of LIST2 that were not present in LIST1. The test for
@@ -410,6 +445,16 @@ permissions system for more details."
 `sp-insert-pair'."
   (sp-add-pair-to-permission-list open sp-local-allow-insert-pair modes))
 
+(defun sp-add-local-ban-insert-pair-in-string (open &rest modes)
+  "Ban autoinsertion of pair with id OPEN in modes MODES if point
+is inside string, docstring or comment. See `sp-insert-pair'."
+  (sp-add-pair-to-permission-list open sp-local-ban-insert-pair-in-string modes))
+
+(defun sp-add-local-allow-insert-pair-in-string (open &rest modes)
+  "Allow autoinsertion og pair with id OPEN in MODES if point is
+inside string, docstring or comment. See `sp-insert-pair'."
+  (sp-add-pair-to-permission-list open sp-local-allow-insert-pair-in-string modes))
+
 (defmacro sp-remove-pair-from-permission-list (open list &rest modes)
   "Removes MODES from the pair with id OPEN in the LIST. See
 permissions system for more details. If modes is nil, remove the
@@ -433,6 +478,18 @@ modes MODES. If MODES is nil, remove all the modes."
   "Remove previously set restriction on pair with id OPEN in
 modes MODES. If MODES is nil, remove all the modes"
   (sp-remove-pair-from-permission-list open sp-local-allow-insert-pair modes))
+
+(defun sp-remove-local-ban-insert-pair-in-string (open &rest modes)
+  "Remove previously set restriction on pair with id OPEN in
+modes MODES if the point is inside string. If MODES is nil,
+remove all the modes."
+  (sp-remove-pair-from-permission-list open sp-local-ban-insert-pair-in-string modes))
+
+(defun sp-remove-local-allow-insert-pair-in-string (open &rest modes)
+  "Remove previously set restriction on pair with id OPEN in
+modes MODES if the point is inside string. If MODES is nil,
+remove all the modes"
+  (sp-remove-pair-from-permission-list open sp-local-allow-insert-pair-in-string modes))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Overlay management
@@ -600,6 +657,15 @@ are of zero length, or if point moved backwards."
      ((member id sp-global-ban-insert-pair) nil)
      ;; if locally disabled, disable
      (local-ban nil)
+     ;; test the "in string bans"
+     ((sp-point-in-string-or-comment)
+      (let ((local-ban-in-string (member mode (cdr (assoc id sp-local-ban-insert-pair))))
+            (local-allow-in-string (cdr (assoc id sp-local-allow-insert-pair))))
+        (cond
+         (local-allow-in-string (member mode local-allow-in-string))
+         ((member id sp-global-ban-insert-pair-in-string) nil)
+         (local-ban-in-string nil)
+         (t t))))
      ;; otherwise allow
      (t t))))
 
