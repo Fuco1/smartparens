@@ -64,11 +64,11 @@ in some modes (like c-electric keys).")
           (unless sp-escape-char
             (if (= ?\\ (char-syntax char))
                 (setq sp-escape-char (string char)))))
-        (add-hook 'post-command-hook 'sp-post-command-hook-handler nil t)
-        (add-hook 'pre-command-hook 'sp-pre-command-hook-handler nil t)
+        (add-hook 'post-command-hook 'sp-post-command-hook-handler)
+        (add-hook 'pre-command-hook 'sp-pre-command-hook-handler)
         (run-hooks 'smartparens-enabled-hook))
-    (remove-hook 'post-command-hook 'sp-post-command-hook-handler t)
-    (remove-hook 'pre-command-hook 'sp-pre-command-hook-handler t)
+    (remove-hook 'post-command-hook 'sp-post-command-hook-handler)
+    (remove-hook 'pre-command-hook 'sp-pre-command-hook-handler)
     (run-hooks 'smartparens-disabled-hook)
     ))
 
@@ -109,7 +109,7 @@ map to `self-insert-command'."
 (defun turn-off-smartparens-mode ()
   "Turn off `smartparens-mode'."
   (interactive)
-  (smartparens-mode -1))
+  (smartparens-mode nil))
 
 ;; global custom
 (defcustom sp-ignore-modes-list '(
@@ -734,17 +734,16 @@ are of zero length, or if point moved backwards."
   "Call the original `delete-selection-pre-hook'."
   (when sp-delete-selection-mode
     (let ((delete-selection-mode t))
-      (delete-selection-pre-hook)
-      (when (< m p) (insert last-command-event)))))
+      (delete-selection-pre-hook))))
 
 (defun sp-pre-command-hook-handler ()
   "Main handler of pre-command-hook. Handle the
 delete-selection-mode stuff here."
-  (if (not (eq this-command 'self-insert-command))
-      ;; if not self-insert, just run the hook from
-      ;; delete-selection-mode if enabled
-      (sp-delete-selection-mode-handle)
-    ))
+  (when (and smartparens-mode
+             (not (eq this-command 'self-insert-command)))
+    ;; if not self-insert, just run the hook from
+    ;; delete-selection-mode if enabled
+    (sp-delete-selection-mode-handle)))
 
 (defvar sp-last-inserted-character ""
   "If wrapping is cancelled, these character are re-inserted to
@@ -767,7 +766,8 @@ positions include the newly added wrapping pair.")
     (if (--none? (string-prefix-p (single-key-description last-command-event) (car it)) sp-pair-list)
         (let ((p (1- (point)))
               (m (mark)))
-          (sp-delete-selection-mode-handle))
+          (sp-delete-selection-mode-handle)
+          (when (< m p) (insert (single-key-description last-command-event))))
       (let* ((p (1- (point))) ;; we want the point *before* the
                               ;; insertion of the character
              (m (mark))
