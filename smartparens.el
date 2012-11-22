@@ -720,7 +720,7 @@ are of zero length, or if point moved backwards."
               ;; if it was a quote, escape it
               (when (and (eq sp-last-operation 'sp-self-insert)
                          sp-autoescape-string-quote
-                         (eq (char-syntax (preceding-char)) ?\"))
+                         (eq (preceding-char) ?\"))
                 (save-excursion
                   (backward-char 1)
                   (insert sp-escape-char)))
@@ -893,6 +893,7 @@ positions include the newly added wrapping pair.")
       )
     ))
 
+;; TODO: Update docs with info about in-string bans
 (defun sp-insert-pair ()
   "Automatically insert the closing pair if it is allowed in current
 context. It is determined in this order:
@@ -959,8 +960,8 @@ followed by word. It is disabled by default. See
         ;; no good "default" case.
         (when (and sp-autoescape-string-quote
                    sp-point-inside-string
-                   (eq (char-syntax (string-to-char open-pair)) ?\")
-                   (eq (char-syntax (string-to-char close-pair)) ?\")
+                   (eq (string-to-char open-pair) ?\")
+                   (eq (string-to-char close-pair) ?\")
                    (= 1 (length open-pair))
                    (= 1 (length close-pair)))
           (save-excursion
