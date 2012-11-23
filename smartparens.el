@@ -102,7 +102,8 @@ map to `self-insert-command'."
 (defun turn-on-smartparens-mode ()
   "Turn on `smartparens-mode'."
   (interactive)
-  (unless (member major-mode sp-ignore-modes-list)
+  (unless (or (member major-mode sp-ignore-modes-list)
+              (minibufferp))
     (smartparens-mode t)))
 
 ;;;###autoload
@@ -248,7 +249,7 @@ of editing the wrapping pair."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Variables
 
-(defvar sp-local-ban-insert-pair '(("'" . (emacs-lisp-mode)))
+(defvar sp-local-ban-insert-pair '()
   "For pairs on this list auto insertion is locally disabled in
 specified modes.
 
@@ -272,7 +273,7 @@ comment.
 
 List of elements of type (command . '(list of modes)).")
 
-(defvar sp-global-ban-insert-pair-in-string '("'")
+(defvar sp-global-ban-insert-pair-in-string '()
   "For pairs on this list auto insertion is disabled globally if
 the point is inside string, docstring or comment.
 
@@ -285,7 +286,24 @@ comment. It is disabled in all other modes automatically.
 
 List of elements of type (command . '(list of modes)).")
 
+(defvar sp-local-ban-insert-pair-in-code '()
+  "For pairs on this list auto insertion is locally disabled in
+specific modes if the point is inside code.
 
+List of elements of type (command . '(list of modes)).")
+
+(defvar sp-global-ban-insert-pair-in-code '()
+  "For pairs on this list auto insertion is disabled globally if
+the point is inside code.
+
+List of pair IDs.")
+
+(defvar sp-local-allow-insert-pair-in-code '()
+  "For pairs on this list auto insertion is locally enabled in
+specific modes if the point is inside code. It is disabled in all
+other modes automatically.
+
+List of elements of type (command . '(list of modes)).")
 
 (defvar sp-pair-list '(
                        ("\\\\(" . "\\\\)") ;; emacs regexp parens
@@ -317,6 +335,10 @@ of opening or closing pair is 10 characters.")
   "Destructive: Sets LIST to (delete ELM LIST)."
   `(setq ,list (delete ,elm ,list)))
 
+(defmacro sp-with (arg &rest forms)
+  `(progn
+     ,@(mapcar (lambda (form) (append form (list arg))) forms)))
+(font-lock-add-keywords 'emacs-lisp-mode '(("\\<sp-with\\>" . font-lock-keyword-face)) 'append)
 
 (defun reverse-string (str)
   "Reverse the string STR."
@@ -455,6 +477,16 @@ is inside string, docstring or comment. See `sp-insert-pair'."
 inside string, docstring or comment. See `sp-insert-pair'."
   (sp-add-pair-to-permission-list open sp-local-allow-insert-pair-in-string modes))
 
+(defun sp-add-local-ban-insert-pair-in-code (open &rest modes)
+  "Ban autoinsertion of pair with id OPEN in modes MODES if point
+is inside code. See `sp-insert-pair'."
+  (sp-add-pair-to-permission-list open sp-local-ban-insert-pair-in-code modes))
+
+(defun sp-add-local-allow-insert-pair-in-code (open &rest modes)
+  "Allow autoinsertion og pair with id OPEN in MODES if point is
+inside code. See `sp-insert-pair'."
+  (sp-add-pair-to-permission-list open sp-local-allow-insert-pair-in-code modes))
+
 (defmacro sp-remove-pair-from-permission-list (open list &rest modes)
   "Removes MODES from the pair with id OPEN in the LIST. See
 permissions system for more details. If modes is nil, remove the
@@ -481,15 +513,27 @@ modes MODES. If MODES is nil, remove all the modes"
 
 (defun sp-remove-local-ban-insert-pair-in-string (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
-modes MODES if the point is inside string. If MODES is nil,
-remove all the modes."
+modes MODES if the point is inside string, docstring or
+comment. If MODES is nil, remove all the modes."
   (sp-remove-pair-from-permission-list open sp-local-ban-insert-pair-in-string modes))
 
 (defun sp-remove-local-allow-insert-pair-in-string (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
-modes MODES if the point is inside string. If MODES is nil,
-remove all the modes"
+modes MODES if the point is inside string, docstring or
+comment. If MODES is nil, remove all the modes"
   (sp-remove-pair-from-permission-list open sp-local-allow-insert-pair-in-string modes))
+
+(defun sp-remove-local-ban-insert-pair-in-code (open &rest modes)
+  "Remove previously set restriction on pair with id OPEN in
+modes MODES if the point is inside code. If MODES is nil,
+remove all the modes."
+  (sp-remove-pair-from-permission-list open sp-local-ban-insert-pair-in-code modes))
+
+(defun sp-remove-local-allow-insert-pair-in-code (open &rest modes)
+  "Remove previously set restriction on pair with id OPEN in
+modes MODES if the point is inside code. If MODES is nil,
+remove all the modes"
+  (sp-remove-pair-from-permission-list open sp-local-allow-insert-pair-in-code modes))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Overlay management
@@ -659,15 +703,22 @@ are of zero length, or if point moved backwards."
      (local-ban nil)
      ;; test the "in string bans"
      ((sp-point-in-string-or-comment)
-      (let ((local-ban-in-string (member mode (cdr (assoc id sp-local-ban-insert-pair))))
-            (local-allow-in-string (cdr (assoc id sp-local-allow-insert-pair))))
+      (let ((local-ban-in-string (member mode (cdr (assoc id sp-local-ban-insert-pair-in-string))))
+            (local-allow-in-string (cdr (assoc id sp-local-allow-insert-pair-in-string))))
         (cond
          (local-allow-in-string (member mode local-allow-in-string))
          ((member id sp-global-ban-insert-pair-in-string) nil)
          (local-ban-in-string nil)
          (t t))))
-     ;; otherwise allow
-     (t t))))
+     ;; if not in string, we must be in code
+     (t
+      (let ((local-ban-in-code (member mode (cdr (assoc id sp-local-ban-insert-pair-in-code))))
+            (local-allow-in-code (cdr (assoc id sp-local-allow-insert-pair-in-code))))
+        (cond
+         (local-allow-in-code (member mode local-allow-in-code))
+         ((member id sp-global-ban-insert-pair-in-code) nil)
+         (local-ban-in-code nil)
+         (t t)))))))
 
 (defun sp-post-command-hook-handler ()
   "Main handler of post-self-insert events."
