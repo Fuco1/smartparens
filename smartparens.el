@@ -733,6 +733,28 @@ are of zero length, or if point moved backwards."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Pair insertion/deletion/skipping
 
+(defun sp-insert-pair-in-string-p (id mode)
+  "Return t if we can insert pair ID in MODE inside string,
+docstring or comment. See `sp-insert-pair' for more info."
+  (let ((local-ban-in-string (member mode (cdr (assoc id sp-local-ban-insert-pair-in-string))))
+        (local-allow-in-string (cdr (assoc id sp-local-allow-insert-pair-in-string))))
+    (cond
+     (local-allow-in-string (member mode local-allow-in-string))
+     ((member id sp-global-ban-insert-pair-in-string) nil)
+     (local-ban-in-string nil)
+     (t t))))
+
+(defun sp-insert-pair-in-code-p (id mode)
+  "Return t if we can insert pair ID in MODE inside code. See
+`sp-insert-pair' for more info."
+  (let ((local-ban-in-code (member mode (cdr (assoc id sp-local-ban-insert-pair-in-code))))
+        (local-allow-in-code (cdr (assoc id sp-local-allow-insert-pair-in-code))))
+    (cond
+     (local-allow-in-code (member mode local-allow-in-code))
+     ((member id sp-global-ban-insert-pair-in-code) nil)
+     (local-ban-in-code nil)
+     (t t))))
+
 (defun sp-insert-pair-p (id mode)
   "Return t if we can insert pair ID in MODE. See
 `sp-insert-pair' for more info."
@@ -741,29 +763,22 @@ are of zero length, or if point moved backwards."
     (cond
      ;; if locally allowed, allow it. If it's on local-allow list
      ;; automatically disable it in all non-specified modes
-     (local-allow (member mode local-allow))
+     (local-allow
+      (if (member mode local-allow)
+          (if (sp-point-in-string-or-comment)
+              (sp-insert-pair-in-string-p id mode)
+            (sp-insert-pair-in-code-p id mode))
+        nil))
      ;; if globally disabled, disable
      ((member id sp-global-ban-insert-pair) nil)
      ;; if locally disabled, disable
      (local-ban nil)
      ;; test the "in string bans"
      ((sp-point-in-string-or-comment)
-      (let ((local-ban-in-string (member mode (cdr (assoc id sp-local-ban-insert-pair-in-string))))
-            (local-allow-in-string (cdr (assoc id sp-local-allow-insert-pair-in-string))))
-        (cond
-         (local-allow-in-string (member mode local-allow-in-string))
-         ((member id sp-global-ban-insert-pair-in-string) nil)
-         (local-ban-in-string nil)
-         (t t))))
+      (sp-insert-pair-in-string-p id mode))
      ;; if not in string, we must be in code
-     (t
-      (let ((local-ban-in-code (member mode (cdr (assoc id sp-local-ban-insert-pair-in-code))))
-            (local-allow-in-code (cdr (assoc id sp-local-allow-insert-pair-in-code))))
-        (cond
-         (local-allow-in-code (member mode local-allow-in-code))
-         ((member id sp-global-ban-insert-pair-in-code) nil)
-         (local-ban-in-code nil)
-         (t t)))))))
+     (t (sp-insert-pair-in-code-p id mode))
+      )))
 
 (defun sp-post-command-hook-handler ()
   "Main handler of post-self-insert events."
