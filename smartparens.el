@@ -328,7 +328,6 @@ List of elements of type (command . '(list of modes)).")
                        ("("     . ")")
                        ("["     . "]")
                        ("{"     . "}")
-                       ("<"     . ">")
                        ("`"     . "'") ;; tap twice for tex double quotes
                        )
   "List of pairs for auto-insertion or wrapping. Maximum length
@@ -1154,8 +1153,8 @@ wrapped region, exluding any existing possible wrap."
     (overlay-put oleft 'modification-hooks '(sp-wrap-tag-update))
     (overlay-put oleft 'insert-in-front-hooks '(sp-wrap-tag-update))
     (overlay-put oleft 'insert-behind-hooks '(sp-wrap-tag-update))
+    (add-hook 'post-command-hook 'sp-wrap-tag-post-command-handler)
     ))
-
 
 (defun sp-wrap-tag-update (overlay after? beg end &optional length)
   (let* ((oleft (car sp-wrap-tag-overlays))
@@ -1170,6 +1169,14 @@ wrapped region, exluding any existing possible wrap."
       (insert (funcall transform open)))
     )
   )
+
+(defun sp-wrap-tag-post-command-handler ()
+  "Terminate the tag insertion mode if the point jumps out of the
+tag overlay."
+  (if (or (not sp-wrap-tag-overlays)
+          (< (point) (overlay-start (car sp-wrap-tag-overlays)))
+          (> (point) (overlay-end (car sp-wrap-tag-overlays))))
+      (sp-wrap-tag-done)))
 
 (defun sp-match-sgml-tags (tag)
   (let* ((split (split-string tag " "))
@@ -1198,6 +1205,7 @@ wrapped region, exluding any existing possible wrap."
         (oright (cdr sp-wrap-tag-overlays)))
     (delete-overlay oleft)
     (delete-overlay oright)
+    (remove-hook 'post-command-hook 'sp-wrap-tag-post-command-handler)
     )
   )
 
