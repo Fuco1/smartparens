@@ -7,14 +7,14 @@ Modern lightweight smart parens/auto-insert/wrapping package for Emacs. This pac
 * [x] inteligent handling of closing pair. If user types `(`, `(|)` is inserted. If he then types `word)` the result is `(word)|` not `(word)|)`. This behaviour is cancelled if user moves backwards during editing or move point outside of the pair.
 * [x] automatic deletion of whole pairs. With pair `("\{" "\}")` (LaTeX literal brackets), `\{|\}` and backspace will remove both of the pairs. `\{\}|` and backspace will remove the whole closing pair. `\{|` and backspace will remove the whole opening pair.
 * [x] when followed by the same opening pair or word, do not insert the whole pair. That is: `|()` followed by `(` will produce `(|()` instead of `(|)()`. Similarly, `|word` followed by `(` will produce `(|word`.
-* [/] wraps region in defined pairs or defined tag pairs for "tag-modes" (xml/html...). Partially implemented, now support single-character wrapping.
+* [x] wraps region in defined pairs or defined tag pairs for "tag-modes" (xml/html...). (tags not implemented yet).
   * Different tags are supported, for example, languages that would use `{tag}` instead of `<tag>` or different opening pair and closing pair syntax, for example opening with `(tag` and closing with `)` (a.k.a. s-expression)
 * automatically escape strings if wrapped with another string. `this "string"` turns to `"this \"string\""` automaticaly.
 * [x] automatically escape typed quotes inside a string
 
-**All features** are fully customizable. You can turn every behaviour on or off for best user experience (yay buzzwords).
+**All features** are fully customizable via `M-x customize-group smartparens`. You can turn every behaviour on or off for best user experience (yay buzzwords).
 
-This is a developement version NOT ready for use yet. Features marked with [x] are somewhat completed. However, feel free to install it and report bugs :)
+This is still a developement pre 1.0 version. Features marked with [x] are fully implemented. Free to install it and report bugs or new features :)
 
 Installation
 ===========
@@ -26,13 +26,15 @@ The basic setup is as follows:
 
 If you've installed this as a package, you don't need to require it, as there is an autoload on `smartparens-global-mode`.
 
-You can disable smartparens in specific global modes by customizing `sp-ignore-mode-list`.
+You can disable smartparens in specific global modes by customizing `sp-ignore-mode-list`. Of course, you can also only turn it on in specific modes via the hook mechanisms.
 
-This package depends on [dash](https://github.com/magnars/dash.el). If you've installed smartparens via package-install, it should resolve dependencies automatically (dash is on melpa and marmalade). If not, you'd need to install it manually. See the installation information on their homepage.
+This package *depends* on [dash](https://github.com/magnars/dash.el). If you've installed smartparens via package-install, it should resolve dependencies automatically (dash is on melpa and marmalade). If not, you'd need to install it manually. See the installation information on their homepage.
 
 *(Note: smartparens is not yet available as package, so you need to do manual installation for now)*
 
 If you use `delete-selection-mode`, you **MUST** disable it and set appropriate emulation by smartparens. See the Wrapping section for more info.
+
+See the last section for an example configuration.
 
 Pair management
 ===========
@@ -102,9 +104,7 @@ You can remove local bans with `sp-remove-local-ban-insert-pair` function. If ca
 
 Similar functions work for the allow list. They are called `sp-add-local-allow-insert-pair` and `sp-remove-local-allow-insert-pair`. The calling conventions are the same.
 
-*(following functionality not implemented yet)*
-
-In addition to these restrictions, you can also disable all or specific pairs only inside comments and strings (strings from now on) or only in code (everything except strings). For example, the `'  '` pair is really annoying in strings, since it's used as apostrophe in english and other languages. Likewise, `` '` is annoying inside lisp code (backtick is used in macros), but is used in emacs lisp documentation.
+In addition to these restrictions, you can also disable all or specific pairs only inside comments and strings (strings from now on) or only in code (everything except strings). For example, the `'  '` pair is really annoying in strings, since it's used as apostrophe in english and other languages. Likewise, `\` '` is annoying inside lisp code (backtick is used in macros), but is used in emacs lisp documentation.
 
 By default, auto-pairing is allowed in both strings and code. The order of evaluation is as follows:
 
@@ -113,22 +113,36 @@ By default, auto-pairing is allowed in both strings and code. The order of evalu
 3. Globally banned - specific pair will never auto-pair in strings.
 4. Locally allowed - specific pair will only auto-pair in strings in specific major modes.
 
-The same hierarchy works for banning/allowing insertion in code. Note that if you disable insertion in commends and also in code, you might consider disabling the pair by the regular ban/allow mechanism, it will make for cleaner configuration :)
+The same hierarchy works for banning/allowing insertion in code. Note that if you disable insertion in comments and also in code, you might consider disabling the pair by the regular ban/allow mechanism, it will make for cleaner configuration :)
 
-*(above mentioned functionality not implemented yet)*
+The functions used for these operations are:
+
+    (sp-add-local-ban-insert-pair-in-string)
+    (sp-add-local-allow-insert-pair-in-string)
+    (sp-remove-local-ban-insert-pair-in-string)
+    (sp-remove-local-allow-insert-pair-in-string)
+
+    (sp-add-local-ban-insert-pair-in-code)
+    (sp-add-local-allow-insert-pair-in-code)
+    (sp-remove-local-ban-insert-pair-in-code)
+    (sp-remove-local-allow-insert-pair-in-code)
+
+The names are self-explanatory enough.
 
 To change behaviours of the autopairing, see `M-x customize-group smartparens` for available options.
 
 Wrapping
 ===========
 
-*(This feature is only partially implemented. Currently, 1 character wrapping works, multicharacter wrapping is not fully functional)*
+*(This feature is only partially implemented. Currently, wrapping with tags is not supported. Permission system is not supported.)*
 
 If you select a region and start typing any of the pairs, the active region will be wrapped with the pair. For multi-character pairs, a special insertion mode is entered, where point jumps to the beginning of the region. If you insert a complete pair, the region is wrapped and point returns to the original position.
 
 If you insert a character that can't possibly complete a pair, the wrapping is cancelled, the point returns to the original position and the typed text is inserted.
 
 If you use `delete-selection-mode`, you **MUST** disable it and enable an emulation by running `sp-turn-on-delete-selection-mode`. This behaves in the exact same way as original `delete-selection-mode`, indeed, it simply calls the `delete-selection-pre-hook` when appropriate. However, it intercepts it and handle the wrapping if needed.
+
+At any time in the insertion mode you can use `C-g` to cancel the insertion. In this case, both the opening and closing pairs are removed and the point returns to the original position. The region is not deleted even if `sp-turn-on-delete-selection-mode` is active.
 
 Automatic escaping
 ============
@@ -146,3 +160,32 @@ Some example situations:
 * `"some | word"`, user types `\"`, result: `"some \"|\" word"` (the quote is not escaped again)
 
 It's best if you try this feature during actual editing to see if you like it or not. Please post suggestions. Also, there are some corner cases where the behaviour might not be expected, but they are so rare that fixing them is not a priority right now. However, if you find any suspicious behaviour do not hesitate to report it.
+
+Example configuration
+=============
+
+This is actually my current config for this package. Since I'm only using `emacs-lisp-mode` and `markdown-mode` now, it's somewhat brief for the moment :)
+
+    (smartparens-global-mode t)
+
+    ;; pending deletion. Replace active region with input. This is
+    ;; virtually `delete-selection-mode' emulation.
+    (sp-turn-on-delete-selection-mode)
+
+    ;;; add new pairs
+    (sp-add-pair "*" "*")
+
+    ;;; global
+    (sp-add-ban-insert-pair-in-string "'")
+
+    ;;; emacs-lisp-mode
+    (sp-add-local-ban-insert-pair "'" 'emacs-lisp-mode)
+    (sp-add-local-ban-insert-pair-in-code "`" 'emacs-lisp-mode)
+
+    ;; you can also use the (sp-with) macro. It will automatically add the
+    ;; mode to the end of each call. How cool is that!
+    (sp-with 'markdown-mode
+             (sp-add-local-ban-insert-pair "`")
+             (sp-add-local-ban-insert-pair "'")
+             ;; this also disables '*' in all other modes
+             (sp-add-local-allow-insert-pair "*"))
