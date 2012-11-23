@@ -346,6 +346,9 @@ List of elements of type (mode . '((open . close))).")
                            ("<" . (
                                    ((sgml-mode html-mode emacs-lisp-mode) "<_>" "</_>" sp-match-sgml-tags)
                                    ))
+                           ("\\b" . (
+                                     ((latex-mode tex-mode) "\\begin{_}" "\\end{_}" identity)
+                                     ))
                            )
 
   "List of tag pairs. Some languages use more elaborate tag pairs,
@@ -990,8 +993,7 @@ delete-selection-mode stuff here."
             (setq oend (1+ oend)))
 
           (let* ((oleft (make-overlay ostart (1+ ostart) nil nil t))
-                 (oright (make-overlay oend oend nil nil t))
-                 )
+                 (oright (make-overlay oend oend nil nil t)))
 
             ;; insert the possible pair into end overlay
             (let ((close-pair (cdr (--last (string-prefix-p
@@ -1032,40 +1034,40 @@ delete-selection-mode stuff here."
                                    sp-last-inserted-character
                                    (car it))
                                   sp-pair-list))
-            (open-pair (car active-pair))
-            (close-pair (cdr active-pair)))
+             (open-pair (car active-pair))
+             (close-pair (cdr active-pair)))
 
-        ;; TODO: call sp-wrap-tag-region-init here. See if we can
-        ;; extend the current wrap-beginning into a tag
+        ;; call sp-wrap-tag-region-init here. See if we can extend the
+        ;; current wrap-beginning into a tag
+        (unless (sp-wrap-tag-region-init)
+          ;; update the close pair
+          (if close-pair
+              (save-excursion
+                (delete-region (overlay-start oright) (overlay-end oright))
+                (goto-char (overlay-start oright))
+                (insert close-pair))
+            ;; if we don't have any, it means there is no way to
+            ;; complete the pair... abort
+            (sp-wrap-cancel t))
 
-        ;; update the close pair
-        (if close-pair
-            (save-excursion
-              (delete-region (overlay-start oright) (overlay-end oright))
-              (goto-char (overlay-start oright))
-              (insert close-pair))
-          ;; if we don't have any, it means there is no way to
-          ;; complete the pair... abort
-          (sp-wrap-cancel t))
-
-        ;; we've completed a pairing!
-        (when (equal sp-last-inserted-character open-pair)
-          (let ((s (overlay-start oleft))
-                (e (overlay-end oright))
-                (oplen (length open-pair))
-                (cplen (length close-pair)))
-          (delete-overlay oleft)
-          (delete-overlay oright)
-          (setq sp-wrap-overlays nil)
-          (setq sp-previous-point -1)
-          (if (< sp-wrap-point sp-wrap-mark)
-              (goto-char (+ sp-wrap-point oplen))
-            (goto-char (+ sp-wrap-point oplen cplen)))
-          ;; update info for possible following delete
-          (setq sp-last-operation 'sp-wrap-region)
-          (setq sp-last-wrapped-region
-                (list s e oplen cplen))
-          ))))))
+          ;; we've completed a pairing!
+          (when (equal sp-last-inserted-character open-pair)
+            (let ((s (overlay-start oleft))
+                  (e (overlay-end oright))
+                  (oplen (length open-pair))
+                  (cplen (length close-pair)))
+              (delete-overlay oleft)
+              (delete-overlay oright)
+              (setq sp-wrap-overlays nil)
+              (setq sp-previous-point -1)
+              (if (< sp-wrap-point sp-wrap-mark)
+                  (goto-char (+ sp-wrap-point oplen))
+                (goto-char (+ sp-wrap-point oplen cplen)))
+              ;; update info for possible following delete
+              (setq sp-last-operation 'sp-wrap-region)
+              (setq sp-last-wrapped-region
+                    (list s e oplen cplen))
+              )))))))
 
 (defun sp-wrap-tag-region-init ()
   "Init a region wrapping with a tag pair. This is called from
@@ -1079,13 +1081,27 @@ tag. The tag always gets priority from the regular wrap."
     (if sp-wrap-overlays ;; called from within the wrap-mode
         (let* ((oleft (car sp-wrap-overlays))
                (oright (cdr sp-wrap-overlays))
-               (open (buffer-substring (overlay-start oleft) (overlay-end oleft)))
-               (active-tag (assoc open sp-tag-pair-list))
-               )
+               (possible-tag (--first (string-prefix-p
+                                       sp-last-inserted-character
+                                       (car it)) sp-tag-pair-list))
+               (active-tag (cdr (--first (member major-mode (car it)) (cdr possible-tag)))))
           (when active-tag
-
-            )
-          )
+            ;; if we've found a tag trigger, enter the tag editing mode
+            (if (eq (length sp-last-inserted-character) (length (car possible-tag)))
+                (progn
+                  (delete-region (overlay-start oright) (overlay-end oright))
+                  (sp-wrap-tag-create-overlays possible-tag active-tag
+                                               (overlay-start oleft)
+                                               (-
+                                                (overlay-start oright)
+                                                (sp-get-overlay-length oleft)))
+                  (delete-overlay oleft)
+                  (delete-overlay oright)
+                  (setq sp-wrap-overlays nil)
+                  (setq sp-previous-point -1)) ;; do we need this?
+              t) ;; return t as it is possible to extend current wrap
+                 ;; into a tag insertion mode
+            ))
       ;; here we need to look at the last inserted character
       (let* ((p (1- (point)))
              (m (mark))
@@ -1097,23 +1113,34 @@ tag. The tag always gets priority from the regular wrap."
                                     sp-tag-pair-list))
              (active-tag (cdr (--first (member major-mode (car it)) (cdr possible-tag)))))
         (when active-tag
+          (setq sp-last-inserted-character (sp-single-key-description last-command-event))
+          (setq sp-wrap-point p)
+          (setq sp-wrap-mark m)
+          (when (> p m)
+            (delete-forward-char (- 1))
+            (goto-char ostart)
+            (insert sp-last-inserted-character)
+            (setq oend (1+ oend)))
           (if (= 1 (length (car possible-tag)))
               ;; the tag is only 1 character long, we can enter
               ;; insertion mode right away
-              (progn
-                (when (> p m)
-                  (delete-forward-char (- 1))
-                  (goto-char ostart)
-                  (insert (sp-single-key-description last-command-event))
-                  (setq oend (1+ oend))
-                  )
-                (sp-wrap-tag-create-overlays possible-tag active-tag ostart oend)
-                )
-            ())
-          )
-        )
-      )
-    ))
+              ;; I don't know why it needs 1- here, but it does :D
+              (sp-wrap-tag-create-overlays possible-tag active-tag ostart (1- oend))
+            ;; we don't have a wrap, but we can maybe start a tag
+            ;; wrap. So just init the wrapping overlays as usual, and
+            ;; let `sp-wrap-region' handle it
+            (let* ((oleft (make-overlay ostart (1+ ostart) nil nil t))
+                   (oright (make-overlay oend oend nil nil t)))
+              (setq sp-wrap-overlays (cons oleft oright))
+              (when sp-highlight-wrap-overlay
+                (overlay-put oleft 'face 'sp-wrap-overlay-face)
+                (overlay-put oright 'face 'sp-wrap-overlay-face))
+              (overlay-put oleft 'priority 100)
+              (overlay-put oright 'priority 100)
+              (overlay-put oleft 'keymap sp-wrap-overlay-keymap)
+              (overlay-put oleft 'type 'wrap)
+              (goto-char (1+ ostart)))
+            ))))))
 
 (defun sp-wrap-tag-create-overlays (possible-tag active-tag ostart oend)
   "Create the wrap tag overlays.
@@ -1138,8 +1165,8 @@ wrapped region, exluding any existing possible wrap."
                      (goto-char (+ oend o))
                      (insert (apply #'concat tag-close)))
                    (make-overlay
-                    (+ oend o (- 1) (length (car tag-close)))
-                    (+ oend o (- 1) (length (car tag-close)))
+                    (+ oend o (length (car tag-close)))
+                    (+ oend o (length (car tag-close)))
                     nil nil t))))
     (setq sp-wrap-tag-overlays (cons oleft oright))
     (when sp-highlight-wrap-tag-overlay
@@ -1153,6 +1180,7 @@ wrapped region, exluding any existing possible wrap."
     (overlay-put oleft 'modification-hooks '(sp-wrap-tag-update))
     (overlay-put oleft 'insert-in-front-hooks '(sp-wrap-tag-update))
     (overlay-put oleft 'insert-behind-hooks '(sp-wrap-tag-update))
+    (setq sp-last-operation 'sp-wrap-tag)
     (add-hook 'post-command-hook 'sp-wrap-tag-post-command-handler)
     ))
 
@@ -1182,11 +1210,6 @@ tag overlay."
   (let* ((split (split-string tag " "))
          (close (car split)))
     close))
-
-(defun sp-wrap-tag-region ()
-  "Wrap region with tag."
-
-  )
 
 (defun sp-wrap-tag-beginning ()
   "Move point to the beginning of the wrap tag editation area."
