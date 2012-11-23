@@ -82,7 +82,7 @@ You can remove pairs by calling `sp-remove-pair`. This will also automatically d
 Mode-dependent custom pairs
 ----------
 
-Sometimes, a globally defined pair is not appropriate for certain major modes. You can redefine globally defined pairs to have different definition in specific major modes. For example, globally defined pair ```'`` is used in `emacs-lisp-mode` for links in comments and in `LaTeX-mode` for quotes. However, in `markdown-mode`, a pair `````` is used instead to insert inline code. Therefore, it is desired to redefine this global pair to this new value.
+Sometimes, a globally defined pair is not appropriate for certain major modes. You can redefine globally defined pairs to have different definition in specific major modes. For example, globally defined pair \`' is used in `emacs-lisp-mode` for links in comments and in `LaTeX-mode` for quotes. However, in `markdown-mode`, a pair \`\` is used instead to insert inline code. Therefore, it is desired to redefine this global pair to this new value.
 
 That is accompilshed by using this funcion:
 
@@ -117,7 +117,7 @@ Similar functions work for the allow list. They are called `sp-add-local-allow-i
 Auto pairing in strings/code
 ----------
 
-In addition to these restrictions, you can also disable all or specific pairs only inside comments and strings (strings from now on) or only in code (everything except strings). For example, the `'  '` pair is really annoying in strings, since it's used as apostrophe in english and other languages. Likewise, ```'`` is annoying inside lisp code (backtick is used in macros), but is used in emacs lisp documentation.
+In addition to these restrictions, you can also disable all or specific pairs only inside comments and strings (strings from now on) or only in code (everything except strings). For example, the `'  '` pair is really annoying in strings, since it's used as apostrophe in english and other languages. Likewise, \`' is annoying inside lisp code (backtick is used in macros), but is used in emacs lisp documentation.
 
 By default, auto-pairing is allowed in both strings and code. The order of evaluation is as follows:
 
@@ -232,14 +232,35 @@ This is actually my current config for this package. Since I'm only using `emacs
     ;;; global
     (sp-add-ban-insert-pair-in-string "'")
 
+    ;; you can also use the `sp-with-tag' macro. It will automatically add
+    ;; the tag to each function. Use this only with functions where the
+    ;; first argument is the opening pair! Here, we want to disable ' pair
+    ;; in a bunch of text modes
+    (sp-with-tag "'"
+                 (sp-add-local-ban-insert-pair 'markdown-mode)
+                 (sp-add-local-ban-insert-pair 'tex-mode)
+                 (sp-add-local-ban-insert-pair 'latex-mode)
+                 (sp-add-local-ban-insert-pair 'text-mode)
+                 (sp-add-local-ban-insert-pair 'log-edit-mode))
+
+    ;; now, we could've also done just this:
+    ;; (sp-add-local-ban-insert-pair "'"
+    ;;                               '(markdown-mode
+    ;;                                 tex-mode
+    ;;                                 latex-mode
+    ;;                                 text-mode
+    ;;                                 log-edit-mode))
+    ;; but I wanted to show you how to use the sp-with-tag macro :)
+
     ;;; emacs-lisp-mode
     (sp-add-local-ban-insert-pair "'" 'emacs-lisp-mode)
+    (sp-add-local-ban-insert-pair "'" 'inferior-emacs-lisp-mode)
     (sp-add-local-ban-insert-pair-in-code "`" 'emacs-lisp-mode)
 
-    ;; you can also use the (sp-with) macro. It will automatically add the
+    ;;; markdown-mode
+    ;; you can also use the `sp-with' macro. It will automatically add the
     ;; mode to the end of each call. How cool is that!
     (sp-with 'markdown-mode
              (sp-add-local-pair '("`" . "`"))
-             (sp-add-local-ban-insert-pair "'")
              ;; this also disables '*' in all other modes
              (sp-add-local-allow-insert-pair "*"))
