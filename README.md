@@ -61,17 +61,18 @@ Pairs have to be **prefix-free**, that means no opening pair should be a prefix 
 
 Pairs included by default:
 
-    ("\\\\(" "\\\\)") ;; emacs regexp parens
-    ("\\{" "\\}")
-    ("\\(" "\\)")
-    ("\\\"" "\\\"")
-    ("/*" "*/")
-    ("\"" "\"")
-    ("'" "'")
-    ("(" ")")
-    ("[" "]")
-    ("{" "}")
-    ("`" "'") ;; tap twice for TeX double quote
+    ("\\\\(" . "\\\\)") ;; emacs regexp parens
+    ("\\{"   . "\\}")
+    ("\\("   . "\\)")
+    ("\\\""  . "\\\"")
+    ("/*"    . "*/")
+    ("\""    . "\"")
+    ("'"     . "'")
+    ("("     . ")")
+    ("["     . "]")
+    ("{"     . "}")
+    ("<"     . ">")
+    ("`"     . "'") ;; tap twice for tex double quotes
 
 You can remove pairs by calling `sp-remove-pair`. This will also automatically delete any assigned permissions!
 
@@ -81,7 +82,7 @@ You can remove pairs by calling `sp-remove-pair`. This will also automatically d
 Mode-dependent custom pairs
 ----------
 
-Sometimes, a globally defined pair is not appropriate for certain major modes. You can redefine globally defined pairs to have different definition in specific major modes. For example, globally defined pair `\`\'` is used in `emacs-lisp-mode` for links in comments and in `LaTeX-mode` for quotes. However, in `markdown-mode`, a pair `\`\`` is used instead to insert inline code. Therefore, it is desired to redefine this global pair to this new value.
+Sometimes, a globally defined pair is not appropriate for certain major modes. You can redefine globally defined pairs to have different definition in specific major modes. For example, globally defined pair ```'`` is used in `emacs-lisp-mode` for links in comments and in `LaTeX-mode` for quotes. However, in `markdown-mode`, a pair `````` is used instead to insert inline code. Therefore, it is desired to redefine this global pair to this new value.
 
 That is accompilshed by using this funcion:
 
@@ -116,7 +117,7 @@ Similar functions work for the allow list. They are called `sp-add-local-allow-i
 Auto pairing in strings/code
 ----------
 
-In addition to these restrictions, you can also disable all or specific pairs only inside comments and strings (strings from now on) or only in code (everything except strings). For example, the `'  '` pair is really annoying in strings, since it's used as apostrophe in english and other languages. Likewise, `\`\'` is annoying inside lisp code (backtick is used in macros), but is used in emacs lisp documentation.
+In addition to these restrictions, you can also disable all or specific pairs only inside comments and strings (strings from now on) or only in code (everything except strings). For example, the `'  '` pair is really annoying in strings, since it's used as apostrophe in english and other languages. Likewise, ```'`` is annoying inside lisp code (backtick is used in macros), but is used in emacs lisp documentation.
 
 By default, auto-pairing is allowed in both strings and code. The order of evaluation is as follows:
 
@@ -155,6 +156,47 @@ If you insert a character that can't possibly complete a pair, the wrapping is c
 If you use `delete-selection-mode`, you **MUST** disable it and enable an emulation by running `sp-turn-on-delete-selection-mode`. This behaves in the exact same way as original `delete-selection-mode`, indeed, it simply calls the `delete-selection-pre-hook` when appropriate. However, it intercepts it and handle the wrapping if needed.
 
 At any time in the insertion mode you can use `C-g` to cancel the insertion. In this case, both the opening and closing pairs are removed and the point returns to the original position. The region is not deleted even if `sp-turn-on-delete-selection-mode` is active.
+
+Wrapping with tags
+----------
+
+Wrapping with more structured tags is also supported. For example, in `html-mode` you might want to automatically wrap a region `some code` and change it into `<span class="code">some code</span>`. For this purpose, you can define tag pairs. These allow you to enter special tag wrapping insertion mode, where you can enter arbitrary text. It also automatically mirror the opening tag text in the closing tag. Furthermore, the closing tag can be automatically transformed with any function to a different string. For example, the opening tag's content `span class="code"` can be transformed to just `span`.
+
+The tag wrapping pairs have higher priority than regular tags, that is, if it is possible to start tag-wrapping, the regular wrap mode is exited and the tag insertion mode is entered *even if* there is possible continuation of the currently inserted opening wrap pair. For example, if tag insertion trigger is `<` and there is a regular pair `<< >>`, this is ignored and the tag insertion mode is entered immediately after `<` is inserted.
+
+Tags are defined by following function:
+
+    ;; this pair is already present by default. `sp-match-sgml-tags' cuts
+    ;; off everything after the first space: "span class='x'" -> "span".
+    (sp-add-tag-pair "<" "<_>" "</_>" 'sp-match-sgml-tags '(sgml-mode html-mode))
+
+    ;; this pair is already present by default.
+    (sp-add-tag-pair "\\b" "\\begin{_}" "\\end{_}" 'identity '(tex-mode latex-mode))
+
+where the arguments are:
+
+1. Tag trigger
+2. Opening tag format
+3. Closing tag format
+4. Transformation function for closing tag. You can use built-in function `identity` to return the tag unchanged
+5. Modes where this is allowed. Tag pairs can't be defined globally. The rationale is that they are rather rare and the idea of specific tags for specific modes make more sense.
+
+The character `_` in the format strings is replaced with the inserted text and mirrored to the closing pair. Before inserting text in the closing pair, content of the opening pair is transformed with transformation function. Only one `_` per pair is allowed.
+
+You can add different tags for the same trigger in different modes. The mode sets must not overlap, otherwise random one is picked.
+
+Tags can be removed with `sp-remove-tag-pair` function, which takes as arguments the trigger and the mode where you want to remove it.
+
+    (sp-remove-tag-pair "<" 'sgml-mode) ;; modes can also be list of modes
+
+When in tag insertion mode, special key-bindings are active. These are:
+
+* `C-a`, `C-e` jumps to the beginning/end of the tag section.
+* `C-g` terminate the tag insertion mode.
+
+Tag insertion mode is also terminated if you leave the area of the opening tag pair overlay, for example with search function or `previous-line` command.
+
+*The sp-add-tag-pair and sp-remove-tag-pair functions are not implemented yet*
 
 Automatic escaping
 ==========
