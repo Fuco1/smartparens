@@ -323,10 +323,44 @@ of opening or closing pair is 10 characters.")
 
 (defvar sp-last-operation nil
   "Symbol holding the last successful operation.")
+(make-variable-buffer-local 'sp-last-operation)
 
 (defvar sp-escape-char nil
   "Character used to escape quotes inside strings.")
 (make-variable-buffer-local 'sp-escape-char)
+
+(defvar sp-previous-point -1
+  "Location of point before last command. This is only updated
+when some pair-overlay is active. Do not rely on the value of
+this variable anywhere else!")
+(make-variable-buffer-local 'sp-previous-point)
+
+(defvar sp-wrap-point nil
+  "Save the value of point before attemt to wrap a region. Used
+for restoring the original state if the wrapping is
+cancelled.")
+(make-variable-buffer-local 'sp-wrap-point)
+
+(defvar sp-wrap-mark nil
+  "Save the value of point before attemt to wrap a region. Used
+for restoring the original state if the wrapping is
+cancelled.")
+(make-variable-buffer-local 'sp-wrap-mark)
+
+(defvar sp-last-inserted-character ""
+  "If wrapping is cancelled, these character are re-inserted to
+the location of point before the wrapping.")
+(make-variable-buffer-local 'sp-last-inserted-character)
+
+(defvar sp-last-wrapped-region nil
+  "List containing info about last wrapped region. The content of the list is:
+\(start-of-the-wrapped-region end-of-the-wrapped-region
+length-of-opening-pair length-of-closing-pair\). Start and end
+positions include the newly added wrapping pair.")
+(make-variable-buffer-local 'sp-last-wrapped-region)
+
+(defvar sp-point-inside-string nil
+  "t if point is inside a string.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Misc functions
@@ -561,27 +595,10 @@ as usual.")
   "Cons pair of wrap overlays.")
 (make-variable-buffer-local 'sp-wrap-overlays)
 
-(defvar sp-previous-point -1
-  "Location of point before last command. This is only updated
-when some pair-overlay is active. Do not rely on the value of
-this variable anywhere else!")
-(make-variable-buffer-local 'sp-previous-point)
-
-(defvar sp-wrap-point nil
-  "Save the value of point before attemt to wrap a region. Used
-for restoring the original state if the wrapping is
-cancelled.")
-(make-variable-buffer-local 'sp-wrap-point)
-
-(defvar sp-wrap-mark nil
-  "Save the value of point before attemt to wrap a region. Used
-for restoring the original state if the wrapping is
-cancelled.")
-(make-variable-buffer-local 'sp-wrap-mark)
-
 (defvar sp-pair-overlay-keymap (make-sparse-keymap)
   "Keymap for the pair overlays.")
 (define-key sp-pair-overlay-keymap (kbd "C-g") 'sp-remove-active-overlay)
+
 (defvar sp-wrap-overlay-keymap (make-sparse-keymap)
   "Keymap for the wrap overlays.")
 (define-key sp-wrap-overlay-keymap (kbd "C-g") 'sp-wrap-cancel)
@@ -739,9 +756,6 @@ are of zero length, or if point moved backwards."
     (unless (eq this-command 'self-insert-command)
       (setq sp-last-operation nil))))
 
-(defvar sp-point-inside-string nil
-  "t if point is inside a string.")
-
 (defadvice self-insert-command (before self-insert-command-pre-hook activate)
   (setq sp-point-inside-string (sp-point-in-string)))
 
@@ -795,17 +809,6 @@ delete-selection-mode stuff here."
     ;; if not self-insert, just run the hook from
     ;; delete-selection-mode if enabled
     (sp-delete-selection-mode-handle)))
-
-(defvar sp-last-inserted-character ""
-  "If wrapping is cancelled, these character are re-inserted to
-the location of point before the wrapping.")
-(make-variable-buffer-local 'sp-last-inserted-character)
-
-(defvar sp-last-wrapped-region nil
-  "List containing info about last wrapped region. The content of the list is:
-\(start-of-the-wrapped-region end-of-the-wrapped-region
-length-of-opening-pair length-of-closing-pair\). Start and end
-positions include the newly added wrapping pair.")
 
 (defun sp-wrap-region-init ()
   "Initialize the region wrapping."
