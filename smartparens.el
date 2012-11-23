@@ -944,7 +944,6 @@ positions include the newly added wrapping pair.")
       )
     ))
 
-;; TODO: Update docs with info about in-string bans
 (defun sp-insert-pair ()
   "Automatically insert the closing pair if it is allowed in current
 context. It is determined in this order:
@@ -959,6 +958,24 @@ context. It is determined in this order:
 4. Local allow - you can allow specific pair in specific
 modes. It is disabled in all other modes (as if you globally
 banned it first). See `sp-add-local-allow-insert-pair'.
+
+Additionally, there is a possibility to disable insertion of
+pairs inside strings, docstrings and comments or inside code. The
+order in which these are determined is following:
+
+1. Is the pair allowed in this mode? (by the above mechanism)
+
+2. Local ban inside strings - `sp-add-local-ban-insert-pair-in-string'.
+
+3. Global ban - `sp-add-ban-insert-pair-in-string'.
+
+4. Local allow - `sp-add-local-allow-insert-pair-in-string'.
+
+The semantics are the same as above. First, point position is
+tested to determine if it is inside string. If yes, the rules for
+string restrictions are evaluated. If not, restrictions for code
+are evaluated. The code versions end with \"in-code\" instead of
+\"in-string\".
 
 You can disable this feature completely for all modes and all pairs by
 setting `sp-autoinsert-pair' to nil.
