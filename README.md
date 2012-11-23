@@ -1,5 +1,5 @@
 smartparens
-===========
+==========
 
 Modern lightweight smart parens/auto-insert/wrapping package for Emacs. This package combines functionality of packages like [autopair](https://github.com/capitaomorte/autopair), [textmate](http://code.google.com/p/emacs-textmate/), [wrap-region](https://github.com/rejeep/wrap-region), partially [paredit](http://emacswiki.org/emacs/ParEdit) and others. It adds support for many more features, some including:
 
@@ -17,7 +17,7 @@ Modern lightweight smart parens/auto-insert/wrapping package for Emacs. This pac
 This is still a developement pre 1.0 version. Features marked with [x] are fully implemented. Free to install it and report bugs or new features :)
 
 Installation
-===========
+==========
 
 The basic setup is as follows:
 
@@ -34,10 +34,10 @@ This package *depends* on [dash](https://github.com/magnars/dash.el). If you've 
 
 If you use `delete-selection-mode`, you **MUST** disable it and set appropriate emulation by smartparens. See the Wrapping section for more info.
 
-See the last section for an example configuration.
+See the last section for an example configuration. Please have a look at it as it contains a working example and explains many features "visually".
 
 Pair management
-===========
+==========
 
 To define new pair, you can use the `sp-add-pair` function. Example:
 
@@ -78,10 +78,19 @@ You can remove pairs by calling `sp-remove-pair`. This will also automatically d
     (sp-remove-pair "\{")
     (sp-remove-pair "'")
 
-*(Customized pairs for major-modes will probably be supported too. This means overwriting a default pair. For example changing `' into \`\` in markdown-mode. I'm not sure on the actual mechanism, but I'd like the simplest possible one)*
+Mode-dependent custom pairs
+----------
+
+Sometimes, a globally defined pair is not appropriate for certain major modes. You can redefine globally defined pairs to have different definition in specific major modes. For example, globally defined pair `\`'` is used in `emacs-lisp-mode` for links in comments and in `LaTeX-mode` for quotes. However, in `markdown-mode`, a pair `\`\`` is used instead to insert inline code. Therefore, it is desired to redefine this global pair to this new value.
+
+That is accompilshed by using this funcion:
+
+    (sp-add-local-pair '("`" . "`") 'markdown-mode) ;; adds `` as a local pair in markdown-mode
+
+Pairs can be locally removed by caling `sp-remove-local-pair`.
 
 Auto pairing
-===========
+==========
 
 Autopairing of each pair can be enabled or disabled by variety of permissions. The basic order of evaluation is:
 
@@ -103,6 +112,9 @@ You can remove local bans with `sp-remove-local-ban-insert-pair` function. If ca
     (sp-remove-local-ban-insert-pair "\{" '(markdown-mode)) ;; re-enable \{\} in markdown mode, keep the rest of the bans
 
 Similar functions work for the allow list. They are called `sp-add-local-allow-insert-pair` and `sp-remove-local-allow-insert-pair`. The calling conventions are the same.
+
+Auto pairing in strings/code
+----------
 
 In addition to these restrictions, you can also disable all or specific pairs only inside comments and strings (strings from now on) or only in code (everything except strings). For example, the `'  '` pair is really annoying in strings, since it's used as apostrophe in english and other languages. Likewise, `\` '` is annoying inside lisp code (backtick is used in macros), but is used in emacs lisp documentation.
 
@@ -132,7 +144,7 @@ The names are self-explanatory enough.
 To change behaviours of the autopairing, see `M-x customize-group smartparens` for available options.
 
 Wrapping
-===========
+==========
 
 *(This feature is only partially implemented. Currently, wrapping with tags is not supported. Permission system is not supported.)*
 
@@ -145,7 +157,7 @@ If you use `delete-selection-mode`, you **MUST** disable it and enable an emulat
 At any time in the insertion mode you can use `C-g` to cancel the insertion. In this case, both the opening and closing pairs are removed and the point returns to the original position. The region is not deleted even if `sp-turn-on-delete-selection-mode` is active.
 
 Automatic escaping
-============
+==========
 
 Warning: this feature needs `font-lock-mode` enabled (but seriously, who doesn't use it).
 
@@ -162,7 +174,7 @@ Some example situations:
 It's best if you try this feature during actual editing to see if you like it or not. Please post suggestions. Also, there are some corner cases where the behaviour might not be expected, but they are so rare that fixing them is not a priority right now. However, if you find any suspicious behaviour do not hesitate to report it.
 
 Example configuration
-=============
+==========
 
 This is actually my current config for this package. Since I'm only using `emacs-lisp-mode` and `markdown-mode` now, it's somewhat brief for the moment :)
 
@@ -185,7 +197,7 @@ This is actually my current config for this package. Since I'm only using `emacs
     ;; you can also use the (sp-with) macro. It will automatically add the
     ;; mode to the end of each call. How cool is that!
     (sp-with 'markdown-mode
-             (sp-add-local-ban-insert-pair "`")
+             (sp-add-local-pair '("`" . "`"))
              (sp-add-local-ban-insert-pair "'")
              ;; this also disables '*' in all other modes
              (sp-add-local-allow-insert-pair "*"))
