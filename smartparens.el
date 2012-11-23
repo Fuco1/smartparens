@@ -441,6 +441,27 @@ tag on which we want to operate."
 (font-lock-add-keywords 'emacs-lisp-mode '(("\\<sp-with\\>" . font-lock-keyword-face)) 'append)
 (font-lock-add-keywords 'emacs-lisp-mode '(("\\<sp-with-tag\\>" . font-lock-keyword-face)) 'append)
 
+(defun -union (list1 list2)
+  "Return a new list containing the elements of LIST1 and
+elements of LIST2 that were not present in LIST1. The test for
+equality is done with `equal', or with `-compare-fn' if that's
+non-nil."
+  (let ((result (nreverse list1)))
+    (--each list2 (when (not (-contains? result it)) (!cons it result)))
+    (nreverse result)))
+
+(defmacro --last (form list)
+  "Anaphoric form of `-last'."
+  (let ((n (make-symbol "needle")))
+    `(let (,n)
+       (--each ,list (not ,n)
+         (when ,form (setq ,n it)))
+       ,n)))
+
+(defun -last (pred list)
+  "Return the first x in LIST where (PRED x) is non-nil, else nil."
+  (--first (funcall pred it) list))
+
 (defun reverse-string (str)
   "Reverse the string STR."
   (concat (reverse (append str nil))))
@@ -470,6 +491,13 @@ TODO: fix this!"
   (let ((original (single-key-description event)))
     (if (string-match-p "<.*?>" original)
         "ň" original)))
+
+(defun sp-split-string (string by)
+  "Split STRING on BY. This simply calls `split-string' and if it
+returns a list of length one, empty string is inserted to the
+beginning."
+  (let ((sp (split-string string by)))
+    (if (not (cdr sp)) (cons "" sp) sp)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Adding/removing of pairs/bans/allows etc.
@@ -546,27 +574,6 @@ be used for wrapping."
   "Remove the pairs with ids in OPEN from the global \"in
 string\" insertion banlist."
   (setq sp-global-ban-insert-pair-in-string (-difference sp-global-ban-insert-pair-in-string (-flatten open))))
-
-(defun -union (list1 list2)
-  "Return a new list containing the elements of LIST1 and
-elements of LIST2 that were not present in LIST1. The test for
-equality is done with `equal', or with `-compare-fn' if that's
-non-nil."
-  (let ((result (nreverse list1)))
-    (--each list2 (when (not (-contains? result it)) (!cons it result)))
-    (nreverse result)))
-
-(defmacro --last (form list)
-  "Anaphoric form of `-last'."
-  (let ((n (make-symbol "needle")))
-    `(let (,n)
-       (--each ,list (not ,n)
-         (when ,form (setq ,n it)))
-       ,n)))
-
-(defun -last (pred list)
-  "Return the first x in LIST where (PRED x) is non-nil, else nil."
-  (--first (funcall pred it) list))
 
 (defmacro sp-add-to-permission-list (open list &rest modes)
   "Add MODES to the pair with id OPEN in the LIST. See
@@ -1161,8 +1168,8 @@ OSTART is the start of the modified area, including the pair trigger string.
 
 OEND is the end of the modified area, that is the end of the
 wrapped region, exluding any existing possible wrap."
-  (let* ((tag-open (split-string (nth 0 active-tag) "_"))
-         (tag-close (split-string (nth 1 active-tag) "_"))
+  (let* ((tag-open (sp-split-string (nth 0 active-tag) "_"))
+         (tag-close (sp-split-string (nth 1 active-tag) "_"))
          (oleft (progn
                   (goto-char ostart)
                   (delete-char (length (car possible-tag)))
@@ -1203,12 +1210,11 @@ wrapped region, exluding any existing possible wrap."
          (transform (nth 2 active-tag))
          (open (buffer-substring (overlay-start oleft) (overlay-end oleft)))
          )
-    (save-excursion
-      (delete-region (overlay-start oright) (overlay-end oright))
-      (goto-char (overlay-start oright))
-      (insert (funcall transform open)))
-    )
-  )
+    (when (string-match-p "_" (nth 1 active-tag))
+      (save-excursion
+        (delete-region (overlay-start oright) (overlay-end oright))
+        (goto-char (overlay-start oright))
+        (insert (funcall transform open))))))
 
 (defun sp-wrap-tag-post-command-handler ()
   "Terminate the tag insertion mode if the point jumps out of the
