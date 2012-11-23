@@ -56,19 +56,14 @@ in some modes (like c-electric keys).")
   :keymap sp-keymap
   (if smartparens-mode
       (progn
-        (sp-update-pair-triggers)
-        (defadvice delete-backward-char (before sp-delete-pair-advice activate)
-          (sp-delete-pair (ad-get-arg 0)))
+        ;; setup local pair replacements
+        (sp-update-local-pairs)
         ;; set the escape char
         (dotimes (char 256)
           (unless sp-escape-char
             (if (= ?\\ (char-syntax char))
                 (setq sp-escape-char (string char)))))
-        (add-hook 'post-command-hook 'sp-post-command-hook-handler)
-        (add-hook 'pre-command-hook 'sp-pre-command-hook-handler)
         (run-hooks 'smartparens-enabled-hook))
-    (remove-hook 'post-command-hook 'sp-post-command-hook-handler)
-    (remove-hook 'pre-command-hook 'sp-pre-command-hook-handler)
     (run-hooks 'smartparens-disabled-hook)
     ))
 
@@ -84,8 +79,19 @@ map to `self-insert-command'."
                                          (cons (cdr it) acc))
                                    nil sp-pair-list))
              "" t))))
-    (--each triggers (define-key sp-keymap it 'self-insert-command))
-    ))
+    (--each triggers (define-key sp-keymap it 'self-insert-command))))
+
+(defun sp-update-local-pairs ()
+  "Update local pairs after removal or at mode initialization."
+  (setq sp-pair-list (default-value 'sp-pair-list))
+  (--each sp-local-pair-list
+          (when (member major-mode (cdr it))
+            (let ((open (caar it))
+                  (close (cdar it)))
+              (setq sp-pair-list
+                    (--remove (equal open (car it)) sp-pair-list))
+              (setq sp-pair-list
+                    (sp-add-to-ordered-list (car it) sp-pair-list #'sp-order-pairs))))))
 
 (defvar smartparens-enabled-hook nil
   "Called after `smartparens-mode' is turned on.")
@@ -320,6 +326,15 @@ List of elements of type (command . '(list of modes)).")
                        )
   "List of pairs for auto-insertion or wrapping. Maximum length
 of opening or closing pair is 10 characters.")
+(make-variable-buffer-local 'sp-pair-list)
+
+(defvar sp-local-pair-list '()
+  "List of pairs specific to a specific mode. The pairs on this list
+are not enabled globally. Pairs in this list can override global
+definitons. For example default `' can be overriden with `` in
+markdown-mode.
+
+List of elements of type (mode . '((open . close))).")
 
 (defvar sp-last-operation nil
   "Symbol holding the last successful operation.")
@@ -421,8 +436,8 @@ variable `sp-pair-list' for current list.
 Additional arguments are interpreted as modes where this pair
 should be banned by default. BANNED-MODES can also be a list."
   (unless (--any? (equal open (car it)) sp-pair-list)
-    (setq sp-pair-list
-          (sp-add-to-ordered-list (cons open close) sp-pair-list #'sp-order-pairs))
+    (setq-default sp-pair-list
+                 (sp-add-to-ordered-list (cons open close) sp-pair-list #'sp-order-pairs))
     (sp-add-local-ban-insert-pair open banned-modes)
     (sp-update-pair-triggers)
   ))
@@ -430,11 +445,24 @@ should be banned by default. BANNED-MODES can also be a list."
 (defun sp-remove-pair (open)
   "Remove a pair from the pair list. See variable `sp-pair-list'
 for current list."
-  (setq sp-pair-list
-        (--remove (equal open (car it)) sp-pair-list))
+  (setq-default sp-pair-list
+               (--remove (equal open (car it)) sp-pair-list))
   (sp-remove-local-ban-insert-pair open)
   (sp-remove-local-allow-insert-pair open)
   (sp-update-pair-triggers))
+
+(defun sp-add-local-pair (pair mode)
+  "Add a pair to the local pair list. Use this only if you need
+to overload a global pair with the same ID. If you wish to
+limit a pair to a certain mode, add it globally and then set
+the permissions with `sp-add-local-allow-insert-pair'."
+  (sp-add-to-permission-list pair sp-local-pair-list mode)
+  (sp-update-local-pairs))
+
+(defun sp-remove-local-pair (open mode)
+  "Remove a pair from the local pair list."
+  (sp-remove-from-permission-list (assoc open sp-pair-list) sp-local-pair-list mode)
+  (sp-update-local-pairs))
 
 (defun sp-add-ban-insert-pair (&rest open)
   "Add the pairs with ids in OPEN to the global insertion
@@ -480,11 +508,11 @@ non-nil."
   "Return the first x in LIST where (PRED x) is non-nil, else nil."
   (--first (funcall pred it) list))
 
-(defmacro sp-add-pair-to-permission-list (open list &rest modes)
+(defmacro sp-add-to-permission-list (open list &rest modes)
   "Add MODES to the pair with id OPEN in the LIST. See
 permissions system for more details."
   (let ((m (make-symbol "new-modes")))
-    `(let ((,m (-flatten modes)))
+    `(let ((,m (-flatten ,@modes)))
        (when ,m
          (let ((current (--first (equal ,open (car it)) ,list)))
            (if current
@@ -494,39 +522,39 @@ permissions system for more details."
 (defun sp-add-local-ban-insert-pair (open &rest modes)
   "Ban autoinsertion of pair with id OPEN in modes MODES. See
 `sp-insert-pair'."
-  (sp-add-pair-to-permission-list open sp-local-ban-insert-pair modes))
+  (sp-add-to-permission-list open sp-local-ban-insert-pair modes))
 
 (defun sp-add-local-allow-insert-pair (open &rest modes)
   "Allow autoinsertion of pair with id OPEN in modes MODES. See
 `sp-insert-pair'."
-  (sp-add-pair-to-permission-list open sp-local-allow-insert-pair modes))
+  (sp-add-to-permission-list open sp-local-allow-insert-pair modes))
 
 (defun sp-add-local-ban-insert-pair-in-string (open &rest modes)
   "Ban autoinsertion of pair with id OPEN in modes MODES if point
 is inside string, docstring or comment. See `sp-insert-pair'."
-  (sp-add-pair-to-permission-list open sp-local-ban-insert-pair-in-string modes))
+  (sp-add-to-permission-list open sp-local-ban-insert-pair-in-string modes))
 
 (defun sp-add-local-allow-insert-pair-in-string (open &rest modes)
   "Allow autoinsertion og pair with id OPEN in MODES if point is
 inside string, docstring or comment. See `sp-insert-pair'."
-  (sp-add-pair-to-permission-list open sp-local-allow-insert-pair-in-string modes))
+  (sp-add-to-permission-list open sp-local-allow-insert-pair-in-string modes))
 
 (defun sp-add-local-ban-insert-pair-in-code (open &rest modes)
   "Ban autoinsertion of pair with id OPEN in modes MODES if point
 is inside code. See `sp-insert-pair'."
-  (sp-add-pair-to-permission-list open sp-local-ban-insert-pair-in-code modes))
+  (sp-add-to-permission-list open sp-local-ban-insert-pair-in-code modes))
 
 (defun sp-add-local-allow-insert-pair-in-code (open &rest modes)
   "Allow autoinsertion og pair with id OPEN in MODES if point is
 inside code. See `sp-insert-pair'."
-  (sp-add-pair-to-permission-list open sp-local-allow-insert-pair-in-code modes))
+  (sp-add-to-permission-list open sp-local-allow-insert-pair-in-code modes))
 
-(defmacro sp-remove-pair-from-permission-list (open list &rest modes)
+(defmacro sp-remove-from-permission-list (open list &rest modes)
   "Removes MODES from the pair with id OPEN in the LIST. See
 permissions system for more details. If modes is nil, remove the
 pair entirely."
   (let ((m (make-symbol "new-modes")))
-    `(let ((,m (-flatten modes)))
+    `(let ((,m (-flatten ,@modes)))
        (if ,m
            (let ((current (--first (equal ,open (car it)) ,list)))
              (when current
@@ -538,36 +566,36 @@ pair entirely."
 (defun sp-remove-local-ban-insert-pair (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
 modes MODES. If MODES is nil, remove all the modes."
-  (sp-remove-pair-from-permission-list open sp-local-ban-insert-pair modes))
+  (sp-remove-from-permission-list open sp-local-ban-insert-pair modes))
 
 (defun sp-remove-local-allow-insert-pair (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
 modes MODES. If MODES is nil, remove all the modes"
-  (sp-remove-pair-from-permission-list open sp-local-allow-insert-pair modes))
+  (sp-remove-from-permission-list open sp-local-allow-insert-pair modes))
 
 (defun sp-remove-local-ban-insert-pair-in-string (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
 modes MODES if the point is inside string, docstring or
 comment. If MODES is nil, remove all the modes."
-  (sp-remove-pair-from-permission-list open sp-local-ban-insert-pair-in-string modes))
+  (sp-remove-from-permission-list open sp-local-ban-insert-pair-in-string modes))
 
 (defun sp-remove-local-allow-insert-pair-in-string (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
 modes MODES if the point is inside string, docstring or
 comment. If MODES is nil, remove all the modes"
-  (sp-remove-pair-from-permission-list open sp-local-allow-insert-pair-in-string modes))
+  (sp-remove-from-permission-list open sp-local-allow-insert-pair-in-string modes))
 
 (defun sp-remove-local-ban-insert-pair-in-code (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
 modes MODES if the point is inside code. If MODES is nil,
 remove all the modes."
-  (sp-remove-pair-from-permission-list open sp-local-ban-insert-pair-in-code modes))
+  (sp-remove-from-permission-list open sp-local-ban-insert-pair-in-code modes))
 
 (defun sp-remove-local-allow-insert-pair-in-code (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
 modes MODES if the point is inside code. If MODES is nil,
 remove all the modes"
-  (sp-remove-pair-from-permission-list open sp-local-allow-insert-pair-in-code modes))
+  (sp-remove-from-permission-list open sp-local-allow-insert-pair-in-code modes))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Overlay management
@@ -1004,7 +1032,8 @@ followed by word. It is disabled by default. See
                  (not (eq sp-last-operation 'sp-skip-closing-pair))
                  (sp-insert-pair-p open-pair major-mode)
                  (if sp-autoinsert-if-followed-by-word t
-                     (not (eq (char-syntax (following-char)) ?w)))
+                     (not (and (eq (char-syntax (following-char)) ?w)
+                               (not (eq (following-char) ?\')))))
                  (cond
                   ((eq sp-autoinsert-if-followed-by-same 0) t)
                   ((eq sp-autoinsert-if-followed-by-same 1)
@@ -1179,6 +1208,13 @@ disabled by setting `sp-autodelete-closing-pair' and
           (delete-forward-char (- (1- (length (car opening-pair)))))
           (setq sp-last-operation 'sp-delete-pair-opening))
          )))))
+
+;; global initialization
+(sp-update-pair-triggers)
+(defadvice delete-backward-char (before sp-delete-pair-advice activate)
+  (sp-delete-pair (ad-get-arg 0)))
+(add-hook 'post-command-hook 'sp-post-command-hook-handler)
+(add-hook 'pre-command-hook 'sp-pre-command-hook-handler)
 
 (provide 'smartparens)
 
