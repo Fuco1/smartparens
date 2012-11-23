@@ -449,6 +449,14 @@ of point."
         (eq 'font-lock-doc-face face)
         (eq 'font-lock-comment-face face))))
 
+(defun sp-single-key-description (event)
+  "Return a description of the last event. Replace all the function key symbols with garbage character (ň).
+
+TODO: fix this!"
+  (let ((original (single-key-description event)))
+    (if (string-match-p "<.*?>" original)
+        "ň" original)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Adding/removing of pairs/bans/allows etc.
 
@@ -925,20 +933,20 @@ delete-selection-mode stuff here."
     ;; if we can't possibly form a wrap, just insert the char and do
     ;; nothing. If delete-selection-mode is enabled, run
     ;; delete-selection-pre-hook
-    (if (--none? (string-prefix-p (single-key-description last-command-event) (car it)) sp-pair-list)
+    (if (--none? (string-prefix-p (sp-single-key-description last-command-event) (car it)) sp-pair-list)
         (let ((p (1- (point)))
               (m (mark)))
           ;; test if we can at least start a tag wrapping. If not,
           ;; delete the region if apropriate
           (unless (sp-wrap-tag-region-init)
             (sp-delete-selection-mode-handle)
-            (when (< m p) (insert (single-key-description last-command-event)))))
+            (when (< m p) (insert (sp-single-key-description last-command-event)))))
       (let* ((p (1- (point))) ;; we want the point *before* the
                               ;; insertion of the character
              (m (mark))
              (ostart (if (> p m) m p))
              (oend (if (> p m) p m))
-             (keys (mapcar 'single-key-description (recent-keys)))
+             (keys (mapcar 'sp-single-key-description (recent-keys)))
              (last-keys (apply #'concat (-take 10 (reverse keys))))
              (active-pair (--first (string-prefix-p (reverse-string (car it)) last-keys) sp-pair-list))
              )
@@ -972,7 +980,7 @@ delete-selection-mode stuff here."
 
           ;; We need to remember what was removed in case wrap is
           ;; cancelled. Then these characters are re-inserted.
-          (setq sp-last-inserted-character (single-key-description last-command-event))
+          (setq sp-last-inserted-character (sp-single-key-description last-command-event))
 
           ;; if point > mark, we need to remove the character at the end and
           ;; insert it to the front.
@@ -1013,14 +1021,14 @@ delete-selection-mode stuff here."
   ;; this method is only called if there's an active region. It should
   ;; never be called manually!
   (when sp-autowrap-region
-    (let* ((keys (mapcar 'single-key-description (recent-keys)))
+    (let* ((keys (mapcar 'sp-single-key-description (recent-keys)))
            (last-keys (apply #'concat (-take 10 (reverse keys))))
            (oleft (car sp-wrap-overlays))
            (oright (cdr sp-wrap-overlays))
            )
       (setq sp-last-inserted-character
             (concat sp-last-inserted-character
-                    (single-key-description last-command-event)))
+                    (sp-single-key-description last-command-event)))
       (let* ((active-pair (--last (string-prefix-p
                                    sp-last-inserted-character
                                    (car it))
@@ -1085,7 +1093,7 @@ tag. The tag always gets priority from the regular wrap."
              (ostart (if (> p m) m p))
              (oend (if (> p m) p m))
              (possible-tag (--first (string-prefix-p
-                                     (single-key-description last-command-event)
+                                     (sp-single-key-description last-command-event)
                                      (car it))
                                     sp-tag-pair-list))
              (active-tag (cdr (--first (member major-mode (car it)) (cdr possible-tag)))))
@@ -1097,7 +1105,7 @@ tag. The tag always gets priority from the regular wrap."
                 (when (> p m)
                   (delete-forward-char (- 1))
                   (goto-char ostart)
-                  (insert (single-key-description last-command-event))
+                  (insert (sp-single-key-description last-command-event))
                   (setq oend (1+ oend))
                   )
                 (sp-wrap-tag-create-overlays possible-tag active-tag ostart oend)
@@ -1237,7 +1245,7 @@ You can globally disable insertion of closing pair if point is
 followed by word. It is disabled by default. See
 `sp-autoinsert-if-followed-by-word' for more info."
   (when sp-autoinsert-pair
-    (let* ((keys (mapcar 'single-key-description (recent-keys)))
+    (let* ((keys (mapcar 'sp-single-key-description (recent-keys)))
            (last-keys (apply #'concat (-take 10 (reverse keys))))
            ;; we go through all the opening pairs and compare them to
            ;; last-keys. If the opair is a prefix of last-keys, insert
@@ -1329,7 +1337,7 @@ This behaviour can be globally disabled by setting
                      ;; pair and closing pair are the same, it would
                      ;; delete it right after the insertion otherwise)
                      (> (- (point) (overlay-start overlay)) (length open-pair)))
-            (if (equal (single-key-description last) (substring close-pair-rest 0 1))
+            (if (equal (sp-single-key-description last) (substring close-pair-rest 0 1))
                 (progn
                   (forward-char 1)
                   (delete-forward-char (- 1))
