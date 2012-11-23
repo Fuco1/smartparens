@@ -425,9 +425,21 @@ positions include the newly added wrapping pair.")
   `(setq ,list (delete ,elm ,list)))
 
 (defmacro sp-with (arg &rest forms)
+  "Adds ARG as last argument to each form. This can be used on
+most of the permission functions to automatically supply the mode
+where we operate."
   `(progn
      ,@(mapcar (lambda (form) (append form (list arg))) forms)))
+
+(defmacro sp-with-tag (arg &rest forms)
+  "Adds ARG as first argument to each form. This can be used on
+most of the permission functions to automatically supply the
+tag on which we want to operate."
+  `(progn
+     ,@(mapcar (lambda (form) (append (list (car form) arg) (cdr form))) forms)))
+
 (font-lock-add-keywords 'emacs-lisp-mode '(("\\<sp-with\\>" . font-lock-keyword-face)) 'append)
+(font-lock-add-keywords 'emacs-lisp-mode '(("\\<sp-with-tag\\>" . font-lock-keyword-face)) 'append)
 
 (defun reverse-string (str)
   "Reverse the string STR."
