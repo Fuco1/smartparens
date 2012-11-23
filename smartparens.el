@@ -328,6 +328,7 @@ List of elements of type (command . '(list of modes)).")
                        ("("     . ")")
                        ("["     . "]")
                        ("{"     . "}")
+                       ("<"     . ">")
                        ("`"     . "'") ;; tap twice for tex double quotes
                        )
   "List of pairs for auto-insertion or wrapping. Maximum length
@@ -946,25 +947,24 @@ delete-selection-mode stuff here."
         ;; if we can wrap right away, do it without creating overlays,
         ;; we can save ourselves a lot of needless trouble :)
         (if active-pair
-            ;; TODO call sp-wrap-tag-region-init here ... tags have
-            ;; priority
-            (let* ((oplen (length (car active-pair)))
-                   (cplen (length (cdr active-pair)))
-                   (len (+ oplen cplen)))
-              (if (< p m)
-                  (save-excursion
-                    (goto-char m)
-                    (insert (cdr active-pair)))
-                (delete-forward-char (- 1))
-                (insert (cdr active-pair))
-                (goto-char m)
-                (insert (car active-pair))
-                (goto-char (+ len p)))
-              (setq sp-last-operation 'sp-wrap-region)
-              (setq sp-last-wrapped-region
-                    (if (< p m)
-                        (list p (+ len m) oplen cplen)
-                      (list m (+ len p) oplen cplen))))
+            (unless (sp-wrap-tag-region-init)
+              (let* ((oplen (length (car active-pair)))
+                     (cplen (length (cdr active-pair)))
+                     (len (+ oplen cplen)))
+                (if (< p m)
+                    (save-excursion
+                      (goto-char m)
+                      (insert (cdr active-pair)))
+                  (delete-forward-char (- 1))
+                  (insert (cdr active-pair))
+                  (goto-char m)
+                  (insert (car active-pair))
+                  (goto-char (+ len p)))
+                (setq sp-last-operation 'sp-wrap-region)
+                (setq sp-last-wrapped-region
+                      (if (< p m)
+                          (list p (+ len m) oplen cplen)
+                        (list m (+ len p) oplen cplen)))))
 
           ;; save the position and point so we can restore it on cancel.
           (setq sp-wrap-point p)
