@@ -356,12 +356,13 @@ such as html \"<span class=\"x\">something</span>\". For these,
 the standard wrap mechanism isn't sufficient. Here, user can
 define the syntax of opening and closing pair. If they share the
 same keyword, this is substituted for _ in the tag
-definitions. The matching-function can further transform the
+definitions. The transform-function can further transform the
 substitution for closing tab, for example cutting out everything
-after a space in html-tag. Only one _ per tag is allowed.
+after a space in html-tag. Only one _ per tag is allowed. If no _
+is present in the closing tag, nothing is mirrored there.
 
 The internal format is a list of (open-trigger ((modes) open-tag
-close-tag matching-funciton)) where:
+close-tag transform-funciton)) where:
 
 open-trigger - the trigger that starts the tag insertion.
 
@@ -373,7 +374,7 @@ text.
 
 modes - list of modes where this wrapping is allowed.
 
-matching-function - this function is called to perform a
+transform-function - this function is called to perform a
 transformation on text that will be substituted to closing tag.")
 
 (defvar sp-last-operation nil
@@ -513,9 +514,11 @@ ordered in descending order."
 (defun sp-order-pairs (a b)
   "Compare two pairs A and B by open pair length. Return t if A
 is leq to B."
-  (let ((la (length (car a)))
-        (lb (length (car b))))
-    (>= la lb)))
+    (>= (length (car a)) (length (car b))))
+
+(defun sp-order-tag-pairs (a b)
+  "Compare two tag pairs A and B by trigger length. Return t if A is geq to B."
+  (<= (length (car a)) (length (car b))))
 
 (defun sp-add-pair (open close &rest banned-modes)
   "Add a pair formed by OPEN and CLOSE to the pair list. See
@@ -551,6 +554,50 @@ the permissions with `sp-add-local-allow-insert-pair'."
   "Remove a pair from the local pair list."
   (sp-remove-from-permission-list (assoc open sp-pair-list) sp-local-pair-list mode)
   (sp-update-local-pairs))
+
+(defun sp-add-tag-pair (trig open close transform mode &rest modes)
+  "Add a tag pair. This tag pair is triggered on TRIG in modes MODE,
+wraps with OPEN and CLOSE. If the CLOSE tag contains _ the content
+of the opening tag is first transformed with the TRANSFORM function.
+
+See `sp-tag-pair-list' for more info."
+  ;; check if trigger is already present
+  (let ((trigger (--first (equal trig (car it)) sp-tag-pair-list))
+        (m (-flatten (cons mode modes))))
+    (if trigger
+        ;; we need to look if there is a pair with open/close already
+        ;; defined. If yes, add the modes to its list. If not, we need
+        ;; to create new entry
+        (let ((current (--first
+                        (and (equal open   (nth 1 it))
+                             (equal close  (nth 2 it))
+                             (eq transform (nth 3 it)))
+                        (cdr trigger))))
+          (if current
+              (setcar current (-union (car current) m))
+            ;; create new entry
+            (setcdr trigger (cons (list m open close transform) (cdr trigger)))))
+      ;; no trigger, add the whole structure
+      (let ((s (cons trig (list (list m open close transform)))))
+        (setq sp-tag-pair-list
+              (sp-add-to-ordered-list s sp-tag-pair-list #'sp-order-tag-pairs))
+        ))))
+
+(defun sp-remove-tag-pair (trig mode &rest modes)
+  "Remove a tag pair."
+  (let ((trigger (--first (equal trig (car it)) sp-tag-pair-list))
+        (m (-flatten (cons mode modes))))
+    (when trigger
+      ;; for each pair, we need to remove the modes from its mode list.
+      (--each (cdr trigger)
+        (setcar it (-difference (car it) m)))
+      ;; remove the pairs with empty mode lists
+      (let ((newpairs (--remove (not (car it)) (cdr trigger))))
+        (if newpairs
+            (setcdr trigger newpairs)
+          ;; if there are no pairs left at all, remove the trigger too
+          (setq sp-tag-pair-list (--remove (equal trig (car it)) sp-tag-pair-list)))
+        ))))
 
 (defun sp-add-ban-insert-pair (&rest open)
   "Add the pairs with ids in OPEN to the global insertion
