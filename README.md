@@ -20,7 +20,11 @@ This is still a developement pre 1.0 version. Features marked with [x] are not i
 Installation
 ==========
 
-The basic setup is as follows:
+Install smartparens by placing `smartparens.el` in `/path/to/elisp`, a directory of your choice, and adding to your .emacs file:
+
+    (add-to-list 'load-path "/path/to/elisp")
+
+Then, the basic setup is as follows:
 
     (require 'smartparens)
     (smartparens-global-mode 1)
@@ -183,7 +187,7 @@ where the arguments are:
 4. Transformation function for closing tag. You can use built-in function `identity` to return the tag unchanged
 5. Modes where this is allowed. Tag pairs can't be defined globally. The rationale is that they are rather rare and the idea of specific tags for specific modes make more sense.
 
-The character `_` in the format strings is replaced with the inserted text and mirrored to the closing pair. Before inserting text in the closing pair, content of the opening pair is transformed with transformation function. Only one `_` per pair is allowed. The closing tag does not have to contain `_` (then no text is inserted there), but the opening tag must have exactly one, it's the point where cursor is placed to begin insertion of tag content.
+The character `_` in the format strings is replaced with the inserted text and mirrored to the closing pair. Before inserting text in the closing pair, content of the opening pair is transformed with transformation function. Only one `_` per pair is allowed. The closing tag does not have to contain `_` (then no text is inserted there). If the opening pair doesn't have `_` either, the tag is simply inserted as text and tag insertion mode is not entered. This can be used to form "shortcuts" for commonly used wrappings.
 
 You can add different tags for the same trigger in different modes. The mode sets must not overlap, otherwise random one is picked.
 
@@ -228,6 +232,7 @@ This is actually my current config for this package. Since I'm only using `emacs
 
     ;;; add new pairs
     (sp-add-pair "*" "*")
+    (sp-add-pair "$" "$")
 
     ;;; global
     (sp-add-ban-insert-pair-in-string "'")
@@ -256,6 +261,7 @@ This is actually my current config for this package. Since I'm only using `emacs
     (sp-add-local-ban-insert-pair "'" 'emacs-lisp-mode)
     (sp-add-local-ban-insert-pair "'" 'inferior-emacs-lisp-mode)
     (sp-add-local-ban-insert-pair-in-code "`" 'emacs-lisp-mode)
+    (sp-add-local-ban-insert-pair-in-code "`" 'inferior-emacs-lisp-mode)
 
     ;;; markdown-mode
     ;; you can also use the `sp-with' macro. It will automatically add the
@@ -264,3 +270,7 @@ This is actually my current config for this package. Since I'm only using `emacs
              (sp-add-local-pair '("`" . "`"))
              ;; this also disables '*' in all other modes
              (sp-add-local-allow-insert-pair "*"))
+
+    ;;; tex-mode latex-mode
+    (sp-with '(tex-mode latex-mode) ;; yes, this works with lists too!
+             (sp-add-local-allow-insert-pair "$"))

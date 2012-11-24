@@ -368,7 +368,9 @@ same keyword, this is substituted for _ in the tag
 definitions. The transform-function can further transform the
 substitution for closing tab, for example cutting out everything
 after a space in html-tag. Only one _ per tag is allowed. If no _
-is present in the closing tag, nothing is mirrored there.
+is present in the closing tag, nothing is mirrored there. If no _
+is present in the opening tag, tag insertion mode is not entered
+and the tags are simply inserted as text.
 
 The internal format is a list of (open-trigger ((modes) open-tag
 close-tag transform-funciton)) where:
@@ -1255,38 +1257,42 @@ OEND is the end of the modified area, that is the end of the
 wrapped region, exluding any existing possible wrap."
   (let* ((tag-open (sp-split-string (nth 0 active-tag) "_"))
          (tag-close (sp-split-string (nth 1 active-tag) "_"))
-         (oleft (progn
-                  (goto-char ostart)
-                  (delete-char (length (car possible-tag)))
-                  (insert (apply #'concat tag-open))
-                  (backward-char (length (cadr tag-open)))
-                  (make-overlay
-                   (+ ostart (length (car tag-open)))
-                   (+ ostart (length (car tag-open)))
-                   nil nil t)))
-         (oright (let ((o (1- (length (car active-tag)))))
-                   (save-excursion
-                     (goto-char (+ oend o))
-                     (insert (apply #'concat tag-close)))
-                   (make-overlay
-                    (+ oend o (length (car tag-close)))
-                    (+ oend o (length (car tag-close)))
-                    nil nil t))))
-    (setq sp-wrap-tag-overlays (cons oleft oright))
-    (when sp-highlight-wrap-tag-overlay
-      (overlay-put oleft 'face 'sp-wrap-tag-overlay-face)
-      (overlay-put oright 'face 'sp-wrap-tag-overlay-face))
-    (overlay-put oleft 'priority 100)
-    (overlay-put oright 'priority 100)
-    (overlay-put oleft 'keymap sp-wrap-tag-overlay-keymap)
-    (overlay-put oleft 'type 'wrap-tag)
-    (overlay-put oleft 'active-tag active-tag)
-    (overlay-put oleft 'modification-hooks '(sp-wrap-tag-update))
-    (overlay-put oleft 'insert-in-front-hooks '(sp-wrap-tag-update))
-    (overlay-put oleft 'insert-behind-hooks '(sp-wrap-tag-update))
-    (setq sp-last-operation 'sp-wrap-tag)
-    (add-hook 'post-command-hook 'sp-wrap-tag-post-command-handler)
-    ))
+         (o (apply #'+ (mapcar #'length tag-open))))
+    ;; setup the wrap pairs
+    ;; opening one
+    (goto-char ostart)
+    (delete-char (length (car possible-tag)))
+    (insert (apply #'concat tag-open))
+    (backward-char (length (cadr tag-open)))
+
+    ;; closing one
+    (save-excursion
+      (goto-char (+ oend o))
+      (insert (apply #'concat tag-close)))
+
+    (when (cdr (split-string (nth 0 active-tag) "_"))
+      (let ((oleft (make-overlay
+                    (+ ostart (length (car tag-open)))
+                    (+ ostart (length (car tag-open)))
+                    nil nil t))
+            (oright (make-overlay
+                     (+ oend o (length (car tag-close)))
+                     (+ oend o (length (car tag-close)))
+                     nil nil t)))
+        (setq sp-wrap-tag-overlays (cons oleft oright))
+        (when sp-highlight-wrap-tag-overlay
+          (overlay-put oleft 'face 'sp-wrap-tag-overlay-face)
+          (overlay-put oright 'face 'sp-wrap-tag-overlay-face))
+        (overlay-put oleft 'priority 100)
+        (overlay-put oright 'priority 100)
+        (overlay-put oleft 'keymap sp-wrap-tag-overlay-keymap)
+        (overlay-put oleft 'type 'wrap-tag)
+        (overlay-put oleft 'active-tag active-tag)
+        (overlay-put oleft 'modification-hooks '(sp-wrap-tag-update))
+        (overlay-put oleft 'insert-in-front-hooks '(sp-wrap-tag-update))
+        (overlay-put oleft 'insert-behind-hooks '(sp-wrap-tag-update))
+        (add-hook 'post-command-hook 'sp-wrap-tag-post-command-handler)))
+    (setq sp-last-operation 'sp-wrap-tag)))
 
 (defun sp-wrap-tag-update (overlay after? beg end &optional length)
   (let* ((oleft (car sp-wrap-tag-overlays))
