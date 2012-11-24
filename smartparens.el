@@ -5,7 +5,7 @@
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
 ;; Created: 17 Nov 2012
-;; Version: 0.7
+;; Version: 0.9
 ;; Keywords: abbrev convenience editing
 ;; Package-Requires: ((dash "1.0"))
 ;; URL: https://github.com/Fuco1/smartparens
@@ -542,18 +542,21 @@ for current list."
   (sp-remove-local-allow-insert-pair open)
   (sp-update-pair-triggers))
 
-(defun sp-add-local-pair (pair mode)
+(defun sp-add-local-pair (open close mode)
   "Add a pair to the local pair list. Use this only if you need
 to overload a global pair with the same ID. If you wish to
 limit a pair to a certain mode, add it globally and then set
 the permissions with `sp-add-local-allow-insert-pair'."
-  (sp-add-to-permission-list pair sp-local-pair-list mode)
+  (sp-add-to-permission-list (cons open close) sp-local-pair-list mode)
   (sp-update-local-pairs))
 
-(defun sp-remove-local-pair (open mode)
+(defun sp-remove-local-pair (open mode &rest modes)
   "Remove a pair from the local pair list."
-  (sp-remove-from-permission-list (assoc open sp-pair-list) sp-local-pair-list mode)
-  (sp-update-local-pairs))
+  (let ((m (-flatten (cons mode modes))))
+    (--each sp-local-pair-list
+      (setcdr it (-difference (cdr it) m)))
+    (setq sp-local-pair-list (--remove (not (cdr it)) sp-local-pair-list))
+    (sp-update-local-pairs)))
 
 (defun sp-add-tag-pair (trig open close transform mode &rest modes)
   "Add a tag pair. This tag pair is triggered on TRIG in modes MODE,
