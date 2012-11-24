@@ -798,6 +798,14 @@ as usual.")
   "Compute the length of OVERLAY."
   (- (overlay-end overlay) (overlay-start overlay)))
 
+(defmacro --reduce (form list)
+  "Anaphoric form of `-reduce'."
+  (let ((lv (make-symbol "list-value")))
+    `(let ((,lv ,list))
+       (if ,lv
+           (--reduce-from ,form (car ,lv) (cdr ,lv))
+         (let (acc it) ,form)))))
+
 (defun sp-get-active-overlay ()
   "Get active overlay. Active overlay is the shortest overlay at
 point."
@@ -806,7 +814,9 @@ point."
      ((not overlays) nil)
      ((not (cdr overlays)) (car overlays))
      (t
-      (--reduce (if (< (sp-get-overlay-length it) (sp-get-overlay-length acc)) it acc) overlays)))))
+      (--reduce (if (< (sp-get-overlay-length it) (sp-get-overlay-length acc)) it acc) overlays)
+      )))
+  )
 
 (defun sp-pair-overlay-create (start end id)
   "Create an overlay over the currently inserted pair for
