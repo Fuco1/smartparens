@@ -625,6 +625,18 @@ be used for wrapping."
 string\" insertion banlist."
   (setq sp-global-ban-insert-pair-in-string (-difference sp-global-ban-insert-pair-in-string (-flatten open))))
 
+(defun sp-add-ban-insert-pair-in-code (&rest open)
+  "Add the pairs with ids in OPEN to the global \"in code\"
+insertion banlist. That means that these pairs will never be used
+for auto insertion if the point is inside code. They can still
+be used for wrapping."
+  (setq sp-global-ban-insert-pair-in-code (-union sp-global-ban-insert-pair-in-code (-flatten open))))
+
+(defun sp-remove-ban-insert-pair-in-code (&rest open)
+  "Remove the pairs with ids in OPEN from the global \"in
+code\" insertion banlist."
+  (setq sp-global-ban-insert-pair-in-code (-difference sp-global-ban-insert-pair-in-code (-flatten open))))
+
 (defmacro sp-add-to-permission-list (open list &rest modes)
   "Add MODES to the pair with id OPEN in the LIST. See
 permissions system for more details."
@@ -1357,8 +1369,9 @@ followed by word. It is disabled by default. See
                  (not (eq sp-last-operation 'sp-skip-closing-pair))
                  (sp-insert-pair-p open-pair major-mode)
                  (if sp-autoinsert-if-followed-by-word t
-                     (not (and (eq (char-syntax (following-char)) ?w)
-                               (not (eq (following-char) ?\')))))
+                   (or (= (point) (point-max))
+                       (not (and (eq (char-syntax (following-char)) ?w)
+                                 (not (eq (following-char) ?\'))))))
                  (cond
                   ((eq sp-autoinsert-if-followed-by-same 0) t)
                   ((eq sp-autoinsert-if-followed-by-same 1)
