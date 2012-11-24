@@ -58,6 +58,7 @@ in some modes (like c-electric keys).")
       (progn
         ;; setup local pair replacements
         (sp-update-local-pairs)
+        (sp-update-pair-triggers)
         ;; set the escape char
         (dotimes (char 256)
           (unless sp-escape-char
@@ -92,6 +93,14 @@ map to `self-insert-command'."
                     (--remove (equal open (car it)) sp-pair-list))
               (setq sp-pair-list
                     (sp-add-to-ordered-list (car it) sp-pair-list #'sp-order-pairs))))))
+
+(defun sp-update-local-pairs-everywhere ()
+  "Run `sp-update-local-pairs' in all buffers. This is necessary
+to update all the buffer-local definitions."
+  (--each (buffer-list)
+    (with-current-buffer it
+      (when smartparens-mode
+        (sp-update-local-pairs)))))
 
 (defvar smartparens-enabled-hook nil
   "Called after `smartparens-mode' is turned on.")
@@ -531,16 +540,20 @@ should be banned by default. BANNED-MODES can also be a list."
                  (sp-add-to-ordered-list (cons open close) sp-pair-list #'sp-order-pairs))
     (sp-add-local-ban-insert-pair open banned-modes)
     (sp-update-pair-triggers)
+    ;; we need to update local versions of sp-pair-list in all the buffers
+    (sp-update-local-pairs-everywhere)
   ))
 
 (defun sp-remove-pair (open)
   "Remove a pair from the pair list. See variable `sp-pair-list'
 for current list."
   (setq-default sp-pair-list
-               (--remove (equal open (car it)) sp-pair-list))
+                (--remove (equal open (car it)) sp-pair-list))
   (sp-remove-local-ban-insert-pair open)
   (sp-remove-local-allow-insert-pair open)
-  (sp-update-pair-triggers))
+  (sp-update-pair-triggers)
+  (sp-update-local-pairs-everywhere)
+  )
 
 (defun sp-add-local-pair (open close mode)
   "Add a pair to the local pair list. Use this only if you need
@@ -548,7 +561,7 @@ to overload a global pair with the same ID. If you wish to
 limit a pair to a certain mode, add it globally and then set
 the permissions with `sp-add-local-allow-insert-pair'."
   (sp-add-to-permission-list (cons open close) sp-local-pair-list mode)
-  (sp-update-local-pairs))
+  (sp-update-local-pairs-everywhere))
 
 (defun sp-remove-local-pair (open mode &rest modes)
   "Remove a pair from the local pair list."
@@ -556,7 +569,7 @@ the permissions with `sp-add-local-allow-insert-pair'."
     (--each sp-local-pair-list
       (setcdr it (-difference (cdr it) m)))
     (setq sp-local-pair-list (--remove (not (cdr it)) sp-local-pair-list))
-    (sp-update-local-pairs)))
+    (sp-update-local-pairs-everywhere)))
 
 (defun sp-add-tag-pair (trig open close transform mode &rest modes)
   "Add a tag pair. This tag pair is triggered on TRIG in modes MODE,
@@ -1358,6 +1371,7 @@ followed by word. It is disabled by default. See
   (when sp-autoinsert-pair
     (let* ((keys (mapcar 'sp-single-key-description (recent-keys)))
            (last-keys (apply #'concat (-take 10 (reverse keys))))
+           ;;(last-keys "$$$$$$$$$$$$$$$")
            ;; we go through all the opening pairs and compare them to
            ;; last-keys. If the opair is a prefix of last-keys, insert
            ;; the closing pair
