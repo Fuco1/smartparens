@@ -778,7 +778,7 @@ as usual.")
 
 (defvar sp-pair-overlay-keymap (make-sparse-keymap)
   "Keymap for the pair overlays.")
-(define-key sp-pair-overlay-keymap (kbd "C-g") 'sp-remove-active-overlay)
+(define-key sp-pair-overlay-keymap (kbd "C-g") 'sp-remove-active-pair-overlay)
 
 (defvar sp-wrap-overlay-keymap (make-sparse-keymap)
   "Keymap for the wrap overlays.")
@@ -808,17 +808,19 @@ as usual.")
            (--reduce-from ,form (car ,lv) (cdr ,lv))
          (let (acc it) ,form)))))
 
-(defun sp-get-active-overlay ()
+(defun sp-get-active-overlay (&optional type)
   "Get active overlay. Active overlay is the shortest overlay at
-point."
+point. Optional argument TYPE restrict overlays to only those
+with given type."
   (let ((overlays (overlays-at (point))))
+    (when type
+      (setq overlays (--filter (eq (overlay-get it 'type) type) overlays)))
     (cond
      ((not overlays) nil)
      ((not (cdr overlays)) (car overlays))
      (t
       (--reduce (if (< (sp-get-overlay-length it) (sp-get-overlay-length acc)) it acc) overlays)
-      )))
-  )
+      ))))
 
 (defun sp-pair-overlay-create (start end id)
   "Create an overlay over the currently inserted pair for
@@ -827,6 +829,7 @@ tracking the position of the point."
     (overlay-put overlay 'priority 100)
     (overlay-put overlay 'keymap sp-pair-overlay-keymap)
     (overlay-put overlay 'pair-id id)
+    (overlay-put overlay 'type 'pair)
     (!cons overlay sp-pair-overlay-list)
     (sp-pair-overlay-fix-highlight)
     (add-hook 'post-command-hook 'sp-pair-overlay-post-command-handler nil t)))
@@ -856,19 +859,22 @@ tracking the position of the point."
 (defun sp-pair-overlay-fix-highlight ()
   "Fix highlighting of the pair overlays. Only the active overlay
 should be highlighted."
-  (when sp-highlight-pair-overlay
-    (--each (overlays-at (point)) (overlay-put it 'face nil))
-    (let ((active (sp-get-active-overlay)))
-      (if active
-          (if (eq 'wrap-tag (overlay-get active 'type))
-              (when sp-highlight-wrap-tag-overlay
-                (overlay-put active 'face 'sp-wrap-tag-overlay-face))
-            (overlay-put active 'face 'sp-pair-overlay-face))
-        ;; edge case where we're at the end of active overlay. If
-        ;; there is a wrap-tag overlay, restore it's face
-        (when sp-wrap-tag-overlays
-          (overlay-put (car sp-wrap-tag-overlays) 'face 'sp-wrap-tag-overlay-face))
-        ))))
+  (--each (overlays-at (point)) (overlay-put it 'face nil))
+  (let* ((active (sp-get-active-overlay))
+         (type (and active (overlay-get active 'type))))
+    (if active
+        (cond
+         ((eq 'wrap-tag type)
+          (when sp-highlight-wrap-tag-overlay
+            (overlay-put active 'face 'sp-wrap-tag-overlay-face)))
+         ((eq 'pair type)
+          (when sp-highlight-pair-overlay
+            (overlay-put active 'face 'sp-pair-overlay-face))))
+      ;; edge case where we're at the end of active overlay. If
+      ;; there is a wrap-tag overlay, restore it's face
+      (when sp-wrap-tag-overlays
+        (overlay-put (car sp-wrap-tag-overlays) 'face 'sp-wrap-tag-overlay-face))
+      )))
 
 (defun sp-pair-overlay-post-command-handler ()
   "Remove all pair overlays that doesn't have point inside them,
@@ -886,10 +892,10 @@ are of zero length, or if point moved backwards."
   (when sp-pair-overlay-list
     (setq sp-previous-point (point))))
 
-(defun sp-remove-active-overlay ()
+(defun sp-remove-active-pair-overlay ()
   "Deactivate the active overlay.  See `sp-get-active-overlay'."
   (interactive)
-  (let ((active-overlay (sp-get-active-overlay)))
+  (let ((active-overlay (sp-get-active-overlay 'pair)))
     (when active-overlay
       (sp-remove-overlay active-overlay))))
 
@@ -1437,7 +1443,7 @@ followed by word. It is disabled by default. See
             (insert sp-escape-char)
             (forward-char 1)
             (insert sp-escape-char))
-          (overlay-put (sp-get-active-overlay) 'pair-id "\\\""))
+          (overlay-put (sp-get-active-overlay 'pair) 'pair-id "\\\""))
 
         (setq sp-last-operation 'sp-insert-pair)
         ))))
@@ -1460,8 +1466,8 @@ This behaviour can be globally disabled by setting
 `sp-autoskip-closing-pair' to nil."
   (when (and sp-autoskip-closing-pair
              sp-pair-overlay-list
-             (sp-get-active-overlay))
-    (let* ((overlay (sp-get-active-overlay))
+             (sp-get-active-overlay 'pair))
+    (let* ((overlay (sp-get-active-overlay 'pair))
            (open-pair (overlay-get overlay 'pair-id))
            (close-pair (cdr (assoc open-pair sp-pair-list)))
            ;; how many chars have we already typed
