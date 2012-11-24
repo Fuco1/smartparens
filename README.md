@@ -3,18 +3,19 @@ smartparens
 
 Modern lightweight smart parens/auto-insert/wrapping package for Emacs. This package combines functionality of packages like [autopair](https://github.com/capitaomorte/autopair), [textmate](http://code.google.com/p/emacs-textmate/), [wrap-region](https://github.com/rejeep/wrap-region), partially [paredit](http://emacswiki.org/emacs/ParEdit) and others. It adds support for many more features, some including:
 
-* [x] support for pairs of any length (currently up to 10 characters), for example `"\\\\(" "\\\\)"` for automatic insertion of quoted parens in elisp regexp. These are fully user definable and customizable. Pairs can be same or different for opening and closing part.
-* [x] inteligent handling of closing pair. If user types `(`, `(|)` is inserted. If he then types `word)` the result is `(word)|` not `(word)|)`. This behaviour is cancelled if user moves backwards during editing or move point outside of the pair.
-* [x] automatic deletion of whole pairs. With pair `("\{" "\}")` (LaTeX literal brackets), `\{|\}` and backspace will remove both of the pairs. `\{\}|` and backspace will remove the whole closing pair. `\{|` and backspace will remove the whole opening pair.
-* [x] when followed by the same opening pair or word, do not insert the whole pair. That is: `|()` followed by `(` will produce `(|()` instead of `(|)()`. Similarly, `|word` followed by `(` will produce `(|word`.
-* [x] wraps region in defined pairs or defined tag pairs for "tag-modes" (xml/html...). (tags not implemented yet).
-  * Different tags are supported, for example, languages that would use `{tag}` instead of `<tag>` or different opening pair and closing pair syntax, for example opening with `(tag` and closing with `)` (a.k.a. s-expression)
-* automatically escape strings if wrapped with another string. `this "string"` turns to `"this \"string\""` automaticaly.
-* [x] automatically escape typed quotes inside a string
+* support for pairs of any length (currently up to 10 characters), for example `"\\\\(" "\\\\)"` for automatic insertion of quoted parens in elisp regexp. These are fully user definable and customizable. Pairs can be same or different for opening and closing part.
+* inteligent handling of closing pair. If user types `(`, `(|)` is inserted. If he then types `word)` the result is `(word)|` not `(word)|)`. This behaviour is cancelled if user moves backwards during editing or move point outside of the pair.
+* automatic deletion of whole pairs. With pair `("\{" "\}")` (LaTeX literal brackets), `\{|\}` and backspace will remove both of the pairs. `\{\}|` and backspace will remove the whole closing pair. `\{|` and backspace will remove the whole opening pair.
+* when followed by the same opening pair or word, do not insert the whole pair. That is: `|()` followed by `(` will produce `(|()` instead of `(|)()`. Similarly, `|word` followed by `(` will produce `(|word`.
+* wraps region in defined pairs or defined tag pairs for "tag-modes" (xml/html...).
+  * Different tags are supported, for example, languages that would use `{tag}` instead of `<tag>` or different opening pair and closing pair syntax, for example opening with `(tag` and closing with `)` (a.k.a. s-expression) or LaTeX `\begin{} \end{}` pair.
+* [x] automatically escape strings if wrapped with another string. `this "string"` turns to `"this \"string\""` automaticaly.
+* automatically escape typed quotes inside a string
+* [x] Jumping around the pairs (extending forward-sexp to custom user pairs)
 
 **All features** are fully customizable via `M-x customize-group smartparens`. You can turn every behaviour on or off for best user experience (yay buzzwords).
 
-This is still a developement pre 1.0 version. Features marked with [x] are fully implemented. Free to install it and report bugs or new features :)
+This is still a developement pre 1.0 version. Features marked with [x] are not implemented yet. Free to install it and report bugs or new features :)
 
 Installation
 ==========
@@ -147,7 +148,7 @@ To change behaviours of the autopairing, see `M-x customize-group smartparens` f
 Wrapping
 ==========
 
-*(This feature is only partially implemented. Currently, wrapping with tags is not supported. Permission system is not supported.)*
+*(This feature is only partially implemented. Permission system is not supported. This means auto wrapping works everywhere if it is turned on. However, this isn't such a big deal as auto-insertion of pairs.)*
 
 If you select a region and start typing any of the pairs, the active region will be wrapped with the pair. For multi-character pairs, a special insertion mode is entered, where point jumps to the beginning of the region. If you insert a complete pair, the region is wrapped and point returns to the original position.
 
@@ -181,7 +182,7 @@ where the arguments are:
 4. Transformation function for closing tag. You can use built-in function `identity` to return the tag unchanged
 5. Modes where this is allowed. Tag pairs can't be defined globally. The rationale is that they are rather rare and the idea of specific tags for specific modes make more sense.
 
-The character `_` in the format strings is replaced with the inserted text and mirrored to the closing pair. Before inserting text in the closing pair, content of the opening pair is transformed with transformation function. Only one `_` per pair is allowed.
+The character `_` in the format strings is replaced with the inserted text and mirrored to the closing pair. Before inserting text in the closing pair, content of the opening pair is transformed with transformation function. Only one `_` per pair is allowed. The closing tag does not have to contain `_` (then no text is inserted there), but the opening tag must have exactly one, it's the point where cursor is placed to begin insertion of tag content.
 
 You can add different tags for the same trigger in different modes. The mode sets must not overlap, otherwise random one is picked.
 
@@ -195,8 +196,6 @@ When in tag insertion mode, special key-bindings are active. These are:
 * `C-g` terminate the tag insertion mode.
 
 Tag insertion mode is also terminated if you leave the area of the opening tag pair overlay, for example with search function or `previous-line` command.
-
-*The sp-add-tag-pair and sp-remove-tag-pair functions are not implemented yet*
 
 Automatic escaping
 ==========
