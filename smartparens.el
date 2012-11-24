@@ -1577,6 +1577,51 @@ disabled by setting `sp-autodelete-closing-pair' and
           (setq sp-last-operation 'sp-delete-pair-opening))
          )))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Navigation
+
+(defun sp-get-sexp (&optional back)
+  "Find the nearest balanced expression that is after point, or
+before point if BACK is non-nil. This also meanas, if the point
+is inside an expression, this expression is returned."
+  (let ((search-fn (if back 'search-backward-regexp 'search-forward-regexp)))
+    (let (start end active-pair forward depth failure)
+      (save-excursion
+        (if (funcall search-fn
+                     (regexp-opt (-flatten (--map (list (car it) (cdr it)) sp-pair-list))) nil t)
+            (progn
+              (setq active-pair (--first (string= (match-string 0) (car it)) sp-pair-list))
+              (if active-pair
+                  (progn
+                    (setq forward t)
+                    (setq start (match-beginning 0))
+                    (when (eq search-fn 'search-backward-regexp)
+                      (forward-char (length (car active-pair)))))
+                (setq active-pair (--first (string= (match-string 0) (cdr it)) sp-pair-list))
+                (setq end (match-end 0))
+                (when (eq search-fn 'search-forward-regexp)
+                  (backward-char (length (cdr active-pair)))))
+              (let* ((open (if forward (car active-pair) (cdr active-pair)))
+                     (close (if forward (cdr active-pair) (car active-pair)))
+                     (needle (regexp-opt (list open close)))
+                     (search-fn (if forward 'search-forward-regexp 'search-backward-regexp))
+                     (eof (if forward 'eobp 'bobp)))
+                (setq depth 1)
+                (while (and (> depth 0) (not (funcall eof)))
+                  (if (funcall search-fn needle nil t)
+                      (if (string= (match-string 0) open)
+                          (setq depth (1+ depth))
+                        (setq depth (1- depth)))
+                    (setq depth -1)
+                    (setq failure t)))
+                (if forward
+                    (setq end (match-end 0))
+                  (setq start (match-beginning 0))))
+              (if failure nil
+                (cons start end))
+              )
+          )))))
+
 ;; global initialization
 (sp-update-pair-triggers)
 (defadvice delete-backward-char (before sp-delete-pair-advice activate)
