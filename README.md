@@ -72,7 +72,6 @@ Pairs included by default:
     ("("     . ")")
     ("["     . "]")
     ("{"     . "}")
-    ("<"     . ">")
     ("`"     . "'") ;; tap twice for tex double quotes
 
 You can remove pairs by calling `sp-remove-pair`. This will also automatically delete any assigned permissions!
@@ -87,9 +86,11 @@ Sometimes, a globally defined pair is not appropriate for certain major modes. Y
 
 That is accompilshed by using this funcion:
 
-    (sp-add-local-pair '("`" . "`") 'markdown-mode) ;; adds `` as a local pair in markdown-mode
+    (sp-add-local-pair "`" "`" 'markdown-mode) ;; adds `` as a local pair in markdown-mode
 
-Pairs can be locally removed by caling `sp-remove-local-pair`.
+Pairs can be locally removed by caling `sp-remove-local-pair`:
+
+    (sp-remove-local-pair "`" 'markdown-mode)
 
 Auto pairing
 ==========
