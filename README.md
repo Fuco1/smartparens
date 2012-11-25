@@ -226,23 +226,43 @@ You can navigate and manipulate the balanced expressions (s-expressions, sexps) 
 
     (define-key sp-keymap (kbd "your-key") 'function)
 
-to do the local binding. Note that this has to occure *after* `smartparens-mode` is loaded, otherwise the `sp-keymap` variable will be void.
+to do the local binding. Note that this has to occure *after* `smartparens-mode` is loaded, otherwise the `sp-keymap` variable will be void. See the example configuration at the end of this readme for the working code to set the bindings.
 
 The list of manipulation functions:
 
     sp-forward-sexp (&optional arg)         ;; C-M-f
     sp-backward-sexp (&optional arg)        ;; C-M-b
     sp-down-sexp (&optional arg)            ;; C-M-d
-    sp-backward-down-sexp (&optional arg)   ;; not bind
+    sp-backward-down-sexp (&optional arg)   ;; C-M-a
     sp-up-sexp (&optional arg)              ;; C-M-e
     sp-backward-up-sexp (&optional arg)     ;; C-M-u
+    sp-next-sexp (&optional arg)            ;; C-M-n
+    sp-previous-sexp (&optional arg)        ;; C-M-p
 
     sp-kill-sexp (&optional arg)            ;; C-M-k
     sp-backward-kill-sexp (&optional arg)   ;; not bind
 
 These functions work pretty much exactly the same as the emacs-built in versions without `sp-` prefix, but operate on all user defined strictly balanced expressions. Strictly balanced means that `|( [ ) ]` will jump to `( [ |) ]`, not `( [ ) |]` as the default forward-sexp would.
 
-*Some behaviour of these functions might change in near future, so do not be alarmed.*
+All of them can accept a prefix argument in which case they do the thing that many times. The "not backward" versions also accept negative argument, in which case they behave just as the "backward" versions (in fact, backward versions just call normal ones with negative arguments).
+
+Also, they never signal the "Unbalanced parentheses" scan error and by default jump to the beginning or end of next/previous sexp, which is reasonable behaviour. If there is some special behaviour, it is documented.
+
+Lastly, the navigation with expressions where opening and closing pair is the same is troublesome, as it is impossible to detect the beginning and end without maintaining a count in the whole buffer (e.g. what font-lock-mode does with strings). **Therefore, at the moment, these are not recognized as balanced expressions**. If you have an idea for a good heuristic or a method to fix this, please file an issue with the suggestion.
+
+Here's a quick summary for each function:
+
+* `sp-forward-sexp` - Jump *after* the next balanced expression. If inside one, jump after its closing pair.
+* `sp-backward-sexp` - Jump *before* the previous balanced expression. If inside one, jump before its opening pair
+* `sp-down-sexp` - Jump *after* the opening pair of next balanced expression. This effectively descends one level down in the "expression hierarchy".
+* `sp-backward-down-sexp` - Jump *after* the opening pair of previous balanced expression. This defaultly calls `sp-down-sexp` with argument `-2`, which means `(defun a (par|am))` -> `(|defun a (param))` instead of `(defun a (|param))`
+* `sp-up-sexp` - Jump up one level from the current balanced expression. This means skipping all the enclosed expressions within *this* and then jumping *after* the closing pair. For example `(if (= a b) | (some call) (some other call))` -> `(if ...)|`
+* `sp-backward-up-sexp` - Jump up backwards one level from the current balanced expressions. This means skipping all the enclosed expressions within *this* backwards and then jumping *before* the opening pair.
+* `sp-next-sexp` - Jump to the *beginning* of following balanced expression. If there is no following expression on the current level, jump one level up (effectively doing `sp-backward-up-sexp`).
+* `sp-previous-sexp` - Jump to the *end* of the previous balanced expression.
+
+* `sp-kill-sexp` - kill the next balanced expression
+* `sp-backward-kill-sexp` - kill the previous balanced expression
 
 Example configuration
 ==========
@@ -254,6 +274,21 @@ This is actually my current config for this package. Since I'm only using `emacs
     ;; pending deletion. Replace active region with input. This is
     ;; virtually `delete-selection-mode' emulation.
     (sp-turn-on-delete-selection-mode)
+
+    ;;; key binds
+    (define-key sp-keymap (kbd "C-M-f") 'sp-forward-sexp)
+    (define-key sp-keymap (kbd "C-M-b") 'sp-backward-sexp)
+
+    (define-key sp-keymap (kbd "C-M-d") 'sp-down-sexp)
+    (define-key sp-keymap (kbd "C-M-a") 'sp-backward-down-sexp)
+
+    (define-key sp-keymap (kbd "C-M-e") 'sp-up-sexp)
+    (define-key sp-keymap (kbd "C-M-u") 'sp-backward-up-sexp)
+
+    (define-key sp-keymap (kbd "C-M-n") 'sp-next-sexp)
+    (define-key sp-keymap (kbd "C-M-p") 'sp-previous-sexp)
+
+    (define-key sp-keymap (kbd "C-M-k") 'sp-kill-sexp)
 
     ;;; add new pairs
     (sp-add-pair "*" "*")
