@@ -487,6 +487,12 @@ optional argument P is present, test this instead of point."
                                       ;; outside emacs-lisp-mode
         )))
 
+(defun sp-point-in-comment (&optional p)
+  "Return t if point is inside comment. If optional argument P is
+present, test this instead of point."
+  (let ((face (plist-get (text-properties-at (if p p (point))) 'face)))
+    (or (eq 'font-lock-comment-face face))))
+
 (defun sp-point-in-string-or-comment (&optional p)
   "Return t if point is inside string, documentation string or a
 comment. If optional argument P is present, test this instead
@@ -1003,8 +1009,6 @@ docstring or comment. See `sp-insert-pair' for more info."
               (sp-wrap-region-init))
              (sp-wrap-overlays
               (sp-wrap-region))
-             (sp-wrap-tag-overlays t) ;; do nothing, the modification
-                                      ;; hook will take care of that
              (t
               (setaction action (sp-insert-pair))
               (setaction action (sp-skip-closing-pair))
@@ -1343,6 +1347,7 @@ tag overlay."
         (oright (cdr sp-wrap-tag-overlays)))
     (delete-overlay oleft)
     (delete-overlay oright)
+    (setq sp-wrap-tag-overlays nil)
     (remove-hook 'post-command-hook 'sp-wrap-tag-post-command-handler)
     )
   )
@@ -1393,7 +1398,7 @@ followed by word. It is disabled by default. See
   (when sp-autoinsert-pair
     (let* ((keys (mapcar 'sp-single-key-description (recent-keys)))
            (last-keys (apply #'concat (-take 10 (reverse keys))))
-           ;;(last-keys "$$$$$$$$$$$$$$$")
+           ;; (last-keys "\"\"\"\"\"\"\"\"\"\"\"\"")
            ;; we go through all the opening pairs and compare them to
            ;; last-keys. If the opair is a prefix of last-keys, insert
            ;; the closing pair
@@ -1590,20 +1595,21 @@ disabled by setting `sp-autodelete-closing-pair' and
   "Find the nearest balanced expression that is after point, or
 before point if BACK is non-nil. This also meanas, if the point
 is inside an expression, this expression is returned."
-  (let ((search-fn (if back 'search-backward-regexp 'search-forward-regexp)))
+  (let ((search-fn (if back 'search-backward-regexp 'search-forward-regexp))
+        (pair-list (--filter (sp-insert-pair-p (car it) major-mode) sp-pair-list)))
     (let (start end active-pair forward depth failure)
       (save-excursion
         (if (funcall search-fn
-                     (regexp-opt (-flatten (--map (list (car it) (cdr it)) sp-pair-list))) nil t)
+                     (regexp-opt (-flatten (--map (list (car it) (cdr it)) pair-list))) nil t)
             (progn
-              (setq active-pair (--first (string= (match-string 0) (car it)) sp-pair-list))
+              (setq active-pair (--first (string= (match-string 0) (car it)) pair-list))
               (if active-pair
                   (progn
                     (setq forward t)
                     (setq start (match-beginning 0))
                     (when (eq search-fn 'search-backward-regexp)
                       (forward-char (length (car active-pair)))))
-                (setq active-pair (--first (string= (match-string 0) (cdr it)) sp-pair-list))
+                (setq active-pair (--first (string= (match-string 0) (cdr it)) pair-list))
                 (setq end (match-end 0))
                 (when (eq search-fn 'search-forward-regexp)
                   (backward-char (length (cdr active-pair)))))
@@ -1615,18 +1621,147 @@ is inside an expression, this expression is returned."
                 (setq depth 1)
                 (while (and (> depth 0) (not (funcall eof)))
                   (if (funcall search-fn needle nil t)
-                      (if (string= (match-string 0) open)
-                          (setq depth (1+ depth))
-                        (setq depth (1- depth)))
+                      ;; if the match is in comment, ignore it
+                      (unless (or (sp-point-in-comment (match-beginning 0))
+                                  (sp-point-in-comment (match-end 0)))
+                        (if (string= open close)
+                            (setq depth (1- depth))
+                          (if (string= (match-string 0) open)
+                              (setq depth (1+ depth))
+                            (setq depth (1- depth)))))
                     (setq depth -1)
                     (setq failure t)))
                 (if forward
                     (setq end (match-end 0))
-                  (setq start (match-beginning 0))))
-              (if failure nil
-                (cons start end))
-              )
+                  (setq start (match-beginning 0)))
+                (if failure nil
+                  (list start end open close))))
           )))))
+
+(defun sp-forward-sexp (&optional arg)
+  "Move forward across one balanced expression. With ARG, do it
+that many times.  Negative arg -N means move backward across N
+balanced expressions."
+  (interactive "^p")
+  (setq arg (or arg 1))
+  (if (< arg 0)
+      (sp-backward-sexp (- arg))
+    (let* ((n arg)
+           (ok t))
+      (while (and ok (> n 0))
+        (setq ok (sp-get-sexp))
+        (setq n (1- n))
+        (when ok (goto-char (cadr ok)))))))
+
+(defun sp-backward-sexp (&optional arg)
+  "Move backward across one balanced expression (sexp).
+With ARG, do it that many times.  Negative arg -N means move
+forward across N balanced expressions."
+  (interactive "^p")
+  (setq arg (or arg 1))
+  (if (< arg 0)
+      (sp-forward-sexp (- arg))
+    (let* ((n arg)
+           (ok t))
+      (while (and ok (> n 0))
+        (setq ok (sp-get-sexp t))
+        (setq n (1- n))
+        (when ok (goto-char (car ok)))))))
+
+(defun sp-down-sexp (&optional arg)
+  "Move forward down one level of sexp.  With ARG, do this that
+many times.  A negative argument means move backward but still
+go down a level."
+  (interactive "^p")
+  (setq arg (or arg 1))
+  (if (> arg 0)
+      (let ((n arg)
+            (ok t))
+        (while (and ok (> n 0))
+          (setq ok (sp-get-sexp))
+          (setq n (1- n))
+          (when ok (goto-char (+ (car ok) (length (nth 2 ok)))))))
+    (let ((n (- arg))
+          (ok t))
+      (while (and ok (> n 0))
+        (setq ok (sp-get-sexp t))
+        (setq n (1- n))
+        (when ok (goto-char (car ok))))
+      (when ok (goto-char (+ (car ok) (length (nth 2 ok))))))))
+
+(defun sp-backward-down-sexp (&optional arg)
+  "An alias for (sp-down-sexp (- (1+ arg))).  This function
+expect positive argument. See `sp-down-sexp'."
+  (interactive "^p")
+  (setq arg (or arg 1))
+  (when (> arg 0)
+    (sp-down-sexp (- (1+ arg)))))
+
+(defun sp-up-sexp (&optional arg)
+  "Move forward out of one level of parentheses.  With ARG, do
+this that many times.  A negative argument means move backward
+but still to a less deep spot."
+  (interactive "^p")
+  (setq arg (or arg 1))
+  (if (> arg 0)
+      (let ((n arg)
+            (ok t))
+        (while (and (> n 0) ok)
+          (setq ok t)
+          (let ((p (point)))
+            (setq ok (sp-get-sexp))
+            (if (and ok (<= (car ok) p))
+                (progn (goto-char (cadr ok)) (setq n (1+ n)))
+              (while (and ok (>= (car ok) p))
+                (setq ok (sp-get-sexp))
+                (when ok (goto-char (cadr ok))))))
+          (setq n (1- n))))
+    (let ((n (- arg))
+          (ok t))
+      (while (and (> n 0) ok)
+        (setq ok t)
+        (let ((p (point)))
+          (setq ok (sp-get-sexp t))
+          (if (and ok (>= (cadr ok) p))
+              (progn (goto-char (car ok)) (setq n (1+ n)))
+            (while (and ok (<= (cadr ok) p))
+              (setq ok (sp-get-sexp t))
+              (when ok (goto-char (car ok))))))
+        (setq n (1- n))))))
+
+(defun sp-backward-up-sexp (&optional arg)
+  "An alias for (sp-up-sexp (- (or arg 1))).  This function
+expect positive argument. See `sp-up-sexp'."
+  (interactive "^p")
+  (when (> arg 0)
+    (sp-up-sexp (- (or arg 1)))))
+
+(defun sp-kill-sexp (&optional arg)
+  "Kill the sexp (balanced expression) following point.  With
+ARG, kill that many sexps after point.  Negative arg -N means
+kill N sexps before point."
+  (interactive "^p")
+  (setq arg (or arg 1))
+  (if (> arg 0)
+      (let ((n arg)
+            (ok t))
+        (while (and (> n 0) ok)
+          (setq ok (sp-get-sexp))
+          (setq n (1- n))
+          (when ok (kill-region (car ok) (cadr ok)))))
+    (let ((n (- arg))
+          (ok t))
+      (while (and (> n 0) ok)
+        (setq ok (sp-get-sexp t))
+        (setq n (1- n))
+        (when ok (kill-region (car ok) (cadr ok)))))))
+
+(defun sp-backward-kill-sexp (&optional arg)
+  "An alias for (sp-kill-sexp (- (or arg 1))).  This function
+expect positive argument. See `sp-kill-sexp'."
+  (interactive "^p")
+  (when (> arg 0)
+    (sp-kill-sexp (- (or arg 1)))))
 
 ;; global initialization
 (sp-update-pair-triggers)
