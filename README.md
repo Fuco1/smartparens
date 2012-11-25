@@ -11,7 +11,7 @@ Modern lightweight smart parens/auto-insert/wrapping package for Emacs. This pac
   * Different tags are supported, for example, languages that would use `{tag}` instead of `<tag>` or different opening pair and closing pair syntax, for example opening with `(tag` and closing with `)` (a.k.a. s-expression) or LaTeX `\begin{} \end{}` pair.
 * [x] automatically escape strings if wrapped with another string. `this "string"` turns to `"this \"string\""` automaticaly.
 * automatically escape typed quotes inside a string
-* [x] Jumping around the pairs (extending forward-sexp to custom user pairs)
+* [/] Jumping around the pairs (extending forward-sexp to custom user pairs)
 
 **All features** are fully customizable via `M-x customize-group smartparens`. You can turn every behaviour on or off for best user experience (yay buzzwords).
 
@@ -218,6 +218,31 @@ Some example situations:
 * `"some | word"`, user types `\"`, result: `"some \"|\" word"` (the quote is not escaped again)
 
 It's best if you try this feature during actual editing to see if you like it or not. Please post suggestions. Also, there are some corner cases where the behaviour might not be expected, but they are so rare that fixing them is not a priority right now. However, if you find any suspicious behaviour do not hesitate to report it.
+
+Navigation
+==========
+
+You can navigate and manipulate the balanced expressions (s-expressions, sexps) using following functions. In "comment" is the recommended binding, however, no function is bind by default. You should put these into `sp-keymap` so they would only be enabled in `smartparens-mode`. You can use:
+
+    (define-key sp-keymap (kbd "your-key") 'function)
+
+to do the local binding. Note that this has to occure *after* `smartparens-mode` is loaded, otherwise the `sp-keymap` variable will be void.
+
+The list of manipulation functions:
+
+    sp-forward-sexp (&optional arg)         ;; C-M-f
+    sp-backward-sexp (&optional arg)        ;; C-M-b
+    sp-down-sexp (&optional arg)            ;; C-M-d
+    sp-backward-down-sexp (&optional arg)   ;; not bind
+    sp-up-sexp (&optional arg)              ;; C-M-e
+    sp-backward-up-sexp (&optional arg)     ;; C-M-u
+
+    sp-kill-sexp (&optional arg)            ;; C-M-k
+    sp-backward-kill-sexp (&optional arg)   ;; not bind
+
+These functions work pretty much exactly the same as the emacs-built in versions without `sp-` prefix, but operate on all user defined strictly balanced expressions. Strictly balanced means that `|( [ ) ]` will jump to `( [ |) ]`, not `( [ ) |]` as the default forward-sexp would.
+
+*Some behaviour of these functions might change in near future, so do not be alarmed.*
 
 Example configuration
 ==========
