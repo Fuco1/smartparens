@@ -1058,7 +1058,8 @@ delete-selection-mode stuff here."
           ;; delete the region if apropriate
           (unless (sp-wrap-tag-region-init)
             (sp-delete-selection-mode-handle)
-            (when (< m p) (insert (sp-single-key-description last-command-event)))))
+            (when (and sp-delete-selection-mode (< m p))
+              (insert (sp-single-key-description last-command-event)))))
       (let* ((p (1- (point))) ;; we want the point *before* the
                               ;; insertion of the character
              (m (mark))
@@ -1635,7 +1636,9 @@ is inside an expression, this expression is returned."
                     (setq end (match-end 0))
                   (setq start (match-beginning 0)))
                 (if failure nil
-                  (list start end open close))))
+                  (list start end
+                        (if forward open close)
+                        (if forward close open)))))
           )))))
 
 (defun sp-forward-sexp (&optional arg)
@@ -1710,11 +1713,16 @@ but still to a less deep spot."
           (setq ok t)
           (let ((p (point)))
             (setq ok (sp-get-sexp))
-            (if (and ok (<= (car ok) p))
-                (progn (goto-char (cadr ok)) (setq n (1+ n)))
+            (cond
+             ((and ok (= (car ok) p))
+              (goto-char (cadr ok))
+              (setq n (1+ n)))
+             ((and ok (< (car ok) p))
+              (goto-char (cadr ok)))
+             (t
               (while (and ok (>= (car ok) p))
                 (setq ok (sp-get-sexp))
-                (when ok (goto-char (cadr ok))))))
+                (when ok (goto-char (cadr ok)))))))
           (setq n (1- n))))
     (let ((n (- arg))
           (ok t))
@@ -1722,11 +1730,16 @@ but still to a less deep spot."
         (setq ok t)
         (let ((p (point)))
           (setq ok (sp-get-sexp t))
-          (if (and ok (>= (cadr ok) p))
-              (progn (goto-char (car ok)) (setq n (1+ n)))
+          (cond
+           ((and ok (= (cadr ok) p))
+            (goto-char (car ok))
+            (setq n (1+ n)))
+           ((and ok (> (cadr ok) p))
+            (goto-char (car ok)))
+           (t
             (while (and ok (<= (cadr ok) p))
               (setq ok (sp-get-sexp t))
-              (when ok (goto-char (car ok))))))
+              (when ok (goto-char (car ok)))))))
         (setq n (1- n))))))
 
 (defun sp-backward-up-sexp (&optional arg)
