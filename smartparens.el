@@ -72,7 +72,6 @@ in some modes (like c-electric keys).")
   "Update the `sp-keymap' to include all trigger keys. Trigger
 key is any character present in any pair. Each trigger key must
 map to `self-insert-command'."
-  (setcdr sp-keymap nil)
   (let ((triggers (-distinct
             (split-string
              (apply #'concat
@@ -1642,7 +1641,7 @@ is inside an expression, this expression is returned."
           )))))
 
 (defun sp-forward-sexp (&optional arg)
-  "Move forward across one balanced expression. With ARG, do it
+  "Move forward across one balanced expression.  With ARG, do it
 that many times.  Negative arg -N means move backward across N
 balanced expressions."
   (interactive "^p")
@@ -1671,6 +1670,50 @@ forward across N balanced expressions."
         (setq n (1- n))
         (when ok (goto-char (car ok)))))))
 
+(defun sp-next-sexp (&optional arg)
+  "Move forward to the beginning of next balanced expression.
+With ARG, do it that many times.  If there is no next expression
+at current level, jump one level up (effectively doing
+`sp-backward-up-list').  Negative arg -N means move to the
+beginning of N-th previous balanced expression."
+  (interactive "^p")
+  (setq arg (or arg 1))
+  (if (> arg 0)
+      (if (= arg 1)
+          (let ((ok (sp-get-sexp)))
+            (when ok
+              (if (= (point) (car ok))
+                  (progn (sp-forward-sexp 2)
+                         (sp-backward-sexp))
+                (goto-char (car ok)))))
+        (progn
+          (sp-forward-sexp arg)
+          (sp-backward-sexp)))
+    (progn
+      (sp-backward-sexp (- arg)))))
+
+(defun sp-previous-sexp (&optional arg)
+  "Move backward to the end of previous balanced expression.
+With ARG, do it that many times.  If there is no next
+expression at current level, jump one level up (effectively
+doing `sp-up-list').  Negative arg -N means move to the end of
+N-th following balanced expression."
+  (interactive "^p")
+  (setq arg (or arg 1))
+  (if (> arg 0)
+      (if (= arg 1)
+          (let ((ok (sp-get-sexp t)))
+            (when ok
+              (if (= (point) (cadr ok))
+                  (progn (sp-backward-sexp 2)
+                         (sp-forward-sexp))
+                (goto-char (cadr ok)))))
+        (progn
+          (sp-backward-sexp arg)
+          (sp-forward-sexp)))
+    (progn
+      (sp-forward-sexp (- arg)))))
+
 (defun sp-down-sexp (&optional arg)
   "Move forward down one level of sexp.  With ARG, do this that
 many times.  A negative argument means move backward but still
@@ -1689,16 +1732,14 @@ go down a level."
       (while (and ok (> n 0))
         (setq ok (sp-get-sexp t))
         (setq n (1- n))
-        (when ok (goto-char (car ok))))
-      (when ok (goto-char (+ (car ok) (length (nth 2 ok))))))))
+        (when ok (goto-char (- (cadr ok) (length (nth 3 ok)))))))))
 
 (defun sp-backward-down-sexp (&optional arg)
-  "An alias for (sp-down-sexp (- (1+ arg))).  This function
+  "An alias for (sp-down-sexp (- (or arg 1))).  This function
 expect positive argument. See `sp-down-sexp'."
   (interactive "^p")
-  (setq arg (or arg 1))
   (when (> arg 0)
-    (sp-down-sexp (- (1+ arg)))))
+    (sp-down-sexp (- (or arg 1)))))
 
 (defun sp-up-sexp (&optional arg)
   "Move forward out of one level of parentheses.  With ARG, do
