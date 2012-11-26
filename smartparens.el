@@ -984,15 +984,16 @@ docstring or comment. See `sp-insert-pair' for more info."
     (unless (eq this-command 'self-insert-command)
       (setq sp-last-operation nil))))
 
-(defadvice self-insert-command (before self-insert-command-pre-hook activate)
-  (setq sp-point-inside-string (sp-point-in-string)))
-
 (defmacro setaction (action &rest forms)
   `(if (not action)
        (setq action (progn ,@forms))
      (progn ,@forms)))
 
-(defadvice self-insert-command (after self-insert-command-post-hook activate)
+(defadvice self-insert-command (around self-insert-command-adviced activate)
+  (setq sp-point-in-string (sp-point-in-string))
+
+  ad-do-it
+
   (when smartparens-mode
     (let (op action)
       (if (= 1 (ad-get-arg 0))
@@ -1586,9 +1587,6 @@ disabled by setting `sp-autodelete-closing-pair' and
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Navigation
 
-
-;; `sp-get-sexp' now work properly on pairs that have as a suffix another pair. It also ignores pairs inside comments and strings. This means
-
 ;; TODO: this has a hardcoded limit of 10!
 (defun sp-search-backward-regexp (regexp &optional bound noerror)
   "Works just like `search-backward-regexp', but returns the
@@ -1616,12 +1614,21 @@ pairs!"
                    (- (point) 2))))
       (cons open close))))
 
+(defmacro sp-search-and-save-match (search-fn pattern bound res beg end str)
+  "Save the last match info."
+  `(progn
+     (setq ,res (funcall ,search-fn ,pattern ,bound t))
+     (when ,res
+       (setq ,beg (match-beginning 0))
+       (setq ,end (match-end 0))
+       (setq ,str (match-string 0)))))
+
 (defun sp-get-sexp (&optional back)
   "Find the nearest balanced expression that is after point, or
 before point if BACK is non-nil. This also means, if the point
 is inside an expression, this expression is returned.
 
-For the moment, this function ignores pairs where the opening and
+For the moment, this function (ignores) pairs where the opening and
 closing pair is the same, as it is impossible to correctly
 determine the opening/closing relation without keeping track of
 the content of the entire buffer.
@@ -1633,23 +1640,33 @@ properly if it is turned on."
          (pair-list (--filter (and (sp-insert-pair-p (car it) major-mode)
                                    (not (string= (car it) (cdr it)))) sp-pair-list))
          (pattern (regexp-opt (-flatten (--map (list (car it) (cdr it)) pair-list))))
-         (in-string (sp-point-in-string))
-         (string-bounds (and in-string (sp-get-quoted-string-bounds)))
-         (fw-bound (if string-bounds (cdr string-bounds) (point-max)))
-         (bw-bound (if string-bounds (car string-bounds) (point-min)))
+         (in-string-or-comment (sp-point-in-string-or-comment))
+         (string-bounds (and in-string-or-comment (sp-get-quoted-string-bounds)))
+         (fw-bound (point-max))
+          ;;(if string-bounds (cdr string-bounds) (point-max)))
+         (bw-bound (point-min))
+          ;;(if string-bounds (car string-bounds) (point-min)))
          (s nil) (e nil) (active-pair nil) (forward nil) (failure nil)
          (mb nil) (me nil) (ms nil) (r nil))
     (save-excursion
-      (when (funcall search-fn pattern (if back bw-bound fw-bound) t)
-        (setq active-pair (--first (equal (match-string 0) (car it)) pair-list))
+      (sp-search-and-save-match search-fn pattern (if back bw-bound fw-bound)
+                                r mb me ms)
+      (when (not (sp-point-in-string-or-comment))
+        (setq in-string-or-comment nil))
+      (unless in-string-or-comment
+        (while (sp-point-in-string-or-comment)
+          (sp-search-and-save-match search-fn pattern (if back bw-bound fw-bound)
+                                    r mb me ms)))
+      (when r
+        (setq active-pair (--first (equal ms (car it)) pair-list))
         (if active-pair
             (progn
               (setq forward t)
-              (setq s (match-beginning 0))
+              (setq s mb)
               (when back
                 (forward-char (length (car active-pair)))))
-          (setq active-pair (--first (equal (match-string 0) (cdr it)) pair-list))
-          (setq e (match-end 0))
+          (setq active-pair (--first (equal ms (cdr it)) pair-list))
+          (setq e me)
           (when (not back)
             (backward-char (length (cdr active-pair)))))
         (let* ((open (if forward (car active-pair) (cdr active-pair)))
@@ -1660,13 +1677,17 @@ properly if it is turned on."
                (eof (if forward 'eobp 'bobp))
                (b (if forward fw-bound bw-bound)))
           (while (and (> depth 0) (not (funcall eof)))
-            (setq r (funcall search-fn needle b t))
-            (setq mb (match-beginning 0))
-            (setq me (match-end 0))
-            (setq ms (match-string 0))
+            (sp-search-and-save-match search-fn needle b r mb me ms)
             (if r
-                (unless (and (not in-string)
-                             (sp-point-in-string-or-comment))
+                (unless (or (and (not in-string-or-comment)
+                                 (sp-point-in-string-or-comment))
+                            ;; we need to check if the match isn't
+                            ;; preceeded by escape sequence. This is a
+                            ;; bit tricky to do right, so for now we
+                            ;; just handle emacs-lisp ?\ character
+                            ;; prefix
+                            (and (member major-mode '(emacs-lisp-mode inferior-emacs-lisp-mode lisp-mode))
+                                 (equal (buffer-substring (- mb 2) mb) "?\\")))
                   (if (equal ms open)
                       (setq depth (1+ depth))
                     (setq depth (1- depth))))
@@ -1677,7 +1698,38 @@ properly if it is turned on."
               (setq e me)
             (setq s mb))
           (unless failure
-            (list s e (if forward open close) (if forward close open))))))))
+            (cond
+             ((or (and (sp-point-in-string-or-comment s) (not (sp-point-in-string-or-comment e)))
+                  (and (not (sp-point-in-string-or-comment s)) (sp-point-in-string-or-comment e)))
+              (message "Opening or closing pair is inside a string or comment and matching pair is outside (or vice versa). Ignored.")
+              nil)
+             (t (list s e (if forward open close) (if forward close open))))
+            ))))))
+
+(defun sp-get-enclosing-sexp (&optional arg)
+  "Return the balanced expression that wraps point at the same
+level.  With ARG, ascend that many times.  This funciton expect
+positive argument."
+  (setq arg (or arg 1))
+  (save-excursion
+    (let ((n arg)
+          (ok t))
+      (while (and (> n 0) ok)
+        (setq ok t)
+        (let ((p (point)))
+          (setq ok (sp-get-sexp))
+          (cond
+           ((and ok (= (car ok) p))
+            (goto-char (cadr ok))
+            (setq n (1+ n)))
+           ((and ok (< (car ok) p))
+            (goto-char (cadr ok)))
+           (t
+            (while (and ok (>= (car ok) p))
+              (setq ok (sp-get-sexp))
+              (when ok (goto-char (cadr ok)))))))
+        (setq n (1- n)))
+      ok)))
 
 (defun sp-forward-sexp (&optional arg)
   "Move forward across one balanced expression.  With ARG, do it
@@ -1786,41 +1838,11 @@ this that many times.  A negative argument means move backward
 but still to a less deep spot."
   (interactive "^p")
   (setq arg (or arg 1))
-  (if (> arg 0)
-      (let ((n arg)
-            (ok t))
-        (while (and (> n 0) ok)
-          (setq ok t)
-          (let ((p (point)))
-            (setq ok (sp-get-sexp))
-            (cond
-             ((and ok (= (car ok) p))
-              (goto-char (cadr ok))
-              (setq n (1+ n)))
-             ((and ok (< (car ok) p))
-              (goto-char (cadr ok)))
-             (t
-              (while (and ok (>= (car ok) p))
-                (setq ok (sp-get-sexp))
-                (when ok (goto-char (cadr ok)))))))
-          (setq n (1- n))))
-    (let ((n (- arg))
-          (ok t))
-      (while (and (> n 0) ok)
-        (setq ok t)
-        (let ((p (point)))
-          (setq ok (sp-get-sexp t))
-          (cond
-           ((and ok (= (cadr ok) p))
-            (goto-char (car ok))
-            (setq n (1+ n)))
-           ((and ok (> (cadr ok) p))
-            (goto-char (car ok)))
-           (t
-            (while (and ok (<= (cadr ok) p))
-              (setq ok (sp-get-sexp t))
-              (when ok (goto-char (car ok)))))))
-        (setq n (1- n))))))
+  (let ((ok (sp-get-enclosing-sexp (abs arg))))
+    (when ok
+      (if (> arg 0) (goto-char (cadr ok))
+        (goto-char (car ok))))
+    ))
 
 (defun sp-backward-up-sexp (&optional arg)
   "An alias for (sp-up-sexp (- (or arg 1))).  This function
@@ -1830,9 +1852,14 @@ expect positive argument. See `sp-up-sexp'."
     (sp-up-sexp (- (or arg 1)))))
 
 (defun sp-kill-sexp (&optional arg)
-  "Kill the sexp (balanced expression) following point.  With
-ARG, kill that many sexps after point.  Negative arg -N means
-kill N sexps before point."
+  "Kill the sexp (balanced expression) following point.  If
+inside an expression, kill the topmost enclosing expression.
+With ARG, kill that many sexps after point.  Negative arg -N
+means kill N sexps before point.
+
+(foo |(abc) bar)  -> (foo bar)
+
+(foo (bar) | baz) -> |"
   (interactive "^p")
   (setq arg (or arg 1))
   (if (> arg 0)
