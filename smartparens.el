@@ -480,26 +480,21 @@ non-nil."
 (defun sp-point-in-string (&optional p)
   "Return t if point is inside string or documentation string. If
 optional argument P is present, test this instead of point."
-  (let ((face (plist-get (text-properties-at (if p p (point))) 'face)))
-    (or (eq 'font-lock-string-face face)
-        (eq 'font-lock-doc-face face) ;; I wonder how this works
-                                      ;; outside emacs-lisp-mode
-        )))
+  (save-excursion
+    (nth 3 (syntax-ppss p))))
 
 (defun sp-point-in-comment (&optional p)
   "Return t if point is inside comment. If optional argument P is
-present, test this instead of point."
-  (let ((face (plist-get (text-properties-at (if p p (point))) 'face)))
-    (or (eq 'font-lock-comment-face face))))
+present, test this instead off point."
+  (save-excursion
+    (nth 4 (syntax-ppss p))))
 
 (defun sp-point-in-string-or-comment (&optional p)
   "Return t if point is inside string, documentation string or a
 comment. If optional argument P is present, test this instead
 of point."
-  (let ((face (plist-get (text-properties-at (if p p (point))) 'face)))
-    (or (eq 'font-lock-string-face face)
-        (eq 'font-lock-doc-face face)
-        (eq 'font-lock-comment-face face))))
+  (or (sp-point-in-string p)
+      (sp-point-in-comment p)))
 
 (defun sp-single-key-description (event)
   "Return a description of the last event. Replace all the function key symbols with garbage character (ň).
@@ -1565,7 +1560,7 @@ disabled by setting `sp-autodelete-closing-pair' and
                               ;; customizable option
                (sp-point-in-string)
                (not (sp-point-in-string (1+ p)))
-               (sp-point-in-string (- p 2))) ;; the string isn't empty
+               (sp-point-in-string (1- p))) ;; the string isn't empty
           (cond ;; oh, you ugly duplication :/
            ((and behind-pair sp-autodelete-closing-pair)
             (delete-char (- (1- (length (car behind-pair)))))
@@ -1591,54 +1586,98 @@ disabled by setting `sp-autodelete-closing-pair' and
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Navigation
 
+
+;; `sp-get-sexp' now work properly on pairs that have as a suffix another pair. It also ignores pairs inside comments and strings. This means
+
+;; TODO: this has a hardcoded limit of 10!
+(defun sp-search-backward-regexp (regexp &optional bound noerror)
+  "Works just like `search-backward-regexp', but returns the
+longest possible match.  That means that searching for
+\"defun|fun\" backwards would return \"defun\" instead of
+\"fun\", which would be matched first.
+
+This is an internal function. Only use this for searching for
+pairs!"
+  (when (search-backward-regexp regexp bound noerror)
+    (goto-char (match-end 0))
+    (looking-back regexp 10 t)
+    (goto-char (match-beginning 0))))
+
+(defun sp-get-quoted-string-bounds ()
+  "If the point is inside a quoted string, return its bounds."
+  (when (nth 3 (syntax-ppss))
+    (let ((open (save-excursion
+                  (while (nth 3 (syntax-ppss))
+                    (forward-char -1))
+                  (1+ (point))))
+          (close (save-excursion
+                   (while (nth 3 (syntax-ppss))
+                     (forward-char 1))
+                   (- (point) 2))))
+      (cons open close))))
+
 (defun sp-get-sexp (&optional back)
   "Find the nearest balanced expression that is after point, or
-before point if BACK is non-nil. This also meanas, if the point
-is inside an expression, this expression is returned."
-  (let ((search-fn (if back 'search-backward-regexp 'search-forward-regexp))
-        (pair-list (--filter (sp-insert-pair-p (car it) major-mode) sp-pair-list)))
-    (let (start end active-pair forward depth failure)
-      (save-excursion
-        (if (funcall search-fn
-                     (regexp-opt (-flatten (--map (list (car it) (cdr it)) pair-list))) nil t)
+before point if BACK is non-nil. This also means, if the point
+is inside an expression, this expression is returned.
+
+For the moment, this function ignores pairs where the opening and
+closing pair is the same, as it is impossible to correctly
+determine the opening/closing relation without keeping track of
+the content of the entire buffer.
+
+If the search starts inside a string, it only searches in this
+string. This is determined by `font-lock-mode', so it only works
+properly if it is turned on."
+  (let* ((search-fn (if (not back) 'search-forward-regexp 'sp-search-backward-regexp))
+         (pair-list (--filter (and (sp-insert-pair-p (car it) major-mode)
+                                   (not (string= (car it) (cdr it)))) sp-pair-list))
+         (pattern (regexp-opt (-flatten (--map (list (car it) (cdr it)) pair-list))))
+         (in-string (sp-point-in-string))
+         (string-bounds (and in-string (sp-get-quoted-string-bounds)))
+         (fw-bound (if string-bounds (cdr string-bounds) (point-max)))
+         (bw-bound (if string-bounds (car string-bounds) (point-min)))
+         (s nil) (e nil) (active-pair nil) (forward nil) (failure nil)
+         (mb nil) (me nil) (ms nil) (r nil))
+    (save-excursion
+      (when (funcall search-fn pattern (if back bw-bound fw-bound) t)
+        (setq active-pair (--first (equal (match-string 0) (car it)) pair-list))
+        (if active-pair
             (progn
-              (setq active-pair (--first (string= (match-string 0) (car it)) pair-list))
-              (if active-pair
-                  (progn
-                    (setq forward t)
-                    (setq start (match-beginning 0))
-                    (when (eq search-fn 'search-backward-regexp)
-                      (forward-char (length (car active-pair)))))
-                (setq active-pair (--first (string= (match-string 0) (cdr it)) pair-list))
-                (setq end (match-end 0))
-                (when (eq search-fn 'search-forward-regexp)
-                  (backward-char (length (cdr active-pair)))))
-              (let* ((open (if forward (car active-pair) (cdr active-pair)))
-                     (close (if forward (cdr active-pair) (car active-pair)))
-                     (needle (regexp-opt (list open close)))
-                     (search-fn (if forward 'search-forward-regexp 'search-backward-regexp))
-                     (eof (if forward 'eobp 'bobp)))
-                (setq depth 1)
-                (while (and (> depth 0) (not (funcall eof)))
-                  (if (funcall search-fn needle nil t)
-                      ;; if the match is in comment, ignore it
-                      (unless (or (sp-point-in-comment (match-beginning 0))
-                                  (sp-point-in-comment (match-end 0)))
-                        (if (string= open close)
-                            (setq depth (1- depth))
-                          (if (string= (match-string 0) open)
-                              (setq depth (1+ depth))
-                            (setq depth (1- depth)))))
-                    (setq depth -1)
-                    (setq failure t)))
-                (if forward
-                    (setq end (match-end 0))
-                  (setq start (match-beginning 0)))
-                (if failure nil
-                  (list start end
-                        (if forward open close)
-                        (if forward close open)))))
-          )))))
+              (setq forward t)
+              (setq s (match-beginning 0))
+              (when back
+                (forward-char (length (car active-pair)))))
+          (setq active-pair (--first (equal (match-string 0) (cdr it)) pair-list))
+          (setq e (match-end 0))
+          (when (not back)
+            (backward-char (length (cdr active-pair)))))
+        (let* ((open (if forward (car active-pair) (cdr active-pair)))
+               (close (if forward (cdr active-pair) (car active-pair)))
+               (needle (regexp-opt (list (car active-pair) (cdr active-pair))))
+               (search-fn (if forward 'search-forward-regexp 'search-backward-regexp))
+               (depth 1)
+               (eof (if forward 'eobp 'bobp))
+               (b (if forward fw-bound bw-bound)))
+          (while (and (> depth 0) (not (funcall eof)))
+            (setq r (funcall search-fn needle b t))
+            (setq mb (match-beginning 0))
+            (setq me (match-end 0))
+            (setq ms (match-string 0))
+            (if r
+                (unless (and (not in-string)
+                             (sp-point-in-string-or-comment))
+                  (if (equal ms open)
+                      (setq depth (1+ depth))
+                    (setq depth (1- depth))))
+              (message "Search failed. This means there is unmatched expression somewhere or we are at the beginning/end of file.")
+              (setq depth -1)
+              (setq failure t)))
+          (if forward
+              (setq e me)
+            (setq s mb))
+          (unless failure
+            (list s e (if forward open close) (if forward close open))))))))
 
 (defun sp-forward-sexp (&optional arg)
   "Move forward across one balanced expression.  With ARG, do it
