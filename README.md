@@ -11,7 +11,7 @@ Modern lightweight smart parens/auto-insert/wrapping package for Emacs. This pac
   * Different tags are supported, for example, languages that would use `{tag}` instead of `<tag>` or different opening pair and closing pair syntax, for example opening with `(tag` and closing with `)` (a.k.a. s-expression) or LaTeX `\begin{} \end{}` pair.
 * [x] automatically escape strings if wrapped with another string. `this "string"` turns to `"this \"string\""` automaticaly.
 * automatically escape typed quotes inside a string
-* [/] Jumping around the pairs (extending forward-sexp to custom user pairs)
+* Jumping around the pairs (extending forward-sexp to custom user pairs)
 
 **All features** are fully customizable via `M-x customize-group smartparens`. You can turn every behaviour on or off for best user experience (yay buzzwords).
 
@@ -222,11 +222,11 @@ It's best if you try this feature during actual editing to see if you like it or
 Navigation
 ==========
 
-You can navigate and manipulate the balanced expressions (s-expressions, sexps) using following functions. In "comment" is the recommended binding, however, no function is bind by default. You should put these into `sp-keymap` so they would only be enabled in `smartparens-mode`. You can use:
+You can navigate and manipulate the balanced expressions (s-expressions, sexps) using following functions. In "comment" is the recommended binding, however, no function is bound by default. You should put these into `sp-keymap` so they would only be enabled in `smartparens-mode`. You can use:
 
     (define-key sp-keymap (kbd "your-key") 'function)
 
-to do the local binding. Note that this has to occure *after* `smartparens-mode` is loaded, otherwise the `sp-keymap` variable will be void. See the example configuration at the end of this readme for the working code to set the bindings.
+to do the local binding. Note that this has to occur *after* `smartparens-mode` is loaded, otherwise the `sp-keymap` variable will be void. See the example configuration at the end of this readme for the working code to set the bindings.
 
 The list of manipulation functions:
 
@@ -253,16 +253,16 @@ Lastly, the navigation with expressions where opening and closing pair is the sa
 Here's a quick summary for each function:
 
 * `sp-forward-sexp` - Jump *after* the next balanced expression. If inside one, jump after its closing pair.
-* `sp-backward-sexp` - Jump *before* the previous balanced expression. If inside one, jump before its opening pair
-* `sp-down-sexp` - Jump *after* the opening pair of next balanced expression. This effectively descends one level down in the "expression hierarchy".
-* `sp-backward-down-sexp` - Jump *after* the opening pair of previous balanced expression. This defaultly calls `sp-down-sexp` with argument `-2`, which means `(defun a (par|am))` -> `(|defun a (param))` instead of `(defun a (|param))`
-* `sp-up-sexp` - Jump up one level from the current balanced expression. This means skipping all the enclosed expressions within *this* and then jumping *after* the closing pair. For example `(if (= a b) | (some call) (some other call))` -> `(if ...)|`
+* `sp-backward-sexp` - Jump *before* the previous balanced expression. If inside one, jump before its opening pair.
+* `sp-down-sexp` - Jump *after* the opening pair of next balanced expression. This effectively descends one level down in the "expression hierarchy". If inside one, jump *after* its opening pair. This can be used to quickly navigate to the beginning of current balanced expression.
+* `sp-backward-down-sexp` - Jump *before* the closing pair of previous balanced expression. If inside one, jump *before* its closing pair. This can be used to quickly navigate to the end of current balanced expression.
+* `sp-up-sexp` - Jump up one level from the current balanced expression. This means skipping all the enclosed expressions within *this* and then jumping *after* the closing pair. For example `(if (= a b) | (some call) (some other call))` -> `(if ...)|`.
 * `sp-backward-up-sexp` - Jump up backwards one level from the current balanced expressions. This means skipping all the enclosed expressions within *this* backwards and then jumping *before* the opening pair.
-* `sp-next-sexp` - Jump to the *beginning* of following balanced expression. If there is no following expression on the current level, jump one level up (effectively doing `sp-backward-up-sexp`).
-* `sp-previous-sexp` - Jump to the *end* of the previous balanced expression.
+* `sp-next-sexp` - Jump to the *beginning* of following balanced expression. If there is no following expression on the current level, jump one level up, effectively doing `sp-backward-up-sexp`.
+* `sp-previous-sexp` - Jump to the *end* of the previous balanced expression. If there is no previous expression on the current level, jupm one level up, effectively doing `sp-up-sexp`.
 
-* `sp-kill-sexp` - kill the next balanced expression
-* `sp-backward-kill-sexp` - kill the previous balanced expression
+* `sp-kill-sexp` - kill the next balanced expression.
+* `sp-backward-kill-sexp` - kill the previous balanced expression.
 
 Example configuration
 ==========
