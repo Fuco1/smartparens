@@ -327,7 +327,7 @@ This is actually my current config for this package. Since I'm only using `emacs
     ;; you can also use the `sp-with' macro. It will automatically add the
     ;; mode to the end of each call. How cool is that!
     (sp-with 'markdown-mode
-             (sp-add-local-pair '("`" . "`"))
+             (sp-add-local-pair "`" "`")
              ;; this also disables '*' in all other modes
              (sp-add-local-allow-insert-pair "*"))
 
