@@ -43,8 +43,8 @@
   :group 'editor)
 
 (defvar sp-keymap (make-sparse-keymap)
-  "Keymap used for smartparens-mode. Remaps all the trigger keys
-to `self-insert-command'. This means we lose some functionality
+  "Keymap used for smartparens-mode.  Remaps all the trigger keys
+to `self-insert-command'.  This means we lose some functionality
 in some modes (like c-electric keys).")
 
 ;;;###autoload
@@ -69,8 +69,8 @@ in some modes (like c-electric keys).")
     ))
 
 (defun sp-update-pair-triggers ()
-  "Update the `sp-keymap' to include all trigger keys. Trigger
-key is any character present in any pair. Each trigger key must
+  "Update the `sp-keymap' to include all trigger keys.  Trigger
+key is any character present in any pair.  Each trigger key must
 map to `self-insert-command'."
   (let ((triggers (-distinct
             (split-string
@@ -81,6 +81,10 @@ map to `self-insert-command'."
              "" t))))
     (--each triggers (define-key sp-keymap it 'self-insert-command))))
 
+;; TODO: we could remove pairs that are absolutely not allowed in this
+;; mode here (those that are banned or only allowed elsewhere).  It
+;; will save a lot on the various filtering tasks.  However, this will
+;; be an issue only with hundreds of pairs
 (defun sp-update-local-pairs ()
   "Update local pairs after removal or at mode initialization."
   (setq sp-pair-list (default-value 'sp-pair-list))
@@ -94,7 +98,7 @@ map to `self-insert-command'."
                     (sp-add-to-ordered-list (car it) sp-pair-list #'sp-order-pairs))))))
 
 (defun sp-update-local-pairs-everywhere ()
-  "Run `sp-update-local-pairs' in all buffers. This is necessary
+  "Run `sp-update-local-pairs' in all buffers.  This is necessary
 to update all the buffer-local definitions."
   (--each (buffer-list)
     (with-current-buffer it
@@ -149,16 +153,16 @@ to update all the buffer-local definitions."
 the same opening pair as currently inserted pair.
 
 The first option does not change the insertion behaviour and pairs are
-inserted normally. For example |() followed by ( would produce (|)().
+inserted normally.  For example |() followed by ( would produce (|)().
 
 The second option inserts the pair only if the opening pair
-following point is not the same as currently inserted pair. For
-example |() followed by ( would produce (|(). If next character
+following point is not the same as currently inserted pair.  For
+example |() followed by ( would produce (|().  If next character
 isn't part of any pair, insert normally.
 
 The third option behaves as second, but if the opening and closing
 pairs are the same, and we are looking at the closing pair, insert the
-whole pair. For example \"|\" followed by \" produce \"\"|\"\". This
+whole pair.  For example \"|\" followed by \" produce \"\"|\"\".  This
 is useful in modes where pairs of same characters have special
 meaning, such as `markdown-mode' and * for italics and ** for bold."
   :type '(radio
@@ -177,7 +181,7 @@ it would produce (|word."
   :group 'smartparens)
 
 (defcustom sp-autoskip-closing-pair t
-  "If non-nil, skip the following closing pair. See
+  "If non-nil, skip the following closing pair.  See
 `sp-skip-closing-pair' for more info."
   :type 'boolean
   :group 'smartparens)
@@ -185,7 +189,7 @@ it would produce (|word."
 (defcustom sp-cancel-autoskip-on-backward-movement t
   "If non-nil, autoskip of closing pair is cancelled not only
 when point is moved outside of the pair, but also if the point
-moved backwards. See `sp-skip-closing-pair' for more info."
+moved backwards.  See `sp-skip-closing-pair' for more info."
   :type 'boolean
   :group 'smartparens)
 
@@ -207,13 +211,13 @@ moved backwards. See `sp-skip-closing-pair' for more info."
 
 ;; wrap custom
 (defcustom sp-autowrap-region t
-  "If non-nil, wrap the active region with pair. See `sp-wrap-region' and `sp-wrap-region-init'"
+  "If non-nil, wrap the active region with pair.  See `sp-wrap-region' and `sp-wrap-region-init'"
   :type 'boolean
   :group 'smartparens)
 
 (defcustom sp-autodelete-wrap t
   "If non-nil, auto delete both opening and closing pair of most
-recent wrapping. Deletion command must be the very first
+recent wrapping.  Deletion command must be the very first
 command after the insertion, otherwise normal behaviour is
 applied."
   :type 'boolean
@@ -221,17 +225,17 @@ applied."
 
 (defvar sp-delete-selection-mode nil
   "If non-nil, smartparens will emulate
-  `delete-selection-mode'. You must also disable the
+  `delete-selection-mode'.  You must also disable the
   `delete-selection-mode' for this to work correctly! The emulation
   mode works exactly the same, indeed, it simply calls the
-  original `delete-selection-pre-hook' function. However, if there's
+  original `delete-selection-pre-hook' function.  However, if there's
   a possibility of wrapping, it wraps the active region
   instead.")
 (defun sp-turn-on-delete-selection-mode ()
   (interactive)
   (setq sp-delete-selection-mode t)
   ;; make sure the `delete-selection-pre-hook' is not active and that
-  ;; delsel is actually loaded. We need the delete-selection-pre-hook
+  ;; delsel is actually loaded.  We need the delete-selection-pre-hook
   ;; command!
   (require 'delsel)
   (remove-hook 'pre-command-hook 'delete-selection-pre-hook)
@@ -282,7 +286,7 @@ List of pair IDs.")
 
 (defvar sp-local-allow-insert-pair '()
   "For pairs on this list auto insertion is locally enabled in
-specified modes. It is disabled in all other modes automatically.
+specified modes.  It is disabled in all other modes automatically.
 
 List of elements of type (command . '(list of modes)).")
 
@@ -302,7 +306,7 @@ List of pair IDs.")
 (defvar sp-local-allow-insert-pair-in-string '()
   "For pairs on this list auto insertion is locally enabled in
 specific modes if the point is inside string, docstring or
-comment. It is disabled in all other modes automatically.
+comment.  It is disabled in all other modes automatically.
 
 List of elements of type (command . '(list of modes)).")
 
@@ -320,7 +324,7 @@ List of pair IDs.")
 
 (defvar sp-local-allow-insert-pair-in-code '()
   "For pairs on this list auto insertion is locally enabled in
-specific modes if the point is inside code. It is disabled in all
+specific modes if the point is inside code.  It is disabled in all
 other modes automatically.
 
 List of elements of type (command . '(list of modes)).")
@@ -338,14 +342,14 @@ List of elements of type (command . '(list of modes)).")
                        ("{"     . "}")
                        ("`"     . "'") ;; tap twice for tex double quotes
                        )
-  "List of pairs for auto-insertion or wrapping. Maximum length
+  "List of pairs for auto-insertion or wrapping.  Maximum length
 of opening or closing pair is 10 characters.")
 (make-variable-buffer-local 'sp-pair-list)
 
 (defvar sp-local-pair-list '()
-  "List of pairs specific to a specific mode. The pairs on this list
-are not enabled globally. Pairs in this list can override global
-definitons. For example default `' can be overriden with `` in
+  "List of pairs specific to a specific mode.  The pairs on this list
+are not enabled globally.  Pairs in this list can override global
+definitons.  For example default `' can be overriden with `` in
 markdown-mode.
 
 List of elements of type (mode . '((open . close))).")
@@ -359,15 +363,15 @@ List of elements of type (mode . '((open . close))).")
                                      ))
                            )
 
-  "List of tag pairs. Some languages use more elaborate tag pairs,
-such as html \"<span class=\"x\">something</span>\". For these,
-the standard wrap mechanism isn't sufficient. Here, user can
-define the syntax of opening and closing pair. If they share the
+  "List of tag pairs.  Some languages use more elaborate tag pairs,
+such as html \"<span class=\"x\">something</span>\".  For these,
+the standard wrap mechanism isn't sufficient.  Here, user can
+define the syntax of opening and closing pair.  If they share the
 same keyword, this is substituted for _ in the tag
-definitions. The transform-function can further transform the
+definitions.  The transform-function can further transform the
 substitution for closing tab, for example cutting out everything
-after a space in html-tag. Only one _ per tag is allowed. If no _
-is present in the closing tag, nothing is mirrored there. If no _
+after a space in html-tag.  Only one _ per tag is allowed.  If no _
+is present in the closing tag, nothing is mirrored there.  If no _
 is present in the opening tag, tag insertion mode is not entered
 and the tags are simply inserted as text.
 
@@ -376,10 +380,10 @@ close-tag transform-funciton)) where:
 
 open-trigger - the trigger that starts the tag insertion.
 
-open-tag - format of the opening tag. _ is replaced by the entered
+open-tag - format of the opening tag.  _ is replaced by the entered
 text.
 
-close-tag - format of the closing tag. _ is replaced by the entered
+close-tag - format of the closing tag.  _ is replaced by the entered
 text.
 
 modes - list of modes where this wrapping is allowed.
@@ -396,19 +400,19 @@ transformation on text that will be substituted to closing tag.")
 (make-variable-buffer-local 'sp-escape-char)
 
 (defvar sp-previous-point -1
-  "Location of point before last command. This is only updated
-when some pair-overlay is active. Do not rely on the value of
+  "Location of point before last command.  This is only updated
+when some pair-overlay is active.  Do not rely on the value of
 this variable anywhere else!")
 (make-variable-buffer-local 'sp-previous-point)
 
 (defvar sp-wrap-point nil
-  "Save the value of point before attemt to wrap a region. Used
+  "Save the value of point before attemt to wrap a region.  Used
 for restoring the original state if the wrapping is
 cancelled.")
 (make-variable-buffer-local 'sp-wrap-point)
 
 (defvar sp-wrap-mark nil
-  "Save the value of point before attemt to wrap a region. Used
+  "Save the value of point before attemt to wrap a region.  Used
 for restoring the original state if the wrapping is
 cancelled.")
 (make-variable-buffer-local 'sp-wrap-mark)
@@ -419,9 +423,9 @@ the location of point before the wrapping.")
 (make-variable-buffer-local 'sp-last-inserted-character)
 
 (defvar sp-last-wrapped-region nil
-  "List containing info about last wrapped region. The content of the list is:
+  "List containing info about last wrapped region.  The content of the list is:
 \(start-of-the-wrapped-region end-of-the-wrapped-region
-length-of-opening-pair length-of-closing-pair\). Start and end
+length-of-opening-pair length-of-closing-pair\).  Start and end
 positions include the newly added wrapping pair.")
 (make-variable-buffer-local 'sp-last-wrapped-region)
 
@@ -436,14 +440,14 @@ positions include the newly added wrapping pair.")
   `(setq ,list (delete ,elm ,list)))
 
 (defmacro sp-with (arg &rest forms)
-  "Adds ARG as last argument to each form. This can be used on
+  "Adds ARG as last argument to each form.  This can be used on
 most of the permission functions to automatically supply the mode
 where we operate."
   `(progn
      ,@(mapcar (lambda (form) (append form (list arg))) forms)))
 
 (defmacro sp-with-tag (arg &rest forms)
-  "Adds ARG as first argument to each form. This can be used on
+  "Adds ARG as first argument to each form.  This can be used on
 most of the permission functions to automatically supply the
 tag on which we want to operate."
   `(progn
@@ -454,7 +458,7 @@ tag on which we want to operate."
 
 (defun -union (list1 list2)
   "Return a new list containing the elements of LIST1 and
-elements of LIST2 that were not present in LIST1. The test for
+elements of LIST2 that were not present in LIST1.  The test for
 equality is done with `equal', or with `-compare-fn' if that's
 non-nil."
   (let ((result (nreverse list1)))
@@ -478,26 +482,26 @@ non-nil."
   (concat (reverse (append str nil))))
 
 (defun sp-point-in-string (&optional p)
-  "Return t if point is inside string or documentation string. If
+  "Return t if point is inside string or documentation string.  If
 optional argument P is present, test this instead of point."
   (save-excursion
     (nth 3 (syntax-ppss p))))
 
 (defun sp-point-in-comment (&optional p)
-  "Return t if point is inside comment. If optional argument P is
+  "Return t if point is inside comment.  If optional argument P is
 present, test this instead off point."
   (save-excursion
     (nth 4 (syntax-ppss p))))
 
 (defun sp-point-in-string-or-comment (&optional p)
   "Return t if point is inside string, documentation string or a
-comment. If optional argument P is present, test this instead
+comment.  If optional argument P is present, test this instead
 of point."
   (or (sp-point-in-string p)
       (sp-point-in-comment p)))
 
 (defun sp-single-key-description (event)
-  "Return a description of the last event. Replace all the function key symbols with garbage character (ň).
+  "Return a description of the last event.  Replace all the function key symbols with garbage character (ň).
 
 TODO: fix this!"
   (let ((original (single-key-description event)))
@@ -505,7 +509,7 @@ TODO: fix this!"
         "ň" original)))
 
 (defun sp-split-string (string by)
-  "Split STRING on BY. This simply calls `split-string' and if it
+  "Split STRING on BY.  This simply calls `split-string' and if it
 returns a list of length one, empty string is inserted to the
 beginning."
   (let ((sp (split-string string by)))
@@ -515,7 +519,7 @@ beginning."
 ;; Adding/removing of pairs/bans/allows etc.
 
 (defun sp-add-to-ordered-list (elm list order)
-  "Add ELM to the LIST ordered by comparator ORDER. The list is
+  "Add ELM to the LIST ordered by comparator ORDER.  The list is
 ordered in descending order."
   (if (not list) (list elm)
   (if (funcall order elm (car list))
@@ -523,20 +527,20 @@ ordered in descending order."
       (cons (car list) (sp-add-to-ordered-list elm (cdr list) order)))))
 
 (defun sp-order-pairs (a b)
-  "Compare two pairs A and B by open pair length. Return t if A
+  "Compare two pairs A and B by open pair length.  Return t if A
 is leq to B."
     (>= (length (car a)) (length (car b))))
 
 (defun sp-order-tag-pairs (a b)
-  "Compare two tag pairs A and B by trigger length. Return t if A is geq to B."
+  "Compare two tag pairs A and B by trigger length.  Return t if A is geq to B."
   (<= (length (car a)) (length (car b))))
 
 (defun sp-add-pair (open close &rest banned-modes)
-  "Add a pair formed by OPEN and CLOSE to the pair list. See
+  "Add a pair formed by OPEN and CLOSE to the pair list.  See
 variable `sp-pair-list' for current list.
 
 Additional arguments are interpreted as modes where this pair
-should be banned by default. BANNED-MODES can also be a list."
+should be banned by default.  BANNED-MODES can also be a list."
   (unless (--any? (equal open (car it)) sp-pair-list)
     (setq-default sp-pair-list
                  (sp-add-to-ordered-list (cons open close) sp-pair-list #'sp-order-pairs))
@@ -547,7 +551,7 @@ should be banned by default. BANNED-MODES can also be a list."
   ))
 
 (defun sp-remove-pair (open)
-  "Remove a pair from the pair list. See variable `sp-pair-list'
+  "Remove a pair from the pair list.  See variable `sp-pair-list'
 for current list."
   (setq-default sp-pair-list
                 (--remove (equal open (car it)) sp-pair-list))
@@ -558,8 +562,8 @@ for current list."
   )
 
 (defun sp-add-local-pair (open close mode)
-  "Add a pair to the local pair list. Use this only if you need
-to overload a global pair with the same ID. If you wish to
+  "Add a pair to the local pair list.  Use this only if you need
+to overload a global pair with the same ID.  If you wish to
 limit a pair to a certain mode, add it globally and then set
 the permissions with `sp-add-local-allow-insert-pair'."
   (sp-add-to-permission-list (cons open close) sp-local-pair-list mode)
@@ -574,8 +578,8 @@ the permissions with `sp-add-local-allow-insert-pair'."
     (sp-update-local-pairs-everywhere)))
 
 (defun sp-add-tag-pair (trig open close transform mode &rest modes)
-  "Add a tag pair. This tag pair is triggered on TRIG in modes MODE,
-wraps with OPEN and CLOSE. If the CLOSE tag contains _ the content
+  "Add a tag pair.  This tag pair is triggered on TRIG in modes MODE,
+wraps with OPEN and CLOSE.  If the CLOSE tag contains _ the content
 of the opening tag is first transformed with the TRANSFORM function.
 
 See `sp-tag-pair-list' for more info."
@@ -584,7 +588,7 @@ See `sp-tag-pair-list' for more info."
         (m (-flatten (cons mode modes))))
     (if trigger
         ;; we need to look if there is a pair with open/close already
-        ;; defined. If yes, add the modes to its list. If not, we need
+        ;; defined.  If yes, add the modes to its list.  If not, we need
         ;; to create new entry
         (let ((current (--first
                         (and (equal open   (nth 1 it))
@@ -619,8 +623,8 @@ See `sp-tag-pair-list' for more info."
 
 (defun sp-add-ban-insert-pair (&rest open)
   "Add the pairs with ids in OPEN to the global insertion
-banlist. That means that these pairs will never be used for auto
-insertion. They can still be used for wrapping."
+banlist.  That means that these pairs will never be used for auto
+insertion.  They can still be used for wrapping."
   (setq sp-global-ban-insert-pair (-union sp-global-ban-insert-pair (-flatten open))))
 
 (defun sp-remove-ban-insert-pair (&rest open)
@@ -630,8 +634,8 @@ banlist."
 
 (defun sp-add-ban-insert-pair-in-string (&rest open)
   "Add the pairs with ids in OPEN to the global \"in string\"
-insertion banlist. That means that these pairs will never be used
-for auto insertion if the point is inside string. They can still
+insertion banlist.  That means that these pairs will never be used
+for auto insertion if the point is inside string.  They can still
 be used for wrapping."
   (setq sp-global-ban-insert-pair-in-string (-union sp-global-ban-insert-pair-in-string (-flatten open))))
 
@@ -642,8 +646,8 @@ string\" insertion banlist."
 
 (defun sp-add-ban-insert-pair-in-code (&rest open)
   "Add the pairs with ids in OPEN to the global \"in code\"
-insertion banlist. That means that these pairs will never be used
-for auto insertion if the point is inside code. They can still
+insertion banlist.  That means that these pairs will never be used
+for auto insertion if the point is inside code.  They can still
 be used for wrapping."
   (setq sp-global-ban-insert-pair-in-code (-union sp-global-ban-insert-pair-in-code (-flatten open))))
 
@@ -653,7 +657,7 @@ code\" insertion banlist."
   (setq sp-global-ban-insert-pair-in-code (-difference sp-global-ban-insert-pair-in-code (-flatten open))))
 
 (defmacro sp-add-to-permission-list (open list &rest modes)
-  "Add MODES to the pair with id OPEN in the LIST. See
+  "Add MODES to the pair with id OPEN in the LIST.  See
 permissions system for more details."
   (let ((m (make-symbol "new-modes")))
     `(let ((,m (-flatten ,@modes)))
@@ -664,38 +668,38 @@ permissions system for more details."
              (!cons (cons ,open ,m) ,list)))))))
 
 (defun sp-add-local-ban-insert-pair (open &rest modes)
-  "Ban autoinsertion of pair with id OPEN in modes MODES. See
+  "Ban autoinsertion of pair with id OPEN in modes MODES.  See
 `sp-insert-pair'."
   (sp-add-to-permission-list open sp-local-ban-insert-pair modes))
 
 (defun sp-add-local-allow-insert-pair (open &rest modes)
-  "Allow autoinsertion of pair with id OPEN in modes MODES. See
+  "Allow autoinsertion of pair with id OPEN in modes MODES.  See
 `sp-insert-pair'."
   (sp-add-to-permission-list open sp-local-allow-insert-pair modes))
 
 (defun sp-add-local-ban-insert-pair-in-string (open &rest modes)
   "Ban autoinsertion of pair with id OPEN in modes MODES if point
-is inside string, docstring or comment. See `sp-insert-pair'."
+is inside string, docstring or comment.  See `sp-insert-pair'."
   (sp-add-to-permission-list open sp-local-ban-insert-pair-in-string modes))
 
 (defun sp-add-local-allow-insert-pair-in-string (open &rest modes)
   "Allow autoinsertion og pair with id OPEN in MODES if point is
-inside string, docstring or comment. See `sp-insert-pair'."
+inside string, docstring or comment.  See `sp-insert-pair'."
   (sp-add-to-permission-list open sp-local-allow-insert-pair-in-string modes))
 
 (defun sp-add-local-ban-insert-pair-in-code (open &rest modes)
   "Ban autoinsertion of pair with id OPEN in modes MODES if point
-is inside code. See `sp-insert-pair'."
+is inside code.  See `sp-insert-pair'."
   (sp-add-to-permission-list open sp-local-ban-insert-pair-in-code modes))
 
 (defun sp-add-local-allow-insert-pair-in-code (open &rest modes)
   "Allow autoinsertion og pair with id OPEN in MODES if point is
-inside code. See `sp-insert-pair'."
+inside code.  See `sp-insert-pair'."
   (sp-add-to-permission-list open sp-local-allow-insert-pair-in-code modes))
 
 (defmacro sp-remove-from-permission-list (open list &rest modes)
-  "Removes MODES from the pair with id OPEN in the LIST. See
-permissions system for more details. If modes is nil, remove the
+  "Removes MODES from the pair with id OPEN in the LIST.  See
+permissions system for more details.  If modes is nil, remove the
 pair entirely."
   (let ((m (make-symbol "new-modes")))
     `(let ((,m (-flatten ,@modes)))
@@ -709,35 +713,35 @@ pair entirely."
 
 (defun sp-remove-local-ban-insert-pair (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
-modes MODES. If MODES is nil, remove all the modes."
+modes MODES.  If MODES is nil, remove all the modes."
   (sp-remove-from-permission-list open sp-local-ban-insert-pair modes))
 
 (defun sp-remove-local-allow-insert-pair (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
-modes MODES. If MODES is nil, remove all the modes"
+modes MODES.  If MODES is nil, remove all the modes"
   (sp-remove-from-permission-list open sp-local-allow-insert-pair modes))
 
 (defun sp-remove-local-ban-insert-pair-in-string (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
 modes MODES if the point is inside string, docstring or
-comment. If MODES is nil, remove all the modes."
+comment.  If MODES is nil, remove all the modes."
   (sp-remove-from-permission-list open sp-local-ban-insert-pair-in-string modes))
 
 (defun sp-remove-local-allow-insert-pair-in-string (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
 modes MODES if the point is inside string, docstring or
-comment. If MODES is nil, remove all the modes"
+comment.  If MODES is nil, remove all the modes"
   (sp-remove-from-permission-list open sp-local-allow-insert-pair-in-string modes))
 
 (defun sp-remove-local-ban-insert-pair-in-code (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
-modes MODES if the point is inside code. If MODES is nil,
+modes MODES if the point is inside code.  If MODES is nil,
 remove all the modes."
   (sp-remove-from-permission-list open sp-local-ban-insert-pair-in-code modes))
 
 (defun sp-remove-local-allow-insert-pair-in-code (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
-modes MODES if the point is inside code. If MODES is nil,
+modes MODES if the point is inside code.  If MODES is nil,
 remove all the modes"
   (sp-remove-from-permission-list open sp-local-allow-insert-pair-in-code modes))
 
@@ -761,9 +765,9 @@ remove all the modes"
   :group 'smartparens)
 
 (defvar sp-pair-overlay-list '()
-  "List of overlays used for tracking inserted pairs. When a pair
-is inserted, an overlay is created over it. When the user starts
-typing the closing pair we will not insert it again. If user
+  "List of overlays used for tracking inserted pairs.  When a pair
+is inserted, an overlay is created over it.  When the user starts
+typing the closing pair we will not insert it again.  If user
 leaves the overlay, it is canceled and the insertion works again
 as usual.")
 (make-variable-buffer-local 'sp-pair-overlay-list)
@@ -809,8 +813,8 @@ as usual.")
          (let (acc it) ,form)))))
 
 (defun sp-get-active-overlay (&optional type)
-  "Get active overlay. Active overlay is the shortest overlay at
-point. Optional argument TYPE restrict overlays to only those
+  "Get active overlay.  Active overlay is the shortest overlay at
+point.  Optional argument TYPE restrict overlays to only those
 with given type."
   (let ((overlays (overlays-at (point))))
     (when type
@@ -857,7 +861,7 @@ tracking the position of the point."
   ))
 
 (defun sp-pair-overlay-fix-highlight ()
-  "Fix highlighting of the pair overlays. Only the active overlay
+  "Fix highlighting of the pair overlays.  Only the active overlay
 should be highlighted."
   (--each (overlays-at (point)) (overlay-put it 'face nil))
   (let* ((active (sp-get-active-overlay))
@@ -870,7 +874,7 @@ should be highlighted."
          ((eq 'pair type)
           (when sp-highlight-pair-overlay
             (overlay-put active 'face 'sp-pair-overlay-face))))
-      ;; edge case where we're at the end of active overlay. If
+      ;; edge case where we're at the end of active overlay.  If
       ;; there is a wrap-tag overlay, restore it's face
       (when sp-wrap-tag-overlays
         (overlay-put (car sp-wrap-tag-overlays) 'face 'sp-wrap-tag-overlay-face))
@@ -907,7 +911,7 @@ are of zero length, or if point moved backwards."
   (when (not sp-pair-overlay-list)
     (remove-hook 'post-command-hook 'sp-pair-overlay-post-command-handler t)
     ;; this is only updated when sp-pair-overlay-post-command-handler
-    ;; is active. Therefore, we need to reset this to 1. If not, newly
+    ;; is active.  Therefore, we need to reset this to 1.  If not, newly
     ;; created overlay could be removed right after creation - if
     ;; sp-previous-point was greater than actual point
     (setq sp-previous-point -1))
@@ -920,7 +924,7 @@ are of zero length, or if point moved backwards."
 
 (defun sp-insert-pair-in-string-p (id mode)
   "Return t if we can insert pair ID in MODE inside string,
-docstring or comment. See `sp-insert-pair' for more info."
+docstring or comment.  See `sp-insert-pair' for more info."
   (let ((local-ban-in-string (member mode (cdr (assoc id sp-local-ban-insert-pair-in-string))))
         (local-allow-in-string (cdr (assoc id sp-local-allow-insert-pair-in-string))))
     (cond
@@ -930,7 +934,7 @@ docstring or comment. See `sp-insert-pair' for more info."
      (t t))))
 
 (defun sp-insert-pair-in-code-p (id mode)
-  "Return t if we can insert pair ID in MODE inside code. See
+  "Return t if we can insert pair ID in MODE inside code.  See
 `sp-insert-pair' for more info."
   (let ((local-ban-in-code (member mode (cdr (assoc id sp-local-ban-insert-pair-in-code))))
         (local-allow-in-code (cdr (assoc id sp-local-allow-insert-pair-in-code))))
@@ -941,12 +945,12 @@ docstring or comment. See `sp-insert-pair' for more info."
      (t t))))
 
 (defun sp-insert-pair-p (id mode)
-  "Return t if we can insert pair ID in MODE. See
+  "Return t if we can insert pair ID in MODE.  See
 `sp-insert-pair' for more info."
   (let ((local-ban (member mode (cdr (assoc id sp-local-ban-insert-pair))))
         (local-allow (cdr (assoc id sp-local-allow-insert-pair))))
     (cond
-     ;; if locally allowed, allow it. If it's on local-allow list
+     ;; if locally allowed, allow it.  If it's on local-allow list
      ;; automatically disable it in all non-specified modes
      (local-allow
       (if (member mode local-allow)
@@ -1031,7 +1035,7 @@ docstring or comment. See `sp-insert-pair' for more info."
       (delete-selection-pre-hook))))
 
 (defun sp-pre-command-hook-handler ()
-  "Main handler of pre-command-hook. Handle the
+  "Main handler of pre-command-hook.  Handle the
 delete-selection-mode stuff here."
   (when (and smartparens-mode
              (not (eq this-command 'self-insert-command)))
@@ -1044,12 +1048,12 @@ delete-selection-mode stuff here."
   ;; only do anything if the last command was self-insert-command
   (when sp-autowrap-region
     ;; if we can't possibly form a wrap, just insert the char and do
-    ;; nothing. If delete-selection-mode is enabled, run
+    ;; nothing.  If delete-selection-mode is enabled, run
     ;; delete-selection-pre-hook
     (if (--none? (string-prefix-p (sp-single-key-description last-command-event) (car it)) sp-pair-list)
         (let ((p (1- (point)))
               (m (mark)))
-          ;; test if we can at least start a tag wrapping. If not,
+          ;; test if we can at least start a tag wrapping.  If not,
           ;; delete the region if apropriate
           (unless (sp-wrap-tag-region-init)
             (sp-delete-selection-mode-handle)
@@ -1093,7 +1097,7 @@ delete-selection-mode stuff here."
           (setq sp-wrap-mark m)
 
           ;; We need to remember what was removed in case wrap is
-          ;; cancelled. Then these characters are re-inserted.
+          ;; cancelled.  Then these characters are re-inserted.
           (setq sp-last-inserted-character (sp-single-key-description last-command-event))
 
           ;; if point > mark, we need to remove the character at the end and
@@ -1131,7 +1135,7 @@ delete-selection-mode stuff here."
 
 (defun sp-wrap-region ()
   "Wrap region."
-  ;; this method is only called if there's an active region. It should
+  ;; this method is only called if there's an active region.  It should
   ;; never be called manually!
   (when sp-autowrap-region
     (let* ((keys (mapcar 'sp-single-key-description (recent-keys)))
@@ -1149,7 +1153,7 @@ delete-selection-mode stuff here."
              (open-pair (car active-pair))
              (close-pair (cdr active-pair)))
 
-        ;; call sp-wrap-tag-region-init here. See if we can extend the
+        ;; call sp-wrap-tag-region-init here.  See if we can extend the
         ;; current wrap-beginning into a tag
         (unless (sp-wrap-tag-region-init)
           ;; update the close pair
@@ -1159,7 +1163,7 @@ delete-selection-mode stuff here."
                 (goto-char (overlay-start oright))
                 (insert close-pair))
             ;; if we don't have any, it means there is no way to
-            ;; complete the pair... abort
+            ;; complete the pair...  abort
             (sp-wrap-cancel t))
 
           ;; we've completed a pairing!
@@ -1182,10 +1186,10 @@ delete-selection-mode stuff here."
               )))))))
 
 (defun sp-wrap-tag-region-init ()
-  "Init a region wrapping with a tag pair. This is called from
+  "Init a region wrapping with a tag pair.  This is called from
 `sp-wrap-region-init' or `sp-wrap-region' (usually on failure) to
 see if the currently entered \"wrap\" can be extended as a
-tag. The tag always gets priority from the regular wrap."
+tag.  The tag always gets priority from the regular wrap."
   (when sp-autowrap-region
     ;; we can either enter tagwrapping from already present wrap or
     ;; from nothing (if the wrap-init failed to find any usable wrap)
@@ -1239,7 +1243,7 @@ tag. The tag always gets priority from the regular wrap."
               ;; I don't know why it needs 1- here, but it does :D
               (sp-wrap-tag-create-overlays possible-tag active-tag ostart (1- oend))
             ;; we don't have a wrap, but we can maybe start a tag
-            ;; wrap. So just init the wrapping overlays as usual, and
+            ;; wrap.  So just init the wrapping overlays as usual, and
             ;; let `sp-wrap-region' handle it
             (let* ((oleft (make-overlay ostart (1+ ostart) nil nil t))
                    (oright (make-overlay oend oend nil nil t)))
@@ -1350,21 +1354,21 @@ tag overlay."
 
 (defun sp-insert-pair ()
   "Automatically insert the closing pair if it is allowed in current
-context. It is determined in this order:
+context.  It is determined in this order:
 
 1. Global allow - all pairs are allowed by default in every mode.
 
-2. Local ban - you can ban specific pair in specific modes. See
+2. Local ban - you can ban specific pair in specific modes.  See
 `sp-add-local-ban-insert-pair'.
 
 3. Global ban - you can globally ban specific pair.
 
 4. Local allow - you can allow specific pair in specific
-modes. It is disabled in all other modes (as if you globally
-banned it first). See `sp-add-local-allow-insert-pair'.
+modes.  It is disabled in all other modes (as if you globally
+banned it first).  See `sp-add-local-allow-insert-pair'.
 
 Additionally, there is a possibility to disable insertion of
-pairs inside strings, docstrings and comments or inside code. The
+pairs inside strings, docstrings and comments or inside code.  The
 order in which these are determined is following:
 
 1. Is the pair allowed in this mode? (by the above mechanism)
@@ -1375,28 +1379,28 @@ order in which these are determined is following:
 
 4. Local allow - `sp-add-local-allow-insert-pair-in-string'.
 
-The semantics are the same as above. First, point position is
-tested to determine if it is inside string. If yes, the rules for
-string restrictions are evaluated. If not, restrictions for code
-are evaluated. The code versions end with \"in-code\" instead of
+The semantics are the same as above.  First, point position is
+tested to determine if it is inside string.  If yes, the rules for
+string restrictions are evaluated.  If not, restrictions for code
+are evaluated.  The code versions end with \"in-code\" instead of
 \"in-string\".
 
 You can disable this feature completely for all modes and all pairs by
 setting `sp-autoinsert-pair' to nil.
 
 You can globally disable insertion of closing pair if point is
-followed by the matching opening pair. It is disabled by
-default. See `sp-autoinsert-if-followed-by-same' for more info.
+followed by the matching opening pair.  It is disabled by
+default.  See `sp-autoinsert-if-followed-by-same' for more info.
 
 You can globally disable insertion of closing pair if point is
-followed by word. It is disabled by default. See
+followed by word.  It is disabled by default.  See
 `sp-autoinsert-if-followed-by-word' for more info."
   (when sp-autoinsert-pair
     (let* ((keys (mapcar 'sp-single-key-description (recent-keys)))
            (last-keys (apply #'concat (-take 10 (reverse keys))))
            ;; (last-keys "\"\"\"\"\"\"\"\"\"\"\"\"")
            ;; we go through all the opening pairs and compare them to
-           ;; last-keys. If the opair is a prefix of last-keys, insert
+           ;; last-keys.  If the opair is a prefix of last-keys, insert
            ;; the closing pair
            (active-pair (--first (string-prefix-p (reverse-string (car it)) last-keys) sp-pair-list))
            (open-pair (car active-pair))
@@ -1429,8 +1433,8 @@ followed by word. It is disabled by default. See
                                 open-pair)
 
         ;; we only autoescape if the pair is a single character string
-        ;; delimiter. More elaborate pairs are probably already
-        ;; escaped. We leave the responsibility to the user, since
+        ;; delimiter.  More elaborate pairs are probably already
+        ;; escaped.  We leave the responsibility to the user, since
         ;; it's not that common and the usecases might vary -> there's
         ;; no good "default" case.
         (when (and sp-autoescape-string-quote
@@ -1454,12 +1458,12 @@ followed by word. It is disabled by default. See
 with point (that is, only inserted text), if the closing pair is
 typed, we shouldn't insert it again but skip forward.
 
-For example, pressing ( is followed by inserting the pair (|). If
+For example, pressing ( is followed by inserting the pair (|).  If
 we then type 'word' and follow by ), the result should be (word)|
 instead of (word)|).
 
 If the user moved backwards or outside the
-pair, this behaviour is cancelled. This behaviour can be globally
+pair, this behaviour is cancelled.  This behaviour can be globally
 disabled by setting `sp-cancel-autoskip-on-backward-movement' to
 nil.
 
@@ -1492,8 +1496,8 @@ This behaviour can be globally disabled by setting
                   (delete-char (- 1))
                   (setq sp-last-operation 'sp-skip-closing-pair))
               ;; Charactar that is not part of the closing pair was
-              ;; typed. Only remove overlays if we're inside the
-              ;; closing pair. If we are at the beginning, we are
+              ;; typed.  Only remove overlays if we're inside the
+              ;; closing pair.  If we are at the beginning, we are
               ;; allowed to type other characters
               (when (> already-skipped 0)
                 (dolist (o sp-pair-overlay-list) (sp-remove-overlay o)))
@@ -1503,12 +1507,12 @@ This behaviour can be globally disabled by setting
   "Automatically delete opening or closing pair, or both, depending on
 position of point.
 
-If the point is inside an empty pair, automatically delete both. That
-is, [(|) turns to [|, [\{|\} turns to [|. Can be disabled by setting
+If the point is inside an empty pair, automatically delete both.  That
+is, [(|) turns to [|, [\{|\} turns to [|.  Can be disabled by setting
 `sp-autodelete-pair' to nil.
 
 If the point is behind a closing pair or behind an opening pair delete
-it as a whole. That is, \{\}| turns to \{|, \{| turns to |. Can be
+it as a whole.  That is, \{\}| turns to \{|, \{| turns to |.  Can be
 disabled by setting `sp-autodelete-closing-pair' and
 `sp-autodelete-opening-pair' to nil."
   ;; NOTE: Only use delete-char inside this function, so we
@@ -1549,14 +1553,14 @@ disabled by setting `sp-autodelete-closing-pair' and
              (behind-pair (--first (looking-back (regexp-quote (cdr it)) (- p 10)) sp-pair-list))
              (opening-pair (--first (looking-back (regexp-quote (car it)) (- p 10)) sp-pair-list)))
         (cond
-         ;; we're just before the closing quote of a string. If there
+         ;; we're just before the closing quote of a string.  If there
          ;; is an opening or closing pair behind the point, remove
-         ;; it. This is only really relevant if the pair ends in the
-         ;; same character as string quote. We almost never want to
+         ;; it.  This is only really relevant if the pair ends in the
+         ;; same character as string quote.  We almost never want to
          ;; delete it as an autopair (it would "open up the string").
          ;; So, word\"|" and <backspace> should produce word\|" or
          ;; word|" (if \" is autopair) instead of word\|.
-         ((and font-lock-mode ;; who doesn't use this? but... to be
+         ((and font-lock-mode ;; who doesn't use this? but...  to be
                               ;; sure, since this is not a
                               ;; customizable option
                (sp-point-in-string)
@@ -1594,7 +1598,7 @@ longest possible match.  That means that searching for
 \"defun|fun\" backwards would return \"defun\" instead of
 \"fun\", which would be matched first.
 
-This is an internal function. Only use this for searching for
+This is an internal function.  Only use this for searching for
 pairs!"
   (when (search-backward-regexp regexp bound noerror)
     (goto-char (match-end 0))
@@ -1625,7 +1629,7 @@ pairs!"
 
 (defun sp-get-sexp (&optional back)
   "Find the nearest balanced expression that is after point, or
-before point if BACK is non-nil. This also means, if the point
+before point if BACK is non-nil.  This also means, if the point
 is inside an expression, this expression is returned.
 
 For the moment, this function (ignores) pairs where the opening and
@@ -1634,7 +1638,7 @@ determine the opening/closing relation without keeping track of
 the content of the entire buffer.
 
 If the search starts inside a string, it only searches in this
-string. This is determined by `font-lock-mode', so it only works
+string.  This is determined by `font-lock-mode', so it only works
 properly if it is turned on."
   (let* ((search-fn (if (not back) 'search-forward-regexp 'sp-search-backward-regexp))
          (pair-list (--filter (and (sp-insert-pair-p (car it) major-mode)
@@ -1682,7 +1686,7 @@ properly if it is turned on."
                 (unless (or (and (not in-string-or-comment)
                                  (sp-point-in-string-or-comment))
                             ;; we need to check if the match isn't
-                            ;; preceeded by escape sequence. This is a
+                            ;; preceeded by escape sequence.  This is a
                             ;; bit tricky to do right, so for now we
                             ;; just handle emacs-lisp ?\ character
                             ;; prefix
@@ -1691,7 +1695,7 @@ properly if it is turned on."
                   (if (equal ms open)
                       (setq depth (1+ depth))
                     (setq depth (1- depth))))
-              (message "Search failed. This means there is unmatched expression somewhere or we are at the beginning/end of file.")
+              (message "Search failed.  This means there is unmatched expression somewhere or we are at the beginning/end of file.")
               (setq depth -1)
               (setq failure t)))
           (if forward
@@ -1701,7 +1705,7 @@ properly if it is turned on."
             (cond
              ((or (and (sp-point-in-string-or-comment s) (not (sp-point-in-string-or-comment e)))
                   (and (not (sp-point-in-string-or-comment s)) (sp-point-in-string-or-comment e)))
-              (message "Opening or closing pair is inside a string or comment and matching pair is outside (or vice versa). Ignored.")
+              (message "Opening or closing pair is inside a string or comment and matching pair is outside (or vice versa).  Ignored.")
               nil)
              (t (list s e (if forward open close) (if forward close open))))
             ))))))
@@ -1827,7 +1831,7 @@ go down a level."
 
 (defun sp-backward-down-sexp (&optional arg)
   "An alias for (sp-down-sexp (- (or arg 1))).  This function
-expect positive argument. See `sp-down-sexp'."
+expect positive argument.  See `sp-down-sexp'."
   (interactive "^p")
   (when (> arg 0)
     (sp-down-sexp (- (or arg 1)))))
@@ -1846,7 +1850,7 @@ but still to a less deep spot."
 
 (defun sp-backward-up-sexp (&optional arg)
   "An alias for (sp-up-sexp (- (or arg 1))).  This function
-expect positive argument. See `sp-up-sexp'."
+expect positive argument.  See `sp-up-sexp'."
   (interactive "^p")
   (when (> arg 0)
     (sp-up-sexp (- (or arg 1)))))
@@ -1859,7 +1863,7 @@ means kill N sexps before point.
 
 (foo |(abc) bar)  -> (foo bar)
 
-(foo (bar) | baz) -> |"
+(foo (bar) | baz) -> |."
   (interactive "^p")
   (setq arg (or arg 1))
   (if (> arg 0)
@@ -1878,7 +1882,7 @@ means kill N sexps before point.
 
 (defun sp-backward-kill-sexp (&optional arg)
   "An alias for (sp-kill-sexp (- (or arg 1))).  This function
-expect positive argument. See `sp-kill-sexp'."
+expect positive argument.  See `sp-kill-sexp'."
   (interactive "^p")
   (when (> arg 0)
     (sp-kill-sexp (- (or arg 1)))))
