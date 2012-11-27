@@ -1903,23 +1903,6 @@ expect positive argument.  See `sp-kill-sexp'."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; "paredit" operations
 
-;; this is adapted from thingatpt.el, I don't want to load the whole
-;; thing for just one function
-(defun forward-symbol (&optional arg)
-  "Move point to the next position that is the end of a symbol.
-A symbol is any sequence of characters that are in either the
-word constituent or symbol constituent syntax class.
-With prefix argument ARG, do it ARG times if positive, or move
-backwards ARG times if negative."
-  (interactive "^p")
-  (setq arg (or arg 1))
-  (if (natnump arg)
-      (re-search-forward "\\(\\sw\\|\\s_\\)+" nil 'move arg)
-    (while (< arg 0)
-      (if (re-search-backward "\\(\\sw\\|\\s_\\)+" nil 'move)
-      (skip-syntax-backward "w_"))
-      (setq arg (1+ arg)))))
-
 (defun sp-forward-slurp-sexp (&optional arg)
   "Add the S-expression following the current list into that list
 by moving the closing delimiter.  Automatically reindent the
@@ -1929,41 +1912,56 @@ one S-expression and escape any intervening characters as
 necessary, without altering any indentation or formatting."
   (interactive "^p")
   (setq arg (or arg 1))
-  (let* ((pair-list (--filter (and (sp-insert-pair-p (car it) major-mode)
-                                   (not (string= (car it) (cdr it)))) sp-pair-list))
-         (opening (regexp-opt (--map (car it) pair-list)))
-         (closing (regexp-opt (--map (cdr it) pair-list)))
-         (ok (sp-get-enclosing-sexp))
-         (close (and ok (nth 3 ok)))
-         (next-thing nil))
-    (save-excursion
-      (when ok
-        (goto-char (cadr ok))
-        (while (looking-at closing)
-          (goto-char (match-end 0)))
-        (setq next-thing (progn
-                           (sp-skip-forward-to-meaningful t)
-                           (cond
-                            ((eq (preceding-char) ?\")
-                             (point))
-                            ((looking-at opening)
-                             (let ((nok (sp-get-sexp)))
-                               (when nok (cadr nok))))
-                            (t
-                             (forward-symbol)
-                             (point)))))
-        (when next-thing
-          (goto-char (cadr ok))
-          (delete-char (- (length (nth 3 ok))))
-          (goto-char (- next-thing (length (nth 3 ok))))
-          (insert (nth 3 ok)))
-        ))))
+  (save-excursion
+    (let* ((pair-list (--filter (and (sp-insert-pair-p (car it) major-mode)
+                                     (not (string= (car it) (cdr it)))) sp-pair-list))
+           (opening (regexp-opt (--map (car it) pair-list)))
+           (closing (regexp-opt (--map (cdr it) pair-list)))
+           (all (regexp-opt (cons " " (-flatten (--map (list (car it) (cdr it)) pair-list)))))
+           (next-thing (sp-forward-slurp-sexp-1 opening closing all))
+           (close (and next-thing (nth 3 (cdr next-thing)))))
+      (if next-thing
+          (progn
+            (goto-char (nth 2 next-thing))
+            (delete-char (- (length close)))
+            (goto-char (- (car next-thing) (length close)))
+            (insert close))
+        (message "We can't slurp without breaking strictly balanced expression. Ignored.")))))
+
+(defun sp-forward-slurp-sexp-1 (opening closing all)
+  "Internal."
+  (let ((enc (sp-get-enclosing-sexp)))
+    (when enc
+      (goto-char (cadr enc))
+      (sp-skip-forward-to-meaningful t)
+      (cond
+       ;; if we're looking back at a string, extend here
+       ((eq (preceding-char) ?\")
+        (cons (point) enc))
+       ;; if we're looking at the end of another sexp, call recursively again
+       ((looking-at closing)
+        (sp-forward-slurp-sexp-1 opening closing all))
+       ;; if we're looking at opening, wrap this expression
+       ((looking-at opening)
+        (let ((ok (sp-get-sexp)))
+          (when ok (cons (cadr ok) enc))))
+       ;; otherwise forward a symbol and return point after that
+       (t
+        (sp-forward-symbol all)
+        (cons (point) enc))))))
+
+(defun sp-forward-symbol (what)
+  "Skip forward one symbol.  Symbol is defined as whitespace or
+open/close pair delimited portion of text."
+  (when (search-forward-regexp what nil t)
+    (goto-char (match-beginning 0))))
 
 (defun sp-skip-forward-to-meaningful (&optional arg)
   "Skip forward ignoring whitespace, comments and strings.  If
 arg is non-nil, stop after first exiting a string."
   (let ((skip-string 2))
-    (while (and (or (not arg) (> skip-string 0))
+    (while (and (not (eobp))
+                (or (not arg) (> skip-string 0))
                 (or (sp-point-in-string-or-comment)
                     (member (char-syntax (char-after)) '(?< ?> ?! ?| ?\ ?\"))))
       (when (and (eq (char-syntax (char-after)) ?\" )
