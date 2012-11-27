@@ -329,19 +329,19 @@ other modes automatically.
 
 List of elements of type (command . '(list of modes)).")
 
-(defvar sp-pair-list '(
-                       ("\\\\(" . "\\\\)") ;; emacs regexp parens
-                       ("\\{"   . "\\}")
-                       ("\\("   . "\\)")
-                       ("\\\""  . "\\\"")
-                       ("/*"    . "*/")
-                       ("\""    . "\"")
-                       ("'"     . "'")
-                       ("("     . ")")
-                       ("["     . "]")
-                       ("{"     . "}")
-                       ("`"     . "'") ;; tap twice for tex double quotes
-                       )
+(defvar sp-pair-list ' (
+                        ("\\\\\\\\(" . "\\\\\\\\)") ;; emacs regexp parens
+                        ("\\{"       . "\\}")
+                        ("\\\\("     . "\\\\)")
+                        ("\\\""      . "\\\"")
+                        ("/*"        . "*/")
+                        ("\""        . "\"")
+                        ("'"         . "'")
+                        ("("         . ")")
+                        ("["         . "]")
+                        ("{"         . "}")
+                        ("`"         . "'") ;; tap twice for tex double quotes
+                        )
   "List of pairs for auto-insertion or wrapping.  Maximum length
 of opening or closing pair is 10 characters.")
 (make-variable-buffer-local 'sp-pair-list)
@@ -994,7 +994,7 @@ docstring or comment.  See `sp-insert-pair' for more info."
      (progn ,@forms)))
 
 (defadvice self-insert-command (around self-insert-command-adviced activate)
-  (setq sp-point-in-string (sp-point-in-string))
+  (setq sp-point-inside-string (sp-point-in-string))
 
   ad-do-it
 
@@ -1017,6 +1017,7 @@ docstring or comment.  See `sp-insert-pair' for more info."
                 (setq sp-last-operation 'sp-self-insert))
               ;; if it was a quote, escape it
               (when (and (eq sp-last-operation 'sp-self-insert)
+                         sp-point-inside-string
                          sp-autoescape-string-quote
                          (eq (preceding-char) ?\"))
                 (save-excursion
@@ -1089,7 +1090,7 @@ delete-selection-mode stuff here."
                 (setq sp-last-operation 'sp-wrap-region)
                 (setq sp-last-wrapped-region
                       (if (< p m)
-                          (list p (+ len m) oplen cplen)
+                          (list p (+ len m -1) oplen cplen)
                         (list m (+ len p) oplen cplen)))))
 
           ;; save the position and point so we can restore it on cancel.
@@ -1537,7 +1538,7 @@ disabled by setting `sp-autodelete-closing-pair' and
            ((= p (+ s o))
             (save-excursion
               (delete-char (- (1- o)))
-              (goto-char (- e o))
+              (goto-char (- e o -1))
               (delete-char (- c)))
             (setq sp-last-operation 'sp-delete-pair-wrap))
            ((= p e)
@@ -1704,7 +1705,7 @@ complete sexp lies completely outside, this is returned."
                             ;; just handle emacs-lisp ?\ character
                             ;; prefix
                             (and (member major-mode '(emacs-lisp-mode inferior-emacs-lisp-mode lisp-mode))
-                                 (equal (buffer-substring (- mb 2) mb) "?\\")))
+                                 (equal (buffer-substring (max 1 (- mb 2)) mb) "?\\")))
                   (if (equal ms open)
                       (setq depth (1+ depth))
                     (setq depth (1- depth))))
