@@ -1627,6 +1627,8 @@ pairs!"
        (setq ,end (match-end 0))
        (setq ,str (match-string 0)))))
 
+;; TODO: since this function is used for all the navigation, we should
+;; optimaze it a lot! Get some elisp profiler!
 (defun sp-get-sexp (&optional back)
   "Find the nearest balanced expression that is after point, or
 before point if BACK is non-nil.  This also means, if the point
@@ -1637,9 +1639,22 @@ closing pair is the same, as it is impossible to correctly
 determine the opening/closing relation without keeping track of
 the content of the entire buffer.
 
-If the search starts inside a string, it only searches in this
-string.  This is determined by `font-lock-mode', so it only works
-properly if it is turned on."
+If the search starts outside a string or comment, all subsequent
+comments are skipped.  For example, if you have a standard
+emacs-lisp defun header:
+
+   (defun foo (bar)|
+     \"doc string with (a balanced) expression\"
+     (baz))
+
+and the point is at |, the next returned sexp will be (baz).
+
+If the search starts inside a string, it tries to find the first
+balanced expression that is completely contained inside the
+string or comment.  If no such expression exist, a warning is
+raised (for example, when you comment out imbalanced expression).
+However, if you start a search from within a string and the next
+complete sexp lies completely outside, this is returned."
   (let* ((search-fn (if (not back) 'search-forward-regexp 'sp-search-backward-regexp))
          (pair-list (--filter (and (sp-insert-pair-p (car it) major-mode)
                                    (not (string= (car it) (cdr it)))) sp-pair-list))
@@ -1647,9 +1662,7 @@ properly if it is turned on."
          (in-string-or-comment (sp-point-in-string-or-comment))
          (string-bounds (and in-string-or-comment (sp-get-quoted-string-bounds)))
          (fw-bound (point-max))
-          ;;(if string-bounds (cdr string-bounds) (point-max)))
          (bw-bound (point-min))
-          ;;(if string-bounds (car string-bounds) (point-min)))
          (s nil) (e nil) (active-pair nil) (forward nil) (failure nil)
          (mb nil) (me nil) (ms nil) (r nil))
     (save-excursion
@@ -1845,8 +1858,7 @@ but still to a less deep spot."
   (let ((ok (sp-get-enclosing-sexp (abs arg))))
     (when ok
       (if (> arg 0) (goto-char (cadr ok))
-        (goto-char (car ok))))
-    ))
+        (goto-char (car ok))))))
 
 (defun sp-backward-up-sexp (&optional arg)
   "An alias for (sp-up-sexp (- (or arg 1))).  This function
@@ -1886,6 +1898,77 @@ expect positive argument.  See `sp-kill-sexp'."
   (interactive "^p")
   (when (> arg 0)
     (sp-kill-sexp (- (or arg 1)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; "paredit" operations
+
+;; this is adapted from thingatpt.el, I don't want to load the whole
+;; thing for just one function
+(defun forward-symbol (&optional arg)
+  "Move point to the next position that is the end of a symbol.
+A symbol is any sequence of characters that are in either the
+word constituent or symbol constituent syntax class.
+With prefix argument ARG, do it ARG times if positive, or move
+backwards ARG times if negative."
+  (interactive "^p")
+  (setq arg (or arg 1))
+  (if (natnump arg)
+      (re-search-forward "\\(\\sw\\|\\s_\\)+" nil 'move arg)
+    (while (< arg 0)
+      (if (re-search-backward "\\(\\sw\\|\\s_\\)+" nil 'move)
+      (skip-syntax-backward "w_"))
+      (setq arg (1+ arg)))))
+
+(defun sp-forward-slurp-sexp (&optional arg)
+  "Add the S-expression following the current list into that list
+by moving the closing delimiter.  Automatically reindent the
+newly slurped S-expression with respect to its new enclosing
+form.  If in a string, move the opening double-quote forward by
+one S-expression and escape any intervening characters as
+necessary, without altering any indentation or formatting."
+  (interactive "^p")
+  (setq arg (or arg 1))
+  (let* ((pair-list (--filter (and (sp-insert-pair-p (car it) major-mode)
+                                   (not (string= (car it) (cdr it)))) sp-pair-list))
+         (opening (regexp-opt (--map (car it) pair-list)))
+         (closing (regexp-opt (--map (cdr it) pair-list)))
+         (ok (sp-get-enclosing-sexp))
+         (close (and ok (nth 3 ok)))
+         (next-thing nil))
+    (save-excursion
+      (when ok
+        (goto-char (cadr ok))
+        (while (looking-at closing)
+          (goto-char (match-end 0)))
+        (setq next-thing (progn
+                           (sp-skip-forward-to-meaningful t)
+                           (cond
+                            ((eq (preceding-char) ?\")
+                             (point))
+                            ((looking-at opening)
+                             (let ((nok (sp-get-sexp)))
+                               (when nok (cadr nok))))
+                            (t
+                             (forward-symbol)
+                             (point)))))
+        (when next-thing
+          (goto-char (cadr ok))
+          (delete-char (- (length (nth 3 ok))))
+          (goto-char (- next-thing (length (nth 3 ok))))
+          (insert (nth 3 ok)))
+        ))))
+
+(defun sp-skip-forward-to-meaningful (&optional arg)
+  "Skip forward ignoring whitespace, comments and strings.  If
+arg is non-nil, stop after first exiting a string."
+  (let ((skip-string 2))
+    (while (and (or (not arg) (> skip-string 0))
+                (or (sp-point-in-string-or-comment)
+                    (member (char-syntax (char-after)) '(?< ?> ?! ?| ?\ ?\"))))
+      (when (and (eq (char-syntax (char-after)) ?\" )
+                 (not (eq (char-syntax (preceding-char)) ?\\)))
+        (setq skip-string (1- skip-string)))
+      (forward-char 1))))
 
 ;; global initialization
 (sp-update-pair-triggers)
