@@ -15,6 +15,8 @@ Modern lightweight smart parens/auto-insert/wrapping package for Emacs. This pac
 
 **All features** are fully customizable via `M-x customize-group smartparens`. You can turn every behaviour on or off for best user experience (yay buzzwords).
 
+**NEW:** I've made a [youtube presentation](http://www.youtube.com/watch?v=ykjRUr7FgoI&list=PLP6Xwp2WTft7rAMgVPOTI2OE_PQlKGPy7&feature=plpp_play_all). It's in 2 parts because youtube didn't allow me to upload it in one video. Switch to 480p!
+
 This is still a developement pre 1.0 version. Features marked with [x] are not implemented yet. Free to install it and report bugs or new features :)
 
 Installation
@@ -38,6 +40,8 @@ This package *depends* on [dash](https://github.com/magnars/dash.el). If you've 
 *(Note: smartparens is not yet available as package, so you need to do manual installation for now)*
 
 If you use `delete-selection-mode`, you **MUST** disable it and set appropriate emulation by smartparens. See the Wrapping section for more info.
+
+You also **musn't** bind anything to the trigger keys -- those that are part of any pair or tag -- and they have to be kept pointing to `self-insert-command`. Smartparens automatically bind these in its own keymap, so do not re-bind them.
 
 See the last section for an example configuration. Please have a look at it as it contains a working example and explains many features "visually".
 
@@ -189,6 +193,8 @@ where the arguments are:
 
 The character `_` in the format strings is replaced with the inserted text and mirrored to the closing pair. Before inserting text in the closing pair, content of the opening pair is transformed with transformation function. Only one `_` per pair is allowed. The closing tag does not have to contain `_` (then no text is inserted there). If the opening pair doesn't have `_` either, the tag is simply inserted as text and tag insertion mode is not entered. This can be used to form "shortcuts" for commonly used wrappings.
 
+If the transformation function is `nil`, it automatically defaults to `identity`. Otherwise, it should be a one-argument function that accept the content of the opening pair and as output gives the content of the closing pair.
+
 You can add different tags for the same trigger in different modes. The mode sets must not overlap, otherwise random one is picked.
 
 Tags can be removed with `sp-remove-tag-pair` function, which takes as arguments the trigger and the mode where you want to remove it.
@@ -261,8 +267,8 @@ Here's a quick summary for each function:
 * `sp-next-sexp` - Jump to the *beginning* of following balanced expression. If there is no following expression on the current level, jump one level up, effectively doing `sp-backward-up-sexp`.
 * `sp-previous-sexp` - Jump to the *end* of the previous balanced expression. If there is no previous expression on the current level, jupm one level up, effectively doing `sp-up-sexp`.
 
-* `sp-kill-sexp` - kill the next balanced expression.
-* `sp-backward-kill-sexp` - kill the previous balanced expression.
+* `sp-kill-sexp` - Kill the next balanced expression. If point is inside one and there's no following expression, kill the enclosing expression instead.
+* `sp-backward-kill-sexp` - Kill the previous balanced expression.
 
 Example configuration
 ==========
