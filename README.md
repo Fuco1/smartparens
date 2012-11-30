@@ -30,7 +30,7 @@ Modern lightweight smart parens/auto-insert/wrapping package for Emacs. This pac
 * when followed by the same opening pair or word, do not insert the whole pair. That is: `|()` followed by `(` will produce `(|()` instead of `(|)()`. Similarly, `|word` followed by `(` will produce `(|word`.
 * wraps region in defined pairs or defined tag pairs for "tag-modes" (xml/html...).
   * Different tags are supported, for example, languages that would use `{tag}` instead of `<tag>` or different opening pair and closing pair syntax, for example opening with `(tag` and closing with `)` (a.k.a. s-expression) or LaTeX `\begin{} \end{}` pair.
-* [x] automatically escape strings if wrapped with another string. `this "string"` turns to `"this \"string\""` automaticaly.
+* automatically escape strings if wrapped with another string. `this "string"` turns to `"this \"string\""` automaticaly.
 * automatically escape typed quotes inside a string
 * Jumping around the pairs (extending forward-sexp to custom user pairs)
 
@@ -38,7 +38,7 @@ Modern lightweight smart parens/auto-insert/wrapping package for Emacs. This pac
 
 **NEW:** I've made a [youtube presentation](http://www.youtube.com/watch?v=ykjRUr7FgoI&list=PLP6Xwp2WTft7rAMgVPOTI2OE_PQlKGPy7&feature=plpp_play_all). It's in 2 parts because youtube didn't allow me to upload it in one video. Switch to 480p!
 
-This is still a developement pre 1.0 version. Features marked with [x] are not implemented yet. Free to install it and report bugs or new features :)
+Currently, the feature list for version 1.0 is finished. After very short period, this package will be uploaded to package archives for some period of testing and fixing bugs. New features will be accepted after this period is over.
 
 Installation
 ==========
@@ -193,15 +193,13 @@ To change behaviours of the autopairing, see `M-x customize-group smartparens` f
 Wrapping
 ==========
 
-*(This feature is only partially implemented. Permission system is not supported. This means auto wrapping works everywhere if it is turned on. However, this isn't such a big deal as auto-insertion of pairs.)*
+*(This feature is only partially implemented. Permission system is not supported yet. This means auto wrapping works everywhere if it is turned on. However, this isn't such a big deal as auto-insertion of pairs.)*
 
 If you select a region and start typing any of the pairs, the active region will be wrapped with the pair. For multi-character pairs, a special insertion mode is entered, where point jumps to the beginning of the region. If you insert a complete pair, the region is wrapped and point returns to the original position.
 
-If you insert a character that can't possibly complete a pair, the wrapping is cancelled, the point returns to the original position and the typed text is inserted.
+If you insert a character that can't possibly complete a pair, the wrapping is cancelled, the point returns to the original position and the typed text is inserted. If you use `delete-selection-mode` or `cua-delete-selection`, the content of the region is removed first.
 
-If you use `delete-selection-mode`, you **MUST** disable it and enable an emulation by running `sp-turn-on-delete-selection-mode`. This behaves in the exact same way as original `delete-selection-mode`, indeed, it simply calls the `delete-selection-pre-hook` when appropriate. However, it intercepts it and handle the wrapping if needed.
-
-At any time in the insertion mode you can use `C-g` to cancel the insertion. In this case, both the opening and closing pairs are removed and the point returns to the original position. The region is not deleted even if `sp-turn-on-delete-selection-mode` is active.
+At any time in the insertion mode you can use `C-g` to cancel the insertion. In this case, both the opening and closing pairs are removed and the point returns to the original position. The region is not deleted even if some "delete-selection" mode is active.
 
 Wrapping with tags
 ----------
@@ -227,11 +225,11 @@ where the arguments are:
 4. Transformation function for closing tag. You can use built-in function `identity` to return the tag unchanged
 5. Modes where this is allowed. Tag pairs can't be defined globally. The rationale is that they are rather rare and the idea of specific tags for specific modes make more sense.
 
-The character `_` in the format strings is replaced with the inserted text and mirrored to the closing pair. Before inserting text in the closing pair, content of the opening pair is transformed with transformation function. Only one `_` per pair is allowed. The closing tag does not have to contain `_` (then no text is inserted there). If the opening pair doesn't have `_` either, the tag is simply inserted as text and tag insertion mode is not entered. This can be used to form "shortcuts" for commonly used wrappings.
+The character `_` in the format strings is replaced with the inserted text and mirrored to the closing pair. Before inserting text in the closing pair, content of the opening pair is transformed with transformation function. Only one `_` per pair is allowed. The closing tag does not have to contain `_` (then no text is inserted there). If the opening pair doesn't have `_` either, the tag is simply inserted as text and tag insertion mode is not entered. This can be used to form "shortcuts" for commonly used wrappings, such as `(sp-add-tag-pair "2" "**" "**" nil 'markdown-mode)` to mark selected text as bold.
 
 If the transformation function is `nil`, it automatically defaults to `identity`. Otherwise, it should be a one-argument function that accept the content of the opening pair and as output gives the content of the closing pair.
 
-You can add different tags for the same trigger in different modes. The mode sets must not overlap, otherwise random one is picked.
+You can add different tags for the same trigger in different modes. The mode sets must not overlap, otherwise random one is picked (the behaviour is undefined).
 
 Tags can be removed with `sp-remove-tag-pair` function, which takes as arguments the trigger and the mode where you want to remove it.
 
@@ -247,8 +245,6 @@ Tag insertion mode is also terminated if you leave the area of the opening tag p
 Automatic escaping
 ==========
 
-Warning: this feature needs `font-lock-mode` enabled (but seriously, who doesn't use it).
-
 If `sp-autoescape-string-quote` is enabled, all quotes (by this string delimiters are understood) are escaped if the point is within a string. The quote pair, if auto inserted, is escaped as well.
 
 If you want automatic deletion of escaped quote, you need to add it as a new pair definition with `sp-add-pair`. For example, both `"` and `\"` need to be defined as pairs (these two are included by default as they are by far the most common).
@@ -259,7 +255,17 @@ Some example situations:
 * `"some | word"`, user hits `"`, result: `"some \"|\" word"`
 * `"some | word"`, user types `\"`, result: `"some \"|\" word"` (the quote is not escaped again)
 
-It's best if you try this feature during actual editing to see if you like it or not. Please post suggestions. Also, there are some corner cases where the behaviour might not be expected, but they are so rare that fixing them is not a priority right now. However, if you find any suspicious behaviour do not hesitate to report it.
+If you select a region where both ends are inside a string and wrap it with quotes, the quotes are automatically escaped (the `><` characters mark beginning and end of the region respectively):
+
+    "here is some >|long< string"   -> "here is some \"|long\" string"
+    "youcan>quote<|insidewordstoo"  -> "youcan\"quote\"|insidewordstoo"
+
+If you select a region where both ends are *not* inside a string and wrap it with quotes, all unescaped quotes inside the region are automatically escaped.
+
+    >This is "some" text<|              -> "This is \"some\" text"|
+    >"also" works "with" more words<|   -> "\"also\" works \"with\" more words"|
+
+It's best if you try this feature during actual editing to see if you like it or not. Please post suggestions and heuristics for making this even more pleasant (for example heuristics that guess if I want to close the un-closed string, such as `"Do i want to insert quote here or escape|`). If you find any suspicious behaviour do not hesitate to report it.
 
 Navigation
 ==========

@@ -1064,10 +1064,8 @@ docstring or comment.  See `sp-insert-pair' for more info."
        ;; try the cua-mode emulation with `cua-delete-selection'
        ((and (boundp 'cua-mode) cua-mode
              (not (eq this-command 'self-insert-command)))
-        (message "running cua--pre-command-handler %s" this-command)
         (cua--pre-command-handler))
        ((and (boundp 'cua-mode) cua-mode from-wrap)
-        (message "running cua-replace-region")
         (cua-replace-region))
        ;; if not self-insert, just run the hook from
        ;; `delete-selection-mode'
@@ -1105,7 +1103,6 @@ docstring or comment.  See `sp-insert-pair' for more info."
           ;; test if we can at least start a tag wrapping.  If not,
           ;; delete the region if apropriate
           (unless (sp-wrap-tag-region-init)
-            (message "run selection handle")
             (sp-delete-selection-mode-handle t)
             (when (and (sp-delete-selection-p)
                        (< m p)
@@ -1118,8 +1115,8 @@ docstring or comment.  See `sp-insert-pair' for more info."
              (oend (if (> p m) p m))
              (keys (mapcar 'sp-single-key-description (recent-keys)))
              (last-keys (apply #'concat (-take 10 (reverse keys))))
-             (active-pair (--first (string-prefix-p (reverse-string (car it)) last-keys) sp-pair-list))
-             )
+             ;;(last-keys "\"\"\"\"\"\"\"\"")
+             (active-pair (--first (string-prefix-p (reverse-string (car it)) last-keys) sp-pair-list)))
 
         (deactivate-mark)
         ;; if we can wrap right away, do it without creating overlays,
@@ -1128,12 +1125,22 @@ docstring or comment.  See `sp-insert-pair' for more info."
             (unless (sp-wrap-tag-region-init)
               (let* ((oplen (length (car active-pair)))
                      (cplen (length (cdr active-pair)))
-                     (len (+ oplen cplen)))
+                     (len (+ oplen cplen))
+                     (strbound))
                 (if (< p m)
-                    (save-excursion
-                      (goto-char m)
-                      (insert (cdr active-pair)))
+                    (progn
+                      ;; we delete the opening here to determine the
+                      ;; string bounds... not pretty, but there's
+                      ;; probably no better solution.
+                      (delete-char -1)
+                      (setq strbound (sp-get-quoted-string-bounds))
+                      ;; and insert it right back
+                      (insert (car active-pair))
+                      (save-excursion
+                        (goto-char m)
+                        (insert (cdr active-pair))))
                   (delete-char (- 1))
+                  (setq strbound (sp-get-quoted-string-bounds))
                   (insert (cdr active-pair))
                   (goto-char m)
                   (insert (car active-pair))
@@ -1142,7 +1149,13 @@ docstring or comment.  See `sp-insert-pair' for more info."
                 (setq sp-last-wrapped-region
                       (if (< p m)
                           (list p (+ len m -1) oplen cplen)
-                        (list m (+ len p) oplen cplen)))))
+                        (list m (+ len p) oplen cplen)))
+                ;; only autoescape "" pair, so it has to be one-char
+                ;; length, therefore we can handle it here
+                (when (and (equal (car active-pair) "\"")
+                           (equal (cdr active-pair) "\""))
+                  (sp-wrap-region-autoescape strbound))
+                sp-last-wrapped-region))
 
           ;; save the position and point so we can restore it on cancel.
           (setq sp-wrap-point p)
@@ -1400,9 +1413,48 @@ tag overlay."
     (delete-overlay oleft)
     (delete-overlay oright)
     (setq sp-wrap-tag-overlays nil)
-    (remove-hook 'post-command-hook 'sp-wrap-tag-post-command-handler)
-    )
-  )
+    (remove-hook 'post-command-hook 'sp-wrap-tag-post-command-handler)))
+
+(defun sp-wrap-region-autoescape (strbound)
+  "If we wrap a region with \"\" quotes, and the whole region was
+inside a string, automatically escape the enclosing quotes.  If
+we wrap a region that wasn't a string, automatically quote any
+string quotes inside it.
+
+This is internal function and should be only called after a
+wrapping."
+  (when sp-autoescape-string-quote
+    (let ((lw sp-last-wrapped-region)
+          (b (car sp-last-wrapped-region))
+          (e (cadr sp-last-wrapped-region))
+          was-beg)
+      (cond
+       ((and strbound
+             (> b (car strbound))
+             (< e (cdr strbound)))
+        ;; the wrapped region is inside a string, escape the enclosing
+        ;; quotes
+        (save-excursion
+          (goto-char b)
+          (insert sp-escape-char)
+          (goto-char e)
+          (insert sp-escape-char))
+        ;; update the sp-last-wrapped-region info to \" pair
+        (setq sp-last-wrapped-region
+              (list (car lw) (+ 2 (cadr lw)) 2 2)))
+       (t
+        (setq was-beg (< (point) e))
+        (let ((num 0))
+          (goto-char b)
+          (while (search-forward-regexp "\\([^\\]\\)\"" (+ e -1 num) t)
+            (setq num (1+ num))
+            (replace-match "\\1\\\\\"" t))
+          (setq sp-last-wrapped-region
+                (list (car lw) (+ num (cadr lw)) 1 1))
+          (if was-beg
+              (goto-char (1+ b))
+            (goto-char (+ e num)))
+          ))))))
 
 (defun sp-insert-pair ()
   "Automatically insert the closing pair if it is allowed in current
@@ -1456,8 +1508,7 @@ followed by word.  It is disabled by default.  See
            ;; the closing pair
            (active-pair (--first (string-prefix-p (reverse-string (car it)) last-keys) sp-pair-list))
            (open-pair (car active-pair))
-           (close-pair (cdr active-pair))
-           )
+           (close-pair (cdr active-pair)))
       (when (and active-pair
                  (not (eq sp-last-operation 'sp-skip-closing-pair))
                  (sp-insert-pair-p open-pair major-mode)
@@ -1491,10 +1542,8 @@ followed by word.  It is disabled by default.  See
         ;; no good "default" case.
         (when (and sp-autoescape-string-quote
                    sp-point-inside-string
-                   (eq (string-to-char open-pair) ?\")
-                   (eq (string-to-char close-pair) ?\")
-                   (= 1 (length open-pair))
-                   (= 1 (length close-pair)))
+                   (equal open-pair "\"")
+                   (equal close-pair "\""))
           (save-excursion
             (backward-char 1)
             (insert sp-escape-char)
@@ -1667,7 +1716,7 @@ pairs!"
           (close (save-excursion
                    (while (nth 3 (syntax-ppss))
                      (forward-char 1))
-                   (- (point) 2))))
+                   (1- (point)))))
       (cons open close))))
 
 (defmacro sp-search-and-save-match (search-fn pattern bound res beg end str)
