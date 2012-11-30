@@ -10,11 +10,11 @@ Table of content
 2. [Installation](#installation)
 3. [Compatibility issues](#compatibility-issues)
 4. [Pair management](#pair-management)
-  1. [Mode-dependent custom pairs](#mode-dependent-custom-pairs)
+    1. [Mode-dependent custom pairs](#mode-dependent-custom-pairs)
 5. [Auto pairing](#auto-pairing)
-  1. [Auto pairing in strings/code](#auto-pairing-in-stringscode)
+    1. [Auto pairing in strings/code](#auto-pairing-in-stringscode)
 6. [Wrapping](#wrapping)
-  1. [Wrapping with tags](#wrapping-with-tags)
+    1. [Wrapping with tags](#wrapping-with-tags)
 7. [Automatic escaping](#automatic-escaping)
 8. [Navigation](#navigation)
 9. [Example configuration](#example-configuration)
@@ -313,10 +313,6 @@ This is actually my current config for this package. Since I'm only using `emacs
 
     (smartparens-global-mode t)
 
-    ;; pending deletion. Replace active region with input. This is
-    ;; virtually `delete-selection-mode' emulation.
-    (sp-turn-on-delete-selection-mode)
-
     ;;; key binds
     (define-key sp-keymap (kbd "C-M-f") 'sp-forward-sexp)
     (define-key sp-keymap (kbd "C-M-b") 'sp-backward-sexp)
@@ -371,7 +367,8 @@ This is actually my current config for this package. Since I'm only using `emacs
     (sp-with 'markdown-mode
              (sp-add-local-pair "`" "`")
              ;; this also disables '*' in all other modes
-             (sp-add-local-allow-insert-pair "*"))
+             (sp-add-local-allow-insert-pair "*")
+             (sp-add-tag-pair "2" "**" "**" nil))
 
     ;;; tex-mode latex-mode
     (sp-with '(tex-mode latex-mode) ;; yes, this works with lists too!
