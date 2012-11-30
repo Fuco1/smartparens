@@ -42,6 +42,7 @@
   "Smartparens minor mode."
   :group 'editor)
 
+;;;###autoload
 (defvar sp-keymap (make-sparse-keymap)
   "Keymap used for smartparens-mode.  Remaps all the trigger keys
 to `self-insert-command'.  This means we lose some functionality
@@ -64,6 +65,8 @@ in some modes (like c-electric keys).")
           (unless sp-escape-char
             (if (= ?\\ (char-syntax char))
                 (setq sp-escape-char (string char)))))
+        (when (sp-delete-selection-p)
+          (sp-init-delete-selection-mode-emulation))
         (run-hooks 'smartparens-enabled-hook))
     (run-hooks 'smartparens-disabled-hook)
     ))
@@ -223,28 +226,6 @@ applied."
   :type 'boolean
   :group 'smartparens)
 
-(defvar sp-delete-selection-mode nil
-  "If non-nil, smartparens will emulate
-  `delete-selection-mode'.  You must also disable the
-  `delete-selection-mode' for this to work correctly! The emulation
-  mode works exactly the same, indeed, it simply calls the
-  original `delete-selection-pre-hook' function.  However, if there's
-  a possibility of wrapping, it wraps the active region
-  instead.")
-(defun sp-turn-on-delete-selection-mode ()
-  (interactive)
-  (setq sp-delete-selection-mode t)
-  ;; make sure the `delete-selection-pre-hook' is not active and that
-  ;; delsel is actually loaded.  We need the delete-selection-pre-hook
-  ;; command!
-  (require 'delsel)
-  (remove-hook 'pre-command-hook 'delete-selection-pre-hook)
-  )
-(defun sp-turn-off-delete-selection-mode ()
-  (interactive)
-  (setq sp-delete-selection-mode nil)
-  )
-
 ;; escaping custom
 (defcustom sp-autoescape-string-quote t
   "If non-nil, autoescape string quotes if typed inside string."
@@ -356,7 +337,7 @@ List of elements of type (mode . '((open . close))).")
 
 (defvar sp-tag-pair-list '(
                            ("<" . (
-                                   ((sgml-mode html-mode emacs-lisp-mode) "<_>" "</_>" sp-match-sgml-tags)
+                                   ((sgml-mode html-mode) "<_>" "</_>" sp-match-sgml-tags)
                                    ))
                            ("\\b" . (
                                      ((latex-mode tex-mode) "\\begin{_}" "\\end{_}" identity)
@@ -431,6 +412,50 @@ positions include the newly added wrapping pair.")
 
 (defvar sp-point-inside-string nil
   "t if point is inside a string.")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Selection mode emulation
+
+(defun sp-delete-selection-p ()
+  "Return t if `delete-selection-mode' or `cua-delete-selection' is enabled."
+  (or (and (boundp 'delete-selection-mode) delete-selection-mode)
+      (and (boundp 'cua-delete-selection) cua-delete-selection)))
+
+(defun sp-cua-replace-region (&optional arg)
+  "If `smartparens-mode' is on, emulate `self-insert-command',
+else call `cua-replace-region'"
+  (interactive "p")
+  (if smartparens-mode
+      (progn
+        (setq this-command 'self-insert-command)
+        (self-insert-command (or arg 1)))
+    (cua-replace-region)))
+
+(defun sp-init-delete-selection-mode-emulation ()
+  "Initialize smartparens delete selection emulation.  The
+original hooks are removed and handled by sp's pre-command
+handler."
+  ;;(interactive)
+  ;;(setq sp-delete-selection-mode t)
+  ;; make sure the `delete-selection-pre-hook' is not active and that
+  ;; delsel is actually loaded.  We need the delete-selection-pre-hook
+  ;; command!
+  (when delete-selection-mode
+    (remove-hook 'pre-command-hook 'delete-selection-pre-hook))
+  ;; if cua-mode is active, replace the `self-insert-command' binding
+  ;; and the cua--pre-command-handler hook.
+  (when cua-mode
+    (define-key cua--region-keymap [remap self-insert-command] 'sp-cua-replace-region)
+    (remove-hook 'pre-command-hook 'cua--pre-command-handler)))
+
+(defadvice cua-mode (after cua-mode-fix-selection activate)
+  (when (and cua-mode)
+    (define-key cua--region-keymap [remap self-insert-command] 'sp-cua-replace-region)
+    (remove-hook 'pre-command-hook 'cua--pre-command-handler)))
+
+(defadvice delete-selection-mode (after delete-selection-mode-fix-selection activate)
+  (when (and delete-selection-mode)
+    (remove-hook 'pre-command-hook 'delete-selection-pre-hook)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Misc functions
@@ -579,10 +604,13 @@ the permissions with `sp-add-local-allow-insert-pair'."
 
 (defun sp-add-tag-pair (trig open close transform mode &rest modes)
   "Add a tag pair.  This tag pair is triggered on TRIG in modes MODE,
-wraps with OPEN and CLOSE.  If the CLOSE tag contains _ the content
-of the opening tag is first transformed with the TRANSFORM function.
+wraps with OPEN and CLOSE.  If the CLOSE tag contains _ the
+content of the opening tag is first transformed with the
+TRANSFORM function.  If the TRANSFORM variable is nil, it
+defaults to `identity'.
 
 See `sp-tag-pair-list' for more info."
+  (setq transform (or transform 'identity))
   ;; check if trigger is already present
   (let ((trigger (--first (equal trig (car it)) sp-tag-pair-list))
         (m (-flatten (cons mode modes))))
@@ -845,7 +873,7 @@ tracking the position of the point."
         (oright (cdr sp-wrap-overlays)))
     ;; kill the insides of the "pair" if `delete-selection-mode'
     ;; emulation is enabled
-    (when (and sp-delete-selection-mode can-delete)
+    (when (and (sp-delete-selection-p) can-delete)
       (kill-region (overlay-end oleft) (overlay-start oright))
       (setq sp-wrap-point (overlay-start oleft)))
     (delete-region (overlay-start oleft) (overlay-end oleft))
@@ -970,7 +998,7 @@ docstring or comment.  See `sp-insert-pair' for more info."
       )))
 
 (defun sp-post-command-hook-handler ()
-  "Main handler of post-self-insert events."
+  "Handle the situation after some command has executed."
   (when smartparens-mode
     ;; handle the wrap overlays
     (when sp-wrap-overlays
@@ -1029,20 +1057,40 @@ docstring or comment.  See `sp-insert-pair' for more info."
         (setq sp-last-operation 'sp-self-insert)
         ))))
 
-(defun sp-delete-selection-mode-handle ()
+(defun sp-delete-selection-mode-handle (&optional from-wrap)
   "Call the original `delete-selection-pre-hook'."
-  (when sp-delete-selection-mode
-    (let ((delete-selection-mode t))
-      (delete-selection-pre-hook))))
+  (if smartparens-mode
+      (cond
+       ;; try the cua-mode emulation with `cua-delete-selection'
+       ((and (boundp 'cua-mode) cua-mode
+             (not (eq this-command 'self-insert-command)))
+        (message "running cua--pre-command-handler %s" this-command)
+        (cua--pre-command-handler))
+       ((and (boundp 'cua-mode) cua-mode from-wrap)
+        (message "running cua-replace-region")
+        (cua-replace-region))
+       ;; if not self-insert, just run the hook from
+       ;; `delete-selection-mode'
+       ((and (boundp 'delete-selection-mode) delete-selection-mode
+             (or from-wrap
+                 (not (eq this-command 'self-insert-command))))
+        (delete-selection-pre-hook)))
+    ;; this handles the callbacks properly if the smartparens mode is
+    ;; disabled but sp-delete-selection-mode is still
+    ;; ture. smartparens-mode adds advices on cua-mode and
+    ;; delete-selection-mode that automatically remove the callbacks
+    (cond
+     ((and (boundp 'cua-mode) cua-mode
+           (not (member 'pre-command-hook 'cua--pre-command-handler)))
+      (cua--pre-command-handler))
+     ((and (boundp 'delete-selection-mode) delete-selection-mode
+           (not (member 'pre-command-hook 'delete-selection-pre-hook)))
+      (delete-selection-pre-hook)))))
 
 (defun sp-pre-command-hook-handler ()
   "Main handler of pre-command-hook.  Handle the
-delete-selection-mode stuff here."
-  (when (and smartparens-mode
-             (not (eq this-command 'self-insert-command)))
-    ;; if not self-insert, just run the hook from
-    ;; delete-selection-mode if enabled
-    (sp-delete-selection-mode-handle)))
+`delete-selection-mode' or `cua-delete-selection' stuff here."
+  (sp-delete-selection-mode-handle))
 
 (defun sp-wrap-region-init ()
   "Initialize the region wrapping."
@@ -1057,8 +1105,11 @@ delete-selection-mode stuff here."
           ;; test if we can at least start a tag wrapping.  If not,
           ;; delete the region if apropriate
           (unless (sp-wrap-tag-region-init)
-            (sp-delete-selection-mode-handle)
-            (when (and sp-delete-selection-mode (< m p))
+            (message "run selection handle")
+            (sp-delete-selection-mode-handle t)
+            (when (and (sp-delete-selection-p)
+                       (< m p)
+                       (= (length (sp-single-key-description last-command-event)) 1))
               (insert (sp-single-key-description last-command-event)))))
       (let* ((p (1- (point))) ;; we want the point *before* the
                               ;; insertion of the character
@@ -1874,9 +1925,9 @@ inside an expression, kill the topmost enclosing expression.
 With ARG, kill that many sexps after point.  Negative arg -N
 means kill N sexps before point.
 
-(foo |(abc) bar)  -> (foo bar)
+ (foo |(abc) bar)  -> (foo bar)
 
-(foo (bar) | baz) -> |."
+ (foo (bar) | baz) -> |."
   (interactive "^p")
   (setq arg (or arg 1))
   (if (> arg 0)

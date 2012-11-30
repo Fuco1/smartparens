@@ -1,3 +1,24 @@
+Important announcements
+==========
+
+The behaviour of `sp-delete-selection-mode` changed dramatically! Please read the section [Compatibility issues](#compatibility-issues) for more informations
+
+Table of content
+==========
+
+1. [smartparens](#smartparens)
+2. [Installation](#installation)
+3. [Compatibility issues](#compatibility-issues)
+4. [Pair management](#pair-management)
+  1. [Mode-dependent custom pairs](#mode-dependent-custom-pairs)
+5. [Auto pairing](#auto-pairing)
+  1. [Auto pairing in strings/code](#auto-pairing-in-stringscode)
+6. [Wrapping](#wrapping)
+  1. [Wrapping with tags](#wrapping-with-tags)
+7. [Automatic escaping](#automatic-escaping)
+8. [Navigation](#navigation)
+9. [Example configuration](#example-configuration)
+
 smartparens
 ==========
 
@@ -39,11 +60,26 @@ This package *depends* on [dash](https://github.com/magnars/dash.el). If you've 
 
 *(Note: smartparens is not yet available as package, so you need to do manual installation for now)*
 
-If you use `delete-selection-mode`, you **MUST** disable it and set appropriate emulation by smartparens. See the Wrapping section for more info.
-
-You also **musn't** bind anything to the trigger keys -- those that are part of any pair or tag -- and they have to be kept pointing to `self-insert-command`. Smartparens automatically bind these in its own keymap, so do not re-bind them.
+You **musn't** bind anything to the trigger keys -- those that are part of any pair or tag -- and they have to be kept pointing to `self-insert-command`. Smartparens automatically bind these in its own keymap, so do not re-bind them.
 
 See the last section for an example configuration. Please have a look at it as it contains a working example and explains many features "visually".
+
+Compatibility issues
+==========
+
+#### `sp-delete-selection-mode`, after 30. nov. 2012, commit 70 ####
+
+The functionality provided by `sp-delete-selection-mode` is now automatic. That means, if you use `cua-mode` with `cua-delete-selection` or `delete-selection-mode`, smartparens detect this automatically and adjust the wrapping operations to handle these modes. You do not need to run any special smartparens command (like `sp-turn-on-delete-selection-mode`) nor to disable the original selection modes.
+
+If the original selection modes are disabled, smartparens respect that setting instead.
+
+Both `sp-turn-on/off-delete-selection-mode` functions are now **removed**. Variable `sp-delete-selection-mode` is removed as well.
+
+Therefore, please remove all the calls to these functions from your configuration and replace them with either `(setq delete-selection-mode t)` or `(setq cua-delete-selection t)` (cua sets this to `t` by default).
+
+#### auto-complete ####
+
+There are some problems with auto-complete mode when cancelling the pop-up selection using some closing pair trigger. More investigation is needed now. If you are able to figure out what is going on, please reply. See [Issue #2](https://github.com/Fuco1/smartparens/issues/2)
 
 Pair management
 ==========
