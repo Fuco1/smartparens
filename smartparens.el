@@ -7,7 +7,7 @@
 ;; Created: 17 Nov 2012
 ;; Version: 1.0
 ;; Keywords: abbrev convenience editing
-;; Package-Requires: ((dash "1.0"))
+;; Package-Requires: ((dash "1.0.2"))
 ;; URL: https://github.com/Fuco1/smartparens
 
 ;; This file is not part of GNU Emacs.
@@ -481,15 +481,6 @@ tag on which we want to operate."
 (font-lock-add-keywords 'emacs-lisp-mode '(("\\<sp-with\\>" . font-lock-keyword-face)) 'append)
 (font-lock-add-keywords 'emacs-lisp-mode '(("\\<sp-with-tag\\>" . font-lock-keyword-face)) 'append)
 
-(defun -union (list1 list2)
-  "Return a new list containing the elements of LIST1 and
-elements of LIST2 that were not present in LIST1.  The test for
-equality is done with `equal', or with `-compare-fn' if that's
-non-nil."
-  (let ((result (nreverse list1)))
-    (--each list2 (when (not (-contains? result it)) (!cons it result)))
-    (nreverse result)))
-
 (defmacro --last (form list)
   "Anaphoric form of `-last'."
   (let ((n (make-symbol "needle")))
@@ -831,14 +822,6 @@ as usual.")
 (defun sp-get-overlay-length (overlay)
   "Compute the length of OVERLAY."
   (- (overlay-end overlay) (overlay-start overlay)))
-
-(defmacro --reduce (form list)
-  "Anaphoric form of `-reduce'."
-  (let ((lv (make-symbol "list-value")))
-    `(let ((,lv ,list))
-       (if ,lv
-           (--reduce-from ,form (car ,lv) (cdr ,lv))
-         (let (acc it) ,form)))))
 
 (defun sp-get-active-overlay (&optional type)
   "Get active overlay.  Active overlay is the shortest overlay at
