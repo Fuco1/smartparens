@@ -36,11 +36,7 @@
 (require 'dash)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Customize & Mode definitions
-
-(defgroup smartparens ()
-  "Smartparens minor mode."
-  :group 'editor)
+;; Variables
 
 ;;;###autoload
 (defvar sp-keymap (make-sparse-keymap)
@@ -48,211 +44,9 @@
 to `self-insert-command'.  This means we lose some functionality
 in some modes (like c-electric keys).")
 
-;;;###autoload
-(define-minor-mode smartparens-mode
-  "Toggle smartparens mode"
-  :init-value nil
-  :lighter " SP"
-  :group 'smartparens
-  :keymap sp-keymap
-  (if smartparens-mode
-      (progn
-        ;; setup local pair replacements
-        (sp-update-local-pairs)
-        (sp-update-pair-triggers)
-        ;; set the escape char
-        (dotimes (char 256)
-          (unless sp-escape-char
-            (if (= ?\\ (char-syntax char))
-                (setq sp-escape-char (string char)))))
-        (when (sp-delete-selection-p)
-          (sp-init-delete-selection-mode-emulation))
-        (run-hooks 'smartparens-enabled-hook))
-    (run-hooks 'smartparens-disabled-hook)
-    ))
-
-(defun sp-update-pair-triggers ()
-  "Update the `sp-keymap' to include all trigger keys.  Trigger
-key is any character present in any pair.  Each trigger key must
-map to `self-insert-command'."
-  (let ((triggers (-distinct
-            (split-string
-             (apply #'concat
-                    (--reduce-from (cons (car it)
-                                         (cons (cdr it) acc))
-                                   nil sp-pair-list))
-             "" t))))
-    (--each triggers (define-key sp-keymap it 'self-insert-command))))
-
-;; TODO: we could remove pairs that are absolutely not allowed in this
-;; mode here (those that are banned or only allowed elsewhere).  It
-;; will save a lot on the various filtering tasks.  However, this will
-;; be an issue only with hundreds of pairs
-(defun sp-update-local-pairs ()
-  "Update local pairs after removal or at mode initialization."
-  (setq sp-pair-list (default-value 'sp-pair-list))
-  (--each sp-local-pair-list
-          (when (member major-mode (cdr it))
-            (let ((open (caar it))
-                  (close (cdar it)))
-              (setq sp-pair-list
-                    (--remove (equal open (car it)) sp-pair-list))
-              (setq sp-pair-list
-                    (sp-add-to-ordered-list (car it) sp-pair-list #'sp-order-pairs))))))
-
-(defun sp-update-local-pairs-everywhere ()
-  "Run `sp-update-local-pairs' in all buffers.  This is necessary
-to update all the buffer-local definitions."
-  (--each (buffer-list)
-    (with-current-buffer it
-      (when smartparens-mode
-        (sp-update-local-pairs)))))
-
-(defvar smartparens-enabled-hook nil
-  "Called after `smartparens-mode' is turned on.")
-
-(defvar smartparens-disabled-hook nil
-  "Called after `smartparens-mode' is turned off.")
-
-;;;###autoload
-(define-globalized-minor-mode smartparens-global-mode
-  smartparens-mode
-  turn-on-smartparens-mode)
-
-;;;###autoload
-(defun turn-on-smartparens-mode ()
-  "Turn on `smartparens-mode'."
-  (interactive)
-  (unless (or (member major-mode sp-ignore-modes-list)
-              (minibufferp))
-    (smartparens-mode t)))
-
-;;;###autoload
-(defun turn-off-smartparens-mode ()
-  "Turn off `smartparens-mode'."
-  (interactive)
-  (smartparens-mode nil))
-
-;; global custom
-(defcustom sp-ignore-modes-list '(
-                                  calc-mode
-                                  dired-mode
-                                  ibuffer-mode
-                                  minibuffer-inactive-mode
-                                  sr-mode
-                                  )
-  "Modes where smartparens mode is inactive if allowed globally."
-  :type '(repeat symbol)
-  :group 'smartparens)
-
-;; insert custom
-(defcustom sp-autoinsert-pair t
-  "If non-nil, auto insert pairs.  See `sp-insert-pair'."
-  :type 'boolean
-  :group 'smartparens)
-
-(defcustom sp-autoinsert-if-followed-by-same 2
-  "Customizes behaviour of pair insertion if the point is followed by
-the same opening pair as currently inserted pair.
-
-The first option does not change the insertion behaviour and pairs are
-inserted normally.  For example |() followed by ( would produce (|)().
-
-The second option inserts the pair only if the opening pair
-following point is not the same as currently inserted pair.  For
-example |() followed by ( would produce (|().  If next character
-isn't part of any pair, insert normally.
-
-The third option behaves as second, but if the opening and closing
-pairs are the same, and we are looking at the closing pair, insert the
-whole pair.  For example \"|\" followed by \" produce \"\"|\"\".  This
-is useful in modes where pairs of same characters have special
-meaning, such as `markdown-mode' and * for italics and ** for bold."
-  :type '(radio
-          (const :tag "Insert the pair normally" 0)
-          (const :tag "Insert the pair only if not followed by same" 1)
-          (const :tag "Insert the pair only if not followed by same, but if the closing pair is the same as opening, insert new pair (useful for nested quote insertion)" 2)
-          )
-  :group 'smartparens)
-
-(defcustom sp-autoinsert-if-followed-by-word nil
-  "If non-nil, auto insert the whole pair even if point is followed by word.
-
-For example |word followed by ( would produce (|)word.  If nil,
-it would produce (|word."
-  :type 'boolean
-  :group 'smartparens)
-
-(defcustom sp-autoskip-closing-pair t
-  "If non-nil, skip the following closing pair.  See
-`sp-skip-closing-pair' for more info."
-  :type 'boolean
-  :group 'smartparens)
-
-(defcustom sp-cancel-autoskip-on-backward-movement t
-  "If non-nil, autoskip of closing pair is cancelled not only
-when point is moved outside of the pair, but also if the point
-moved backwards.  See `sp-skip-closing-pair' for more info."
-  :type 'boolean
-  :group 'smartparens)
-
-;; delete custom
-(defcustom sp-autodelete-pair t
-  "If non-nil, auto delete pairs.  See `sp-delete-pair'."
-  :type 'boolean
-  :group 'smartparens)
-
-(defcustom sp-autodelete-closing-pair t
-  "If non-nil, auto delete the whole closing-pair.  See `sp-delete-pair'."
-  :type 'boolean
-  :group 'smartparens)
-
-(defcustom sp-autodelete-opening-pair t
-  "If non-nil, auto delete the whole opening-pair.  See `sp-delete-pair'."
-  :type 'boolean
-  :group 'smartparens)
-
-;; wrap custom
-(defcustom sp-autowrap-region t
-  "If non-nil, wrap the active region with pair.  See `sp-wrap-region' and `sp-wrap-region-init'"
-  :type 'boolean
-  :group 'smartparens)
-
-(defcustom sp-autodelete-wrap t
-  "If non-nil, auto delete both opening and closing pair of most
-recent wrapping.  Deletion command must be the very first
-command after the insertion, otherwise normal behaviour is
-applied."
-  :type 'boolean
-  :group 'smartparens)
-
-;; escaping custom
-(defcustom sp-autoescape-string-quote t
-  "If non-nil, autoescape string quotes if typed inside string."
-  :type 'boolean
-  :group 'smartparens)
-
-;; ui custom
-(defcustom sp-highlight-pair-overlay t
-  "If non-nil, auto-inserted pairs are highlighted until point
-doesn't leave them."
-  :type 'boolean
-  :group 'smartparens)
-
-(defcustom sp-highlight-wrap-overlay t
-  "If non-nil, wrap overlays are highlighted during the process
-of editing the wrapping pair."
-  :type 'boolean
-  :group 'smartparens)
-
-(defcustom sp-highlight-wrap-tag-overlay t
-  "If non-nil, wrap tag overlays are highlighted during the
-process of editing the wrapping tag pair."
-  :type 'boolean
-  :group 'smartparens)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Variables
+(defvar sp-escape-char nil
+  "Character used to escape quotes inside strings.")
+(make-variable-buffer-local 'sp-escape-char)
 
 (defvar sp-local-ban-insert-pair '()
   "For pairs on this list auto insertion is locally disabled in
@@ -376,10 +170,6 @@ transformation on text that will be substituted to closing tag.")
   "Symbol holding the last successful operation.")
 (make-variable-buffer-local 'sp-last-operation)
 
-(defvar sp-escape-char nil
-  "Character used to escape quotes inside strings.")
-(make-variable-buffer-local 'sp-escape-char)
-
 (defvar sp-previous-point -1
   "Location of point before last command.  This is only updated
 when some pair-overlay is active.  Do not rely on the value of
@@ -412,6 +202,216 @@ positions include the newly added wrapping pair.")
 
 (defvar sp-point-inside-string nil
   "t if point is inside a string.")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Customize & Mode definitions
+
+(defgroup smartparens ()
+  "Smartparens minor mode."
+  :group 'editor)
+
+;;;###autoload
+(define-minor-mode smartparens-mode
+  "Toggle smartparens mode"
+  :init-value nil
+  :lighter " SP"
+  :group 'smartparens
+  :keymap sp-keymap
+  (if smartparens-mode
+      (progn
+        ;; setup local pair replacements
+        (sp-update-local-pairs)
+        (sp-update-pair-triggers)
+        ;; set the escape char
+        (dotimes (char 256)
+          (unless sp-escape-char
+            (if (= ?\\ (char-syntax char))
+                (setq sp-escape-char (string char)))))
+        (when (sp-delete-selection-p)
+          (sp-init-delete-selection-mode-emulation))
+        (run-hooks 'smartparens-enabled-hook))
+    (run-hooks 'smartparens-disabled-hook)
+    ))
+
+(defun sp-update-pair-triggers ()
+  "Update the `sp-keymap' to include all trigger keys.  Trigger
+key is any character present in any pair.  Each trigger key must
+map to `self-insert-command'."
+  (let ((triggers (-distinct
+            (split-string
+             (apply #'concat
+                    (--reduce-from (cons (car it)
+                                         (cons (cdr it) acc))
+                                   nil sp-pair-list))
+             "" t))))
+    (--each triggers (define-key sp-keymap it 'self-insert-command))))
+
+;; TODO: we could remove pairs that are absolutely not allowed in this
+;; mode here (those that are banned or only allowed elsewhere).  It
+;; will save a lot on the various filtering tasks.  However, this will
+;; be an issue only with hundreds of pairs
+(defun sp-update-local-pairs ()
+  "Update local pairs after removal or at mode initialization."
+  (setq sp-pair-list (default-value 'sp-pair-list))
+  (--each sp-local-pair-list
+          (when (member major-mode (cdr it))
+            (let ((open (caar it))
+                  (close (cdar it)))
+              (setq sp-pair-list
+                    (--remove (equal open (car it)) sp-pair-list))
+              (setq sp-pair-list
+                    (sp-add-to-ordered-list (car it) sp-pair-list #'sp-order-pairs))))))
+
+(defun sp-update-local-pairs-everywhere ()
+  "Run `sp-update-local-pairs' in all buffers.  This is necessary
+to update all the buffer-local definitions."
+  (--each (buffer-list)
+    (with-current-buffer it
+      (when smartparens-mode
+        (sp-update-local-pairs)))))
+
+(defvar smartparens-enabled-hook nil
+  "Called after `smartparens-mode' is turned on.")
+
+(defvar smartparens-disabled-hook nil
+  "Called after `smartparens-mode' is turned off.")
+
+;; global custom
+(defcustom sp-ignore-modes-list '(
+                                  calc-mode
+                                  dired-mode
+                                  ibuffer-mode
+                                  minibuffer-inactive-mode
+                                  sr-mode
+                                  )
+  "Modes where smartparens mode is inactive if allowed globally."
+  :type '(repeat symbol)
+  :group 'smartparens)
+
+;;;###autoload
+(define-globalized-minor-mode smartparens-global-mode
+  smartparens-mode
+  turn-on-smartparens-mode)
+
+;;;###autoload
+(defun turn-on-smartparens-mode ()
+  "Turn on `smartparens-mode'."
+  (interactive)
+  (unless (or (member major-mode sp-ignore-modes-list)
+              (minibufferp))
+    (smartparens-mode t)))
+
+;;;###autoload
+(defun turn-off-smartparens-mode ()
+  "Turn off `smartparens-mode'."
+  (interactive)
+  (smartparens-mode nil))
+
+;; insert custom
+(defcustom sp-autoinsert-pair t
+  "If non-nil, auto insert pairs.  See `sp-insert-pair'."
+  :type 'boolean
+  :group 'smartparens)
+
+(defcustom sp-autoinsert-if-followed-by-same 2
+  "Customizes behaviour of pair insertion if the point is followed by
+the same opening pair as currently inserted pair.
+
+The first option does not change the insertion behaviour and pairs are
+inserted normally.  For example |() followed by ( would produce (|)().
+
+The second option inserts the pair only if the opening pair
+following point is not the same as currently inserted pair.  For
+example |() followed by ( would produce (|().  If next character
+isn't part of any pair, insert normally.
+
+The third option behaves as second, but if the opening and closing
+pairs are the same, and we are looking at the closing pair, insert the
+whole pair.  For example \"|\" followed by \" produce \"\"|\"\".  This
+is useful in modes where pairs of same characters have special
+meaning, such as `markdown-mode' and * for italics and ** for bold."
+  :type '(radio
+          (const :tag "Insert the pair normally" 0)
+          (const :tag "Insert the pair only if not followed by same" 1)
+          (const :tag "Insert the pair only if not followed by same, but if the closing pair is the same as opening, insert new pair (useful for nested quote insertion)" 2)
+          )
+  :group 'smartparens)
+
+(defcustom sp-autoinsert-if-followed-by-word nil
+  "If non-nil, auto insert the whole pair even if point is followed by word.
+
+For example |word followed by ( would produce (|)word.  If nil,
+it would produce (|word."
+  :type 'boolean
+  :group 'smartparens)
+
+(defcustom sp-autoskip-closing-pair t
+  "If non-nil, skip the following closing pair.  See
+`sp-skip-closing-pair' for more info."
+  :type 'boolean
+  :group 'smartparens)
+
+(defcustom sp-cancel-autoskip-on-backward-movement t
+  "If non-nil, autoskip of closing pair is cancelled not only
+when point is moved outside of the pair, but also if the point
+moved backwards.  See `sp-skip-closing-pair' for more info."
+  :type 'boolean
+  :group 'smartparens)
+
+;; delete custom
+(defcustom sp-autodelete-pair t
+  "If non-nil, auto delete pairs.  See `sp-delete-pair'."
+  :type 'boolean
+  :group 'smartparens)
+
+(defcustom sp-autodelete-closing-pair t
+  "If non-nil, auto delete the whole closing-pair.  See `sp-delete-pair'."
+  :type 'boolean
+  :group 'smartparens)
+
+(defcustom sp-autodelete-opening-pair t
+  "If non-nil, auto delete the whole opening-pair.  See `sp-delete-pair'."
+  :type 'boolean
+  :group 'smartparens)
+
+;; wrap custom
+(defcustom sp-autowrap-region t
+  "If non-nil, wrap the active region with pair.  See `sp-wrap-region' and `sp-wrap-region-init'"
+  :type 'boolean
+  :group 'smartparens)
+
+(defcustom sp-autodelete-wrap t
+  "If non-nil, auto delete both opening and closing pair of most
+recent wrapping.  Deletion command must be the very first
+command after the insertion, otherwise normal behaviour is
+applied."
+  :type 'boolean
+  :group 'smartparens)
+
+;; escaping custom
+(defcustom sp-autoescape-string-quote t
+  "If non-nil, autoescape string quotes if typed inside string."
+  :type 'boolean
+  :group 'smartparens)
+
+;; ui custom
+(defcustom sp-highlight-pair-overlay t
+  "If non-nil, auto-inserted pairs are highlighted until point
+doesn't leave them."
+  :type 'boolean
+  :group 'smartparens)
+
+(defcustom sp-highlight-wrap-overlay t
+  "If non-nil, wrap overlays are highlighted during the process
+of editing the wrapping pair."
+  :type 'boolean
+  :group 'smartparens)
+
+(defcustom sp-highlight-wrap-tag-overlay t
+  "If non-nil, wrap tag overlays are highlighted during the
+process of editing the wrapping tag pair."
+  :type 'boolean
+  :group 'smartparens)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Selection mode emulation
