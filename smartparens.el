@@ -104,19 +104,19 @@ other modes automatically.
 
 List of elements of type (command . '(list of modes)).")
 
-(defvar sp-pair-list ' (
-                        ("\\\\\\\\(" . "\\\\\\\\)") ;; emacs regexp parens
-                        ("\\{"       . "\\}")
-                        ("\\\\("     . "\\\\)")
-                        ("\\\""      . "\\\"")
-                        ("/*"        . "*/")
-                        ("\""        . "\"")
-                        ("'"         . "'")
-                        ("("         . ")")
-                        ("["         . "]")
-                        ("{"         . "}")
-                        ("`"         . "'") ;; tap twice for tex double quotes
-                        )
+(defvar sp-pair-list '(
+                       ("\\\\(" . "\\\\)") ;; emacs regexp parens
+                       ("\\{"   . "\\}")
+                       ("\\("   . "\\)")
+                       ("\\\""  . "\\\"")
+                       ("/*"    . "*/")
+                       ("\""    . "\"")
+                       ("'"     . "'")
+                       ("("     . ")")
+                       ("["     . "]")
+                       ("{"     . "}")
+                       ("`"     . "'") ;; tap twice for tex double quotes
+                       )
   "List of pairs for auto-insertion or wrapping.  Maximum length
 of opening or closing pair is 10 characters.")
 (make-variable-buffer-local 'sp-pair-list)
@@ -2051,6 +2051,139 @@ arg is non-nil, stop after first exiting a string."
                  (not (eq (char-syntax (preceding-char)) ?\\)))
         (setq skip-string (1- skip-string)))
       (forward-char 1))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; show-smartparens-mode
+
+(defgroup show-smartparens nil
+  "Show smartparens minor mode."
+  :group 'smartparens)
+
+(defcustom sp-show-pair-delay 0.125
+  "Time in seconds to delay before showing a matching pair."
+  :type '(number :tag "seconds")
+  :group 'show-smartparens)
+
+(defface sp-show-pair-match-face
+  '((((class color) (background light))
+     :background "turquoise")       ; looks OK on tty (becomes cyan)
+    (((class color) (background dark))
+     :background "steelblue3")      ; looks OK on tty (becomes blue)
+    (((background dark))
+     :background "grey50")
+    (t
+     :background "gray"))
+  "`show-smartparens-mode' face used for a matching pair."
+  :group 'show-smartparens)
+
+(defface sp-show-pair-mismatch-face
+  '((((class color)) (:foreground "white" :background "purple"))
+    (t (:inverse-video t)))
+  "`show-smartparens-mode' face used for a mismatching pair."
+  :group 'show-smartparens)
+
+(defvar sp-show-pair-idle-timer nil)
+
+(defvar sp-show-pair-overlays nil)
+
+;;;###autoload
+(define-minor-mode show-smartparens-mode
+  "Toggle visualization of matching pairs.  When enabled, any
+matching pair is highlighted after `sp-show-pair-delay' seconds
+of Emacs idle time if the point is immediately in front or after
+a pair.  This mode works similarly to `show-paren-mode', but
+support custom pairs."
+  :init-value nil
+  :group 'show-smartparens
+  (if show-smartparens-mode
+      (unless sp-show-pair-idle-timer
+        (setq sp-show-pair-idle-timer
+              (run-with-idle-timer sp-show-pair-delay t
+                                   'sp-show-pair-function)))
+    (when sp-show-pair-overlays
+      (sp-show-pair-delete-overlays))))
+
+;;;###autoload
+(define-globalized-minor-mode show-smartparens-global-mode
+  show-smartparens-mode
+  turn-on-show-smartparens-mode)
+
+;;;###autoload
+(defun turn-on-show-smartparens-mode ()
+  "Turn on `show-smartparens-mode'."
+  (interactive)
+  (unless (or (member major-mode sp-ignore-modes-list)
+              (minibufferp))
+    (show-smartparens-mode t)))
+
+;;;###autoload
+(defun turn-off-show-smartparens-mode ()
+  "Turn off `show-smartparens-mode'."
+  (interactive)
+  (show-smartparens-mode nil))
+
+;; TODO: hardcoded limit 10
+(defun sp-show-pair-function ()
+  "Display the show pair overlays."
+  (when show-smartparens-mode
+    (let* ((pair-list (--filter (and (sp-insert-pair-p (car it) major-mode)
+                                     (not (string= (car it) (cdr it)))) sp-pair-list))
+           (opening (regexp-opt (--map (car it) pair-list)))
+           (closing (regexp-opt (--map (cdr it) pair-list)))
+           ok match)
+      (cond
+       ((looking-at opening)
+        (setq match (match-string 0))
+        (setq ok (sp-get-sexp))
+        (if ok
+            (sp-show-pair-create-overlays (car ok) (cadr ok)
+                                          (length (nth 2 ok))
+                                          (length (nth 3 ok)))
+          (sp-show-pair-create-mismatch-overlay (point) (length match))))
+       ((looking-back closing 10 t)
+        (setq match (match-string 0))
+        (setq ok (sp-get-sexp t))
+        (if ok
+            (sp-show-pair-create-overlays (car ok) (cadr ok)
+                                          (length (nth 2 ok))
+                                          (length (nth 3 ok)))
+          (sp-show-pair-create-mismatch-overlay (- (point) (length match))
+                                                (length match))))
+       (sp-show-pair-overlays
+        (sp-show-pair-delete-overlays)))
+      )))
+
+(defun sp-show-pair-create-overlays (start end olen clen)
+  "Create the show pair overlays."
+  (when sp-show-pair-overlays
+    (sp-show-pair-delete-overlays))
+  (let* ((oleft (make-overlay start (+ start olen) nil t nil))
+         (oright (make-overlay (- end clen) end nil t nil)))
+    (setq sp-show-pair-overlays (cons oleft oright))
+    (overlay-put oleft 'face 'sp-show-pair-match-face)
+    (overlay-put oright 'face 'sp-show-pair-match-face)
+    (overlay-put oleft 'priority 1000)
+    (overlay-put oright 'priority 1000)
+    (overlay-put oleft 'type 'show-pair)))
+
+(defun sp-show-pair-create-mismatch-overlay (start len)
+  "Create the mismatch pair overlay."
+  (when sp-show-pair-overlays
+    (sp-show-pair-delete-overlays))
+  (let ((o (make-overlay start (+ start len) nil t nil)))
+    (setq sp-show-pair-overlays (cons o nil))
+    (overlay-put o 'face 'sp-show-pair-mismatch-face)
+    (overlay-put o 'priority 1000)
+    (overlay-put o 'type 'show-pair)))
+
+(defun sp-show-pair-delete-overlays ()
+  "Remove both show pair overlays."
+  (when sp-show-pair-overlays
+    (when (car sp-show-pair-overlays)
+      (delete-overlay (car sp-show-pair-overlays)))
+    (when (cdr sp-show-pair-overlays)
+      (delete-overlay (cdr sp-show-pair-overlays)))
+    (setq sp-show-pair-overlays nil)))
 
 ;; global initialization
 (sp-update-pair-triggers)

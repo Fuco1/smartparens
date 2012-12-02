@@ -17,19 +17,20 @@ Table of content
     1. [Wrapping with tags](#wrapping-with-tags)
 7. [Automatic escaping](#automatic-escaping)
 8. [Navigation](#navigation)
-9. [Example configuration](#example-configuration)
+9. [Show smartparens mode](#show-smartparens-mode)
+10. [Example configuration](#example-configuration)
 
 smartparens
 ==========
 
-Modern lightweight smart parens/auto-insert/wrapping package for Emacs. This package combines functionality of packages like [autopair](https://github.com/capitaomorte/autopair), [textmate](http://code.google.com/p/emacs-textmate/), [wrap-region](https://github.com/rejeep/wrap-region), partially [paredit](http://emacswiki.org/emacs/ParEdit) and others. It adds support for many more features, some including:
+Modern minor mode for Emacs that deals with parens pairs and tries to be smart about it. This package combines functionality of packages like [autopair](https://github.com/capitaomorte/autopair), [textmate](http://code.google.com/p/emacs-textmate/), [wrap-region](https://github.com/rejeep/wrap-region), partially [paredit](http://emacswiki.org/emacs/ParEdit) and others. It adds support for many more features, some including:
 
 * support for pairs of any length (currently up to 10 characters), for example `"\\\\(" "\\\\)"` for automatic insertion of quoted parens in elisp regexp. These are fully user definable and customizable. Pairs can be same or different for opening and closing part.
 * inteligent handling of closing pair. If user types `(`, `(|)` is inserted. If he then types `word)` the result is `(word)|` not `(word)|)`. This behaviour is cancelled if user moves backwards during editing or move point outside of the pair.
 * automatic deletion of whole pairs. With pair `("\{" "\}")` (LaTeX literal brackets), `\{|\}` and backspace will remove both of the pairs. `\{\}|` and backspace will remove the whole closing pair. `\{|` and backspace will remove the whole opening pair.
 * when followed by the same opening pair or word, do not insert the whole pair. That is: `|()` followed by `(` will produce `(|()` instead of `(|)()`. Similarly, `|word` followed by `(` will produce `(|word`.
 * wraps region in defined pairs or defined tag pairs for "tag-modes" (xml/html...).
-  * Different tags are supported, for example, languages that would use `{tag}` instead of `<tag>` or different opening pair and closing pair syntax, for example opening with `(tag` and closing with `)` (a.k.a. s-expression) or LaTeX `\begin{} \end{}` pair.
+    * Different tags are supported, for example, languages that would use `{tag}` instead of `<tag>` or different opening pair and closing pair syntax, for example opening with `(tag` and closing with `)` (a.k.a. s-expression) or LaTeX `\begin{} \end{}` pair.
 * automatically escape strings if wrapped with another string. `this "string"` turns to `"this \"string\""` automaticaly.
 * automatically escape typed quotes inside a string
 * Jumping around the pairs (extending forward-sexp to custom user pairs)
@@ -38,7 +39,7 @@ Modern lightweight smart parens/auto-insert/wrapping package for Emacs. This pac
 
 **NEW:** I've made a [youtube presentation](http://www.youtube.com/watch?v=ykjRUr7FgoI&list=PLP6Xwp2WTft7rAMgVPOTI2OE_PQlKGPy7&feature=plpp_play_all). It's in 2 parts because youtube didn't allow me to upload it in one video. Switch to 480p!
 
-Currently, the feature list for version 1.0 is finished. After very short period, this package will be uploaded to package archives for some period of testing and fixing bugs. New features will be accepted after this period is over.
+Currently, the feature list for version 1.0 is complete. New features will be accepted after some period of time is over to allow users to report existing bugs and issues without introducing new ones.
 
 Installation
 ==========
@@ -52,13 +53,13 @@ Then, the basic setup is as follows:
     (require 'smartparens)
     (smartparens-global-mode 1)
 
+You can also install this as a package with `M-x package-install smartparens`. This package is available in `melpa` repository.
+
 If you've installed this as a package, you don't need to require it, as there is an autoload on `smartparens-global-mode`.
 
 You can disable smartparens in specific global modes by customizing `sp-ignore-mode-list`. Of course, you can also only turn it on in specific modes via the hook mechanisms.
 
-This package *depends* on [dash](https://github.com/magnars/dash.el). If you've installed smartparens via package-install, it should resolve dependencies automatically (dash is on melpa and marmalade). If not, you'd need to install it manually. See the installation information on their homepage.
-
-*(Note: smartparens is not yet available as package, so you need to do manual installation for now)*
+This package *depends* on [dash](https://github.com/magnars/dash.el). If you've installed smartparens via `package-install`, it should resolve dependencies automatically (dash is on melpa and marmalade). If not, you'd need to install it manually. See the installation information on their homepage.
 
 You **musn't** bind anything to the trigger keys -- those that are part of any pair or tag -- and they have to be kept pointing to `self-insert-command`. Smartparens automatically bind these in its own keymap, so do not re-bind them.
 
@@ -308,9 +309,19 @@ Here's a quick summary for each function:
 * `sp-backward-up-sexp` - Jump up backwards one level from the current balanced expressions. This means skipping all the enclosed expressions within *this* backwards and then jumping *before* the opening pair.
 * `sp-next-sexp` - Jump to the *beginning* of following balanced expression. If there is no following expression on the current level, jump one level up, effectively doing `sp-backward-up-sexp`.
 * `sp-previous-sexp` - Jump to the *end* of the previous balanced expression. If there is no previous expression on the current level, jupm one level up, effectively doing `sp-up-sexp`.
-
 * `sp-kill-sexp` - Kill the next balanced expression. If point is inside one and there's no following expression, kill the enclosing expression instead.
 * `sp-backward-kill-sexp` - Kill the previous balanced expression.
+
+Show smartparens mode
+==========
+
+`show-smartparens-mode` provides functionality similar to `show-paren-mode`, but works for all the user-defined pairs (that have different opening and closing pair, that is, all those which are detected by `sp-get-sexp`).
+
+It is available as a globalized minor mode and is allowed in all modes where `smartparens-mode` is allowed, that is any mode which is not on the `sp-ignore-mode-list`.
+
+You can turn it on with `(show-smartparens-global-mode t)`. If you want to only turn it on in specific modes, use after-load hooks for these modes and call `(show-smartparens-mode)`.
+
+Note that the pair-search is somewhat slower than `show-paren-mode`, which uses C libraries to do the parsing. If you have a very long buffer and a mis-matched pair, this can sometimes result in a noticable lag (1 second or more) when you place cursor in front/behind this pair.
 
 Example configuration
 ==========
@@ -318,6 +329,9 @@ Example configuration
 This is actually my current config for this package. Since I'm only using `emacs-lisp-mode` and `markdown-mode` now, it's somewhat brief for the moment :)
 
     (smartparens-global-mode t)
+
+    ;; highlights matching pairs
+    (show-smartparens-global-mode t)
 
     ;;; key binds
     (define-key sp-keymap (kbd "C-M-f") 'sp-forward-sexp)
