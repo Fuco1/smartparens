@@ -394,6 +394,16 @@ applied."
   :type 'boolean
   :group 'smartparens)
 
+(defcustom sp-autoescape-string-quote-if-empty nil
+  "List of modes where the string quotes aren't escaped if the
+string we're in is empty.  You can list modes where multiple
+quote characters are used for multi-line strings, such as
+`python-mode' to make the insertion less annoying (that is, three
+times pressing \" would insert \"\"\"|\"\"\" instead of
+\"\\\"\\\"|\\\"\\\"\")."
+  :type '(repeat symbol)
+  :group 'smartparens)
+
 ;; ui custom
 (defcustom sp-highlight-pair-overlay t
   "If non-nil, auto-inserted pairs are highlighted until point
@@ -1526,7 +1536,12 @@ followed by word.  It is disabled by default.  See
         (when (and sp-autoescape-string-quote
                    sp-point-inside-string
                    (equal open-pair "\"")
-                   (equal close-pair "\""))
+                   (equal close-pair "\"")
+                   (or (not sp-autoescape-string-quote-if-empty)
+                       (not (memq major-mode sp-autoescape-string-quote-if-empty))
+                       ;; test if the string is empty here
+                       (not (and (equal (char-after (1+ (point))) ?\")
+                                 (equal (char-after (- (point) 2)) ?\")))))
           (save-excursion
             (backward-char 1)
             (insert sp-escape-char)

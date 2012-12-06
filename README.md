@@ -256,6 +256,8 @@ Some example situations:
 * `"some | word"`, user hits `"`, result: `"some \"|\" word"`
 * `"some | word"`, user types `\"`, result: `"some \"|\" word"` (the quote is not escaped again)
 
+You can specify a list of modes where the quotes aren't escaped if the string is empty. This is useful in modes such as `python-mode`, where `"""|"""` is used to input multi-line strings. Therefore, pressing `"` three times would result in `"""|"""` instead of `"\"\"|\"\""`. Use `M-x customize-variable sp-autoescape-string-quote-if-empty` to add the modes.
+
 If you select a region where both ends are inside a string and wrap it with quotes, the quotes are automatically escaped (the `><` characters mark beginning and end of the region respectively):
 
     "here is some >|long< string"   -> "here is some \"|long\" string"
