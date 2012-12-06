@@ -1845,7 +1845,8 @@ balanced expressions."
       (while (and ok (> n 0))
         (setq ok (sp-get-sexp))
         (setq n (1- n))
-        (when ok (goto-char (cadr ok)))))))
+        (when ok (goto-char (cadr ok))))
+      ok)))
 
 (defun sp-backward-sexp (&optional arg)
   "Move backward across one balanced expression (sexp).
@@ -1860,7 +1861,8 @@ forward across N balanced expressions."
       (while (and ok (> n 0))
         (setq ok (sp-get-sexp t))
         (setq n (1- n))
-        (when ok (goto-char (car ok)))))))
+        (when ok (goto-char (car ok))))
+      ok)))
 
 (defun sp-next-sexp (&optional arg)
   "Move forward to the beginning of next balanced expression.
@@ -1877,12 +1879,11 @@ beginning of N-th previous balanced expression."
               (if (= (point) (car ok))
                   (progn (sp-forward-sexp 2)
                          (sp-backward-sexp))
-                (goto-char (car ok)))))
-        (progn
-          (sp-forward-sexp arg)
-          (sp-backward-sexp)))
-    (progn
-      (sp-backward-sexp (- arg)))))
+                (goto-char (car ok))
+                ok)))
+        (sp-forward-sexp arg)
+        (sp-backward-sexp))
+    (sp-backward-sexp (- arg))))
 
 (defun sp-previous-sexp (&optional arg)
   "Move backward to the end of previous balanced expression.
@@ -1899,12 +1900,11 @@ N-th following balanced expression."
               (if (= (point) (cadr ok))
                   (progn (sp-backward-sexp 2)
                          (sp-forward-sexp))
-                (goto-char (cadr ok)))))
-        (progn
-          (sp-backward-sexp arg)
-          (sp-forward-sexp)))
-    (progn
-      (sp-forward-sexp (- arg)))))
+                (goto-char (cadr ok))
+                ok)))
+        (sp-backward-sexp arg)
+        (sp-forward-sexp))
+    (sp-forward-sexp (- arg))))
 
 (defun sp-down-sexp (&optional arg)
   "Move forward down one level of sexp.  With ARG, do this that
@@ -1918,13 +1918,15 @@ go down a level."
         (while (and ok (> n 0))
           (setq ok (sp-get-sexp))
           (setq n (1- n))
-          (when ok (goto-char (+ (car ok) (length (nth 2 ok)))))))
+          (when ok (goto-char (+ (car ok) (length (nth 2 ok))))))
+        ok)
     (let ((n (- arg))
           (ok t))
       (while (and ok (> n 0))
         (setq ok (sp-get-sexp t))
         (setq n (1- n))
-        (when ok (goto-char (- (cadr ok) (length (nth 3 ok)))))))))
+        (when ok (goto-char (- (cadr ok) (length (nth 3 ok))))))
+      ok)))
 
 (defun sp-backward-down-sexp (&optional arg)
   "An alias for (sp-down-sexp (- (or arg 1))).  This function
@@ -1942,7 +1944,8 @@ but still to a less deep spot."
   (let ((ok (sp-get-enclosing-sexp (abs arg))))
     (when ok
       (if (> arg 0) (goto-char (cadr ok))
-        (goto-char (car ok))))))
+        (goto-char (car ok))))
+    ok))
 
 (defun sp-backward-up-sexp (&optional arg)
   "An alias for (sp-up-sexp (- (or arg 1))).  This function
@@ -2051,6 +2054,8 @@ arg is non-nil, stop after first exiting a string."
                  (not (eq (char-syntax (preceding-char)) ?\\)))
         (setq skip-string (1- skip-string)))
       (forward-char 1))))
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; show-smartparens-mode
