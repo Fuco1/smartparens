@@ -2055,7 +2055,30 @@ arg is non-nil, stop after first exiting a string."
         (setq skip-string (1- skip-string)))
       (forward-char 1))))
 
+(defun sp-unwrap-sexp (&optional arg)
+  "Unwrap the following expression.  With arg N, unwrap Nth
+expression as returned by `sp-forward-sexp'.  If arg is
+negative -N, unwrap Nth expression backwards as returned by
+`sp-backward-sexp'."
+  (interactive "p")
+  (setq arg (or arg 1))
+  (let ((ok (save-excursion (sp-forward-sexp arg))))
+    (when ok
+      (let ((s (car ok))
+            (e (cadr ok))
+            (lo (length (nth 2 ok)))
+            (lc (length (nth 3 ok))))
+        (delete-region s (+ s lo))
+        (delete-region (- e lo lc) (- e lo))
+        ))))
 
+(defun sp-backward-unwrap-sexp (&optional arg)
+  "Unwrap the previous expression.  With arg N, unwrap Nth
+expression as returned by `sp-backward-sexp'.  If arg is
+negative -N, unwrap Nth expression forward as returned by
+`sp-forward-sexp'."
+  (interactive "p")
+  (sp-unwrap-sexp (- (or arg 1))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; show-smartparens-mode
