@@ -277,7 +277,7 @@ You can navigate and manipulate the balanced expressions (s-expressions, sexps) 
 
 to do the local binding. Note that this has to occur *after* `smartparens-mode` is loaded, otherwise the `sp-keymap` variable will be void. See the example configuration at the end of this readme for the working code to set the bindings.
 
-The list of manipulation functions:
+The list of navigation and manipulation functions:
 
     sp-forward-sexp (&optional arg)         ;; C-M-f
     sp-backward-sexp (&optional arg)        ;; C-M-b
@@ -291,11 +291,16 @@ The list of manipulation functions:
     sp-kill-sexp (&optional arg)            ;; C-M-k
     sp-backward-kill-sexp (&optional arg)   ;; not bind
 
+    sp-unwrap-sexp (&optional arg)          ;; M-<delete>
+    sp-backward-unwrap-sexp (&optional arg) ;; M-<backspace>
+
 These functions work pretty much exactly the same as the emacs-built in versions without `sp-` prefix, but operate on all user defined strictly balanced expressions. Strictly balanced means that `|( [ ) ]` will jump to `( [ |) ]`, not `( [ ) |]` as the default forward-sexp would.
 
-All of them can accept a prefix argument in which case they do the thing that many times. The "not backward" versions also accept negative argument, in which case they behave just as the "backward" versions (in fact, backward versions just call normal ones with negative arguments).
+All of them can accept a prefix argument in which case they do the thing that many times or operate on arg-th expression. The "not backward" versions also accept negative argument, in which case they behave just as the "backward" versions (in fact, backward versions just call normal ones with negative arguments). These function work as expected by most user, however, if you are unsure check the built-in description with `C-h f name-of-function`.
 
-Also, they never signal the "Unbalanced parentheses" scan error and by default jump to the beginning or end of next/previous sexp, which is reasonable behaviour. If there is some special behaviour, it is documented.
+They never signal the "Unbalanced parentheses" scan error and by default jump to the beginning or end of next/previous sexp, which is reasonable behaviour. If there is some special behaviour, it is documented.
+
+When it makes sense, the function return the expression on which it operated most recently as a return value with format of `sp-get-sexp`, that is 4-tuple `(beg-of-expr end-of-expr opening-pair closing-pair)`. For example `(sp-next-sexp 2)` would return the information about 2nd next expression. This, in combination with `(save-excursion)` macro can be used to quickly query for information about sexps in your own functions.
 
 Lastly, the navigation with expressions where opening and closing pair is the same is troublesome, as it is impossible to detect the beginning and end without maintaining a count in the whole buffer (e.g. what font-lock-mode does with strings). **Therefore, at the moment, these are not recognized as balanced expressions**. If you have an idea for a good heuristic or a method to fix this, please file an issue with the suggestion.
 
@@ -311,6 +316,8 @@ Here's a quick summary for each function:
 * `sp-previous-sexp` - Jump to the *end* of the previous balanced expression. If there is no previous expression on the current level, jupm one level up, effectively doing `sp-up-sexp`.
 * `sp-kill-sexp` - Kill the next balanced expression. If point is inside one and there's no following expression, kill the enclosing expression instead.
 * `sp-backward-kill-sexp` - Kill the previous balanced expression.
+* `sp-unwrap-sexp` - Remove the wrapping pair from the following expression. Following expression is one returned by `sp-forward-sexp`.
+* `sp-backward-unwrap-sexp` - Remove the wrapping pair from the previous expression. Previous expression is one returned by `sp-backward-sexp`.
 
 Show smartparens mode
 ==========
@@ -347,6 +354,9 @@ This is actually my current config for this package. Since I'm only using `emacs
     (define-key sp-keymap (kbd "C-M-p") 'sp-previous-sexp)
 
     (define-key sp-keymap (kbd "C-M-k") 'sp-kill-sexp)
+
+    (define-key sp-keymap (kbd "M-<delete>") 'sp-unwrap-sexp)
+    (define-key sp-keymap (kbd "M-<backspace>") 'sp-backward-unwrap-sexp)
 
     ;;; add new pairs
     (sp-add-pair "*" "*")
