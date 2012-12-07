@@ -544,6 +544,31 @@ beginning."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Adding/removing of pairs/bans/allows etc.
 
+(defmacro sp-add-to-permission-list (open list &rest modes)
+  "Add MODES to the pair with id OPEN in the LIST.  See
+permissions system for more details."
+  (let ((m (make-symbol "new-modes")))
+    `(let ((,m (-flatten ,@modes)))
+       (when ,m
+         (let ((current (--first (equal ,open (car it)) ,list)))
+           (if current
+               (setcdr current (-union (cdr current) ,m))
+             (!cons (cons ,open ,m) ,list)))))))
+
+(defmacro sp-remove-from-permission-list (open list &rest modes)
+  "Removes MODES from the pair with id OPEN in the LIST.  See
+permissions system for more details.  If modes is nil, remove the
+pair entirely."
+  (let ((m (make-symbol "new-modes")))
+    `(let ((,m (-flatten ,@modes)))
+       (if ,m
+           (let ((current (--first (equal ,open (car it)) ,list)))
+             (when current
+               (setcdr current (-difference (cdr current) ,m))
+               (unless (cdr current)
+                 (setq ,list (--remove (equal ,open (car it)) ,list)))))
+         (setq ,list (--remove (equal ,open (car it)) ,list))))))
+
 (defun sp-add-to-ordered-list (elm list order)
   "Add ELM to the LIST ordered by comparator ORDER.  The list is
 ordered in descending order."
@@ -685,17 +710,6 @@ be used for wrapping."
 code\" insertion banlist."
   (setq sp-global-ban-insert-pair-in-code (-difference sp-global-ban-insert-pair-in-code (-flatten open))))
 
-(defmacro sp-add-to-permission-list (open list &rest modes)
-  "Add MODES to the pair with id OPEN in the LIST.  See
-permissions system for more details."
-  (let ((m (make-symbol "new-modes")))
-    `(let ((,m (-flatten ,@modes)))
-       (when ,m
-         (let ((current (--first (equal ,open (car it)) ,list)))
-           (if current
-               (setcdr current (-union (cdr current) ,m))
-             (!cons (cons ,open ,m) ,list)))))))
-
 (defun sp-add-local-ban-insert-pair (open &rest modes)
   "Ban autoinsertion of pair with id OPEN in modes MODES.  See
 `sp-insert-pair'."
@@ -725,20 +739,6 @@ is inside code.  See `sp-insert-pair'."
   "Allow autoinsertion og pair with id OPEN in MODES if point is
 inside code.  See `sp-insert-pair'."
   (sp-add-to-permission-list open sp-local-allow-insert-pair-in-code modes))
-
-(defmacro sp-remove-from-permission-list (open list &rest modes)
-  "Removes MODES from the pair with id OPEN in the LIST.  See
-permissions system for more details.  If modes is nil, remove the
-pair entirely."
-  (let ((m (make-symbol "new-modes")))
-    `(let ((,m (-flatten ,@modes)))
-       (if ,m
-           (let ((current (--first (equal ,open (car it)) ,list)))
-             (when current
-               (setcdr current (-difference (cdr current) ,m))
-               (unless (cdr current)
-                 (setq ,list (--remove (equal ,open (car it)) ,list)))))
-         (setq ,list (--remove (equal ,open (car it)) ,list))))))
 
 (defun sp-remove-local-ban-insert-pair (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
