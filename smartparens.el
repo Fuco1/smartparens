@@ -125,9 +125,9 @@ of opening or closing pair is 10 characters.")
   "List of pairs specific to a specific mode.  The pairs on this list
 are not enabled globally.  Pairs in this list can override global
 definitons.  For example default `' can be overriden with `` in
-markdown-mode.
+`markdown-mode'.
 
-List of elements of type (mode . '((open . close))).")
+List of elements of type ('(open . close) modes).")
 
 (defvar sp-tag-pair-list '(
                            ("<" . (
@@ -612,12 +612,12 @@ for current list."
   (sp-update-local-pairs-everywhere)
   )
 
-(defun sp-add-local-pair (open close mode)
+(defun sp-add-local-pair (open close &rest modes)
   "Add a pair to the local pair list.  Use this only if you need
 to overload a global pair with the same ID.  If you wish to
 limit a pair to a certain mode, add it globally and then set
 the permissions with `sp-add-local-allow-insert-pair'."
-  (sp-add-to-permission-list (cons open close) sp-local-pair-list mode)
+  (sp-add-to-permission-list (cons open close) sp-local-pair-list modes)
   (sp-update-local-pairs-everywhere))
 
 (defun sp-remove-local-pair (open mode &rest modes)
@@ -1008,7 +1008,7 @@ docstring or comment.  See `sp-insert-pair' for more info."
     (unless (eq this-command 'self-insert-command)
       (setq sp-last-operation nil))))
 
-(defmacro setaction (action &rest forms)
+(defmacro sp-setaction (action &rest forms)
   `(if (not action)
        (setq action (progn ,@forms))
      (progn ,@forms)))
@@ -1029,8 +1029,8 @@ docstring or comment.  See `sp-insert-pair' for more info."
              (sp-wrap-overlays
               (sp-wrap-region))
              (t
-              (setaction action (sp-insert-pair))
-              (setaction action (sp-skip-closing-pair))
+              (sp-setaction action (sp-insert-pair))
+              (sp-setaction action (sp-skip-closing-pair))
               ;; if nothing happened, we just inserted a character, so set
               ;; the apropriate operation
               (when (not action)
@@ -1066,8 +1066,7 @@ docstring or comment.  See `sp-insert-pair' for more info."
                  (not (eq this-command 'self-insert-command))))
         (delete-selection-pre-hook)))
     ;; this handles the callbacks properly if the smartparens mode is
-    ;; disabled but sp-delete-selection-mode is still
-    ;; ture. smartparens-mode adds advices on cua-mode and
+    ;; disabled.  Smartparens-mode adds advices on cua-mode and
     ;; delete-selection-mode that automatically remove the callbacks
     (cond
      ((and (boundp 'cua-mode) cua-mode
@@ -1084,11 +1083,11 @@ docstring or comment.  See `sp-insert-pair' for more info."
 
 (defun sp-wrap-region-init ()
   "Initialize the region wrapping."
-  ;; only do anything if the last command was self-insert-command
   (when sp-autowrap-region
     ;; if we can't possibly form a wrap, just insert the char and do
-    ;; nothing.  If delete-selection-mode is enabled, run
-    ;; delete-selection-pre-hook
+    ;; nothing.  If `sp-delete-selection-p' is true, run
+    ;; `sp-delete-selection-mode-handle' with t that means it was
+    ;; called from withing wrapping procedure
     (if (--none? (string-prefix-p (sp-single-key-description last-command-event) (car it)) sp-pair-list)
         (let ((p (1- (point)))
               (m (mark)))
@@ -1324,7 +1323,8 @@ OEND is the end of the modified area, that is the end of the
 wrapped region, exluding any existing possible wrap."
   (let* ((tag-open (sp-split-string (nth 0 active-tag) "_"))
          (tag-close (sp-split-string (nth 1 active-tag) "_"))
-         (o (apply #'+ (mapcar #'length tag-open))))
+         (o (apply #'+ (mapcar #'length tag-open)))
+         (c (apply #'+ (mapcar #'length tag-close))))
     ;; setup the wrap pairs
     ;; opening one
     (goto-char ostart)
@@ -1337,7 +1337,7 @@ wrapped region, exluding any existing possible wrap."
       (goto-char (+ oend o))
       (insert (apply #'concat tag-close)))
 
-    (when (cdr (split-string (nth 0 active-tag) "_"))
+    (if (cdr (split-string (nth 0 active-tag) "_"))
       (let ((oleft (make-overlay
                     (+ ostart (length (car tag-open)))
                     (+ ostart (length (car tag-open)))
@@ -1358,7 +1358,14 @@ wrapped region, exluding any existing possible wrap."
         (overlay-put oleft 'modification-hooks '(sp-wrap-tag-update))
         (overlay-put oleft 'insert-in-front-hooks '(sp-wrap-tag-update))
         (overlay-put oleft 'insert-behind-hooks '(sp-wrap-tag-update))
-        (add-hook 'post-command-hook 'sp-wrap-tag-post-command-handler)))
+        (add-hook 'post-command-hook 'sp-wrap-tag-post-command-handler))
+      ;; if the tag didn't have any substitution, that means we only
+      ;; insert the "brackets" and not enter the tag-insertion mode.
+      ;; Therefore we move the point to the original position, so it
+      ;; behaves just like normal wrap
+      (if (> sp-wrap-mark sp-wrap-point)
+          (goto-char (+ sp-wrap-point o))
+        (goto-char (+ sp-wrap-point o c))))
     (setq sp-last-operation 'sp-wrap-tag)))
 
 (defun sp-wrap-tag-update (overlay after? beg end &optional length)
@@ -1658,10 +1665,7 @@ disabled by setting `sp-autodelete-closing-pair' and
          ;; delete it as an autopair (it would "open up the string").
          ;; So, word\"|" and <backspace> should produce word\|" or
          ;; word|" (if \" is autopair) instead of word\|.
-         ((and font-lock-mode ;; who doesn't use this? but...  to be
-                              ;; sure, since this is not a
-                              ;; customizable option
-               (sp-point-in-string)
+         ((and (sp-point-in-string)
                (not (sp-point-in-string (1+ p)))
                (sp-point-in-string (1- p))) ;; the string isn't empty
           (cond ;; oh, you ugly duplication :/

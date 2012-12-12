@@ -129,13 +129,17 @@ Mode-dependent custom pairs
 
 Sometimes, a globally defined pair is not appropriate for certain major modes. You can redefine globally defined pairs to have different definition in specific major modes. For example, globally defined pair \`' is used in `emacs-lisp-mode` for links in comments and in `LaTeX-mode` for quotes. However, in `markdown-mode`, a pair \`\` is used instead to insert inline code. Therefore, it is desired to redefine this global pair to this new value.
 
-That is accompilshed by using this funcion:
+That is accompilshed by using this function:
 
     (sp-add-local-pair "`" "`" 'markdown-mode) ;; adds `` as a local pair in markdown-mode
 
-Pairs can be locally removed by caling `sp-remove-local-pair`:
+Note that this should *only* be used to overload the global definitions. If you want to add a new pair that should only activate in a specific mode, define it as global and set the permissions to only auto pair it in the specific mode. See the next section for more information on permissions.
+
+Local pairs can be removed by caling `sp-remove-local-pair` to restore the original global definition:
 
     (sp-remove-local-pair "`" 'markdown-mode)
+
+**Important**: this function only removes the pairs you have previously added using `sp-add-local-pair`, if you ever want to revert the change. It does not remove a global pair in the specified mode. If you want to disable some pair in specific modes, see the next section and set the permissions accordingly.
 
 Auto pairing
 ==========
@@ -291,7 +295,7 @@ The list of navigation and manipulation functions:
     sp-previous-sexp (&optional arg)        ;; C-M-p
 
     sp-kill-sexp (&optional arg)            ;; C-M-k
-    sp-backward-kill-sexp (&optional arg)   ;; not bind
+    sp-backward-kill-sexp (&optional arg)   ;; C-- C-M-k
 
     sp-unwrap-sexp (&optional arg)          ;; M-<delete>
     sp-backward-unwrap-sexp (&optional arg) ;; M-<backspace>
