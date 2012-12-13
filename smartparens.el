@@ -617,14 +617,30 @@ for current list."
 to overload a global pair with the same ID.  If you wish to
 limit a pair to a certain mode, add it globally and then set
 the permissions with `sp-add-local-allow-insert-pair'."
-  (sp-add-to-permission-list (cons open close) sp-local-pair-list modes)
-  (sp-update-local-pairs-everywhere))
+  (prog1 (sp-add-to-permission-list (cons open close) sp-local-pair-list modes)
+    (sp-update-local-pairs-everywhere)))
 
-(defun sp-remove-local-pair (open mode &rest modes)
+(defmacro --each-when (list pred &rest body)
+  "Anaphoric form of `-each-when'."
+  (let ((l (make-symbol "list")))
+    `(let ((,l ,list))
+       (while ,l
+         (let ((it (car ,l)))
+           (when ,pred ,@body))
+         (!cdr ,l)))))
+
+(defun -each-when (list pred fn)
+  "Calls FN with every item in LIST for which PRED is non-nil.
+Returns nil, used for side-effects only."
+  (--each-when list (funcall pred it) (funcall fn it)))
+
+(defun sp-remove-local-pair (open &rest modes)
   "Remove a pair from the local pair list."
-  (let ((m (-flatten (cons mode modes))))
-    (--each sp-local-pair-list
-      (setcdr it (-difference (cdr it) m)))
+  (let ((m (-flatten modes)))
+    (--each-when
+     sp-local-pair-list
+     (equal open (caar it))
+     (setcdr it (-difference (cdr it) m)))
     (setq sp-local-pair-list (--remove (not (cdr it)) sp-local-pair-list))
     (sp-update-local-pairs-everywhere)))
 
