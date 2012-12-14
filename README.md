@@ -16,7 +16,7 @@ Table of content
 6. [Wrapping](#wrapping)
     1. [Wrapping with tags](#wrapping-with-tags)
 7. [Automatic escaping](#automatic-escaping)
-8. [Navigation](#navigation)
+8. [Navigation and S-exp manipulation](#navigation-and-s-exp-manipulation)
 9. [Show smartparens mode](#show-smartparens-mode)
 10. [Example configuration](#example-configuration)
 
@@ -63,7 +63,7 @@ This package *depends* on [dash](https://github.com/magnars/dash.el). If you've 
 
 You **musn't** bind anything to the trigger keys -- those that are part of any pair or tag -- and they have to be kept pointing to `self-insert-command`. Smartparens automatically bind these in its own keymap, so do not re-bind them.
 
-See the last section for an example configuration. Please have a look at it as it contains a working example and explains many features "visually".
+See the last section for an [example configuration](#example-configuration). Please have a look at it as it contains a working example and explains many features "visually".
 
 Compatibility issues
 ==========
@@ -295,16 +295,26 @@ This behaviour is disabled by default to keep backward compatibility. If you wan
 
 It's best if you try these features during actual editing to see if you like it or not. Please post suggestions and heuristics for making this even more pleasant (for example heuristics that guess if I want to close the un-closed string, such as `"Do i want to insert quote here or escape|`). If you find any suspicious behaviour do not hesitate to report it.
 
-Navigation
+Navigation and S-exp manipulation
 ==========
 
-You can navigate and manipulate the balanced expressions (s-expressions, sexps) using following functions. In "comment" is the recommended binding, however, no function is bound by default. You should put these into `sp-keymap` so they would only be enabled in `smartparens-mode`. You can use:
+Smartparens provides multitude of functions to navigate and manipulate the balanced expressions (s-expressions, sexps).
+
+In the function lists, after each function in comment is the "recommended" binding (i.e. the binding author is using), however, no function is bound by default. You should put these into `sp-keymap` so they would only be enabled in `smartparens-mode`. You can use:
 
     (define-key sp-keymap (kbd "your-key") 'function)
 
-to do the local binding. Note that this has to occur *after* `smartparens-mode` is loaded, otherwise the `sp-keymap` variable will be void. See the example configuration at the end of this readme for the working code to set the bindings.
+to do the local binding. Note that this has to occur *after* `smartparens-mode` is loaded, otherwise the `sp-keymap` variable will be void. See the [example configuration](#example-configuration) at the end of this readme for the working code to set the bindings.
 
-The list of navigation and manipulation functions:
+Each function where it makes sense comes with forward and backward version, where the backward version does the same thing but in reverse direction.
+
+All of the provided functions can accept a prefix argument in which case they do the thing that many times or operate on arg-th expression. The "not backward" versions also accept negative argument, in which case they behave just as the "backward" versions (in fact, backward versions just call normal ones with negative arguments). These functions work as would be expected by most users, however, if you are unsure check the built-in description with `C-h f name-of-function`.
+
+When it makes sense, the function return the expression on which it operated most recently as a return value with format of `sp-get-sexp`, that is 4-tuple `(beg-of-expr end-of-expr opening-pair closing-pair)`. For example `(sp-next-sexp 2)` would return the information about 2nd next expression. This, in combination with `(save-excursion)` macro can be used to quickly query for information about sexps in your own functions.
+
+#### Navigation functions
+
+List of navigation functions:
 
     sp-forward-sexp (&optional arg)         ;; C-M-f
     sp-backward-sexp (&optional arg)        ;; C-M-b
@@ -315,23 +325,13 @@ The list of navigation and manipulation functions:
     sp-next-sexp (&optional arg)            ;; C-M-n
     sp-previous-sexp (&optional arg)        ;; C-M-p
 
-    sp-kill-sexp (&optional arg)            ;; C-M-k
-    sp-backward-kill-sexp (&optional arg)   ;; C-- C-M-k
-
-    sp-unwrap-sexp (&optional arg)          ;; M-<delete>
-    sp-backward-unwrap-sexp (&optional arg) ;; M-<backspace>
-
 These functions work pretty much exactly the same as the emacs-built in versions without `sp-` prefix, but operate on all user defined strictly balanced expressions. Strictly balanced means that `|( [ ) ]` will jump to `( [ |) ]`, not `( [ ) |]` as the default forward-sexp would.
 
-All of them can accept a prefix argument in which case they do the thing that many times or operate on arg-th expression. The "not backward" versions also accept negative argument, in which case they behave just as the "backward" versions (in fact, backward versions just call normal ones with negative arguments). These function work as expected by most user, however, if you are unsure check the built-in description with `C-h f name-of-function`.
-
-They never signal the "Unbalanced parentheses" scan error and by default jump to the beginning or end of next/previous sexp, which is reasonable behaviour. If there is some special behaviour, it is documented.
-
-When it makes sense, the function return the expression on which it operated most recently as a return value with format of `sp-get-sexp`, that is 4-tuple `(beg-of-expr end-of-expr opening-pair closing-pair)`. For example `(sp-next-sexp 2)` would return the information about 2nd next expression. This, in combination with `(save-excursion)` macro can be used to quickly query for information about sexps in your own functions.
+These functions never signal the "Unbalanced parentheses" scan error and by default jump to the beginning or end of next/previous sexp, which is reasonable behaviour. If there is some special behaviour, it is documented.
 
 Lastly, the navigation with expressions where opening and closing pair is the same is troublesome, as it is impossible to detect the beginning and end without maintaining a count in the whole buffer (e.g. what font-lock-mode does with strings). **Therefore, at the moment, these are not recognized as balanced expressions**. If you have an idea for a good heuristic or a method to fix this, please file an issue with the suggestion.
 
-Here's a quick summary for each function:
+Here's a quick summary for each navigation function:
 
 * `sp-forward-sexp` - Jump *after* the next balanced expression. If inside one, jump after its closing pair.
 * `sp-backward-sexp` - Jump *before* the previous balanced expression. If inside one, jump before its opening pair.
@@ -341,10 +341,34 @@ Here's a quick summary for each function:
 * `sp-backward-up-sexp` - Jump up backwards one level from the current balanced expressions. This means skipping all the enclosed expressions within *this* backwards and then jumping *before* the opening pair.
 * `sp-next-sexp` - Jump to the *beginning* of following balanced expression. If there is no following expression on the current level, jump one level up, effectively doing `sp-backward-up-sexp`.
 * `sp-previous-sexp` - Jump to the *end* of the previous balanced expression. If there is no previous expression on the current level, jupm one level up, effectively doing `sp-up-sexp`.
-* `sp-kill-sexp` - Kill the next balanced expression. If point is inside one and there's no following expression, kill the enclosing expression instead.
-* `sp-backward-kill-sexp` - Kill the previous balanced expression.
-* `sp-unwrap-sexp` - Remove the wrapping pair from the following expression. Following expression is one returned by `sp-forward-sexp`.
-* `sp-backward-unwrap-sexp` - Remove the wrapping pair from the previous expression. Previous expression is one returned by `sp-backward-sexp`.
+
+#### Manipulation functions
+
+List of manipulation functions:
+
+    sp-kill-sexp (&optional arg)            ;; C-M-k
+    sp-backward-kill-sexp (&optional arg)   ;; C-- C-M-k
+
+    sp-unwrap-sexp (&optional arg)          ;; M-<delete>
+    sp-backward-unwrap-sexp (&optional arg) ;; M-<backspace>
+
+    sp-forward-slurp-sexp (&optional arg)   ;; C-'
+    sp-backward-slurp-sexp (&optional arg)  ;; C-;
+    sp-forward-barf-sexp (&optional arg)    ;; C-M-'
+    sp-backward-barf-sexp (&optional arg)   ;; C-M-;
+
+The slurp/barf functions are inspired by [paredit](http://emacswiki.org/emacs/ParEdit) package and work roughly the same. However, they can accept optional argument to slurp/barf that many times.
+
+Here's a quick summary for each manipulation function:
+
+* `sp-kill-sexp` - Kill the *next* balanced expression. If point is inside one and there's no following expression, kill the enclosing expression instead.
+* `sp-backward-kill-sexp` - Kill the *previous* balanced expression.
+* `sp-unwrap-sexp` - Remove the wrapping pair from the *following* expression. Following expression is one returned by `sp-forward-sexp`.
+* `sp-backward-unwrap-sexp` - Remove the wrapping pair from the *previous* expression. Previous expression is one returned by `sp-backward-sexp`.
+* `sp-forward-slurp-sexp` - Extend the current list by one balanced expression or symbol by moving the *closing* delimiter.
+* `sp-backward-slurp-sexp` - Extend the current list by one balanced expression or symbol by moving the *opening* delimiter.
+* `sp-forward-barf-sexp` - Contract the current list by one balanced expression or symbol by moving the *closing* delimiter.
+* `sp-backward-barf-sexp` - Contract the current list by one balanced expression or symbol by moving the *opening* delimiter.
 
 Show smartparens mode
 ==========
