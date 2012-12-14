@@ -260,7 +260,11 @@ Some example situations:
 * `"some | word"`, user hits `"`, result: `"some \"|\" word"`
 * `"some | word"`, user types `\"`, result: `"some \"|\" word"` (the quote is not escaped again)
 
+#### Escaping nested quotes inside empty strings
+
 You can specify a list of modes where the quotes aren't escaped if the string is empty. This is useful in modes such as `python-mode`, where `"""|"""` is used to input multi-line strings. Therefore, pressing `"` three times would result in `"""|"""` instead of `"\"\"|\"\""`. Use `M-x customize-variable sp-autoescape-string-quote-if-empty` to add the modes.
+
+#### Escaping quotes when wrapping with a quote pair
 
 If you select a region where both ends are inside a string and wrap it with quotes, the quotes are automatically escaped (the `><` characters mark beginning and end of the region respectively):
 
@@ -272,7 +276,24 @@ If you select a region where both ends are *not* inside a string and wrap it wit
     >This is "some" text<|              -> "This is \"some\" text"|
     >"also" works "with" more words<|   -> "\"also\" works \"with\" more words"|
 
-It's best if you try this feature during actual editing to see if you like it or not. Please post suggestions and heuristics for making this even more pleasant (for example heuristics that guess if I want to close the un-closed string, such as `"Do i want to insert quote here or escape|`). If you find any suspicious behaviour do not hesitate to report it.
+#### Escaping quotes before closing pair
+
+**New (r84):** Sometimes is it desirable not to automatically escape the string quote. One such situation is when you are looking at the closing pair and at the same time are inside a string. If you insert a closing pair, 99% of the time you want to close the string and not continue past the closing pair. Consider this situation:
+
+    {"this", "is", "array", "of", "words|}
+
+If you hit `"` here, the expected result is
+
+    {"this", "is", "array", "of", "words"|}
+
+instead of
+
+    {"this", "is", "array", "of", "words\"|\"}
+
+This behaviour is disabled by default to keep backward compatibility. If you want to enable it, use `M-x customize-variable sp-autoinsert-quote-if-followed-by-closing-pair` and set it to `nil`.
+
+
+It's best if you try these features during actual editing to see if you like it or not. Please post suggestions and heuristics for making this even more pleasant (for example heuristics that guess if I want to close the un-closed string, such as `"Do i want to insert quote here or escape|`). If you find any suspicious behaviour do not hesitate to report it.
 
 Navigation
 ==========
