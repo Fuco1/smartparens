@@ -516,13 +516,13 @@ tag on which we want to operate."
   "Anaphoric form of `-last'."
   (let ((n (make-symbol "needle")))
     `(let (,n)
-       (--each ,list (not ,n)
+       (--each ,list
          (when ,form (setq ,n it)))
        ,n)))
 
 (defun -last (pred list)
-  "Return the first x in LIST where (PRED x) is non-nil, else nil."
-  (--first (funcall pred it) list))
+  "Return the last x in LIST where (PRED x) is non-nil, else nil."
+  (--last (funcall pred it) list))
 
 (defun reverse-string (str)
   "Reverse the string STR."
@@ -641,27 +641,12 @@ the permissions with `sp-add-local-allow-insert-pair'."
   (prog1 (sp-add-to-permission-list (cons open close) sp-local-pair-list modes)
     (sp-update-local-pairs-everywhere)))
 
-(defmacro --each-when (list pred &rest body)
-  "Anaphoric form of `-each-when'."
-  (let ((l (make-symbol "list")))
-    `(let ((,l ,list))
-       (while ,l
-         (let ((it (car ,l)))
-           (when ,pred ,@body))
-         (!cdr ,l)))))
-
-(defun -each-when (list pred fn)
-  "Calls FN with every item in LIST for which PRED is non-nil.
-Returns nil, used for side-effects only."
-  (--each-when list (funcall pred it) (funcall fn it)))
-
 (defun sp-remove-local-pair (open &rest modes)
   "Remove a pair from the local pair list."
   (let ((m (-flatten modes)))
-    (--each-when
-     sp-local-pair-list
-     (equal open (caar it))
-     (setcdr it (-difference (cdr it) m)))
+    (--each sp-local-pair-list
+      (when (equal open (caar it))
+        (setcdr it (-difference (cdr it) m))))
     (setq sp-local-pair-list (--remove (not (cdr it)) sp-local-pair-list))
     (sp-update-local-pairs-everywhere)))
 
@@ -2065,7 +2050,42 @@ expect positive argument.  See `sp-kill-sexp'."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; "paredit" operations
 
-(defun sp-forward-slurp-sexp (&optional arg)
+(defmacro sp-generate-slurp-barf (fn-name doc-string)
+  (let ((slurp (string-match-p "slurp" (symbol-name fn-name))))
+    `(defun ,fn-name (&optional arg)
+       ,doc-string
+       (interactive "p")
+       (setq arg (or arg 1))
+       (let* ((pair-list (--filter (and (sp-insert-pair-p (car it) major-mode)
+                                        (not (string= (car it) (cdr it)))) sp-pair-list))
+              (opening (regexp-opt (--map (car it) pair-list)))
+              (closing (regexp-opt (--map (cdr it) pair-list)))
+              (all (regexp-opt (-concat '(" " "\t" "\n") (-flatten (--map (list (car it) (cdr it)) pair-list)))))
+              (n (abs arg))
+              (fw (> arg 0))
+              (slupr-fn
+               ,(if slurp '(if fw 'sp-forward-slurp-sexp-1 'sp-backward-slurp-sexp-1)
+                  '(if fw 'sp-forward-barf-sexp-1 'sp-backward-barf-sexp-1)))
+              (next-thing t))
+         (while (and next-thing (> n 0))
+           (save-excursion
+             (setq next-thing (funcall slupr-fn opening closing all))
+             (if next-thing
+                 (let* ((close (nth (if fw 4 3) next-thing))
+                        (gtold (nth (if fw 2 1) next-thing))
+                        (del (* (if fw -1 1) (length close)))
+                        (gtnew
+                         ,(if slurp '(+ (car next-thing) (if fw del 0))
+                            '(- (car next-thing) (if fw 0 del)))))
+                   (goto-char gtold)
+                   (delete-char del)
+                   (goto-char gtnew)
+                   (insert close)
+                   (setq n (1- n)))
+               (message "We can't slurp/barf without breaking strictly balanced expression. Ignored.")
+               (setq n -1))))))))
+
+(sp-generate-slurp-barf sp-forward-slurp-sexp
   "Add the S-expression following the current list into that list
 by moving the closing delimiter.  If the current list is the last
 in a parent list, extend that list (and possibly apply
@@ -2074,37 +2094,12 @@ is N, apply this function that many times.  If arg is negative
 -N, extend the opening pair instead (that is, backward).
 
 Examples:
+
  (foo |bar) baz   -> (foo |bar baz)
 
  [(foo |bar)] baz -> [(foo |bar) baz]
 
- [(foo |bar) baz] -> [(foo |bar baz)]"
-  (interactive "p")
-  (setq arg (or arg 1))
-  (let* ((pair-list (--filter (and (sp-insert-pair-p (car it) major-mode)
-                                   (not (string= (car it) (cdr it)))) sp-pair-list))
-         (opening (regexp-opt (--map (car it) pair-list)))
-         (closing (regexp-opt (--map (cdr it) pair-list)))
-         (all (regexp-opt (-concat '(" " "\t" "\n") (-flatten (--map (list (car it) (cdr it)) pair-list)))))
-         (n (abs arg))
-         (fw (> arg 0))
-         (slupr-fn (if fw 'sp-forward-slurp-sexp-1 'sp-backward-slurp-sexp-1))
-         (next-thing t))
-    (while (and next-thing (> n 0))
-      (save-excursion
-        (setq next-thing (funcall slupr-fn opening closing all))
-        (if next-thing
-            (let* ((close (nth (if fw 4 3) next-thing))
-                   (gtold (nth (if fw 2 1) next-thing))
-                   (del (* (if fw -1 1) (length close)))
-                   (gtnew (+ (car next-thing) (if fw del 0))))
-              (goto-char gtold)
-              (delete-char del)
-              (goto-char gtnew)
-              (insert close)
-              (setq n (1- n)))
-          (message "We can't slurp without breaking strictly balanced expression. Ignored.")
-          (setq n -1))))))
+ [(foo |bar) baz] -> [(foo |bar baz)]")
 
 (defun sp-backward-slurp-sexp (&optional arg)
   "Add the S-expression preceding the current list into that list
@@ -2115,6 +2110,7 @@ arg is N, apply this function that many times.  If arg is
 negative -N, extend the closing pair instead (that is, forward).
 
 Examples:
+
  foo (bar| baz)   -> (foo bar| baz)
 
  foo [(bar| baz)] -> [foo (bar| baz)]
@@ -2122,6 +2118,32 @@ Examples:
  [foo (bar| baz)] -> [(foo bar| baz)]"
   (interactive "p")
   (sp-forward-slurp-sexp (- (or arg 1))))
+
+(sp-generate-slurp-barf sp-forward-barf-sexp
+  "Remove the last S-expression in the current list by moving the
+closing delimiter.  If arg is N, barf that many expressions.  If
+arg is negative -N, contract the opening pair instead.  If the
+current list is empty, do nothing.
+
+Examples:
+
+  (foo bar| baz)   -> (foo bar|) baz
+
+  (foo| [bar baz]) -> (foo|) [bar baz]")
+
+(defun sp-backward-barf-sexp (&optional arg)
+  "Remove the first S-expression in the current list by moving
+the opening delimiter.  If arg is N, barf that many expressions.
+If arg is negative -N, contract the closing pair instead.  If the
+current list is empty, do nothing.
+
+Examples:
+
+  (foo bar| baz)   -> foo (bar| baz)
+
+  ([bar baz] |foo) -> [bar baz] (|foo)"
+  (interactive "p")
+  (sp-forward-barf-sexp (- (or arg 1))))
 
 (defmacro sp-slurp-sexp-1 (dir skip-fn prev-char look-fn this-fn limit-fn symbol-fn)
   "Internal.  DIR is the direction, t means forward, nil
@@ -2152,6 +2174,35 @@ that will be slurped."
          (,symbol-fn all)
          (cons (point) enc))))))
 
+(defmacro sp-barf-sexp-1 (dir skip-fn prev-char look-fn symbol-fn)
+  "Internal.  DIR is the direction, t means forward, nil
+backward.  SKIP-FN is a function that skips to next meaningful
+token.  PREV-CHAR returns previous logical character.  LOOK-FN is
+`looking-at' or `looking-back' depending on direction.  SYMBOL-FN
+is a function that skips a symbol that will be barfed."
+  `(let ((enc (sp-get-enclosing-sexp)))
+     (when enc
+       ,(if dir '(goto-char (- (cadr enc) (length (nth 3 enc))))
+          '(goto-char (+ (car enc) (length (nth 2 enc)))))
+       (,skip-fn t)
+       (cond
+        ;; if we're looking back at a string, extend here
+        ((eq (,prev-char) ?\")
+         (,skip-fn nil t)
+         (cons (point) enc))
+        ;; if we're looking at opening, wrap this expression
+        ((,look-fn ,(if dir 'closing 'opening))
+         (let ((ok (sp-get-sexp ,dir)))
+           (when ok
+             (goto-char (,(if dir 'car 'cadr) ok))
+             (,skip-fn nil t)
+             (cons (point) enc))))
+        ;; otherwise forward a symbol and return point after that
+        (t
+         (,symbol-fn all)
+         (,skip-fn nil t)
+         (cons (point) enc))))))
+
 (defun sp-forward-slurp-sexp-1 (opening closing all)
   "Internal."
   (sp-slurp-sexp-1 t sp-skip-forward-to-meaningful
@@ -2169,6 +2220,20 @@ that will be slurped."
                    sp-backward-slurp-sexp-1
                    car
                    sp-backward-symbol))
+
+(defun sp-forward-barf-sexp-1 (opening closing all)
+  "Internal."
+  (sp-barf-sexp-1 t sp-skip-backward-to-meaningful
+                  char-after
+                  looking-back
+                  sp-backward-symbol))
+
+(defun sp-backward-barf-sexp-1 (opening closing all)
+  "Internal."
+  (sp-barf-sexp-1 nil sp-skip-forward-to-meaningful
+                  preceding-char
+                  looking-at
+                  sp-forward-symbol))
 
 (defun sp-forward-symbol (what)
   "Skip forward one symbol.  WHAT is a regexp that defines symbol
@@ -2192,22 +2257,26 @@ PREV-CHAR is a function that return previous char.  MOVE-FN is a
 function that moves the point."
   `(let ((skip-string 2))
      (while (and (not (eobp))
-                 (or (not arg) (> skip-string 0))
+                 (or (not after-string) (> skip-string 0))
                  (or (sp-point-in-string-or-comment)
-                     (member (char-syntax (,next-char)) '(?< ?> ?! ?| ?\ ?\"))))
+                     (member (char-syntax (,next-char))
+                             ,(if stop-at-string ''(?< ?> ?! ?| ?\ )
+                                ''(?< ?> ?! ?| ?\  ?\")))))
        (when (and (eq (char-syntax (,next-char)) ?\" )
                   (not (eq (char-syntax (,prev-char)) ?\\)))
          (setq skip-string (1- skip-string)))
        (,move-fn 1))))
 
-(defun sp-skip-forward-to-meaningful (&optional arg)
+(defun sp-skip-forward-to-meaningful (&optional after-string stop-at-string)
   "Skip forward ignoring whitespace, comments and strings.  If
-arg is non-nil, stop after first exiting a string."
+AFTER-STRING is non-nil, stop after first exiting a string.  If
+STOP-AT-STRING is non-nil, stop before entering a string."
   (sp-skip-to-meaningful char-after preceding-char forward-char))
 
-(defun sp-skip-backward-to-meaningful (&optional arg)
+(defun sp-skip-backward-to-meaningful (&optional after-string stop-at-string)
   "Skip backward ignoring whitespace, comments and strings.  If
-arg is non-nil, stop after first exiting a string."
+AFTER-STRING is non-nil, stop after first exiting a string.  If
+STOP-AT-STRING is non-nil, stop before entering a string."
   (sp-skip-to-meaningful preceding-char char-after backward-char))
 
 (defun sp-unwrap-sexp (&optional arg)
