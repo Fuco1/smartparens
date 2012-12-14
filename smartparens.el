@@ -345,6 +345,27 @@ it would produce (|word."
   :type 'boolean
   :group 'smartparens)
 
+(defcustom sp-autoinsert-quote-if-followed-by-closing-pair t
+  "If non-nil, auto insert string quote pair even if the point is
+followed by (any) closing pair.  This only activates if point is
+inside a string.  In other words, if string is not closed and next
+character is a closing pair.
+
+For example, in a situation like this:
+
+  [\"some text|]
+
+after pressing \", one would probably want to insert the closing
+quote, not a nested pair, to close the string literal in the array.
+To enable such behaviour, set this variable to nil.
+
+Note: Default value is set to t due to backward compatibility, even if
+it is probably not the desired default setting."
+  :type 'boolean
+  :group 'smartparens)
+
+
+
 (defcustom sp-autoskip-closing-pair t
   "If non-nil, skip the following closing pair.  See
 `sp-skip-closing-pair' for more info."
@@ -1047,9 +1068,12 @@ docstring or comment.  See `sp-insert-pair' for more info."
              (t
               (sp-setaction action (sp-insert-pair))
               (sp-setaction action (sp-skip-closing-pair))
-              ;; if nothing happened, we just inserted a character, so set
-              ;; the apropriate operation
-              (when (not action)
+              ;; if nothing happened, we just inserted a character, so
+              ;; set the apropriate operation.  We also need to check
+              ;; for `sp-self-insert-no-escape' not to overwrite
+              ;; it.  See `sp-autoinsert-quote-if-followed-by-closing-pair'.
+              (when (and (not action)
+                         (not (eq sp-last-operation 'sp-self-insert-no-escape)))
                 (setq sp-last-operation 'sp-self-insert))
               ;; if it was a quote, escape it
               (when (and (eq sp-last-operation 'sp-self-insert)
@@ -1531,6 +1555,25 @@ followed by word.  It is disabled by default.  See
                    (or (= (point) (point-max))
                        (not (and (eq (char-syntax (following-char)) ?w)
                                  (not (eq (following-char) ?\'))))))
+                 (if sp-autoinsert-quote-if-followed-by-closing-pair t
+                   (if (and (eq (char-syntax (preceding-char)) ?\")
+                            ;; this is called *after* the character is
+                            ;; inserted.  Therefore, if we are not in string, it
+                            ;; must have been closed just now
+                            (not (sp-point-in-string)))
+                       (let* ((pair-list (--filter (and (sp-insert-pair-p (car it) major-mode)
+                                                        ;; ignore pairs with same open/close
+                                                        (not (string= (car it) (cdr it)))) sp-pair-list))
+                              (pattern (regexp-opt (--map (cdr it) pair-list))))
+                         ;; If we simply insert closing ", we also
+                         ;; don't want to escape it.  Therefore, we
+                         ;; need to set `sp-last-operation'
+                         ;; accordingly to be checked in
+                         ;; `self-insert-command' advice.
+                         (if (looking-at pattern)
+                             (progn (setq sp-last-operation 'sp-self-insert-no-escape) nil)
+                           t))
+                     t))
                  (cond
                   ((eq sp-autoinsert-if-followed-by-same 0) t)
                   ((eq sp-autoinsert-if-followed-by-same 1)
@@ -1571,8 +1614,7 @@ followed by word.  It is disabled by default.  See
             (insert sp-escape-char))
           (overlay-put (sp-get-active-overlay 'pair) 'pair-id "\\\""))
 
-        (setq sp-last-operation 'sp-insert-pair)
-        ))))
+        (setq sp-last-operation 'sp-insert-pair)))))
 
 (defun sp-skip-closing-pair ()
   "If point is inside an inserted pair, and the user only moved forward
