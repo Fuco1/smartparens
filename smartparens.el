@@ -2145,6 +2145,9 @@ Examples:
   (interactive "p")
   (sp-forward-barf-sexp (- (or arg 1))))
 
+
+;; TODO: slurp/barf doesn't work well if the point is inside a string
+;; while barfing/slurping
 (defmacro sp-slurp-sexp-1 (dir skip-fn prev-char look-fn this-fn limit-fn symbol-fn)
   "Internal.  DIR is the direction, t means forward, nil
 backward.  SKIP-FN is a function that skips to next meaningful
@@ -2279,6 +2282,15 @@ AFTER-STRING is non-nil, stop after first exiting a string.  If
 STOP-AT-STRING is non-nil, stop before entering a string."
   (sp-skip-to-meaningful preceding-char char-after backward-char))
 
+(defun sp-unwrap-sexp-1 (sexp)
+  "Internal.  Unwraps expression."
+  (let ((s (car sexp))
+        (e (cadr sexp))
+        (lo (length (nth 2 sexp)))
+        (lc (length (nth 3 sexp))))
+    (delete-region s (+ s lo))
+    (delete-region (- e lo lc) (- e lo))))
+
 (defun sp-unwrap-sexp (&optional arg)
   "Unwrap the following expression.  With arg N, unwrap Nth
 expression as returned by `sp-forward-sexp'.  If arg is
@@ -2287,14 +2299,7 @@ negative -N, unwrap Nth expression backwards as returned by
   (interactive "p")
   (setq arg (or arg 1))
   (let ((ok (save-excursion (sp-forward-sexp arg))))
-    (when ok
-      (let ((s (car ok))
-            (e (cadr ok))
-            (lo (length (nth 2 ok)))
-            (lc (length (nth 3 ok))))
-        (delete-region s (+ s lo))
-        (delete-region (- e lo lc) (- e lo))
-        ))))
+    (when ok (sp-unwrap-sexp-1 ok))))
 
 (defun sp-backward-unwrap-sexp (&optional arg)
   "Unwrap the previous expression.  With arg N, unwrap Nth
@@ -2303,6 +2308,64 @@ negative -N, unwrap Nth expression forward as returned by
 `sp-forward-sexp'."
   (interactive "p")
   (sp-unwrap-sexp (- (or arg 1))))
+
+(defun sp-splice-sexp (&optional arg)
+  "Unwrap the current list.  With arg N, unwrap Nth list as
+returned by applying `sp-up-sexp' N times.  This function
+expect positive arg."
+  (interactive "p")
+  (setq arg (or arg 1))
+  (let ((ok (sp-get-enclosing-sexp arg)))
+    (when ok (sp-unwrap-sexp-1 ok))))
+
+(defun sp-splice-sexp-killing-backward ()
+  "Unwrap the current list and also kill all the content between
+start of this list and the point.
+
+Examples:
+
+  (foo (let ((x 5)) | (sqrt n)) bar) -> (foo | (sqrt n) bar)"
+  (interactive)
+  (let ((ok (sp-get-enclosing-sexp 1)))
+    (when ok
+      (sp-unwrap-sexp-1 ok)
+      (delete-region (car ok) (point)))))
+
+(defun sp-splice-sexp-killing-forward ()
+  "Unwrap the current list and also kill all the content between the
+point and the end of this list.
+
+Examples:
+
+  (a (b c| d e) f) -> (a b c| f)"
+  (interactive)
+  (let ((ok (sp-get-enclosing-sexp 1)))
+    (when ok
+      (sp-unwrap-sexp-1 ok)
+      (delete-region (point) (- (cadr ok) (length (nth 2 ok)) (length (nth 3 ok)))))))
+
+(defun sp-forward-whitespace ()
+  "Skip forward past the whitespace characters."
+  (interactive)
+  (skip-chars-forward " \t\n"))
+
+
+(defun sp-backward-whitespace ()
+  "Skip backward past the whitespace characters."
+  (interactive)
+  (skip-chars-backward " \t\n"))
+
+(defun sp-split-sexp ()
+  "Split the list or string the point is on into two."
+  (interactive)
+  (if (sp-point-in-string)
+      (progn
+        (forward-char (- (prog1 (sp-backward-whitespace) (insert "\""))))
+        (save-excursion (sp-forward-whitespace) (insert "\"")))
+    (let ((ok (sp-get-enclosing-sexp 1)))
+      (when ok
+        (forward-char (- (prog1 (sp-backward-whitespace) (insert (nth 3 ok)))))
+        (save-excursion (sp-forward-whitespace) (insert (nth 2 ok)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; show-smartparens-mode

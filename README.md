@@ -39,8 +39,6 @@ Modern minor mode for Emacs that deals with parens pairs and tries to be smart a
 
 **NEW:** I've made a [youtube presentation](http://www.youtube.com/watch?v=ykjRUr7FgoI&list=PLP6Xwp2WTft7rAMgVPOTI2OE_PQlKGPy7&feature=plpp_play_all). It's in 2 parts because youtube didn't allow me to upload it in one video. Switch to 480p!
 
-Currently, the feature list for version 1.0 is complete. New features will be accepted after some period of time is over to allow users to report existing bugs and issues without introducing new ones.
-
 Installation
 ==========
 
@@ -352,12 +350,18 @@ List of manipulation functions:
     sp-unwrap-sexp (&optional arg)          ;; M-<delete>
     sp-backward-unwrap-sexp (&optional arg) ;; M-<backspace>
 
-    sp-forward-slurp-sexp (&optional arg)   ;; C-'
-    sp-backward-slurp-sexp (&optional arg)  ;; C-;
-    sp-forward-barf-sexp (&optional arg)    ;; C-M-'
-    sp-backward-barf-sexp (&optional arg)   ;; C-M-;
+    sp-splice-sexp (&optional arg)          ;; M-D
+    sp-splice-sexp-killing-forward ()       ;; C-M-<delete>
+    sp-splice-sexp-killing-backward ()      ;; C-M-<backspace>
 
-The slurp/barf functions are inspired by [paredit](http://emacswiki.org/emacs/ParEdit) package and work roughly the same. However, they can accept optional argument to slurp/barf that many times.
+    sp-split-sexp ()                        ;; none
+
+    sp-forward-slurp-sexp (&optional arg)   ;; C-<right>
+    sp-forward-barf-sexp (&optional arg)    ;; C-<left>
+    sp-backward-slurp-sexp (&optional arg)  ;; C-M-<left>
+    sp-backward-barf-sexp (&optional arg)   ;; C-M-<right>
+
+Some functions, especially slurp/barf functions are inspired by [paredit](http://emacswiki.org/emacs/ParEdit) package and work roughly the same. However, they can accept optional argument to slurp/barf that many times.
 
 Here's a quick summary for each manipulation function:
 
@@ -365,9 +369,13 @@ Here's a quick summary for each manipulation function:
 * `sp-backward-kill-sexp` - Kill the *previous* balanced expression.
 * `sp-unwrap-sexp` - Remove the wrapping pair from the *following* expression. Following expression is one returned by `sp-forward-sexp`.
 * `sp-backward-unwrap-sexp` - Remove the wrapping pair from the *previous* expression. Previous expression is one returned by `sp-backward-sexp`.
+* `sp-splice-sexp` - Remove the wrapping pair from *this* expression. With arg, do this on Nth enclosing expression as if first navigated with `sp-up-sexp`.
+* `sp-splice-sexp-killing-forward` -  Remove the wrapping pair from *this* expression and kill everything between `(point)` and end of this expression.
+* `sp-splice-sexp-killing-backward` -  Remove the wrapping pair from *this* expression and kill everything between the beginning of this expression and `(point)`.
+* `sp-split-sexp` - Split the current list using the enclosing delimiters.
 * `sp-forward-slurp-sexp` - Extend the current list by one balanced expression or symbol by moving the *closing* delimiter.
-* `sp-backward-slurp-sexp` - Extend the current list by one balanced expression or symbol by moving the *opening* delimiter.
 * `sp-forward-barf-sexp` - Contract the current list by one balanced expression or symbol by moving the *closing* delimiter.
+* `sp-backward-slurp-sexp` - Extend the current list by one balanced expression or symbol by moving the *opening* delimiter.
 * `sp-backward-barf-sexp` - Contract the current list by one balanced expression or symbol by moving the *opening* delimiter.
 
 Show smartparens mode
@@ -408,6 +416,15 @@ This is actually my current config for this package. Since I'm only using `emacs
 
     (define-key sp-keymap (kbd "M-<delete>") 'sp-unwrap-sexp)
     (define-key sp-keymap (kbd "M-<backspace>") 'sp-backward-unwrap-sexp)
+
+    (define-key sp-keymap (kbd "C-<right>") 'sp-forward-slurp-sexp)
+    (define-key sp-keymap (kbd "C-<left>") 'sp-forward-barf-sexp)
+    (define-key sp-keymap (kbd "C-M-<left>") 'sp-backward-slurp-sexp)
+    (define-key sp-keymap (kbd "C-M-<right>") 'sp-backward-barf-sexp)
+
+    (define-key sp-keymap (kbd "M-D") 'sp-splice-sexp)
+    (define-key sp-keymap (kbd "C-M-<delete>") 'sp-splice-sexp-killing-forward)
+    (define-key sp-keymap (kbd "C-M-<backspace>") 'sp-splice-sexp-killing-backward)
 
     ;;; add new pairs
     (sp-add-pair "*" "*")
