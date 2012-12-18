@@ -188,10 +188,10 @@ for restoring the original state if the wrapping is
 cancelled.")
 (make-variable-buffer-local 'sp-wrap-mark)
 
-(defvar sp-last-inserted-character ""
-  "If wrapping is cancelled, these character are re-inserted to
+(defvar sp-last-inserted-characters ""
+  "If wrapping is cancelled, these characters are re-inserted to
 the location of point before the wrapping.")
-(make-variable-buffer-local 'sp-last-inserted-character)
+(make-variable-buffer-local 'sp-last-inserted-characters)
 
 (defvar sp-last-wrapped-region nil
   "List containing info about last wrapped region.  The content of the list is:
@@ -900,7 +900,7 @@ tracking the position of the point."
 
     (goto-char sp-wrap-point)
     (when can-delete
-      (insert sp-last-inserted-character))
+      (insert sp-last-inserted-characters))
   ))
 
 (defun sp-pair-overlay-fix-highlight ()
@@ -1106,6 +1106,19 @@ docstring or comment.  See `sp-insert-pair' for more info."
 `delete-selection-mode' or `cua-delete-selection' stuff here."
   (sp-delete-selection-mode-handle))
 
+(defun sp-get-recent-keys-1 ()
+  "Internal.  Return 10 recent keys in reverse order (most recent
+is first) as a string."
+  (apply #'concat (-take 10 (reverse (mapcar 'sp-single-key-description (recent-keys))))))
+
+(defmacro sp-get-pair-list-1 ()
+  "Internal.  Return all pairs that can be inserted in this
+`major-mode' and do not have same opening and closing delimiter.
+This is used for navigation functions."
+  `(--filter (and (sp-insert-pair-p (car it) major-mode)
+                  ;; ignore pairs with same open/close
+                  (not (string= (car it) (cdr it)))) sp-pair-list))
+
 (defun sp-wrap-region-init ()
   "Initialize the region wrapping."
   (when sp-autowrap-region
@@ -1129,8 +1142,7 @@ docstring or comment.  See `sp-insert-pair' for more info."
              (m (mark))
              (ostart (if (> p m) m p))
              (oend (if (> p m) p m))
-             (keys (mapcar 'sp-single-key-description (recent-keys)))
-             (last-keys (apply #'concat (-take 10 (reverse keys))))
+             (last-keys (sp-get-recent-keys-1))
              ;;(last-keys "\"\"\"\"\"\"\"\"")
              (active-pair (--first (string-prefix-p (reverse-string (car it)) last-keys) sp-pair-list)))
 
@@ -1179,14 +1191,14 @@ docstring or comment.  See `sp-insert-pair' for more info."
 
           ;; We need to remember what was removed in case wrap is
           ;; cancelled.  Then these characters are re-inserted.
-          (setq sp-last-inserted-character (sp-single-key-description last-command-event))
+          (setq sp-last-inserted-characters (sp-single-key-description last-command-event))
 
           ;; if point > mark, we need to remove the character at the end and
           ;; insert it to the front.
           (when (> p m)
             (delete-char (- 1))
             (goto-char ostart)
-            (insert sp-last-inserted-character)
+            (insert sp-last-inserted-characters)
             (setq oend (1+ oend)))
 
           (let* ((oleft (make-overlay ostart (1+ ostart) nil nil t))
@@ -1194,7 +1206,7 @@ docstring or comment.  See `sp-insert-pair' for more info."
 
             ;; insert the possible pair into end overlay
             (let ((close-pair (cdr (--last (string-prefix-p
-                                             sp-last-inserted-character
+                                             sp-last-inserted-characters
                                              (car it))
                                             sp-pair-list))))
                (when close-pair
@@ -1219,16 +1231,13 @@ docstring or comment.  See `sp-insert-pair' for more info."
   ;; this method is only called if there's an active region.  It should
   ;; never be called manually!
   (when sp-autowrap-region
-    (let* ((keys (mapcar 'sp-single-key-description (recent-keys)))
-           (last-keys (apply #'concat (-take 10 (reverse keys))))
-           (oleft (car sp-wrap-overlays))
-           (oright (cdr sp-wrap-overlays))
-           )
-      (setq sp-last-inserted-character
-            (concat sp-last-inserted-character
+    (let* ((oleft (car sp-wrap-overlays))
+           (oright (cdr sp-wrap-overlays)))
+      (setq sp-last-inserted-characters
+            (concat sp-last-inserted-characters
                     (sp-single-key-description last-command-event)))
       (let* ((active-pair (--last (string-prefix-p
-                                   sp-last-inserted-character
+                                   sp-last-inserted-characters
                                    (car it))
                                   sp-pair-list))
              (open-pair (car active-pair))
@@ -1248,7 +1257,7 @@ docstring or comment.  See `sp-insert-pair' for more info."
             (sp-wrap-cancel t))
 
           ;; we've completed a pairing!
-          (when (equal sp-last-inserted-character open-pair)
+          (when (equal sp-last-inserted-characters open-pair)
             (let ((s (overlay-start oleft))
                   (e (overlay-end oright))
                   (oplen (length open-pair))
@@ -1266,6 +1275,16 @@ docstring or comment.  See `sp-insert-pair' for more info."
                     (list s e oplen cplen))
               )))))))
 
+(defmacro sp-get-possible-tag-1 (recent)
+  "Internal.  Return the first tag that matches its trigger to
+the prefix of RECENT."
+  `(--first (string-prefix-p ,recent (car it)) sp-tag-pair-list))
+
+(defmacro sp-get-active-tag-1 (possible)
+  "Internal.  Get active tag.  POSSIBLE is the entry from
+`sp-tag-pair-list' we want to examine."
+  `(cdr (--first (member major-mode (car it)) (cdr ,possible))))
+
 (defun sp-wrap-tag-region-init ()
   "Init a region wrapping with a tag pair.  This is called from
 `sp-wrap-region-init' or `sp-wrap-region' (usually on failure) to
@@ -1278,13 +1297,11 @@ tag.  The tag always gets priority from the regular wrap."
     (if sp-wrap-overlays ;; called from within the wrap-mode
         (let* ((oleft (car sp-wrap-overlays))
                (oright (cdr sp-wrap-overlays))
-               (possible-tag (--first (string-prefix-p
-                                       sp-last-inserted-character
-                                       (car it)) sp-tag-pair-list))
-               (active-tag (cdr (--first (member major-mode (car it)) (cdr possible-tag)))))
+               (possible-tag (sp-get-possible-tag-1 sp-last-inserted-characters))
+               (active-tag (sp-get-active-tag-1 possible-tag)))
           (when active-tag
             ;; if we've found a tag trigger, enter the tag editing mode
-            (if (eq (length sp-last-inserted-character) (length (car possible-tag)))
+            (if (eq (length sp-last-inserted-characters) (length (car possible-tag)))
                 (progn
                   (delete-region (overlay-start oright) (overlay-end oright))
                   (sp-wrap-tag-create-overlays possible-tag active-tag
@@ -1304,19 +1321,17 @@ tag.  The tag always gets priority from the regular wrap."
              (m (mark))
              (ostart (if (> p m) m p))
              (oend (if (> p m) p m))
-             (possible-tag (--first (string-prefix-p
-                                     (sp-single-key-description last-command-event)
-                                     (car it))
-                                    sp-tag-pair-list))
-             (active-tag (cdr (--first (member major-mode (car it)) (cdr possible-tag)))))
+             (possible-tag (sp-get-possible-tag-1
+                            (sp-single-key-description last-command-event)))
+             (active-tag (sp-get-active-tag-1 possible-tag)))
         (when active-tag
-          (setq sp-last-inserted-character (sp-single-key-description last-command-event))
+          (setq sp-last-inserted-characters (sp-single-key-description last-command-event))
           (setq sp-wrap-point p)
           (setq sp-wrap-mark m)
           (when (> p m)
             (delete-char (- 1))
             (goto-char ostart)
-            (insert sp-last-inserted-character)
+            (insert sp-last-inserted-characters)
             (setq oend (1+ oend)))
           (if (= 1 (length (car possible-tag)))
               ;; the tag is only 1 character long, we can enter
@@ -1398,8 +1413,7 @@ wrapped region, exluding any existing possible wrap."
          (oright (cdr sp-wrap-tag-overlays))
          (active-tag (overlay-get oleft 'active-tag))
          (transform (nth 2 active-tag))
-         (open (buffer-substring (overlay-start oleft) (overlay-end oleft)))
-         )
+         (open (buffer-substring (overlay-start oleft) (overlay-end oleft))))
     (when (string-match-p "_" (nth 1 active-tag))
       (save-excursion
         (delete-region (overlay-start oright) (overlay-end oright))
@@ -1524,8 +1538,7 @@ You can globally disable insertion of closing pair if point is
 followed by word.  It is disabled by default.  See
 `sp-autoinsert-if-followed-by-word' for more info."
   (when sp-autoinsert-pair
-    (let* ((keys (mapcar 'sp-single-key-description (recent-keys)))
-           (last-keys (apply #'concat (-take 10 (reverse keys))))
+    (let* ((last-keys (sp-get-recent-keys-1))
            ;; (last-keys "\"\"\"\"\"\"\"\"\"\"\"\"")
            ;; we go through all the opening pairs and compare them to
            ;; last-keys.  If the opair is a prefix of last-keys, insert
@@ -1546,9 +1559,7 @@ followed by word.  It is disabled by default.  See
                             ;; inserted.  Therefore, if we are not in string, it
                             ;; must have been closed just now
                             (not (sp-point-in-string)))
-                       (let* ((pair-list (--filter (and (sp-insert-pair-p (car it) major-mode)
-                                                        ;; ignore pairs with same open/close
-                                                        (not (string= (car it) (cdr it)))) sp-pair-list))
+                       (let* ((pair-list (sp-get-pair-list-1))
                               (pattern (regexp-opt (--map (cdr it) pair-list))))
                          ;; If we simply insert closing ", we also
                          ;; don't want to escape it.  Therefore, we
@@ -1801,8 +1812,7 @@ raised (for example, when you comment out imbalanced expression).
 However, if you start a search from within a string and the next
 complete sexp lies completely outside, this is returned."
   (let* ((search-fn (if (not back) 'search-forward-regexp 'sp-search-backward-regexp))
-         (pair-list (--filter (and (sp-insert-pair-p (car it) major-mode)
-                                   (not (string= (car it) (cdr it)))) sp-pair-list))
+         (pair-list (sp-get-pair-list-1))
          (pattern (regexp-opt (-flatten (--map (list (car it) (cdr it)) pair-list))))
          (in-string-or-comment (sp-point-in-string-or-comment))
          (string-bounds (and in-string-or-comment (sp-get-quoted-string-bounds)))
@@ -2056,8 +2066,7 @@ expect positive argument.  See `sp-kill-sexp'."
        ,doc-string
        (interactive "p")
        (setq arg (or arg 1))
-       (let* ((pair-list (--filter (and (sp-insert-pair-p (car it) major-mode)
-                                        (not (string= (car it) (cdr it)))) sp-pair-list))
+       (let* ((pair-list (sp-get-pair-list-1))
               (opening (regexp-opt (--map (car it) pair-list)))
               (closing (regexp-opt (--map (cdr it) pair-list)))
               (all (regexp-opt (-concat '(" " "\t" "\n") (-flatten (--map (list (car it) (cdr it)) pair-list)))))
@@ -2441,8 +2450,7 @@ support custom pairs."
 (defun sp-show-pair-function ()
   "Display the show pair overlays."
   (when show-smartparens-mode
-    (let* ((pair-list (--filter (and (sp-insert-pair-p (car it) major-mode)
-                                     (not (string= (car it) (cdr it)))) sp-pair-list))
+    (let* ((pair-list (sp-get-pair-list-1))
            (opening (regexp-opt (--map (car it) pair-list)))
            (closing (regexp-opt (--map (cdr it) pair-list)))
            ok match)
