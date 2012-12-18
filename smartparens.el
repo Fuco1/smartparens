@@ -2175,10 +2175,10 @@ that will be slurped."
         ((eq (,prev-char) ?\")
          (cons (point) enc))
         ;; if we're looking at the end of another sexp, call recursively again
-        ((,look-fn ,(if dir closing opening))
+        ((,look-fn ,(if dir 'closing 'opening))
          (,this-fn opening closing all))
         ;; if we're looking at opening, wrap this expression
-        ((,look-fn ,(if dir opening closing))
+        ((,look-fn ,(if dir 'opening 'closing))
          (let ((ok (sp-get-sexp ,(not dir))))
            (when ok (cons (,limit-fn ok) enc))))
         ;; otherwise forward a symbol and return point after that
@@ -2261,19 +2261,20 @@ delimited portion of text."
   (when (sp-search-backward-regexp what nil t)
     (goto-char (match-end 0))))
 
-(defmacro sp-skip-to-meaningful (next-char prev-char move-fn)
-  "This macro implements forward/backward movement skipping
-whitespace, comments and strings. NEXT-CHAR is a function that
-return next char in the logical direction we're moving.
-PREV-CHAR is a function that return previous char.  MOVE-FN is a
-function that moves the point."
-  `(let ((skip-string 2))
+(defmacro sp-skip-to-meaningful-1 (next-char prev-char move-fn)
+  "Internal.  This macro implements forward/backward movement
+skipping whitespace, comments and strings. NEXT-CHAR is a
+function that return next char in the logical direction we're
+moving.  PREV-CHAR is a function that return previous char.
+MOVE-FN is a function that moves the point."
+  `(let ((skip-string 2)
+         (skip-what (if stop-at-string '(?< ?> ?! ?| ?\ )
+                      '(?< ?> ?! ?| ?\  ?\"))))
      (while (and (not (eobp))
                  (or (not after-string) (> skip-string 0))
                  (or (sp-point-in-string-or-comment)
                      (member (char-syntax (,next-char))
-                             ,(if stop-at-string ''(?< ?> ?! ?| ?\ )
-                                ''(?< ?> ?! ?| ?\  ?\")))))
+                             skip-what)))
        (when (and (eq (char-syntax (,next-char)) ?\" )
                   (not (eq (char-syntax (,prev-char)) ?\\)))
          (setq skip-string (1- skip-string)))
@@ -2283,13 +2284,13 @@ function that moves the point."
   "Skip forward ignoring whitespace, comments and strings.  If
 AFTER-STRING is non-nil, stop after first exiting a string.  If
 STOP-AT-STRING is non-nil, stop before entering a string."
-  (sp-skip-to-meaningful char-after preceding-char forward-char))
+  (sp-skip-to-meaningful-1 char-after preceding-char forward-char))
 
 (defun sp-skip-backward-to-meaningful (&optional after-string stop-at-string)
   "Skip backward ignoring whitespace, comments and strings.  If
 AFTER-STRING is non-nil, stop after first exiting a string.  If
 STOP-AT-STRING is non-nil, stop before entering a string."
-  (sp-skip-to-meaningful preceding-char char-after backward-char))
+  (sp-skip-to-meaningful-1 preceding-char char-after backward-char))
 
 (defun sp-unwrap-sexp-1 (sexp)
   "Internal.  Unwraps expression."
