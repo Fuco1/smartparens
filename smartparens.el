@@ -364,8 +364,6 @@ it is probably not the desired default setting."
   :type 'boolean
   :group 'smartparens)
 
-
-
 (defcustom sp-autoskip-closing-pair t
   "If non-nil, skip the following closing pair.  See
 `sp-skip-closing-pair' for more info."
@@ -407,6 +405,16 @@ recent wrapping.  Deletion command must be the very first
 command after the insertion, otherwise normal behaviour is
 applied."
   :type 'boolean
+  :group 'smartparens)
+
+(defcustom sp-wrap-repeat-last 1
+  "If the last operation was a wrap and we insert another pair at
+the beginning or end of the last wrapped region, repeat the
+wrap on this region with current pair."
+  :type '(radio
+          (const :tag "Do not repeat wrapping" 0)
+          (const :tag "Only repeat if current tag is the same as the last one" 1)
+          (const :tag "Always repeat if the point is after the opening/closing delimiter of last wrapped region" 2))
   :group 'smartparens)
 
 ;; escaping custom
@@ -1531,19 +1539,23 @@ default.  See `sp-autoinsert-if-followed-by-same' for more info.
 You can globally disable insertion of closing pair if point is
 followed by word.  It is disabled by default.  See
 `sp-autoinsert-if-followed-by-word' for more info."
-  (when sp-autoinsert-pair
-    (let* ((last-keys (sp-get-recent-keys-1))
-           ;; (last-keys "\"\"\"\"\"\"\"\"\"\"\"\"")
-           ;; we go through all the opening pairs and compare them to
-           ;; last-keys.  If the opair is a prefix of last-keys, insert
-           ;; the closing pair
-           (active-pair (--first (string-prefix-p (reverse-string (car it)) last-keys) sp-pair-list))
-           (open-pair (car active-pair))
-           (close-pair (cdr active-pair)))
-      ;; Test "repeat last wrap" here.  If we wrap a region and then
-      ;; type in a pair, wrap again around the last active region.
-
-      (when (and active-pair
+  (let* ((last-keys (sp-get-recent-keys-1))
+         ;; (last-keys "\"\"\"\"\"\"\"\"\"\"\"\"")
+         ;; we go through all the opening pairs and compare them to
+         ;; last-keys.  If the opair is a prefix of last-keys, insert
+         ;; the closing pair
+         (active-pair (--first (string-prefix-p (reverse-string (car it)) last-keys) sp-pair-list))
+         (open-pair (car active-pair))
+         (close-pair (cdr active-pair)))
+    ;; Test "repeat last wrap" here.  If we wrap a region and then
+    ;; type in a pair, wrap again around the last active region.  This
+    ;; should probably be tested in the `self-insert-command'
+    ;; advice... but we're lazy :D
+    (if (and sp-autowrap-region
+             (sp-wrap-repeat-last-1 active-pair))
+        sp-last-operation
+      (when (and sp-autoinsert-pair
+                 active-pair
                  (not (eq sp-last-operation 'sp-skip-closing-pair))
                  (sp-insert-pair-p open-pair major-mode)
                  (if sp-autoinsert-if-followed-by-word t
@@ -1608,6 +1620,55 @@ followed by word.  It is disabled by default.  See
           (overlay-put (sp-get-active-overlay 'pair) 'pair-id "\\\""))
 
         (setq sp-last-operation 'sp-insert-pair)))))
+
+(defmacro sp-wrap-repeat-last-2 (same-only)
+  "Internal."
+  `(when sp-last-wrapped-region
+     (let* ((b (car sp-last-wrapped-region))
+            (e (cadr sp-last-wrapped-region))
+            (op (nth 2 sp-last-wrapped-region))
+            (oplen (length op))
+            (cllen (length (nth 3 sp-last-wrapped-region)))
+            (acolen (length (car active-pair)))
+            (acclen (length (cdr active-pair)))
+            (inside-region (< (point) e)))
+       (when (and ,(if same-only '(equal (car active-pair) op) t)
+                  (memq sp-last-operation '(sp-self-insert sp-wrap-region))
+                  (or (= (point) (+ b oplen acolen))
+                      (= (point) (+ e acolen))))
+         ;; TODO: this does not handle escaping of "double quote", that
+         ;; is if we repeat quote wrap after quote wrap.  I think it is
+         ;; reasonable to assume this will never happen, or very very
+         ;; rarely. (same goes for option 2)
+         (delete-char (- acolen))
+         (if inside-region
+             (progn (goto-char (+ b oplen))
+                    (insert (car active-pair))
+                    (goto-char (- (+ e acolen) cllen))
+                    (insert (cdr active-pair))
+                    (goto-char (+ b oplen acolen))
+                    (setq sp-last-wrapped-region
+                          (list (+ b oplen) (+ e acolen acclen (- cllen))
+                                (car active-pair) (cdr active-pair))))
+           (goto-char b)
+           (insert (car active-pair))
+           (goto-char (+ e acolen))
+           (insert (cdr active-pair))
+           (setq sp-last-wrapped-region
+                 (list b (+ e acolen acclen)
+                       (car active-pair) (cdr active-pair))))
+         (setq sp-last-operation 'sp-wrap-region)))))
+
+(defun sp-wrap-repeat-last-1 (active-pair)
+  "Internal.  If the last operation was a wrap and
+`sp-wrap-repeat-last' is non-nil, repeat the wrapping with this
+pair around the last active region."
+  (cond
+   ((= 0 sp-wrap-repeat-last) nil)
+   ((= 1 sp-wrap-repeat-last)
+    (sp-wrap-repeat-last-2 t))
+   ((= 2 sp-wrap-repeat-last)
+    (sp-wrap-repeat-last-2 nil))))
 
 (defun sp-skip-closing-pair ()
   "If point is inside an inserted pair, and the user only moved forward
