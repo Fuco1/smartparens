@@ -204,6 +204,14 @@ If you insert a character that can't possibly complete a pair, the wrapping is c
 
 At any time in the insertion mode you can use `C-g` to cancel the insertion. In this case, both the opening and closing pairs are removed and the point returns to the original position. The region is not deleted even if some "delete-selection" mode is active.
 
+#### Repeated wrapping
+
+**New (r93):** After wraping a region and immediately after inserting another *basic* pair (that is, defined by `sp-add-pair`), it is often desired to apply this pair as another wrap around the just wrapped region. Imagine, in LaTeX mode, wrapping "word" with quotes to produce `\`word'`. Now, hitting another backtick should produce double-quoted word `\`\`word''`. The same can apply to `markdown-mode` and \* character to mark italics/bold text.
+
+You can now set variable `sp-wrap-repeat-last` to "No repeat", "Repeat only if same", "Re-wrap region with any pair". Read the built-in description for more info.
+
+Note that this behaviour is only active if you *type in* the pair immediately after the wrapping without invoking any additional command, such as backspace or navigation command. However, since this is mostly intended for single character pairs, this does not impose any real limitation.
+
 Wrapping with tags
 ----------
 
