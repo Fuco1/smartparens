@@ -1151,9 +1151,7 @@ This is used for navigation functions."
         ;; we can save ourselves a lot of needless trouble :)
         (if active-pair
             (unless (sp-wrap-tag-region-init)
-              (let* ((oplen (length (car active-pair)))
-                     (cplen (length (cdr active-pair)))
-                     (len (+ oplen cplen))
+              (let* ((len (+ (length (car active-pair)) (length (cdr active-pair))))
                      (strbound))
                 (if (< p m)
                     (progn
@@ -1176,8 +1174,8 @@ This is used for navigation functions."
                 (setq sp-last-operation 'sp-wrap-region)
                 (setq sp-last-wrapped-region
                       (if (< p m)
-                          (list p (+ len m -1) oplen cplen)
-                        (list m (+ len p) oplen cplen)))
+                          (list p (+ len m -1) (car active-pair) (cdr active-pair))
+                        (list m (+ len p) (car active-pair) (cdr active-pair))))
                 ;; only autoescape "" pair, so it has to be one-char
                 ;; length, therefore we can handle it here
                 (when (and (equal (car active-pair) "\"")
@@ -1271,8 +1269,7 @@ This is used for navigation functions."
                 (goto-char (+ sp-wrap-point oplen cplen)))
               ;; update info for possible following delete
               (setq sp-last-operation 'sp-wrap-region)
-              (setq sp-last-wrapped-region
-                    (list s e oplen cplen))
+              (setq sp-last-wrapped-region (list s e open-pair close-pair))
               )))))))
 
 (defmacro sp-get-possible-tag-1 (recent)
@@ -1462,8 +1459,7 @@ string quotes inside it.
 This is internal function and should be only called after a
 wrapping."
   (when sp-autoescape-string-quote
-    (let ((lw sp-last-wrapped-region)
-          (b (car sp-last-wrapped-region))
+    (let ((b (car sp-last-wrapped-region))
           (e (cadr sp-last-wrapped-region))
           was-beg)
       (cond
@@ -1478,8 +1474,7 @@ wrapping."
           (goto-char e)
           (insert sp-escape-char))
         ;; update the sp-last-wrapped-region info to \" pair
-        (setq sp-last-wrapped-region
-              (list (car lw) (+ 2 (cadr lw)) 2 2)))
+        (setq sp-last-wrapped-region (list b (+ 2 e) "\\\"" "\\\"")))
        (t
         (setq was-beg (< (point) e))
         (let ((num 0))
@@ -1487,8 +1482,7 @@ wrapping."
           (while (search-forward-regexp "\\([^\\]\\)\"" (+ e -1 num) t)
             (setq num (1+ num))
             (replace-match "\\1\\\\\"" t))
-          (setq sp-last-wrapped-region
-                (list (car lw) (+ num (cadr lw)) 1 1))
+          (setq sp-last-wrapped-region (list b (+ num e) "\"" "\""))
           (if was-beg
               (goto-char (1+ b))
             (goto-char (+ e num)))
@@ -1546,6 +1540,9 @@ followed by word.  It is disabled by default.  See
            (active-pair (--first (string-prefix-p (reverse-string (car it)) last-keys) sp-pair-list))
            (open-pair (car active-pair))
            (close-pair (cdr active-pair)))
+      ;; Test "repeat last wrap" here.  If we wrap a region and then
+      ;; type in a pair, wrap again around the last active region.
+
       (when (and active-pair
                  (not (eq sp-last-operation 'sp-skip-closing-pair))
                  (sp-insert-pair-p open-pair major-mode)
@@ -1673,7 +1670,11 @@ is, [(|) turns to [|, [\{|\} turns to [|.  Can be disabled by setting
 If the point is behind a closing pair or behind an opening pair delete
 it as a whole.  That is, \{\}| turns to \{|, \{| turns to |.  Can be
 disabled by setting `sp-autodelete-closing-pair' and
-`sp-autodelete-opening-pair' to nil."
+`sp-autodelete-opening-pair' to nil.
+
+If the last operation was a wrap and `sp-autodelete-wrap' is
+enabled, invoking this function will unwrap the expression, that
+is remove the just added wrapping."
   ;; NOTE: Only use delete-char inside this function, so we
   ;; don't activate the advice recursively!
 
@@ -1687,8 +1688,8 @@ disabled by setting `sp-autodelete-closing-pair' and
         (let ((p (point))
               (s (nth 0 sp-last-wrapped-region))
               (e (nth 1 sp-last-wrapped-region))
-              (o (nth 2 sp-last-wrapped-region))
-              (c (nth 3 sp-last-wrapped-region)))
+              (o (length (nth 2 sp-last-wrapped-region)))
+              (c (length (nth 3 sp-last-wrapped-region))))
           ;; if the last operation was `sp-wrap-region', and we are at
           ;; the position of either opening or closing pair, delete the
           ;; just-inserted pair
