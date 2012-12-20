@@ -35,6 +35,9 @@
 
 (require 'dash)
 
+;; autoload for forward-symbol
+(autoload 'forward-symbol "thingatpt" nil t)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Variables
 
@@ -2131,7 +2134,6 @@ expect positive argument.  See `sp-kill-sexp'."
        (let* ((pair-list (sp-get-pair-list-1))
               (opening (regexp-opt (--map (car it) pair-list)))
               (closing (regexp-opt (--map (cdr it) pair-list)))
-              (all (regexp-opt (-concat '(" " "\t" "\n") (-flatten (--map (list (car it) (cdr it)) pair-list)))))
               (n (abs arg))
               (fw (> arg 0))
               (slupr-fn
@@ -2140,7 +2142,7 @@ expect positive argument.  See `sp-kill-sexp'."
               (next-thing t))
          (while (and next-thing (> n 0))
            (save-excursion
-             (setq next-thing (funcall slupr-fn opening closing all))
+             (setq next-thing (funcall slupr-fn opening closing))
              (if next-thing
                  (let* ((close (nth (if fw 4 3) next-thing))
                         (gtold (nth (if fw 2 1) next-thing))
@@ -2238,14 +2240,14 @@ that will be slurped."
          (cons (point) enc))
         ;; if we're looking at the end of another sexp, call recursively again
         ((,look-fn ,(if dir 'closing 'opening))
-         (,this-fn opening closing all))
+         (,this-fn opening closing))
         ;; if we're looking at opening, wrap this expression
         ((,look-fn ,(if dir 'opening 'closing))
          (let ((ok (sp-get-sexp ,(not dir))))
            (when ok (cons (,limit-fn ok) enc))))
         ;; otherwise forward a symbol and return point after that
         (t
-         (,symbol-fn all)
+         ,symbol-fn
          (cons (point) enc))))))
 
 (defmacro sp-barf-sexp-1 (dir skip-fn prev-char look-fn symbol-fn)
@@ -2273,41 +2275,41 @@ is a function that skips a symbol that will be barfed."
              (cons (point) enc))))
         ;; otherwise forward a symbol and return point after that
         (t
-         (,symbol-fn all)
+         ,symbol-fn
          (,skip-fn nil t)
          (cons (point) enc))))))
 
-(defun sp-forward-slurp-sexp-1 (opening closing all)
+(defun sp-forward-slurp-sexp-1 (opening closing)
   "Internal."
   (sp-slurp-sexp-1 t sp-skip-forward-to-meaningful
                    preceding-char
                    looking-at
                    sp-forward-slurp-sexp-1
                    cadr
-                   sp-forward-symbol))
+                   (forward-symbol 1)))
 
-(defun sp-backward-slurp-sexp-1 (opening closing all)
+(defun sp-backward-slurp-sexp-1 (opening closing)
   "Internal."
   (sp-slurp-sexp-1 nil sp-skip-backward-to-meaningful
                    char-after
                    looking-back
                    sp-backward-slurp-sexp-1
                    car
-                   sp-backward-symbol))
+                   (forward-symbol -1)))
 
-(defun sp-forward-barf-sexp-1 (opening closing all)
+(defun sp-forward-barf-sexp-1 (opening closing)
   "Internal."
   (sp-barf-sexp-1 t sp-skip-backward-to-meaningful
                   char-after
                   looking-back
-                  sp-backward-symbol))
+                  (forward-symbol -1)))
 
-(defun sp-backward-barf-sexp-1 (opening closing all)
+(defun sp-backward-barf-sexp-1 (opening closing)
   "Internal."
   (sp-barf-sexp-1 nil sp-skip-forward-to-meaningful
                   preceding-char
                   looking-at
-                  sp-forward-symbol))
+                  (forward-symbol 1)))
 
 (defun sp-forward-symbol (what)
   "Skip forward one symbol.  WHAT is a regexp that defines symbol
