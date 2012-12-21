@@ -5,7 +5,7 @@
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
 ;; Created: 17 Nov 2012
-;; Version: 1.0
+;; Version: 1.1
 ;; Keywords: abbrev convenience editing
 ;; Package-Requires: ((dash "1.0.2"))
 ;; URL: https://github.com/Fuco1/smartparens
@@ -2066,7 +2066,11 @@ expressions are considered."
 (defun sp-forward-sexp (&optional arg)
   "Move forward across one balanced expression.  With ARG, do it
 that many times.  Negative arg -N means move backward across N
-balanced expressions."
+balanced expressions.  If there is no forward expression, jump
+out of the current one (effectively doing `sp-up-list').
+
+With `sp-navigate-consider-symbols' symbols and strings are also
+considered balanced expressions."
   (interactive "^p")
   (setq arg (or arg 1))
   (if (< arg 0)
@@ -2082,7 +2086,12 @@ balanced expressions."
 (defun sp-backward-sexp (&optional arg)
   "Move backward across one balanced expression (sexp).
 With ARG, do it that many times.  Negative arg -N means move
-forward across N balanced expressions."
+forward across N balanced expressions.  If there is no previous
+expression, jump out of the current one (effectively doing
+`sp-backward-up-list').
+
+With `sp-navigate-consider-symbols' symbols and strings are also
+considered balanced expressions."
   (interactive "^p")
   (setq arg (or arg 1))
   (if (< arg 0)
@@ -2100,7 +2109,10 @@ forward across N balanced expressions."
 With ARG, do it that many times.  If there is no next expression
 at current level, jump one level up (effectively doing
 `sp-backward-up-list').  Negative arg -N means move to the
-beginning of N-th previous balanced expression."
+beginning of N-th previous balanced expression.
+
+With `sp-navigate-consider-symbols' symbols and strings are also
+considered balanced expressions."
   (interactive "^p")
   (setq arg (or arg 1))
   (if (> arg 0)
@@ -2121,7 +2133,10 @@ beginning of N-th previous balanced expression."
 With ARG, do it that many times.  If there is no next
 expression at current level, jump one level up (effectively
 doing `sp-up-list').  Negative arg -N means move to the end of
-N-th following balanced expression."
+N-th following balanced expression.
+
+With `sp-navigate-consider-symbols' symbols and strings are also
+considered balanced expressions."
   (interactive "^p")
   (setq arg (or arg 1))
   (if (> arg 0)
@@ -2139,8 +2154,12 @@ N-th following balanced expression."
 
 (defun sp-down-sexp (&optional arg)
   "Move forward down one level of sexp.  With ARG, do this that
-many times.  A negative argument means move backward but still
-go down a level."
+many times.  A negative argument -N means move backward but still
+go down a level.
+
+If inside one and there is no down expression to descend to, jump
+to the beginning of current one.  If moving backwards, jump to
+end of current one."
   (interactive "^p")
   (setq arg (or arg 1))
   (if (> arg 0)
@@ -2186,15 +2205,17 @@ expect positive argument.  See `sp-up-sexp'."
     (sp-up-sexp (- (or arg 1)))))
 
 (defun sp-kill-sexp (&optional arg)
-  "Kill the sexp (balanced expression) following point.  If point
-is inside an expression and there is no following expression,
-kill the topmost enclosing expression.  With ARG, kill that many
-sexps after point.  Negative arg -N means kill N sexps before
-point.
+  "Kill the balanced expression following point.  If point is
+inside an expression and there is no following expression, kill
+the topmost enclosing expression.  With ARG, kill that many sexps
+after point.  Negative arg -N means kill N sexps before point.
 
  (foo |(abc) bar)  -> (foo bar)
 
- (foo (bar) | baz) -> |."
+ (foo (bar) | baz) -> |.
+
+With `sp-navigate-consider-symbols' symbols and strings are also
+considered balanced expressions."
   (interactive "^p")
   (setq arg (or arg 1))
   (if (> arg 0)
@@ -2313,7 +2334,6 @@ Examples:
   ([bar baz] |foo) -> [bar baz] (|foo)"
   (interactive "p")
   (sp-forward-barf-sexp (- (or arg 1))))
-
 
 ;; TODO: slurp/barf doesn't work well if the point is inside a string
 ;; while barfing/slurping
