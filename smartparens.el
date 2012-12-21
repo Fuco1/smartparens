@@ -2427,20 +2427,6 @@ is a function that skips a symbol that will be barfed."
                   looking-at
                   (forward-symbol 1)))
 
-(defun sp-forward-symbol (what)
-  "Skip forward one symbol.  WHAT is a regexp that defines symbol
-delimiters.  Usually, symbol is defined as whitespace or open/close pair
-delimited portion of text."
-  (when (search-forward-regexp what nil t)
-    (goto-char (match-beginning 0))))
-
-(defun sp-backward-symbol (what)
-  "Skip backward one symbol.  WHAT is a regexp that defines symbol
-delimiters.  Usually, symbol is defined as whitespace or open/close pair
-delimited portion of text."
-  (when (sp-search-backward-regexp what nil t)
-    (goto-char (match-end 0))))
-
 (defmacro sp-skip-to-meaningful-1 (next-char prev-char move-fn)
   "Internal.  This macro implements forward/backward movement
 skipping whitespace, comments and strings. NEXT-CHAR is a
