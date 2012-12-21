@@ -30,10 +30,13 @@ Modern minor mode for Emacs that deals with parens pairs and tries to be smart a
 * automatic deletion of whole pairs. With pair `("\{" "\}")` (LaTeX literal brackets), `\{|\}` and backspace will remove both of the pairs. `\{\}|` and backspace will remove the whole closing pair. `\{|` and backspace will remove the whole opening pair.
 * when followed by the same opening pair or word, do not insert the whole pair. That is: `|()` followed by `(` will produce `(|()` instead of `(|)()`. Similarly, `|word` followed by `(` will produce `(|word`.
 * wraps region in defined pairs or defined tag pairs for "tag-modes" (xml/html...).
-    * Different tags are supported, for example, languages that would use `{tag}` instead of `<tag>` or different opening pair and closing pair syntax, for example opening with `(tag` and closing with `)` (a.k.a. s-expression) or LaTeX `\begin{} \end{}` pair.
+    * Different tags are supported, for example, languages that would use `{tag}` instead of `<tag>` or different opening pair and closing pair syntax, for example opening with `(tag` and closing with `)` (a.k.a. s-expression) or LaTeX `\begin{} \end{}` pair. Everything is user definable as usual :)
 * automatically escape strings if wrapped with another string. `this "string"` turns to `"this \"string\""` automaticaly.
 * automatically escape typed quotes inside a string
-* Jumping around the pairs (extending forward-sexp to custom user pairs)
+* [Jumping around](#navigation-and-s-exp-manipulation) the pairs (extending forward-sexp to custom user pairs)
+* Functions to manipulate s-expressions, delete, wrap and unwrap, extend and contract...
+
+This is just a list of basic "selling points", but many features have further customisations or finer details of control (not to mention there is far more features than these mentioned). For a complete list, read the readme. The autopair/textmate/wrap-region packages are virtually superseded, and most of the core functionality of paredit is replicated as well.
 
 **All features** are fully customizable via `M-x customize-group smartparens`. You can turn every behaviour on or off for best user experience (yay buzzwords).
 
@@ -335,12 +338,14 @@ These functions work pretty much exactly the same as the emacs-built in versions
 
 These functions never signal the "Unbalanced parentheses" scan error and by default jump to the beginning or end of next/previous sexp, which is reasonable behaviour. If there is some special behaviour, it is documented.
 
+**New (r96)**: If you want to also operate on symbols that are not wrapped, such as `(defun >name-of-fun< (arg) nil)` (leq/geq mark the symbol boundary), set `sp-navigate-consider-symbols` to `t`. Emacs built-in functions `forward-sexp` and `backward-sexp` recognize these as "expressions". If you set this option to `t`, all functions where it makes sense (that is, not unwrapping functions etc.) will consider symbols a balanced expressions. *Strings* enclosed with "" are also considerd as being one symbol.
+
 Lastly, the navigation with expressions where opening and closing pair is the same is troublesome, as it is impossible to detect the beginning and end without maintaining a count in the whole buffer (e.g. what font-lock-mode does with strings). **Therefore, at the moment, these are not recognized as balanced expressions**. If you have an idea for a good heuristic or a method to fix this, please file an issue with the suggestion.
 
 Here's a quick summary for each navigation function:
 
-* `sp-forward-sexp` - Jump *after* the next balanced expression. If inside one, jump after its closing pair.
-* `sp-backward-sexp` - Jump *before* the previous balanced expression. If inside one, jump before its opening pair.
+* `sp-forward-sexp` - Jump *after* the next balanced expression. If inside one and there is no forward exp., jump after its closing pair.
+* `sp-backward-sexp` - Jump *before* the previous balanced expression. If inside one and there is no previous exp., jump before its opening pair.
 * `sp-down-sexp` - Jump *after* the opening pair of next balanced expression. This effectively descends one level down in the "expression hierarchy". If inside one, jump *after* its opening pair. This can be used to quickly navigate to the beginning of current balanced expression.
 * `sp-backward-down-sexp` - Jump *before* the closing pair of previous balanced expression. If inside one, jump *before* its closing pair. This can be used to quickly navigate to the end of current balanced expression.
 * `sp-up-sexp` - Jump up one level from the current balanced expression. This means skipping all the enclosed expressions within *this* and then jumping *after* the closing pair. For example `(if (= a b) | (some call) (some other call))` -> `(if ...)|`.
