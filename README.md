@@ -207,6 +207,18 @@ If you insert a character that can't possibly complete a pair, the wrapping is c
 
 At any time in the insertion mode you can use `C-g` to cancel the insertion. In this case, both the opening and closing pairs are removed and the point returns to the original position. The region is not deleted even if some "delete-selection" mode is active.
 
+**New (r99):** You can use functions `sp-select-next-thing` and `sp-select-previous-thing` to activate a region around next or previous expression (or expressions with prefix argument). This is very handy in combination with wrapping to wrap pairs around existing expressions or symbols. For example, to turn
+
+    this-is-some-function (complex-function arg)
+
+into
+
+    (this-is-some-function (complex-function arg))
+
+all you need to do is `C-2 C-] (` (when `sp-select-next-thing` is bound to `C-]`)
+
+*Note: By default, `sp-select-next-thing` only operate on balanced expressions enclosed with pairs. If you want to also consider symbols, set `sp-navigate-consider-symbols` to `t`.*
+
 #### Repeated wrapping
 
 **New (r93):** After wraping a region and immediately after inserting another *basic* pair (that is, defined by `sp-add-pair`), it is often desired to apply this pair as another wrap around the just wrapped region. Imagine, in LaTeX mode, wrapping "word" with quotes to produce `\`word'`. Now, hitting another backtick should produce double-quoted word `\`\`word''`. The same can apply to `markdown-mode` and \* character to mark italics/bold text.
@@ -338,7 +350,7 @@ These functions work pretty much exactly the same as the emacs-built in versions
 
 These functions never signal the "Unbalanced parentheses" scan error and by default jump to the beginning or end of next/previous sexp, which is reasonable behaviour. If there is some special behaviour, it is documented.
 
-**New (r96)**: If you want to also operate on symbols that are not wrapped, such as `(defun >name-of-fun< (arg) nil)` (leq/geq mark the symbol boundary), set `sp-navigate-consider-symbols` to `t`. Emacs built-in functions `forward-sexp` and `backward-sexp` recognize these as "expressions". If you set this option to `t`, all functions where it makes sense (that is, not unwrapping functions etc.) will consider symbols a balanced expressions. *Strings* enclosed with "" are also considerd as being one symbol.
+**New (r96):** If you want to also operate on symbols that are not wrapped, such as `(defun >name-of-fun< (arg) nil)` (leq/geq mark the symbol boundary), set `sp-navigate-consider-symbols` to `t`. Emacs built-in functions `forward-sexp` and `backward-sexp` recognize these as "expressions". If you set this option to `t`, all functions where it makes sense (that is, not unwrapping functions etc.) will consider symbols a balanced expressions. *Strings* enclosed with "" are also considerd as being one symbol.
 
 Lastly, the navigation with expressions where opening and closing pair is the same is troublesome, as it is impossible to detect the beginning and end without maintaining a count in the whole buffer (e.g. what font-lock-mode does with strings). **Therefore, at the moment, these are not recognized as balanced expressions**. If you have an idea for a good heuristic or a method to fix this, please file an issue with the suggestion.
 
@@ -357,22 +369,25 @@ Here's a quick summary for each navigation function:
 
 List of manipulation functions:
 
-    sp-kill-sexp (&optional arg)            ;; C-M-k
-    sp-backward-kill-sexp (&optional arg)   ;; C-- C-M-k
+    sp-kill-sexp (&optional arg)                ;; C-M-k
+    sp-backward-kill-sexp (&optional arg)       ;; C-- C-M-k
 
-    sp-unwrap-sexp (&optional arg)          ;; M-<delete>
-    sp-backward-unwrap-sexp (&optional arg) ;; M-<backspace>
+    sp-unwrap-sexp (&optional arg)              ;; M-<delete>
+    sp-backward-unwrap-sexp (&optional arg)     ;; M-<backspace>
 
-    sp-splice-sexp (&optional arg)          ;; M-D
-    sp-splice-sexp-killing-forward ()       ;; C-M-<delete>
-    sp-splice-sexp-killing-backward ()      ;; C-M-<backspace>
+    sp-splice-sexp (&optional arg)              ;; M-D
+    sp-splice-sexp-killing-forward ()           ;; C-M-<delete>
+    sp-splice-sexp-killing-backward ()          ;; C-M-<backspace>
 
-    sp-split-sexp ()                        ;; none
+    sp-split-sexp ()                            ;; none
 
-    sp-forward-slurp-sexp (&optional arg)   ;; C-<right>
-    sp-forward-barf-sexp (&optional arg)    ;; C-<left>
-    sp-backward-slurp-sexp (&optional arg)  ;; C-M-<left>
-    sp-backward-barf-sexp (&optional arg)   ;; C-M-<right>
+    sp-forward-slurp-sexp (&optional arg)       ;; C-<right>
+    sp-forward-barf-sexp (&optional arg)        ;; C-<left>
+    sp-backward-slurp-sexp (&optional arg)      ;; C-M-<left>
+    sp-backward-barf-sexp (&optional arg)       ;; C-M-<right>
+
+    sp-select-next-thing (&optional arg)        ;; C-]
+    sp-select-previous-thing (&optional arg)    ;; C-[
 
 Some functions, especially slurp/barf functions are inspired by [paredit](http://emacswiki.org/emacs/ParEdit) package and work roughly the same. However, they can accept optional argument to slurp/barf that many times.
 
@@ -390,6 +405,8 @@ Here's a quick summary for each manipulation function:
 * `sp-forward-barf-sexp` - Contract the current list by one balanced expression or symbol by moving the *closing* delimiter.
 * `sp-backward-slurp-sexp` - Extend the current list by one balanced expression or symbol by moving the *opening* delimiter.
 * `sp-backward-barf-sexp` - Contract the current list by one balanced expression or symbol by moving the *opening* delimiter.
+* `sp-select-next-thing` - Select next balanced expression as returned by `sp-forward-sexp`. Examples of usage: Can be cleverly used with wrapping features, for example if you want to wrap next expression in additional pair of parens. It can also be used to select expressions followed by `M-w` (copy but not kill to ring).
+* `sp-select-previous-thing` - Select previous balanced expression as returned by `sp-backward-sexp`.
 
 Show smartparens mode
 ==========
@@ -438,6 +455,11 @@ This is actually my current config for this package. Since I'm only using `emacs
     (define-key sp-keymap (kbd "M-D") 'sp-splice-sexp)
     (define-key sp-keymap (kbd "C-M-<delete>") 'sp-splice-sexp-killing-forward)
     (define-key sp-keymap (kbd "C-M-<backspace>") 'sp-splice-sexp-killing-backward)
+
+    ;; little hack to disable C-[ acting as an ESC
+    (define-key input-decode-map (kbd "C-[") (kbd "H-["))
+    (define-key sp-keymap (kbd "C-]") 'sp-select-next-thing)
+    (define-key sp-keymap (kbd "H-[") 'sp-select-previous-thing)
 
     ;;; add new pairs
     (sp-add-pair "*" "*")
