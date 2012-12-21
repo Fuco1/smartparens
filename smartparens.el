@@ -436,6 +436,19 @@ times pressing \" would insert \"\"\"|\"\"\" instead of
   :type '(repeat symbol)
   :group 'smartparens)
 
+;; navigation & manip custom
+(defcustom sp-navigate-consider-symbols nil
+  "If non-nil, consider symbols outside balanced expressions as
+such.  Symbols are skipped using:
+
+  (re-search-forward \"\\\\(\\\\sw\\\\|\\\\s_\\\\)+\" nil 'move)
+
+or the corresponding backward version.  More specifically, the
+function `forward-symbol' from `thingatpt' is used.  This setting
+affect all the functions where it make sense."
+  :type 'boolean
+  :group 'smartparens)
+
 ;; ui custom
 (defcustom sp-highlight-pair-overlay t
   "If non-nil, auto-inserted pairs are highlighted until point
@@ -535,7 +548,7 @@ tag on which we want to operate."
   "Return the last x in LIST where (PRED x) is non-nil, else nil."
   (--last (funcall pred it) list))
 
-(defun reverse-string (str)
+(defun sp-reverse-string (str)
   "Reverse the string STR."
   (concat (reverse (append str nil))))
 
@@ -1130,6 +1143,14 @@ This is used for navigation functions."
                   ;; ignore pairs with same open/close
                   (not (string= (car it) (cdr it)))) sp-pair-list))
 
+(defun sp-get-opening-regexp-1 ()
+  "Internal.  Return regexp matching any opening pair."
+  (regexp-opt (--map (car it) (sp-get-pair-list-1))))
+
+(defun sp-get-closing-regexp-1 ()
+  "Internal.  Return regexp matching any opening pair."
+  (regexp-opt (--map (cdr it) (sp-get-pair-list-1))))
+
 (defun sp-wrap-region-init ()
   "Initialize the region wrapping."
   (when sp-autowrap-region
@@ -1155,7 +1176,7 @@ This is used for navigation functions."
              (oend (if (> p m) p m))
              (last-keys (sp-get-recent-keys-1))
              ;;(last-keys "\"\"\"\"\"\"\"\"")
-             (active-pair (--first (string-prefix-p (reverse-string (car it)) last-keys) sp-pair-list)))
+             (active-pair (--first (string-prefix-p (sp-reverse-string (car it)) last-keys) sp-pair-list)))
 
         (deactivate-mark)
         ;; if we can wrap right away, do it without creating overlays,
@@ -1547,7 +1568,7 @@ followed by word.  It is disabled by default.  See
          ;; we go through all the opening pairs and compare them to
          ;; last-keys.  If the opair is a prefix of last-keys, insert
          ;; the closing pair
-         (active-pair (--first (string-prefix-p (reverse-string (car it)) last-keys) sp-pair-list))
+         (active-pair (--first (string-prefix-p (sp-reverse-string (car it)) last-keys) sp-pair-list))
          (open-pair (car active-pair))
          (close-pair (cdr active-pair)))
     ;; Test "repeat last wrap" here.  If we wrap a region and then
@@ -1968,6 +1989,80 @@ positive argument."
         (setq n (1- n)))
       ok)))
 
+(defun sp-get-symbol (&optional back)
+  "Find the nearest symbol that is after point, or before point
+if BACK is non-nil.  This also means, if the point is inside a
+symbol, this symbol is returned.  Symbol is defined as a chunk of
+text recognized by `forward-symbol' from `thingatpt' package.
+
+The return value is not the symbol itself but the boundary
+positions in buffer."
+  (let (b e)
+    (save-excursion
+      (if back
+          (progn
+            (sp-skip-backward-to-symbol)
+            (forward-symbol -1)
+            (setq b (point))
+            (forward-symbol 1)
+            (setq e (point)))
+        (sp-skip-forward-to-symbol)
+        (forward-symbol 1)
+        (setq e (point))
+        (forward-symbol -1)
+        (setq b (point))))
+    (list b e " " " ")))
+
+(defun sp-get-string (&optional back)
+  "Find the nearest string after point, or before if BACK is
+non-nil.  This also means if the point is inside a string, this
+string is returned.  If there are another symbols between point
+and the string, nil is returned.  That means that this funciton
+only return non-nil if the string is the very next meaningful
+expression.
+
+The return value is not the string itself but the boundary
+positions in buffer."
+  (let (b e)
+    (if (sp-point-in-string)
+        (let ((r (sp-get-quoted-string-bounds)))
+          (list (1- (car r)) (1+ (cdr r)) "\"" "\""))
+      (save-excursion
+        (if back
+            (sp-skip-backward-to-symbol)
+          (sp-skip-forward-to-symbol))
+        (let ((r (sp-get-quoted-string-bounds)))
+          (when r (list (1- (car r)) (1+ (cdr r)) "\"" "\"")))))))
+
+(defmacro sp-get-thing-1 (back)
+  "Internal."
+  `(if (not sp-navigate-consider-symbols)
+       (sp-get-sexp ,back)
+     (save-excursion
+       ,(if back '(sp-skip-backward-to-symbol t)
+          '(sp-skip-forward-to-symbol t))
+       (cond
+        (,(if back '(looking-back (sp-get-closing-regexp-1))
+            '(looking-at (sp-get-opening-regexp-1)))
+         (sp-get-sexp ,back))
+        (,(if back '(looking-back (sp-get-opening-regexp-1))
+            '(looking-at (sp-get-closing-regexp-1)))
+         (sp-get-sexp ,back))
+        ((,(if back 'looking-back 'looking-at) "\"")
+         (sp-get-string ,back))
+        (t (sp-get-symbol ,back))))))
+
+(defun sp-get-thing (&optional back)
+  "Find next thing after point, or before if BACK is non-nil.  Thing
+is either symbol (`sp-get-symbol'), string (`sp-get-string') or
+balanced expression recognized by `sp-get-sexp'.
+
+If `sp-navigate-consider-symbols' is nil, only balanced
+expressions are considered."
+  (if back
+      (sp-get-thing-1 t)
+    (sp-get-thing-1 nil)))
+
 (defun sp-forward-sexp (&optional arg)
   "Move forward across one balanced expression.  With ARG, do it
 that many times.  Negative arg -N means move backward across N
@@ -1979,7 +2074,7 @@ balanced expressions."
     (let* ((n arg)
            (ok t))
       (while (and ok (> n 0))
-        (setq ok (sp-get-sexp))
+        (setq ok (sp-get-thing))
         (setq n (1- n))
         (when ok (goto-char (cadr ok))))
       ok)))
@@ -1995,7 +2090,7 @@ forward across N balanced expressions."
     (let* ((n arg)
            (ok t))
       (while (and ok (> n 0))
-        (setq ok (sp-get-sexp t))
+        (setq ok (sp-get-thing t))
         (setq n (1- n))
         (when ok (goto-char (car ok))))
       ok)))
@@ -2010,7 +2105,7 @@ beginning of N-th previous balanced expression."
   (setq arg (or arg 1))
   (if (> arg 0)
       (if (= arg 1)
-          (let ((ok (sp-get-sexp)))
+          (let ((ok (sp-get-thing)))
             (when ok
               (if (= (point) (car ok))
                   (progn (sp-forward-sexp 2)
@@ -2031,7 +2126,7 @@ N-th following balanced expression."
   (setq arg (or arg 1))
   (if (> arg 0)
       (if (= arg 1)
-          (let ((ok (sp-get-sexp t)))
+          (let ((ok (sp-get-thing t)))
             (when ok
               (if (= (point) (cadr ok))
                   (progn (sp-backward-sexp 2)
@@ -2091,10 +2186,11 @@ expect positive argument.  See `sp-up-sexp'."
     (sp-up-sexp (- (or arg 1)))))
 
 (defun sp-kill-sexp (&optional arg)
-  "Kill the sexp (balanced expression) following point.  If
-inside an expression, kill the topmost enclosing expression.
-With ARG, kill that many sexps after point.  Negative arg -N
-means kill N sexps before point.
+  "Kill the sexp (balanced expression) following point.  If point
+is inside an expression and there is no following expression,
+kill the topmost enclosing expression.  With ARG, kill that many
+sexps after point.  Negative arg -N means kill N sexps before
+point.
 
  (foo |(abc) bar)  -> (foo bar)
 
@@ -2105,13 +2201,13 @@ means kill N sexps before point.
       (let ((n arg)
             (ok t))
         (while (and (> n 0) ok)
-          (setq ok (sp-get-sexp))
+          (setq ok (sp-get-thing))
           (setq n (1- n))
           (when ok (kill-region (car ok) (cadr ok)))))
     (let ((n (- arg))
           (ok t))
       (while (and (> n 0) ok)
-        (setq ok (sp-get-sexp t))
+        (setq ok (sp-get-thing t))
         (setq n (1- n))
         (when ok (kill-region (car ok) (cadr ok)))))))
 
@@ -2356,6 +2452,36 @@ AFTER-STRING is non-nil, stop after first exiting a string.  If
 STOP-AT-STRING is non-nil, stop before entering a string."
   (sp-skip-to-meaningful-1 preceding-char char-after backward-char))
 
+(defmacro sp-skip-to-symbol-1 (forward)
+  "Internal.  Generate `sp-skip-forward-to-symbol' or
+`sp-skip-backward-to-symbol'."
+  (let ((inc (if forward '1+ '1-))
+        (dec (if forward '1- '1+))
+        (forward-fn (if forward 'forward-char 'backward-char))
+        (next-char-fn (if forward 'char-after 'preceding-char)))
+    `(while (and (not (or (eobp)
+                          (and stop-after-string
+                               (not (sp-point-in-string))
+                               (sp-point-in-string (,dec (point))))
+                          (and stop-at-string
+                               (not (sp-point-in-string))
+                               (sp-point-in-string (,inc (point))))))
+                 (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\"))
+                     (sp-point-in-comment)))
+       (,forward-fn 1))))
+
+(defun sp-skip-forward-to-symbol (&optional stop-at-string stop-after-string)
+  "Skip whitespace and comments moving forward.  If STOP-AT-STRING is
+non-nil, stop before entering a string (if not already in a string).
+If STOP-AFTER-STRING is non-nil, stop after exiting a string."
+  (sp-skip-to-symbol-1 t))
+
+(defun sp-skip-backward-to-symbol (&optional stop-at-string stop-after-string)
+  "Skip whitespace and comments moving backward.  If STOP-AT-STRING is
+non-nil, stop before entering a string (if not already in a string).
+If STOP-AFTER-STRING is non-nil, stop after exiting a string."
+  (sp-skip-to-symbol-1 nil))
+
 (defun sp-unwrap-sexp-1 (sexp)
   "Internal.  Unwraps expression."
   (let ((s (car sexp))
@@ -2366,20 +2492,19 @@ STOP-AT-STRING is non-nil, stop before entering a string."
     (delete-region (- e lo lc) (- e lo))))
 
 (defun sp-unwrap-sexp (&optional arg)
-  "Unwrap the following expression.  With arg N, unwrap Nth
-expression as returned by `sp-forward-sexp'.  If arg is
-negative -N, unwrap Nth expression backwards as returned by
-`sp-backward-sexp'."
+  "Unwrap the following expression.  With arg N, unwrap Nth expression
+as returned by `sp-forward-sexp'.  If arg is negative -N, unwrap Nth
+expression backwards as returned by `sp-backward-sexp'."
   (interactive "p")
   (setq arg (or arg 1))
-  (let ((ok (save-excursion (sp-forward-sexp arg))))
-    (when ok (sp-unwrap-sexp-1 ok))))
+  (let ((sp-navigate-consider-symbols nil))
+    (let ((ok (save-excursion (sp-forward-sexp arg))))
+      (when ok (sp-unwrap-sexp-1 ok)))))
 
 (defun sp-backward-unwrap-sexp (&optional arg)
-  "Unwrap the previous expression.  With arg N, unwrap Nth
-expression as returned by `sp-backward-sexp'.  If arg is
-negative -N, unwrap Nth expression forward as returned by
-`sp-forward-sexp'."
+  "Unwrap the previous expression.  With arg N, unwrap Nth expression
+as returned by `sp-backward-sexp'.  If arg is negative -N, unwrap Nth
+expression forward as returned by `sp-forward-sexp'."
   (interactive "p")
   (sp-unwrap-sexp (- (or arg 1))))
 
