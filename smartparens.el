@@ -2472,7 +2472,7 @@ STOP-AT-STRING is non-nil, stop before entering a string."
                           (and stop-at-string
                                (not (sp-point-in-string))
                                (sp-point-in-string (,inc (point))))))
-                 (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\"))
+                 (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\" ?'))
                      (sp-point-in-comment)))
        (,forward-fn 1))))
 
@@ -2571,6 +2571,31 @@ Examples:
       (when ok
         (forward-char (- (prog1 (sp-backward-whitespace) (insert (nth 3 ok)))))
         (save-excursion (sp-forward-whitespace) (insert (nth 2 ok)))))))
+
+(defun sp-select-next-thing (&optional arg)
+  "Set active region over ARG next things as recognized by
+`sp-get-thing'.  If ARG is negative -N, select that many
+expressions backward.
+
+With `sp-navigate-consider-symbols' symbols and strings are also
+considered balanced expressions."
+  (interactive "p")
+  (setq arg (or arg 1))
+  (let* ((b (sp-forward-sexp (signum arg)))
+         (e (if (> (abs arg) 1) (sp-forward-sexp (* (signum arg) (1- (abs arg)))) b)))
+    (push-mark nil t)
+    (set-mark (if (> arg 0) (car b) (cadr b)))
+    (goto-char (if (> arg 0) (cadr e) (car e)))))
+
+(defun sp-select-previous-thing (&optional arg)
+  "Set active region over ARG previous things as recognized by
+`sp-get-thing'.  If ARF is negative -N, select that many
+expressions forward.
+
+With `sp-navigate-consider-symbols' symbols and strings are also
+considered balanced expressions."
+  (interactive "p")
+  (sp-select-next-thing (- (or arg 1))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; show-smartparens-mode
