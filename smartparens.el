@@ -2250,6 +2250,7 @@ expect positive argument.  See `sp-kill-sexp'."
            (let* ((ok (sp-get-enclosing-sexp))
                   (b (and ok (car ok)))
                   (e (and ok (cadr ok)))
+                  (ins-space 0)
                   next-thing)
              (if ok
                  (save-excursion
@@ -2261,8 +2262,11 @@ expect positive argument.  See `sp-kill-sexp'."
                      (setq next-thing (sp-get-thing ,(if fw-1 'nil 't))))
                    (goto-char (,(if fw-1 'cadr 'car) ok))
                    (delete-char (,(if fw-1 '- '+) (length (nth ,(if fw-1 '3 '2) ok))))
+                   (when (= (,(if fw-1 'cadr 'car) ok) (,(if fw-1 'car 'cadr) next-thing))
+                     (insert " ")
+                     (setq ins-space -1))
                    (goto-char ,(if fw-1
-                                    '(- (cadr next-thing) (length (nth 3 ok)))
+                                    '(- (cadr next-thing) (length (nth 3 ok)) ins-space)
                                   '(car next-thing)))
                    (insert (nth ,(if fw-1 '3 '2) ok))
                    (setq n (1- n)))
