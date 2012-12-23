@@ -2242,40 +2242,36 @@ expect positive argument.  See `sp-kill-sexp'."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; "paredit" operations
 
-(defmacro sp-generate-slurp-barf (fn-name doc-string)
-  (let ((slurp (string-match-p "slurp" (symbol-name fn-name))))
-    `(defun ,fn-name (&optional arg)
-       ,doc-string
-       (interactive "p")
-       (setq arg (or arg 1))
-       (let* ((pair-list (sp-get-pair-list-1))
-              (opening (regexp-opt (--map (car it) pair-list)))
-              (closing (regexp-opt (--map (cdr it) pair-list)))
-              (n (abs arg))
-              (fw (> arg 0))
-              (slupr-fn
-               ,(if slurp '(if fw 'sp-forward-slurp-sexp-1 'sp-backward-slurp-sexp-1)
-                  '(if fw 'sp-forward-barf-sexp-1 'sp-backward-barf-sexp-1)))
-              (next-thing t))
-         (while (and next-thing (> n 0))
-           (save-excursion
-             (setq next-thing (funcall slupr-fn opening closing))
-             (if next-thing
-                 (let* ((close (nth (if fw 4 3) next-thing))
-                        (gtold (nth (if fw 2 1) next-thing))
-                        (del (* (if fw -1 1) (length close)))
-                        (gtnew
-                         ,(if slurp '(+ (car next-thing) (if fw del 0))
-                            '(- (car next-thing) (if fw 0 del)))))
-                   (goto-char gtold)
-                   (delete-char del)
-                   (goto-char gtnew)
-                   (insert close)
+(defmacro sp-slurp-sexp-1 (fw-1)
+  "Internal.  Generate forward/backward slurp functions."
+  `(let ((n (abs arg))
+         (fw (> arg 0)))
+     (if fw
+         (while (> n 0)
+           (let* ((ok (sp-get-enclosing-sexp))
+                  (b (and ok (car ok)))
+                  (e (and ok (cadr ok)))
+                  next-thing)
+             (if ok
+                 (save-excursion
+                   (goto-char ,(if fw-1 'e 'b))
+                   (setq next-thing (sp-get-thing ,(if fw-1 'nil 't)))
+                   (while ,(if fw-1 '(< (car next-thing) b) '(> (cadr next-thing) e))
+                     (goto-char (,(if fw-1 'cadr 'car) next-thing))
+                     (setq ok next-thing)
+                     (setq next-thing (sp-get-thing ,(if fw-1 'nil 't))))
+                   (goto-char (,(if fw-1 'cadr 'car) ok))
+                   (delete-char (,(if fw-1 '- '+) (length (nth ,(if fw-1 '3 '2) ok))))
+                   (goto-char ,(if fw-1
+                                    '(- (cadr next-thing) (length (nth 3 ok)))
+                                  '(car next-thing)))
+                   (insert (nth ,(if fw-1 '3 '2) ok))
                    (setq n (1- n)))
-               (message "We can't slurp/barf without breaking strictly balanced expression. Ignored.")
-               (setq n -1))))))))
+               (message "We can't slurp without breaking strictly balanced expression. Ignored.")
+               (setq n -1))))
+       (,(if fw-1 'sp-backward-slurp-sexp 'sp-forward-slurp-sexp) n))))
 
-(sp-generate-slurp-barf sp-forward-slurp-sexp
+(defun sp-forward-slurp-sexp (&optional arg)
   "Add the S-expression following the current list into that list
 by moving the closing delimiter.  If the current list is the last
 in a parent list, extend that list (and possibly apply
@@ -2289,7 +2285,10 @@ Examples:
 
  [(foo |bar)] baz -> [(foo |bar) baz]
 
- [(foo |bar) baz] -> [(foo |bar baz)]")
+ [(foo |bar) baz] -> [(foo |bar baz)]"
+  (interactive "p")
+  (setq arg (or arg 1))
+  (sp-slurp-sexp-1 t))
 
 (defun sp-backward-slurp-sexp (&optional arg)
   "Add the S-expression preceding the current list into that list
@@ -2307,9 +2306,41 @@ Examples:
 
  [foo (bar| baz)] -> [(foo bar| baz)]"
   (interactive "p")
-  (sp-forward-slurp-sexp (- (or arg 1))))
+  (setq arg (or arg 1))
+  (sp-slurp-sexp-1 nil))
 
-(sp-generate-slurp-barf sp-forward-barf-sexp
+;; TODO: fix forward-symbol treating { as part of word... (we need to
+;; add stops on all user-defined pairs) :/
+(defmacro sp-barf-sexp-1 (fw-1)
+  "Internal.  Generate forward/backward barf functions."
+  `(let ((n (abs arg))
+         (fw (> arg 0)))
+     (if fw
+         (while (> n 0)
+           (let* ((ok (sp-get-enclosing-sexp))
+                  next-thing)
+             (if ok
+                 (save-excursion
+                   (goto-char ,(if fw-1 '(- (cadr ok) (length (nth 3 ok)))
+                                 '(+ (car ok) (length (nth 2 ok)))))
+                   (setq next-thing (sp-get-thing ,(if fw-1 't 'nil)))
+                   (if (and next-thing
+                            (/= (car next-thing) (car ok))) ;; ok == next-thing
+                       (progn
+                         (delete-char ,(if fw-1 '(length (nth 3 ok))
+                                         '(- (length (nth 2 ok)))))
+                         (goto-char ,(if fw-1 '(car next-thing)
+                                       '(- (cadr next-thing) (length (nth 2 ok)))))
+                         ,(if fw-1 '(sp-skip-backward-to-sypmbol t) '(sp-skip-forward-to-symbol t))
+                         (insert (nth ,(if fw-1 '3 '2) ok))
+                         (setq n (1- n)))
+                     (message "The expression is empty.")
+                     (setq n -1)))
+               (message "We can't barf without breaking strictly balanced expression. Ignored.")
+               (setq n -1))))
+       (,(if fw-1 'sp-backward-barf-sexp 'sp-forward-barf-sexp) n))))
+
+(defun sp-forward-barf-sexp (&optional arg)
   "Remove the last S-expression in the current list by moving the
 closing delimiter.  If arg is N, barf that many expressions.  If
 arg is negative -N, contract the opening pair instead.  If the
@@ -2319,7 +2350,10 @@ Examples:
 
   (foo bar| baz)   -> (foo bar|) baz
 
-  (foo| [bar baz]) -> (foo|) [bar baz]")
+  (foo| [bar baz]) -> (foo|) [bar baz]"
+  (interactive "p")
+  (setq arg (or arg 1))
+  (sp-barf-sexp-1 t))
 
 (defun sp-backward-barf-sexp (&optional arg)
   "Remove the first S-expression in the current list by moving
@@ -2333,130 +2367,8 @@ Examples:
 
   ([bar baz] |foo) -> [bar baz] (|foo)"
   (interactive "p")
-  (sp-forward-barf-sexp (- (or arg 1))))
-
-;; TODO: slurp/barf doesn't work well if the point is inside a string
-;; while barfing/slurping
-(defmacro sp-slurp-sexp-1 (dir skip-fn prev-char look-fn this-fn limit-fn symbol-fn)
-  "Internal.  DIR is the direction, t means forward, nil
-backward.  SKIP-FN is a function that skips to next meaningful
-token.  PREV-CHAR returns previous logical character.  LOOK-FN is
-`looking-at' or `looking-back' depending on direction.  THIS-FN
-is name of \"this\" function for recursive call.  LIMIT-FN is
-either `car' or `cadr' that retrieves opening or closing position
-of enclosing sexp.  SYMBOL-FN is a function that skips a symbol
-that will be slurped."
-  `(let ((enc (sp-get-enclosing-sexp)))
-     (when enc
-       (goto-char (,limit-fn enc))
-       (,skip-fn t)
-       (cond
-        ;; if we're looking back at a string, extend here
-        ((eq (,prev-char) ?\")
-         (cons (point) enc))
-        ;; if we're looking at the end of another sexp, call recursively again
-        ((,look-fn ,(if dir 'closing 'opening))
-         (,this-fn opening closing))
-        ;; if we're looking at opening, wrap this expression
-        ((,look-fn ,(if dir 'opening 'closing))
-         (let ((ok (sp-get-sexp ,(not dir))))
-           (when ok (cons (,limit-fn ok) enc))))
-        ;; otherwise forward a symbol and return point after that
-        (t
-         ,symbol-fn
-         (cons (point) enc))))))
-
-(defmacro sp-barf-sexp-1 (dir skip-fn prev-char look-fn symbol-fn)
-  "Internal.  DIR is the direction, t means forward, nil
-backward.  SKIP-FN is a function that skips to next meaningful
-token.  PREV-CHAR returns previous logical character.  LOOK-FN is
-`looking-at' or `looking-back' depending on direction.  SYMBOL-FN
-is a function that skips a symbol that will be barfed."
-  `(let ((enc (sp-get-enclosing-sexp)))
-     (when enc
-       ,(if dir '(goto-char (- (cadr enc) (length (nth 3 enc))))
-          '(goto-char (+ (car enc) (length (nth 2 enc)))))
-       (,skip-fn t)
-       (cond
-        ;; if we're looking back at a string, extend here
-        ((eq (,prev-char) ?\")
-         (,skip-fn nil t)
-         (cons (point) enc))
-        ;; if we're looking at opening, wrap this expression
-        ((,look-fn ,(if dir 'closing 'opening))
-         (let ((ok (sp-get-sexp ,dir)))
-           (when ok
-             (goto-char (,(if dir 'car 'cadr) ok))
-             (,skip-fn nil t)
-             (cons (point) enc))))
-        ;; otherwise forward a symbol and return point after that
-        (t
-         ,symbol-fn
-         (,skip-fn nil t)
-         (cons (point) enc))))))
-
-(defun sp-forward-slurp-sexp-1 (opening closing)
-  "Internal."
-  (sp-slurp-sexp-1 t sp-skip-forward-to-meaningful
-                   preceding-char
-                   looking-at
-                   sp-forward-slurp-sexp-1
-                   cadr
-                   (forward-symbol 1)))
-
-(defun sp-backward-slurp-sexp-1 (opening closing)
-  "Internal."
-  (sp-slurp-sexp-1 nil sp-skip-backward-to-meaningful
-                   char-after
-                   looking-back
-                   sp-backward-slurp-sexp-1
-                   car
-                   (forward-symbol -1)))
-
-(defun sp-forward-barf-sexp-1 (opening closing)
-  "Internal."
-  (sp-barf-sexp-1 t sp-skip-backward-to-meaningful
-                  char-after
-                  looking-back
-                  (forward-symbol -1)))
-
-(defun sp-backward-barf-sexp-1 (opening closing)
-  "Internal."
-  (sp-barf-sexp-1 nil sp-skip-forward-to-meaningful
-                  preceding-char
-                  looking-at
-                  (forward-symbol 1)))
-
-(defmacro sp-skip-to-meaningful-1 (next-char prev-char move-fn)
-  "Internal.  This macro implements forward/backward movement
-skipping whitespace, comments and strings. NEXT-CHAR is a
-function that return next char in the logical direction we're
-moving.  PREV-CHAR is a function that return previous char.
-MOVE-FN is a function that moves the point."
-  `(let ((skip-string 2)
-         (skip-what (if stop-at-string '(?< ?> ?! ?| ?\ )
-                      '(?< ?> ?! ?| ?\  ?\"))))
-     (while (and (not (eobp))
-                 (or (not after-string) (> skip-string 0))
-                 (or (sp-point-in-string-or-comment)
-                     (member (char-syntax (,next-char))
-                             skip-what)))
-       (when (and (eq (char-syntax (,next-char)) ?\" )
-                  (not (eq (char-syntax (,prev-char)) ?\\)))
-         (setq skip-string (1- skip-string)))
-       (,move-fn 1))))
-
-(defun sp-skip-forward-to-meaningful (&optional after-string stop-at-string)
-  "Skip forward ignoring whitespace, comments and strings.  If
-AFTER-STRING is non-nil, stop after first exiting a string.  If
-STOP-AT-STRING is non-nil, stop before entering a string."
-  (sp-skip-to-meaningful-1 char-after preceding-char forward-char))
-
-(defun sp-skip-backward-to-meaningful (&optional after-string stop-at-string)
-  "Skip backward ignoring whitespace, comments and strings.  If
-AFTER-STRING is non-nil, stop after first exiting a string.  If
-STOP-AT-STRING is non-nil, stop before entering a string."
-  (sp-skip-to-meaningful-1 preceding-char char-after backward-char))
+  (setq arg (or arg 1))
+  (sp-barf-sexp-1 nil))
 
 (defmacro sp-skip-to-symbol-1 (forward)
   "Internal.  Generate `sp-skip-forward-to-symbol' or
