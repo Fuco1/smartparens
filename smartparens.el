@@ -35,9 +35,6 @@
 
 (require 'dash)
 
-;; autoload for forward-symbol
-(autoload 'forward-symbol "thingatpt" nil t)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Variables
 
@@ -439,13 +436,11 @@ times pressing \" would insert \"\"\"|\"\"\" instead of
 ;; navigation & manip custom
 (defcustom sp-navigate-consider-symbols nil
   "If non-nil, consider symbols outside balanced expressions as
-such.  Symbols are skipped using:
+such.  Symbols are recognized by function `sp-forward-symbol'.
+This setting affect all the functions where it make sense.
 
-  (re-search-forward \"\\\\(\\\\sw\\\\|\\\\s_\\\\)+\" nil 'move)
-
-or the corresponding backward version.  More specifically, the
-function `forward-symbol' from `thingatpt' is used.  This setting
-affect all the functions where it make sense."
+Also, special handling of strings is enabled, where the whole
+string delimited with \"\" is considered as one token."
   :type 'boolean
   :group 'smartparens)
 
@@ -1148,8 +1143,12 @@ This is used for navigation functions."
   (regexp-opt (--map (car it) (sp-get-pair-list-1))))
 
 (defun sp-get-closing-regexp-1 ()
-  "Internal.  Return regexp matching any opening pair."
+  "Internal.  Return regexp matching any closing pair."
   (regexp-opt (--map (cdr it) (sp-get-pair-list-1))))
+
+(defun sp-get-pair-regexp-1 ()
+  "Return a regexp that matches any opening or closing pair delimiter."
+  (regexp-opt (let (s) (--each (sp-get-pair-list-1) (!cons (cdr it) s) (!cons (car it) s)) s)))
 
 (defun sp-wrap-region-init ()
   "Initialize the region wrapping."
@@ -1990,26 +1989,26 @@ positive argument."
       ok)))
 
 (defun sp-get-symbol (&optional back)
-  "Find the nearest symbol that is after point, or before point
-if BACK is non-nil.  This also means, if the point is inside a
-symbol, this symbol is returned.  Symbol is defined as a chunk of
-text recognized by `forward-symbol' from `thingatpt' package.
+  "Find the nearest symbol that is after point, or before point if
+BACK is non-nil.  This also means, if the point is inside a symbol,
+this symbol is returned.  Symbol is defined as a chunk of text
+recognized by `sp-forward-symbol'.
 
-The return value is not the symbol itself but the boundary
-positions in buffer."
+The return value is not the symbol itself but the boundary positions
+in buffer."
   (let (b e)
     (save-excursion
       (if back
           (progn
             (sp-skip-backward-to-symbol)
-            (forward-symbol -1)
+            (sp-forward-symbol -1)
             (setq b (point))
-            (forward-symbol 1)
+            (sp-forward-symbol 1)
             (setq e (point)))
         (sp-skip-forward-to-symbol)
-        (forward-symbol 1)
+        (sp-forward-symbol 1)
         (setq e (point))
-        (forward-symbol -1)
+        (sp-forward-symbol -1)
         (setq b (point))))
     (list b e " " " ")))
 
@@ -2309,8 +2308,6 @@ Examples:
   (setq arg (or arg 1))
   (sp-slurp-sexp-1 nil))
 
-;; TODO: fix forward-symbol treating { as part of word... (we need to
-;; add stops on all user-defined pairs) :/
 (defmacro sp-barf-sexp-1 (fw-1)
   "Internal.  Generate forward/backward barf functions."
   `(let ((n (abs arg))
@@ -2331,7 +2328,7 @@ Examples:
                                          '(- (length (nth 2 ok)))))
                          (goto-char ,(if fw-1 '(car next-thing)
                                        '(- (cadr next-thing) (length (nth 2 ok)))))
-                         ,(if fw-1 '(sp-skip-backward-to-sypmbol t) '(sp-skip-forward-to-symbol t))
+                         ,(if fw-1 '(sp-skip-backward-to-symbol t) '(sp-skip-forward-to-symbol t))
                          (insert (nth ,(if fw-1 '3 '2) ok))
                          (setq n (1- n)))
                      (message "The expression is empty.")
@@ -2399,6 +2396,59 @@ If STOP-AFTER-STRING is non-nil, stop after exiting a string."
 non-nil, stop before entering a string (if not already in a string).
 If STOP-AFTER-STRING is non-nil, stop after exiting a string."
   (sp-skip-to-symbol-1 nil))
+
+(defmacro sp-forward-symbol-1 (fw-1)
+  (let ((goto-where (if fw-1 '(match-end 0) '(match-beginning 0)))
+        (look-at-open (if fw-1 '(looking-at open) '(looking-back open 10 t)))
+        (look-at-close (if fw-1 '(looking-at close) '(looking-back close 10 t))))
+    `(let ((n (abs arg))
+           (fw (> arg 0))
+           (open (sp-get-opening-regexp-1))
+           (close (sp-get-closing-regexp-1)))
+       (if fw
+           (while (> n 0)
+             ;; First we need to get to the beginning of a symbol.  This means
+             ;; skipping all whitespace and pair delimiters until we hit
+             ;; something in \sw or \s_
+             (while (cond ((not (memq
+                                 (char-syntax (,(if fw-1 'char-after 'preceding-char)))
+                                 '(?w ?_)))
+                           (,(if fw-1 'forward-char 'backward-char)) t)
+                          (,look-at-open
+                           (goto-char ,goto-where))
+                          (,look-at-close
+                           (goto-char ,goto-where))))
+             (while (and (not (or ,look-at-open
+                                  ,look-at-close))
+                         (memq (char-syntax
+                                (,(if fw-1 'char-after 'preceding-char)))
+                               '(?w ?_)))
+               (,(if fw-1 'forward-char 'backward-char)))
+             (setq n (1- n)))
+         (,(if fw-1 'sp-backward-symbol 'sp-forward-symbol) n)
+         ))))
+
+(defun sp-forward-symbol (&optional arg)
+  "Move point to the next position that is the end of a symbol.
+A symbol is any sequence of characters that are in either the
+word constituent or symbol constituent syntax class.  Current
+symbol only extend to the possible opening or closing delimiter
+as defined by `sp-add-pair' even if part of this delimiter
+would match \"symbol\" syntax classes."
+  (interactive "p")
+  (setq arg (or arg 1))
+  (sp-forward-symbol-1 t))
+
+(defun sp-backward-symbol (&optional arg)
+  "Move point to the next position that is the beginning of a symbol.
+A symbol is any sequence of characters that are in either the word
+constituent or symbol constituent syntax class.  Current symbol only
+extend to the possible opening or closing delimiter as defined by
+`sp-add-pair' even if part of this delimiter would match \"symbol\"
+syntax classes."
+  (interactive "p")
+  (setq arg (or arg 1))
+  (sp-forward-symbol-1 nil))
 
 (defun sp-unwrap-sexp-1 (sexp)
   "Internal.  Unwraps expression."
