@@ -215,13 +215,13 @@ into
 
     (this-is-some-function (complex-function arg))
 
-all you need to do is `C-2 C-] (` (when `sp-select-next-thing` is bound to `C-]`)
+all you need to do is `C-2 C-] (` (when `sp-select-next-thing` is bound to `C-]`). For more info, see the section about [navigation](#navigation-and-s-exp-manipulation).
 
 *Note: By default, `sp-select-next-thing` only operate on balanced expressions enclosed with pairs. If you want to also consider symbols, set `sp-navigate-consider-symbols` to `t`.*
 
 #### Repeated wrapping
 
-**New (r93):** After wraping a region and immediately after inserting another *basic* pair (that is, defined by `sp-add-pair`), it is often desired to apply this pair as another wrap around the just wrapped region. Imagine, in LaTeX mode, wrapping "word" with quotes to produce `\`word'`. Now, hitting another backtick should produce double-quoted word `\`\`word''`. The same can apply to `markdown-mode` and \* character to mark italics/bold text.
+**New (r93):** After wraping a region and immediately after inserting another *basic* pair (that is, defined by `sp-add-pair`), it is often desired to apply this pair as another wrap around the just wrapped region. Imagine, in LaTeX mode, wrapping "word" with quotes to produce `&#96;word'`. Now, hitting another backtick should produce double-quoted word `&#96;&#96;word''`. The same can apply to `markdown-mode` and \* character to mark italics/bold text.
 
 You can now set variable `sp-wrap-repeat-last` to "No repeat", "Repeat only if same", "Re-wrap region with any pair". Read the built-in description for more info.
 
@@ -369,25 +369,28 @@ Here's a quick summary for each navigation function:
 
 List of manipulation functions:
 
-    sp-kill-sexp (&optional arg)                ;; C-M-k
-    sp-backward-kill-sexp (&optional arg)       ;; C-- C-M-k
+    sp-kill-sexp (&optional arg)                        ;; C-M-k
+    sp-backward-kill-sexp (&optional arg)               ;; C-- C-M-k
 
-    sp-unwrap-sexp (&optional arg)              ;; M-<delete>
-    sp-backward-unwrap-sexp (&optional arg)     ;; M-<backspace>
+    sp-unwrap-sexp (&optional arg)                      ;; M-<delete>
+    sp-backward-unwrap-sexp (&optional arg)             ;; M-<backspace>
 
-    sp-splice-sexp (&optional arg)              ;; M-D
-    sp-splice-sexp-killing-forward ()           ;; C-M-<delete>
-    sp-splice-sexp-killing-backward ()          ;; C-M-<backspace>
+    sp-splice-sexp (&optional arg)                      ;; M-D
+    sp-splice-sexp-killing-forward ()                   ;; C-M-<delete>
+    sp-splice-sexp-killing-backward ()                  ;; C-M-<backspace>
 
-    sp-split-sexp ()                            ;; none
+    sp-split-sexp ()                                    ;; none
 
-    sp-forward-slurp-sexp (&optional arg)       ;; C-<right>
-    sp-forward-barf-sexp (&optional arg)        ;; C-<left>
-    sp-backward-slurp-sexp (&optional arg)      ;; C-M-<left>
-    sp-backward-barf-sexp (&optional arg)       ;; C-M-<right>
+    sp-forward-slurp-sexp (&optional arg)               ;; C-<right>
+    sp-forward-barf-sexp (&optional arg)                ;; C-<left>
+    sp-backward-slurp-sexp (&optional arg)              ;; C-M-<left>
+    sp-backward-barf-sexp (&optional arg)               ;; C-M-<right>
 
-    sp-select-next-thing (&optional arg)        ;; C-]
-    sp-select-previous-thing (&optional arg)    ;; C-[
+    sp-select-next-thing (&optional arg)                ;; C-M-]
+    sp-select-previous-thing (&optional arg)            ;; C-[
+
+    sp-select-next-thing-exchange (&optional arg)       ;; C-]
+    sp-select-previous-thing-exchange (&optional arg)   ;; C-- C-]
 
 Some functions, especially slurp/barf functions are inspired by [paredit](http://emacswiki.org/emacs/ParEdit) package and work roughly the same. However, they can accept optional argument to slurp/barf that many times.
 
@@ -407,6 +410,8 @@ Here's a quick summary for each manipulation function:
 * `sp-backward-barf-sexp` - Contract the current list by one balanced expression or symbol by moving the *opening* delimiter.
 * `sp-select-next-thing` - Select next balanced expression as returned by `sp-forward-sexp`. Examples of usage: Can be cleverly used with wrapping features, for example if you want to wrap next expression in additional pair of parens. It can also be used to select expressions followed by `M-w` (copy but not kill to ring).
 * `sp-select-previous-thing` - Select previous balanced expression as returned by `sp-backward-sexp`.
+* `sp-select-next-thing-exchange` - Same as `sp-select-next-thing` but execute `exchange-point-and-mark` afterwards.
+* `sp-select-previous-thing-exchange` - Same as `sp-select-previous-thing` but execute `exchange-point-and-mark` afterwards.
 
 Show smartparens mode
 ==========

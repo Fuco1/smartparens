@@ -2555,13 +2555,27 @@ considered balanced expressions."
 
 (defun sp-select-previous-thing (&optional arg)
   "Set active region over ARG previous things as recognized by
-`sp-get-thing'.  If ARF is negative -N, select that many
+`sp-get-thing'.  If ARG is negative -N, select that many
 expressions forward.
 
 With `sp-navigate-consider-symbols' symbols and strings are also
 considered balanced expressions."
   (interactive "p")
   (sp-select-next-thing (- (or arg 1))))
+
+(defun sp-select-next-thing-exchange (&optional arg)
+  "Just like `sp-select-next-thing' but run
+`exchange-point-and-mark' afterwards."
+  (interactive "p")
+  (sp-select-next-thing arg)
+  (exchange-point-and-mark))
+
+(defun sp-select-previous-thing-exchange (&optional arg)
+  "Just like `sp-select-previous-thing' but run
+`exchange-point-and-mark' afterwards."
+  (interactive "p")
+  (sp-select-previous-thing arg)
+  (exchange-point-and-mark))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; show-smartparens-mode
