@@ -557,7 +557,13 @@ optional argument P is present, test this instead of point."
   "Return t if point is inside comment.  If optional argument P is
 present, test this instead off point."
   (save-excursion
-    (nth 4 (syntax-ppss p))))
+    (or (nth 4 (syntax-ppss p))
+        ;; this also test opening and closing comment delimiters... we
+        ;; need to chack that it is not newline, which is in "comment
+        ;; ender" class in elisp-mode, but we just want it to be
+        ;; treated as whitespace
+        (and (memq (char-syntax (char-after p)) '(?< ?>))
+             (not (eq (char-after p) ?\n))))))
 
 (defun sp-point-in-string-or-comment (&optional p)
   "Return t if point is inside string, documentation string or a
@@ -2378,16 +2384,17 @@ Examples:
         (dec (if forward '1- '1+))
         (forward-fn (if forward 'forward-char 'backward-char))
         (next-char-fn (if forward 'char-after 'preceding-char)))
-    `(while (and (not (or (eobp)
-                          (and stop-after-string
-                               (not (sp-point-in-string))
-                               (sp-point-in-string (,dec (point))))
-                          (and stop-at-string
-                               (not (sp-point-in-string))
-                               (sp-point-in-string (,inc (point))))))
-                 (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\" ?'))
-                     (sp-point-in-comment)))
-       (,forward-fn 1))))
+    `(let ((in-comment (sp-point-in-comment)))
+       (while (and (not (or (eobp)
+                            (and stop-after-string
+                                 (not (sp-point-in-string))
+                                 (sp-point-in-string (,dec (point))))
+                            (and stop-at-string
+                                 (not (sp-point-in-string))
+                                 (sp-point-in-string (,inc (point))))))
+                   (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\" ?'))
+                       (unless in-comment (sp-point-in-comment))))
+         (,forward-fn 1)))))
 
 (defun sp-skip-forward-to-symbol (&optional stop-at-string stop-after-string)
   "Skip whitespace and comments moving forward.  If STOP-AT-STRING is
