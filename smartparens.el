@@ -1011,17 +1011,25 @@ docstring or comment.  See `sp-insert-pair' for more info."
      (local-ban-in-code nil)
      (t t))))
 
-(defun sp-insert-pair-p (id mode)
-  "Return t if we can insert pair ID in MODE.  See
-`sp-insert-pair' for more info."
+(defun sp-insert-pair-p (id mode &optional use-inside-string)
+  "Return t if we can insert pair ID in MODE.  If
+USE-INSIDE-STRING is non-nil, use value of
+`sp-point-inside-string' instead of testing with
+`sp-point-in-string-or-comment'.  See `sp-insert-pair' for more
+info."
   (let ((local-ban (member mode (cdr (assoc id sp-local-ban-insert-pair))))
-        (local-allow (cdr (assoc id sp-local-allow-insert-pair))))
+        (local-allow (cdr (assoc id sp-local-allow-insert-pair)))
+        (in-string (if use-inside-string
+                       ;; if we're not inside a string, we can still
+                       ;; be inside a comment!
+                       (or sp-point-inside-string (sp-point-in-comment))
+                     (sp-point-in-string-or-comment))))
     (cond
      ;; if locally allowed, allow it.  If it's on local-allow list
      ;; automatically disable it in all non-specified modes
      (local-allow
       (if (member mode local-allow)
-          (if (sp-point-in-string-or-comment)
+          (if in-string
               (sp-insert-pair-in-string-p id mode)
             (sp-insert-pair-in-code-p id mode))
         nil))
@@ -1030,11 +1038,10 @@ docstring or comment.  See `sp-insert-pair' for more info."
      ;; if locally disabled, disable
      (local-ban nil)
      ;; test the "in string bans"
-     ((sp-point-in-string-or-comment)
+     (in-string
       (sp-insert-pair-in-string-p id mode))
      ;; if not in string, we must be in code
-     (t (sp-insert-pair-in-code-p id mode))
-      )))
+     (t (sp-insert-pair-in-code-p id mode)))))
 
 (defun sp-post-command-hook-handler ()
   "Handle the situation after some command has executed."
@@ -1586,7 +1593,7 @@ followed by word.  It is disabled by default.  See
       (when (and sp-autoinsert-pair
                  active-pair
                  (not (eq sp-last-operation 'sp-skip-closing-pair))
-                 (sp-insert-pair-p open-pair major-mode)
+                 (sp-insert-pair-p open-pair major-mode t)
                  (if sp-autoinsert-if-followed-by-word t
                    (or (= (point) (point-max))
                        (not (and (eq (char-syntax (following-char)) ?w)
@@ -1636,8 +1643,7 @@ followed by word.  It is disabled by default.  See
                    sp-point-inside-string
                    (equal open-pair "\"")
                    (equal close-pair "\"")
-                   (or (not sp-autoescape-string-quote-if-empty)
-                       (not (memq major-mode sp-autoescape-string-quote-if-empty))
+                   (or (not (memq major-mode sp-autoescape-string-quote-if-empty))
                        ;; test if the string is empty here
                        (not (and (equal (char-after (1+ (point))) ?\")
                                  (equal (char-after (- (point) 2)) ?\")))))
@@ -1901,7 +1907,10 @@ balanced expression that is completely contained inside the
 string or comment.  If no such expression exist, a warning is
 raised (for example, when you comment out imbalanced expression).
 However, if you start a search from within a string and the next
-complete sexp lies completely outside, this is returned."
+complete sexp lies completely outside, this is returned.
+
+The return format is: (beginning-of-sexp end-of-sexp
+opening-delim closing-delim)."
   (let* ((search-fn (if (not back) 'search-forward-regexp 'sp-search-backward-regexp))
          (pair-list (sp-get-pair-list-1))
          (pattern (regexp-opt (-flatten (--map (list (car it) (cdr it)) pair-list))))
@@ -2018,6 +2027,14 @@ in buffer."
         (setq b (point))))
     (list b e " " " ")))
 
+(defun sp-get-string-1 (bounds)
+  "Internal.  Return the `sp-get-sexp' format info about the
+string."
+  (list (1- (car bounds))
+        (1+ (cdr bounds))
+        (char-to-string (char-after (cdr bounds)))
+        (char-to-string (char-after (cdr bounds)))))
+
 (defun sp-get-string (&optional back)
   "Find the nearest string after point, or before if BACK is
 non-nil.  This also means if the point is inside a string, this
@@ -2031,13 +2048,13 @@ positions in buffer."
   (let (b e)
     (if (sp-point-in-string)
         (let ((r (sp-get-quoted-string-bounds)))
-          (list (1- (car r)) (1+ (cdr r)) "\"" "\""))
+          (sp-get-string-1 r))
       (save-excursion
         (if back
             (sp-skip-backward-to-symbol)
           (sp-skip-forward-to-symbol))
         (let ((r (sp-get-quoted-string-bounds)))
-          (when r (list (1- (car r)) (1+ (cdr r)) "\"" "\"")))))))
+          (when r (sp-get-string-1 r)))))))
 
 (defmacro sp-get-thing-1 (back)
   "Internal."
@@ -2053,7 +2070,7 @@ positions in buffer."
         (,(if back '(looking-back (sp-get-opening-regexp-1))
             '(looking-at (sp-get-closing-regexp-1)))
          (sp-get-sexp ,back))
-        ((,(if back 'looking-back 'looking-at) "\"")
+        ((,(if back 'looking-back 'looking-at) "[\"']")
          (sp-get-string ,back))
         (t (sp-get-symbol ,back))))))
 
@@ -2392,7 +2409,7 @@ Examples:
                             (and stop-at-string
                                  (not (sp-point-in-string))
                                  (sp-point-in-string (,inc (point))))))
-                   (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\" ?'))
+                   (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\" ?' ?.))
                        (unless in-comment (sp-point-in-comment))))
          (,forward-fn 1)))))
 
