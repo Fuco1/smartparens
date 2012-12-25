@@ -13,6 +13,7 @@ Table of content
     1. [Mode-dependent custom pairs](#mode-dependent-custom-pairs)
 5. [Auto pairing](#auto-pairing)
     1. [Auto pairing in strings/code](#auto-pairing-in-stringscode)
+    2. [User-defined predicates for auto pairing](#user-defined-predicates-for-auto-pairing)
 6. [Wrapping](#wrapping)
     1. [Wrapping with tags](#wrapping-with-tags)
 7. [Automatic escaping](#automatic-escaping)
@@ -166,6 +167,8 @@ You can remove local bans with `sp-remove-local-ban-insert-pair` function. If ca
 
 Similar functions work for the allow list. They are called `sp-add-local-allow-insert-pair` and `sp-remove-local-allow-insert-pair`. The calling conventions are the same.
 
+For additional changes to behaviour of autopairing, see `M-x customize-group smartparens` for available options.
+
 Auto pairing in strings/code
 ----------
 
@@ -194,7 +197,26 @@ The functions used for these operations are:
 
 The names are self-explanatory enough.
 
-To change behaviours of the autopairing, see `M-x customize-group smartparens` for available options.
+User-defined predicates for auto pairing
+----------
+
+In addition to all the permissions and options that are bundled with spartparens, users can add their own predicates to further fine-tune the behaviour of auto insertion. Smartparens provide a "hook" named `sp-autoinsert-inhibit-functions` which is tested after all the built-in tests. All the functions you add to this hook should be of two arguments which smartparens will supply: first is the current opening pair, second is boolean value specifying if point is inside string or comment or not.
+
+The return value should be `t` if you wish to inhibit the insertion and `nil` otherwise. If *any* of the supplied functions return `t`, insertion is cancelled.
+
+The following example function disable auto insertion of ' pair if it is preceeded by character from word constituent or symbol constituent symbol class, but not if the character is 'r' or 'u' and the point is in code. In that case we want to kick in a "special" behaviour of `python` raw or unicode strings and quote the following text.
+
+    (defun my-test-if-preceeding-is-word (open-pair in-string)
+      (when (string= open-pair "'")
+        (save-excursion
+          (backward-char 1)
+          (cond
+           ((and (not in-string)
+                 (memq (preceding-char) '(?r ?u)))
+            nil)
+           (t (looking-back "\\sw\\|\\s_"))))))
+
+You can supply any number of similar functions.
 
 Wrapping
 ==========
@@ -230,7 +252,7 @@ Note that this behaviour is only active if you *type in* the pair immediately af
 Wrapping with tags
 ----------
 
-Wrapping with more structured tags is also supported. For example, in `html-mode` you might want to automatically wrap a region `some code` and change it into `<span class="code">some code</span>`. For this purpose, you can define tag pairs. These allow you to enter special tag wrapping insertion mode, where you can enter arbitrary text. It also automatically mirror the opening tag text in the closing tag. Furthermore, the closing tag can be automatically transformed with any function to a different string. For example, the opening tag's content `span class="code"` can be transformed to just `span`.
+Wrapping with more structured tags is also supported. For example, in `html-mode` you might want to automatically wrap a region `some code` and change it into `<span class="code">some code</span>`. For this purpose, you can define tag pairs. These allow you to enter special tag wrapping insertion mode, where you can enter arbitrary text. It also automatically mirror the opening tag text into the closing tag. Furthermore, the closing tag can be automatically transformed with any function to a different string. For example, the opening tag's content `span class="code"` can be transformed to just `span`.
 
 The tag wrapping pairs have higher priority than regular tags, that is, if it is possible to start tag-wrapping, the regular wrap mode is exited and the tag insertion mode is entered *even if* there is possible continuation of the currently inserted opening wrap pair. For example, if tag insertion trigger is `<` and there is a regular pair `<< >>`, this is ignored and the tag insertion mode is entered immediately after `<` is inserted.
 
@@ -249,7 +271,7 @@ where the arguments are:
 2. Opening tag format
 3. Closing tag format
 4. Transformation function for closing tag. You can use built-in function `identity` to return the tag unchanged
-5. Modes where this is allowed. Tag pairs can't be defined globally. The rationale is that they are rather rare and the idea of specific tags for specific modes make more sense.
+5. Modes where this is allowed. Tag pairs can't be defined globally. The rationale is that they are highly specialized and the idea of specific tags for specific modes make more sense.
 
 The character `_` in the format strings is replaced with the inserted text and mirrored to the closing pair. Before inserting text in the closing pair, content of the opening pair is transformed with transformation function. Only one `_` per pair is allowed. The closing tag does not have to contain `_` (then no text is inserted there). If the opening pair doesn't have `_` either, the tag is simply inserted as text and tag insertion mode is not entered. This can be used to form "shortcuts" for commonly used wrappings, such as `(sp-add-tag-pair "2" "**" "**" nil 'markdown-mode)` to mark selected text as bold.
 
@@ -461,10 +483,9 @@ This is actually my current config for this package. Since I'm only using `emacs
     (define-key sp-keymap (kbd "C-M-<delete>") 'sp-splice-sexp-killing-forward)
     (define-key sp-keymap (kbd "C-M-<backspace>") 'sp-splice-sexp-killing-backward)
 
-    ;; little hack to disable C-[ acting as an ESC
-    (define-key input-decode-map (kbd "C-[") (kbd "H-["))
-    (define-key sp-keymap (kbd "C-]") 'sp-select-next-thing)
-    (define-key sp-keymap (kbd "H-[") 'sp-select-previous-thing)
+    (define-key sp-keymap (kbd "C-]") 'sp-select-next-thing-exchange)
+    (define-key sp-keymap (kbd "C-<left_bracket>") 'sp-select-previous-thing)
+    (define-key sp-keymap (kbd "C-M-]") 'sp-select-next-thing)
 
     ;;; add new pairs
     (sp-add-pair "*" "*")
