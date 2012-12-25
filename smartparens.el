@@ -364,6 +364,14 @@ it is probably not the desired default setting."
   :type 'boolean
   :group 'smartparens)
 
+(defcustom sp-autoinsert-inhibit-functions nil
+  "List of functions to call before auto inserting a pair.  If
+any of these return t, the pair is not inserted.  The functions
+take two arguments: current opening pair and a boolean value
+indicating if the point is inside string or comment."
+  :type 'hook
+  :group 'smartparens)
+
 (defcustom sp-autoskip-closing-pair t
   "If non-nil, skip the following closing pair.  See
 `sp-skip-closing-pair' for more info."
@@ -1626,8 +1634,12 @@ followed by word.  It is disabled by default.  See
                             (save-excursion
                               (backward-char 1)
                               (looking-back (regexp-quote open-pair) (- (point) 10)))
-                            )))
-                  ))
+                            ))))
+                 (not (run-hook-with-args-until-success
+                       'sp-autoinsert-inhibit-functions
+                       open-pair
+                       (or sp-point-inside-string (sp-point-in-comment))))
+                 )
         (insert close-pair)
         (backward-char (length close-pair))
         (sp-pair-overlay-create (- (point) (length open-pair))
