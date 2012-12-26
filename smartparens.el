@@ -118,7 +118,7 @@ List of elements of type (command . '(list of modes)).")
                        ("`"     . "'") ;; tap twice for tex double quotes
                        )
   "List of pairs for auto-insertion or wrapping.  Maximum length
-of opening or closing pair is 10 characters.")
+of opening or closing pair is `sp-max-pair-length-c' characters.")
 (make-variable-buffer-local 'sp-pair-list)
 
 (defvar sp-local-pair-list '()
@@ -202,6 +202,10 @@ positions include the newly added wrapping pair.")
 
 (defvar sp-point-inside-string nil
   "t if point is inside a string.")
+
+(defconst sp-max-pair-length-c 10
+  "Specifies the maximum length of an opening or closing
+delimiter of a pair managed by `sp-add-pair'.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Customize & Mode definitions
@@ -564,13 +568,15 @@ optional argument P is present, test this instead of point."
 (defun sp-point-in-comment (&optional p)
   "Return t if point is inside comment.  If optional argument P is
 present, test this instead off point."
+  (setq p (or p (point)))
   (save-excursion
     (or (nth 4 (syntax-ppss p))
         ;; this also test opening and closing comment delimiters... we
         ;; need to chack that it is not newline, which is in "comment
         ;; ender" class in elisp-mode, but we just want it to be
         ;; treated as whitespace
-        (and (memq (char-syntax (char-after p)) '(?< ?>))
+        (and (< p (point-max))
+             (memq (char-syntax (char-after p)) '(?< ?>))
              (not (eq (char-after p) ?\n))))))
 
 (defun sp-point-in-string-or-comment (&optional p)
@@ -1633,7 +1639,7 @@ followed by word.  It is disabled by default.  See
                             (eq sp-last-operation 'sp-insert-pair)
                             (save-excursion
                               (backward-char 1)
-                              (looking-back (regexp-quote open-pair) (- (point) 10)))
+                              (sp-looking-back (regexp-quote open-pair) sp-max-pair-length-c))
                             ))))
                  (not (run-hook-with-args-until-success
                        'sp-autoinsert-inhibit-functions
@@ -1815,11 +1821,11 @@ is remove the just added wrapping."
               (delete-char o))
             (setq sp-last-operation 'sp-delete-pair-wrap))))
       (let* ((p (point))
-             (inside-pair (--first (and (looking-back (regexp-quote (car it)) (- p 10))
+             (inside-pair (--first (and (sp-looking-back (regexp-quote (car it)) sp-max-pair-length-c)
                                         (looking-at (regexp-quote (cdr it))))
                                    sp-pair-list))
-             (behind-pair (--first (looking-back (regexp-quote (cdr it)) (- p 10)) sp-pair-list))
-             (opening-pair (--first (looking-back (regexp-quote (car it)) (- p 10)) sp-pair-list)))
+             (behind-pair (--first (sp-looking-back (regexp-quote (cdr it)) sp-max-pair-length-c) sp-pair-list))
+             (opening-pair (--first (sp-looking-back (regexp-quote (car it)) sp-max-pair-length-c) sp-pair-list)))
         (cond
          ;; we're just before the closing quote of a string.  If there
          ;; is an opening or closing pair behind the point, remove
@@ -1856,7 +1862,17 @@ is remove the just added wrapping."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Navigation
 
-;; TODO: this has a hardcoded limit of 10!
+(defun sp-looking-back (regexp &optional limit greedy)
+  "Works just like `looking-back', but LIMIT specifies how many
+characters backward we should be looking instead of a buffer
+position.  If the point is less than LIMIT chars from the start
+of the buffer, it replaces LIMIT with (point)."
+  (when (and limit
+             (< (point) limit))
+    (setq limit (point)))
+  (setq limit (or limit 0))
+  (looking-back regexp (- (point) limit) greedy))
+
 (defun sp-search-backward-regexp (regexp &optional bound noerror)
   "Works just like `search-backward-regexp', but returns the
 longest possible match.  That means that searching for
@@ -1867,7 +1883,7 @@ This is an internal function.  Only use this for searching for
 pairs!"
   (when (search-backward-regexp regexp bound noerror)
     (goto-char (match-end 0))
-    (looking-back regexp 10 t)
+    (sp-looking-back regexp sp-max-pair-length-c t)
     (goto-char (match-beginning 0))))
 
 (defun sp-get-quoted-string-bounds ()
@@ -2076,13 +2092,13 @@ positions in buffer."
        ,(if back '(sp-skip-backward-to-symbol t)
           '(sp-skip-forward-to-symbol t))
        (cond
-        (,(if back '(looking-back (sp-get-closing-regexp-1))
+        (,(if back '(sp-looking-back (sp-get-closing-regexp-1) sp-max-pair-length-c)
             '(looking-at (sp-get-opening-regexp-1)))
          (sp-get-sexp ,back))
-        (,(if back '(looking-back (sp-get-opening-regexp-1))
+        (,(if back '(sp-looking-back (sp-get-opening-regexp-1) sp-max-pair-length-c)
             '(looking-at (sp-get-closing-regexp-1)))
          (sp-get-sexp ,back))
-        ((,(if back 'looking-back 'looking-at) "[\"']")
+        ((,(if back 'sp-looking-back 'looking-at) "[\"']")
          (sp-get-string ,back))
         (t (sp-get-symbol ,back))))))
 
@@ -2412,7 +2428,7 @@ Examples:
   (let ((inc (if forward '1+ '1-))
         (dec (if forward '1- '1+))
         (forward-fn (if forward 'forward-char 'backward-char))
-        (next-char-fn (if forward 'char-after 'preceding-char)))
+        (next-char-fn (if forward 'following-char 'preceding-char)))
     `(let ((in-comment (sp-point-in-comment)))
        (while (and (not (or (eobp)
                             (and stop-after-string
@@ -2439,8 +2455,8 @@ If STOP-AFTER-STRING is non-nil, stop after exiting a string."
 
 (defmacro sp-forward-symbol-1 (fw-1)
   (let ((goto-where (if fw-1 '(match-end 0) '(match-beginning 0)))
-        (look-at-open (if fw-1 '(looking-at open) '(looking-back open 10 t)))
-        (look-at-close (if fw-1 '(looking-at close) '(looking-back close 10 t))))
+        (look-at-open (if fw-1 '(looking-at open) '(sp-looking-back open sp-max-pair-length-c t)))
+        (look-at-close (if fw-1 '(looking-at close) '(sp-looking-back close sp-max-pair-length-c t))))
     `(let ((n (abs arg))
            (fw (> arg 0))
            (open (sp-get-opening-regexp-1))
@@ -2451,17 +2467,18 @@ If STOP-AFTER-STRING is non-nil, stop after exiting a string."
              ;; skipping all whitespace and pair delimiters until we hit
              ;; something in \sw or \s_
              (while (cond ((not (memq
-                                 (char-syntax (,(if fw-1 'char-after 'preceding-char)))
+                                 (char-syntax (,(if fw-1 'following-char 'preceding-char)))
                                  '(?w ?_)))
                            (,(if fw-1 'forward-char 'backward-char)) t)
                           (,look-at-open
                            (goto-char ,goto-where))
                           (,look-at-close
                            (goto-char ,goto-where))))
-             (while (and (not (or ,look-at-open
+             (while (and ,(if fw-1 '(not (eobp)) '(not (bobp)))
+                         (not (or ,look-at-open
                                   ,look-at-close))
                          (memq (char-syntax
-                                (,(if fw-1 'char-after 'preceding-char)))
+                                (,(if fw-1 'following-char 'preceding-char)))
                                '(?w ?_)))
                (,(if fw-1 'forward-char 'backward-char)))
              (setq n (1- n)))
@@ -2683,7 +2700,6 @@ support custom pairs."
   (interactive)
   (show-smartparens-mode nil))
 
-;; TODO: hardcoded limit 10
 (defun sp-show-pair-function ()
   "Display the show pair overlays."
   (when show-smartparens-mode
@@ -2700,7 +2716,7 @@ support custom pairs."
                                           (length (nth 2 ok))
                                           (length (nth 3 ok)))
           (sp-show-pair-create-mismatch-overlay (point) (length match))))
-       ((looking-back closing 10 t)
+       ((sp-looking-back closing sp-max-pair-length-c t)
         (setq match (match-string 0))
         (setq ok (sp-get-sexp t))
         (if ok
