@@ -5,7 +5,7 @@
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
 ;; Created: 17 Nov 2012
-;; Version: 1.1
+;; Version: 1.2
 ;; Keywords: abbrev convenience editing
 ;; Package-Requires: ((dash "1.0.2"))
 ;; URL: https://github.com/Fuco1/smartparens
@@ -497,8 +497,6 @@ else call `cua-replace-region'"
   "Initialize smartparens delete selection emulation.  The
 original hooks are removed and handled by sp's pre-command
 handler."
-  ;;(interactive)
-  ;;(setq sp-delete-selection-mode t)
   ;; make sure the `delete-selection-pre-hook' is not active and that
   ;; delsel is actually loaded.  We need the delete-selection-pre-hook
   ;; command!
@@ -587,7 +585,8 @@ of point."
       (sp-point-in-comment p)))
 
 (defun sp-single-key-description (event)
-  "Return a description of the last event.  Replace all the function key symbols with garbage character (ň).
+  "Return a description of the last event.  Replace all the function
+key symbols with garbage character (ň).
 
 TODO: fix this!"
   (let ((original (single-key-description event)))
@@ -1126,14 +1125,25 @@ info."
       (cond
        ;; try the cua-mode emulation with `cua-delete-selection'
        ((and (boundp 'cua-mode) cua-mode
-             (not (eq this-command 'self-insert-command)))
+             (or (not (eq this-command 'self-insert-command))
+                 (not sp-autowrap-region)))
+        ;; if sp-autowrap-region is disabled, we need to translate
+        ;; `sp-cua-replace-region' back to `self-insert-command'
+        ;; because this is *pre* command hook
+        ;; TODO: why do we need sp-cua-replace-region?
+        (when (and (not sp-autowrap-region)
+                   (eq this-command 'sp-cua-replace-region))
+          (setq this-command 'self-insert-command))
         (cua--pre-command-handler))
+       ;; this handles the special case after `self-insert-command' if
+       ;; `sp-autowrap-region' is t.
        ((and (boundp 'cua-mode) cua-mode from-wrap)
         (cua-replace-region))
        ;; if not self-insert, just run the hook from
        ;; `delete-selection-mode'
        ((and (boundp 'delete-selection-mode) delete-selection-mode
              (or from-wrap
+                 (not sp-autowrap-region)
                  (not (eq this-command 'self-insert-command))))
         (delete-selection-pre-hook)))
     ;; this handles the callbacks properly if the smartparens mode is
