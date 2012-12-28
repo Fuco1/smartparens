@@ -600,6 +600,11 @@ beginning."
   (let ((sp (split-string string by)))
     (if (not (cdr sp)) (cons "" sp) sp)))
 
+(defun sp-this-command-self-insert-p ()
+  "Return t if `this-command' is some sort of
+`self-insert-command'."
+  (memq this-command '(self-insert-command org-self-insert-command)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Adding/removing of pairs/bans/allows etc.
 
@@ -1072,7 +1077,7 @@ info."
     (when sp-wrap-overlays
       (setq sp-previous-point (point)))
 
-    (unless (eq this-command 'self-insert-command)
+    (unless (sp-this-command-self-insert-p)
       (setq sp-last-operation nil))))
 
 (defmacro sp-setaction (action &rest forms)
@@ -1125,7 +1130,7 @@ info."
       (cond
        ;; try the cua-mode emulation with `cua-delete-selection'
        ((and (boundp 'cua-mode) cua-mode
-             (or (not (eq this-command 'self-insert-command))
+             (or (not (sp-this-command-self-insert-p))
                  (not sp-autowrap-region)))
         ;; if sp-autowrap-region is disabled, we need to translate
         ;; `sp-cua-replace-region' back to `self-insert-command'
@@ -1144,7 +1149,7 @@ info."
        ((and (boundp 'delete-selection-mode) delete-selection-mode
              (or from-wrap
                  (not sp-autowrap-region)
-                 (not (eq this-command 'self-insert-command))))
+                 (not (sp-this-command-self-insert-p))))
         (delete-selection-pre-hook)))
     ;; this handles the callbacks properly if the smartparens mode is
     ;; disabled.  Smartparens-mode adds advices on cua-mode and
@@ -2432,6 +2437,7 @@ Examples:
   (setq arg (or arg 1))
   (sp-barf-sexp-1 nil))
 
+;; TODO: stop if looking at pair!
 (defmacro sp-skip-to-symbol-1 (forward)
   "Internal.  Generate `sp-skip-forward-to-symbol' or
 `sp-skip-backward-to-symbol'."
