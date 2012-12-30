@@ -225,8 +225,6 @@ delimiter of a pair managed by `sp-add-pair'.")
       (progn
         ;; setup local pair replacements
         (sp-update-local-pairs)
-        (when sp-buffer-local-mode
-          (eval `(,sp-buffer-local-mode 1)))
         (sp-update-pair-triggers)
         ;; set the escape char
         (dotimes (char 256)
@@ -236,69 +234,21 @@ delimiter of a pair managed by `sp-add-pair'.")
         (when (sp-delete-selection-p)
           (sp-init-delete-selection-mode-emulation))
         (run-hooks 'smartparens-enabled-hook))
-    (eval `(,sp-buffer-local-mode -1))
     (run-hooks 'smartparens-disabled-hook)
     ))
-
-(defvar sp-buffer-local-mode nil)
-(make-variable-buffer-local 'sp-buffer-local-mode)
-
-(defun sp-mode-keymap-1 (mode-sym)
-  "Return interned name of keymap for this mode."
-  (symbol-value (intern (concat (symbol-name mode-sym) "-map"))))
-
-(defun sp-buffer-local-set-key (key action)
-  (if sp-buffer-local-mode
-      (define-key (sp-mode-keymap-1 sp-buffer-local-mode) key action)
-    (let* ((mode-name-loc (gensym "-blmsp")))
-      (eval
-       `(define-minor-mode
-          ,mode-name-loc
-          "Automagically built minor mode to define buffer-local keys."
-          nil nil (make-sparse-keymap)))
-      (setq sp-buffer-local-mode mode-name-loc)
-      (funcall mode-name-loc 1)
-      (define-key (sp-mode-keymap-1 mode-name-loc) key action))))
-
-(defun sp-buffer-local-clear-keymap ()
-  (when sp-buffer-local-mode
-    (setcdr
-     (symbol-value (intern (concat (symbol-name sp-buffer-local-mode) "-map")))
-     nil )))
 
 (defun sp-update-pair-triggers ()
   "Update the `sp-keymap' to include all trigger keys.  Trigger
 key is any character present in any pair.  Each trigger key must
 map to `self-insert-command'."
   (let ((triggers (-distinct
-                   (split-string
-                    (apply #'concat
-                           (--reduce-from
-                            (cons
-                             (car it)
-                             (cons (cdr it) acc))
-                            nil
-                            (--filter (sp-insert-pair-in-mode-p
-                                       (car it) major-mode) sp-pair-list)
-                            ))
-                    "" t))))
-    (sp-buffer-local-clear-keymap)
-    (--each
-        triggers
-      (sp-buffer-local-set-key it 'self-insert-command))))
-
-(defmacro sp-everywhere (&rest forms)
-  "Run the forms in all buffers where `smartparens-mode' is
-active."
-  `(--each (buffer-list)
-    (with-current-buffer it
-      (when smartparens-mode
-        ,@forms))))
-
-(defun sp-update-pair-triggers-everywhere ()
-  "Run `sp-update-pair-triggers' in all buffers.  This is
-necessary to update all the buffer-local triggers."
-  (sp-everywhere (sp-update-pair-triggers)))
+            (split-string
+             (apply #'concat
+                    (--reduce-from (cons (car it)
+                                         (cons (cdr it) acc))
+                                   nil sp-pair-list))
+             "" t))))
+    (--each triggers (define-key sp-keymap it 'self-insert-command))))
 
 ;; TODO: we could remove pairs that are absolutely not allowed in this
 ;; mode here (those that are banned or only allowed elsewhere).  It
@@ -319,7 +269,10 @@ necessary to update all the buffer-local triggers."
 (defun sp-update-local-pairs-everywhere ()
   "Run `sp-update-local-pairs' in all buffers.  This is necessary
 to update all the buffer-local definitions."
-  (sp-everywhere (sp-update-local-pairs)))
+  (--each (buffer-list)
+    (with-current-buffer it
+      (when smartparens-mode
+        (sp-update-local-pairs)))))
 
 (defvar smartparens-enabled-hook nil
   "Called after `smartparens-mode' is turned on.")
@@ -707,10 +660,10 @@ should be banned by default.  BANNED-MODES can also be a list."
     (setq-default sp-pair-list
                  (sp-add-to-ordered-list (cons open close) sp-pair-list #'sp-order-pairs))
     (sp-add-local-ban-insert-pair open banned-modes)
+    (sp-update-pair-triggers)
     ;; we need to update local versions of sp-pair-list in all the buffers
     (sp-update-local-pairs-everywhere)
-    (sp-update-pair-triggers-everywhere)
-    sp-pair-list))
+  ))
 
 (defun sp-remove-pair (open)
   "Remove a pair from the pair list.  See variable `sp-pair-list'
@@ -719,8 +672,9 @@ for current list."
                 (--remove (equal open (car it)) sp-pair-list))
   (sp-remove-local-ban-insert-pair open)
   (sp-remove-local-allow-insert-pair open)
+  (sp-update-pair-triggers)
   (sp-update-local-pairs-everywhere)
-  (sp-update-pair-triggers-everywhere))
+  )
 
 (defun sp-add-local-pair (open close &rest modes)
   "Add a pair to the local pair list.  Use this only if you need
@@ -790,14 +744,12 @@ See `sp-tag-pair-list' for more info."
   "Add the pairs with ids in OPEN to the global insertion
 banlist.  That means that these pairs will never be used for auto
 insertion.  They can still be used for wrapping."
-  (prog1 (setq sp-global-ban-insert-pair (-union sp-global-ban-insert-pair (-flatten open)))
-    (sp-update-pair-triggers-everywhere)))
+  (setq sp-global-ban-insert-pair (-union sp-global-ban-insert-pair (-flatten open))))
 
 (defun sp-remove-ban-insert-pair (&rest open)
   "Remove the pairs with ids in OPEN from the global insertion
 banlist."
-  (prog1 (setq sp-global-ban-insert-pair (-difference sp-global-ban-insert-pair (-flatten open)))
-    (sp-update-pair-triggers-everywhere)))
+  (setq sp-global-ban-insert-pair (-difference sp-global-ban-insert-pair (-flatten open))))
 
 (defun sp-add-ban-insert-pair-in-string (&rest open)
   "Add the pairs with ids in OPEN to the global \"in string\"
@@ -826,14 +778,12 @@ code\" insertion banlist."
 (defun sp-add-local-ban-insert-pair (open &rest modes)
   "Ban autoinsertion of pair with id OPEN in modes MODES.  See
 `sp-insert-pair'."
-  (prog1 (sp-add-to-permission-list open sp-local-ban-insert-pair modes)
-    (sp-update-pair-triggers-everywhere)))
+  (sp-add-to-permission-list open sp-local-ban-insert-pair modes))
 
 (defun sp-add-local-allow-insert-pair (open &rest modes)
   "Allow autoinsertion of pair with id OPEN in modes MODES.  See
 `sp-insert-pair'."
-  (prog1 (sp-add-to-permission-list open sp-local-allow-insert-pair modes)
-    (sp-update-pair-triggers-everywhere)))
+  (sp-add-to-permission-list open sp-local-allow-insert-pair modes))
 
 (defun sp-add-local-ban-insert-pair-in-string (open &rest modes)
   "Ban autoinsertion of pair with id OPEN in modes MODES if point
@@ -858,14 +808,12 @@ inside code.  See `sp-insert-pair'."
 (defun sp-remove-local-ban-insert-pair (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
 modes MODES.  If MODES is nil, remove all the modes."
-  (prog1 (sp-remove-from-permission-list open sp-local-ban-insert-pair modes)
-    (sp-update-pair-triggers-everywhere)))
+  (sp-remove-from-permission-list open sp-local-ban-insert-pair modes))
 
 (defun sp-remove-local-allow-insert-pair (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
 modes MODES.  If MODES is nil, remove all the modes"
-  (prog1 (sp-remove-from-permission-list open sp-local-allow-insert-pair modes)
-    (sp-update-pair-triggers-everywhere)))
+  (sp-remove-from-permission-list open sp-local-allow-insert-pair modes))
 
 (defun sp-remove-local-ban-insert-pair-in-string (open &rest modes)
   "Remove previously set restriction on pair with id OPEN in
@@ -1080,18 +1028,6 @@ docstring or comment.  See `sp-insert-pair' for more info."
      ((member id sp-global-ban-insert-pair-in-code) nil)
      (local-ban-in-code nil)
      (t t))))
-
-(defun sp-insert-pair-in-mode-p (id mode)
-  "Return t if we can insert pair ID in MODE.  This predicate
-does not consider bans in strings or code, only the mode
-restrictions."
-  (let ((local-ban (member mode (cdr (assoc id sp-local-ban-insert-pair))))
-        (local-allow (cdr (assoc id sp-local-allow-insert-pair))))
-    (cond
-     (local-allow (member mode local-allow))
-     ((member id sp-global-ban-insert-pair) nil)
-     (local-ban nil)
-     (t))))
 
 (defun sp-insert-pair-p (id mode &optional use-inside-string)
   "Return t if we can insert pair ID in MODE.  If
@@ -2181,7 +2117,6 @@ positions in buffer."
          (sp-get-string ,back))
         (t (sp-get-symbol ,back))))))
 
-;; TODO: doesn't work with strings backward
 (defun sp-get-thing (&optional back)
   "Find next thing after point, or before if BACK is non-nil.  Thing
 is either symbol (`sp-get-symbol'), string (`sp-get-string') or
@@ -2843,6 +2778,7 @@ support custom pairs."
     (setq sp-show-pair-overlays nil)))
 
 ;; global initialization
+(sp-update-pair-triggers)
 (defadvice delete-backward-char (before sp-delete-pair-advice activate)
   (sp-delete-pair (ad-get-arg 0)))
 (add-hook 'post-command-hook 'sp-post-command-hook-handler)
