@@ -1921,7 +1921,7 @@ of the buffer, it replaces LIMIT with (point)."
   (when (and limit
              (< (point) limit))
     (setq limit (point)))
-  (setq limit (or limit 0))
+  (setq limit (or limit (point)))
   (looking-back regexp (- (point) limit) greedy))
 
 (defun sp-search-backward-regexp (regexp &optional bound noerror)
