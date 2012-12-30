@@ -234,21 +234,54 @@ delimiter of a pair managed by `sp-add-pair'.")
         (when (sp-delete-selection-p)
           (sp-init-delete-selection-mode-emulation))
         (run-hooks 'smartparens-enabled-hook))
-    (run-hooks 'smartparens-disabled-hook)
-    ))
+    (run-hooks 'smartparens-disabled-hook)))
+
+(defun sp-get-trigger-keys (pair-list)
+  "Return a list of unique trigger keys for pairs in a format of
+`sp-pair-list'.
+
+For example, for list (\"\\\\(\",\"\\}\"), (\"\\\",
+\"(\", \"}\") is returned."
+  (-distinct (split-string
+              (apply #'concat
+                     (--reduce-from (cons (car it) (cons (cdr it) acc))
+                                    nil pair-list))
+              "" t)))
+
 
 (defun sp-update-pair-triggers ()
   "Update the `sp-keymap' to include all trigger keys.  Trigger
 key is any character present in any pair.  Each trigger key must
 map to `self-insert-command'."
-  (let ((triggers (-distinct
-            (split-string
-             (apply #'concat
-                    (--reduce-from (cons (car it)
-                                         (cons (cdr it) acc))
-                                   nil sp-pair-list))
-             "" t))))
-    (--each triggers (define-key sp-keymap it 'self-insert-command))))
+  (let ((triggers (sp-get-trigger-keys sp-pair-list)))
+    (--each triggers (define-key sp-keymap it 'sp-self-insert-command))))
+
+(defun sp-self-insert-command (arg)
+  "This command is a wrapper around `self-insert-command'.  If
+the just-typed key is a possible trigger for any pair,
+`self-insert-command' is called and the special behaviours are
+handled in its advice provided by `smartparens-mode'.  If the
+just-typed key is not a trigger, fall back to the commant that
+would execute if smartparens-mode were disabled."
+  (interactive "p")
+  (let ((triggers (sp-get-trigger-keys
+                   (--filter (sp-insert-pair-p
+                              (car it) major-mode) sp-pair-list))))
+    (if (member (single-key-description last-command-event) triggers)
+        (progn
+          (setq this-command 'self-insert-command)
+          (self-insert-command arg))
+      (let ((com (sp-keybinding-fallback-1)))
+        (setq this-original-command com)
+        (call-interactively com)))
+    ))
+
+(defun sp-keybinding-fallback-1 ()
+  "Internal.  Return the fall-back command as if
+`smartparens-mode' were disabled."
+  (let ((smartparens-mode nil)
+        (keys (this-single-command-keys)))
+    (key-binding keys t)))
 
 ;; TODO: we could remove pairs that are absolutely not allowed in this
 ;; mode here (those that are banned or only allowed elsewhere).  It
@@ -603,7 +636,9 @@ beginning."
 (defun sp-this-command-self-insert-p ()
   "Return t if `this-command' is some sort of
 `self-insert-command'."
-  (memq this-command '(self-insert-command org-self-insert-command)))
+  (memq this-command '(self-insert-command
+                       org-self-insert-command
+                       sp-self-insert-command)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Adding/removing of pairs/bans/allows etc.
