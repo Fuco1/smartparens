@@ -1652,6 +1652,7 @@ followed by word.  It is disabled by default.  See
     ;; should probably be tested in the `self-insert-command'
     ;; advice... but we're lazy :D
     (if (and sp-autowrap-region
+             active-pair
              (sp-wrap-repeat-last-1 active-pair))
         sp-last-operation
       (when (and sp-autoinsert-pair
