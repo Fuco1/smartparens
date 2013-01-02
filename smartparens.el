@@ -1153,11 +1153,8 @@ info."
                 (save-excursion
                   (backward-char 1)
                   (insert sp-escape-char)))
-              ))
-
-            )
-        (setq sp-last-operation 'sp-self-insert)
-        ))))
+              )))
+        (setq sp-last-operation 'sp-self-insert)))))
 
 (defun sp-delete-selection-mode-handle (&optional from-wrap)
   "Call the original `delete-selection-pre-hook'."
@@ -2619,6 +2616,29 @@ Examples:
     (when ok
       (sp-unwrap-sexp-1 ok)
       (delete-region (point) (- (cadr ok) (length (nth 2 ok)) (length (nth 3 ok)))))))
+
+(defun sp-splice-sexp-killing-around (&optional arg)
+  "Unwrap the current list and also kill everything inside save
+for ARG next expressions.  With ARG negative N, save that many
+expressions backward.
+
+Examples:
+
+  (a b |(c d) e f) -> |(c d)   ;; with arg = 1
+  (a b |c d e f)   -> |c d     ;; with arg = 2
+  (- (car x) |a 3) -> (car x)| ;; with arg = -1"
+  (interactive "p")
+  (setq arg (or arg 1))
+  (let ((ok (sp-get-enclosing-sexp)))
+    (when ok
+      (sp-unwrap-sexp-1 ok)
+      (sp-select-next-thing-exchange arg)
+      (let* ((ob (car ok))
+             (b (region-beginning))
+             (e (- (region-end) (- b ob)))
+             (oe (- (cadr ok) (length (nth 2 ok)) (length (nth 3 ok)) (- b ob))))
+        (delete-region ob b)
+        (delete-region e oe)))))
 
 (defun sp-forward-whitespace ()
   "Skip forward past the whitespace characters."
