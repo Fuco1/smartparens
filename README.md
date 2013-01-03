@@ -1,7 +1,9 @@
 Important announcements
 ==========
 
-The behaviour of `sp-delete-selection-mode` changed dramatically! Please read the section [Compatibility issues](#compatibility-issues) for more informations
+* Very important option `sp-navigate-consider-symbols` has been added. Setting this to `t` will make spartparens consider symbols and strings as balanced expressions. That is, `something-like-this` will be considered as balanced expression enclosed by pair of whitespace characters. This emulates the original behaviour of `forward-sexp` and it is recommended you set this option to `t` for best user experience.
+
+* From commit 118 forward, strings (as defined by mode syntax-table) are treated as other paired expressions. This means you can use `sp-up-sexp`, slurping and barfing on strings the same way you would use it with any other expression recognized by `sp-get-sexp`.
 
 Table of content
 ==========
@@ -83,6 +85,22 @@ Therefore, please remove all the calls to these functions from your configuratio
 #### auto-complete ####
 
 There are some problems with auto-complete mode when cancelling the pop-up selection using some closing pair trigger. More investigation is needed now. If you are able to figure out what is going on, please reply. See [Issue #2](https://github.com/Fuco1/smartparens/issues/2)
+
+#### org-cua-dwim ####
+
+There is a bug (or a feature?) in `org-cua-dwim` that handles active selections in a strange way, incompatible with smartparens. This advice should fix the most obvious problems:
+
+    (defadvice cua-delete-region (around smartparens-org-dwim-fix-active-region activate)
+      "Fix the smartparens/org-cua-dwim interaction."
+      (if (interactive-p)
+          (if (region-active-p)
+              ad-do-it
+            (if (eq major-mode 'org-mode)
+                (org-delete-backward-char (or (ad-get-arg 0) 1))
+              (delete-backward-char (or (ad-get-arg 0) 1))))
+        ad-do-it))
+
+For more information please read the [Issue #16](https://github.com/Fuco1/smartparens/issues/16) on the tracker.
 
 Pair management
 ==========
@@ -400,6 +418,7 @@ List of manipulation functions:
     sp-splice-sexp (&optional arg)                      ;; M-D
     sp-splice-sexp-killing-forward ()                   ;; C-M-<delete>
     sp-splice-sexp-killing-backward ()                  ;; C-M-<backspace>
+    sp-splice-sexp-killing-around (&optional arg)       ;; C-S-<backspace>
 
     sp-split-sexp ()                                    ;; none
 
@@ -425,6 +444,7 @@ Here's a quick summary for each manipulation function:
 * `sp-splice-sexp` - Remove the wrapping pair from *this* expression. With arg, do this on Nth enclosing expression as if first navigated with `sp-up-sexp`.
 * `sp-splice-sexp-killing-forward` -  Remove the wrapping pair from *this* expression and kill everything between `(point)` and end of this expression.
 * `sp-splice-sexp-killing-backward` -  Remove the wrapping pair from *this* expression and kill everything between the beginning of this expression and `(point)`.
+* `sp-splice-sexp-killing-around` - Remove the wrapping pair from *this* expression and kill everything inside save for ARG next expressions.
 * `sp-split-sexp` - Split the current list using the enclosing delimiters.
 * `sp-forward-slurp-sexp` - Extend the current list by one balanced expression or symbol by moving the *closing* delimiter.
 * `sp-forward-barf-sexp` - Contract the current list by one balanced expression or symbol by moving the *closing* delimiter.
