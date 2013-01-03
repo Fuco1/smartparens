@@ -2061,9 +2061,17 @@ positive argument."
   (setq arg (or arg 1))
   (save-excursion
     (let ((n arg)
-          (ok t))
+          (ok t)
+          (okr))
       (while (and (> n 0) ok)
         (setq ok t)
+        (setq okr nil)
+        ;; if we are inside string, get the string bounds and "string
+        ;; expression"
+        (when (sp-point-in-string)
+          (let ((r (sp-get-quoted-string-bounds)))
+            (setq okr (sp-get-string-1 r))))
+        ;; get the "normal" expression defined by pairs
         (let ((p (point)))
           (setq ok (sp-get-sexp))
           (cond
@@ -2076,6 +2084,15 @@ positive argument."
             (while (and ok (>= (car ok) p))
               (setq ok (sp-get-sexp))
               (when ok (goto-char (cadr ok)))))))
+        ;; if the pair expression is completely enclosed inside a
+        ;; string, return the pair expression, otherwise return the
+        ;; string expression
+        (when okr
+          (unless (and ok
+                       (> (car ok) (car okr))
+                       (< (cadr ok) (cadr okr)))
+            (setq ok okr)
+            (goto-char (cadr ok))))
         (setq n (1- n)))
       ok)))
 
@@ -2654,14 +2671,10 @@ Examples:
 (defun sp-split-sexp ()
   "Split the list or string the point is on into two."
   (interactive)
-  (if (sp-point-in-string)
-      (progn
-        (forward-char (- (prog1 (sp-backward-whitespace) (insert "\""))))
-        (save-excursion (sp-forward-whitespace) (insert "\"")))
-    (let ((ok (sp-get-enclosing-sexp 1)))
-      (when ok
-        (forward-char (- (prog1 (sp-backward-whitespace) (insert (nth 3 ok)))))
-        (save-excursion (sp-forward-whitespace) (insert (nth 2 ok)))))))
+  (let ((ok (sp-get-enclosing-sexp 1)))
+    (when ok
+      (forward-char (- (prog1 (sp-backward-whitespace) (insert (nth 3 ok)))))
+      (save-excursion (sp-forward-whitespace) (insert (nth 2 ok))))))
 
 (defun sp-select-next-thing (&optional arg)
   "Set active region over ARG next things as recognized by
