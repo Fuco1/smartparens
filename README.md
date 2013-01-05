@@ -43,7 +43,7 @@ This is just a list of basic "selling points", but many features have further cu
 
 **All features** are fully customizable via `M-x customize-group smartparens`. You can turn every behaviour on or off for best user experience (yay buzzwords).
 
-**NEW:** I've made a [youtube presentation](http://www.youtube.com/watch?v=ykjRUr7FgoI&list=PLP6Xwp2WTft7rAMgVPOTI2OE_PQlKGPy7&feature=plpp_play_all). It's in 2 parts because youtube didn't allow me to upload it in one video. Switch to 480p!
+**NEW:** I've made a [youtube presentation](http://www.youtube.com/watch?v=ykjRUr7FgoI&list=PLP6Xwp2WTft7rAMgVPOTI2OE_PQlKGPy7&feature=plpp_play_all). It's in 2 parts because youtube didn't allow me to upload it in one video. Switch to 480p! Note that this presentation only talks about features up to commit ~40, so many of the newer features are not covered (those will hopefully be covered in future video).
 
 Installation
 ==========
@@ -469,7 +469,7 @@ Note that the pair-search is somewhat slower than `show-paren-mode`, which uses 
 Example configuration
 ==========
 
-This is actually my current config for this package. Since I'm only using `emacs-lisp-mode` and `markdown-mode` now, it's somewhat brief for the moment :)
+This is my current config for this package. Some things (`C-<left_bracket>` overwrite of `ESC` sequence) depend on other files, but most of it is readily usable.
 
     (smartparens-global-mode t)
 
@@ -502,6 +502,7 @@ This is actually my current config for this package. Since I'm only using `emacs
     (define-key sp-keymap (kbd "M-D") 'sp-splice-sexp)
     (define-key sp-keymap (kbd "C-M-<delete>") 'sp-splice-sexp-killing-forward)
     (define-key sp-keymap (kbd "C-M-<backspace>") 'sp-splice-sexp-killing-backward)
+    (define-key sp-keymap (kbd "C-S-<backspace>") 'sp-splice-sexp-killing-around)
 
     (define-key sp-keymap (kbd "C-]") 'sp-select-next-thing-exchange)
     (define-key sp-keymap (kbd "C-<left_bracket>") 'sp-select-previous-thing)
@@ -510,6 +511,7 @@ This is actually my current config for this package. Since I'm only using `emacs
     ;;; add new pairs
     (sp-add-pair "*" "*")
     (sp-add-pair "$" "$")
+    (sp-add-pair "<" ">") ;; in html only!
 
     ;;; global
     (sp-add-ban-insert-pair-in-string "'")
@@ -523,27 +525,24 @@ This is actually my current config for this package. Since I'm only using `emacs
                  (sp-add-local-ban-insert-pair 'tex-mode)
                  (sp-add-local-ban-insert-pair 'latex-mode)
                  (sp-add-local-ban-insert-pair 'text-mode)
-                 (sp-add-local-ban-insert-pair 'log-edit-mode))
+                 (sp-add-local-ban-insert-pair 'log-edit-mode)
+                 (sp-add-local-ban-insert-pair 'org-mode))
 
     ;; now, we could've also done just this:
     ;; (sp-add-local-ban-insert-pair "'"
     ;;                               '(markdown-mode
-    ;;                                 tex-mode
-    ;;                                 latex-mode
-    ;;                                 text-mode
-    ;;                                 log-edit-mode))
+    ;;                                 ...))
     ;; but I wanted to show you how to use the sp-with-tag macro :)
 
-    ;;; emacs-lisp-mode
-    (sp-add-local-ban-insert-pair "'" 'emacs-lisp-mode)
-    (sp-add-local-ban-insert-pair "'" 'inferior-emacs-lisp-mode)
-    (sp-add-local-ban-insert-pair-in-code "`" 'emacs-lisp-mode)
-    (sp-add-local-ban-insert-pair-in-code "`" 'inferior-emacs-lisp-mode)
+    ;;; emacs-lisp-mode(s)
+    (sp-with '(emacs-lisp-mode inferior-emacs-lisp-mode lisp-interaction-mode)
+             (sp-add-local-ban-insert-pair "'")
+             (sp-add-local-ban-insert-pair-in-code "`"))
 
     ;;; markdown-mode
     ;; you can also use the `sp-with' macro. It will automatically add the
     ;; mode to the end of each call. How cool is that!
-    (sp-with 'markdown-mode
+    (sp-with '(markdown-mode rst-mode)
              (sp-add-local-pair "`" "`")
              ;; this also disables '*' in all other modes
              (sp-add-local-allow-insert-pair "*")
@@ -551,4 +550,13 @@ This is actually my current config for this package. Since I'm only using `emacs
 
     ;;; tex-mode latex-mode
     (sp-with '(tex-mode latex-mode) ;; yes, this works with lists too!
-             (sp-add-local-allow-insert-pair "$"))
+             (sp-add-local-allow-insert-pair "$")
+             (sp-add-tag-pair "i" "\"<" "\">" nil))
+
+    ;;; python-mode
+    (sp-with 'python-mode
+             (sp-add-local-ban-insert-pair "`"))
+
+    ;;; html-mode
+    (sp-with '(html-mode sgml-mode)
+             (sp-add-local-allow-insert-pair "<"))
