@@ -2272,9 +2272,9 @@ considered balanced expressions."
 many times.  A negative argument -N means move backward but still
 go down a level.
 
-If inside one and there is no down expression to descend to, jump
-to the beginning of current one.  If moving backwards, jump to
-end of current one."
+If the point is inside sexp and there is no down expression to
+descend to, jump to the beginning of current one.  If moving
+backwards, jump to end of current one."
   (interactive "^p")
   (setq arg (or arg 1))
   (if (> arg 0)
@@ -2294,11 +2294,16 @@ end of current one."
       ok)))
 
 (defun sp-backward-down-sexp (&optional arg)
-  "An alias for (sp-down-sexp (- (or arg 1))).  This function
-expect positive argument.  See `sp-down-sexp'."
+  "Move backward down one level of sexp.  With ARG, do this that
+many times.  A negative argument -N means move forward but still
+go down a level.
+
+If the point is inside sexp and there is no down expression to
+descend to, jump to the end of current one.  If moving forward,
+jump to beginning of current one."
   (interactive "^p")
-  (when (> arg 0)
-    (sp-down-sexp (- (or arg 1)))))
+  (setq arg (or arg 1))
+  (sp-down-sexp (- arg)))
 
 (defun sp-up-sexp (&optional arg)
   "Move forward out of one level of parentheses.  With ARG, do
@@ -2313,11 +2318,12 @@ but still to a less deep spot."
     ok))
 
 (defun sp-backward-up-sexp (&optional arg)
-  "An alias for (sp-up-sexp (- (or arg 1))).  This function
-expect positive argument.  See `sp-up-sexp'."
+  "Move backward out of one level of parentheses.  With ARG, do
+this that many times.  A negative argument means move forward but
+still to a less deep spot."
   (interactive "^p")
-  (when (> arg 0)
-    (sp-up-sexp (- (or arg 1)))))
+  (setq arg (or arg 1))
+  (sp-up-sexp (- arg)))
 
 (defun sp-kill-sexp (&optional arg)
   "Kill the balanced expression following point.  If point is
@@ -2348,11 +2354,11 @@ considered balanced expressions."
         (when ok (kill-region (car ok) (cadr ok)))))))
 
 (defun sp-backward-kill-sexp (&optional arg)
-  "An alias for (sp-kill-sexp (- (or arg 1))).  This function
-expect positive argument.  See `sp-kill-sexp'."
+  "This is exactly like calling `sp-kill-sexp' with -ARG.  See
+the description there."
   (interactive "^p")
-  (when (> arg 0)
-    (sp-kill-sexp (- (or arg 1)))))
+  (setq arg (or arg 1))
+  (sp-kill-sexp (- arg)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; "paredit" operations
