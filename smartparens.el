@@ -2267,36 +2267,50 @@ considered balanced expressions."
         (sp-forward-sexp))
     (sp-forward-sexp (- arg))))
 
+(defun sp-raw-argument-p-1 (arg)
+  "Internal.  Return t if ARG represents raw argument, that is a
+non-empty list."
+  (and (listp arg) (car arg)))
+
 (defun sp-down-sexp (&optional arg)
   "Move forward down one level of sexp.  With ARG, do this that
 many times.  A negative argument -N means move backward but still
 go down a level.
+
+If ARG is raw prefix argument C-u, descend forward as much as
+possible.
 
 If the point is inside sexp and there is no down expression to
 descend to, jump to the beginning of current one.  If moving
 backwards, jump to end of current one."
   (interactive "P")
   (setq arg (prefix-numeric-value arg))
-  (if (> arg 0)
-      (let ((n arg)
-            (ok t))
-        (while (and ok (> n 0))
-          (setq ok (sp-get-sexp))
-          (setq n (1- n))
-          (when ok (goto-char (+ (car ok) (length (nth 2 ok))))))
-        ok)
-    (let ((n (- arg))
-          (ok t))
-      (while (and ok (> n 0))
-        (setq ok (sp-get-sexp t))
-        (setq n (1- n))
-        (when ok (goto-char (- (cadr ok) (length (nth 3 ok))))))
-      ok)))
+  (let ((n (abs arg))
+        (ok t)
+        (raw (sp-raw-argument-p-1 current-prefix-arg))
+        (last-point -1))
+    (while (and ok (> n 0))
+      (setq ok (sp-get-sexp (< arg 0)))
+      ;; if the prefix was C-u, we do not decrease n and instead set
+      ;; it to -1 when (point) == "last ok"
+      (if raw
+          (when (= (point) last-point)
+            (setq n -1))
+        (setq n (1- n)))
+      (when ok
+        (setq last-point (point))
+        (if (< arg 0)
+            (goto-char (- (cadr ok) (length (nth 3 ok))))
+          (goto-char (+ (car ok) (length (nth 2 ok)))))))
+    ok))
 
 (defun sp-backward-down-sexp (&optional arg)
   "Move backward down one level of sexp.  With ARG, do this that
 many times.  A negative argument -N means move forward but still
 go down a level.
+
+If ARG is raw prefix argument C-u, descend backward as much as
+possible.
 
 If the point is inside sexp and there is no down expression to
 descend to, jump to the end of current one.  If moving forward,
