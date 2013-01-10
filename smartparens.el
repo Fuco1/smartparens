@@ -2163,7 +2163,7 @@ positions in buffer."
         (,(if back '(sp-looking-back (sp-get-opening-regexp-1) sp-max-pair-length-c)
             '(looking-at (sp-get-closing-regexp-1)))
          (sp-get-sexp ,back))
-        ((,(if back 'sp-looking-back 'looking-at) "[\"']")
+        ((eq (char-syntax ,(if back '(preceding-char) '(following-char))) ?\" )
          (sp-get-string ,back))
         (t (sp-get-symbol ,back))))))
 
@@ -2522,7 +2522,11 @@ Examples:
                                  (sp-point-in-string (,dec (point))))
                             (and stop-at-string
                                  (not (sp-point-in-string))
-                                 (sp-point-in-string (,inc (point))))))
+                                 (sp-point-in-string (,inc (point))))
+                            ;; HACK -- fix ` inside strings in emacs modes
+                            (and (sp-point-in-string)
+                                 (eq (char-syntax (,next-char-fn)) ?')
+                                 (member (,next-char-fn) '(?` ?')))))
                    (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\" ?' ?.))
                        (unless in-comment (sp-point-in-comment))))
          (,forward-fn 1)))))
