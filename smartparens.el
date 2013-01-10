@@ -2096,6 +2096,24 @@ positive argument."
         (setq n (1- n)))
       ok)))
 
+(defun sp-get-list-items (&optional list)
+  "Return the information about expressions inside LIST.  LIST
+should be a data structure in format as returned by
+`sp-get-sexp'.  The return value is a list of such structures in
+order as they occur inside LIST.
+
+If LIST is nil, the list at point is used (that is the list
+following point after `sp-backward-up-list' is called)."
+  (let ((r nil))
+    (save-excursion
+      (unless list
+        (setq list (sp-backward-up-sexp)))
+      (when list
+        (goto-char (+ (car list) (length (nth 2 list))))
+        (while (< (point) (cadr list))
+          (!cons (sp-forward-sexp) r))
+        (nreverse (cdr r))))))
+
 (defun sp-get-symbol (&optional back)
   "Find the nearest symbol that is after point, or before point if
 BACK is non-nil.  This also means, if the point is inside a symbol,
