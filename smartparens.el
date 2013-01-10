@@ -2186,7 +2186,7 @@ out of the current one (effectively doing `sp-up-list').
 
 With `sp-navigate-consider-symbols' symbols and strings are also
 considered balanced expressions."
-  (interactive "^p")
+  (interactive "p")
   (setq arg (or arg 1))
   (if (< arg 0)
       (sp-backward-sexp (- arg))
@@ -2207,7 +2207,7 @@ expression, jump out of the current one (effectively doing
 
 With `sp-navigate-consider-symbols' symbols and strings are also
 considered balanced expressions."
-  (interactive "^p")
+  (interactive "p")
   (setq arg (or arg 1))
   (if (< arg 0)
       (sp-forward-sexp (- arg))
@@ -2228,7 +2228,7 @@ beginning of N-th previous balanced expression.
 
 With `sp-navigate-consider-symbols' symbols and strings are also
 considered balanced expressions."
-  (interactive "^p")
+  (interactive "p")
   (setq arg (or arg 1))
   (if (> arg 0)
       (if (= arg 1)
@@ -2252,7 +2252,7 @@ N-th following balanced expression.
 
 With `sp-navigate-consider-symbols' symbols and strings are also
 considered balanced expressions."
-  (interactive "^p")
+  (interactive "p")
   (setq arg (or arg 1))
   (if (> arg 0)
       (if (= arg 1)
@@ -2275,8 +2275,8 @@ go down a level.
 If the point is inside sexp and there is no down expression to
 descend to, jump to the beginning of current one.  If moving
 backwards, jump to end of current one."
-  (interactive "^p")
-  (setq arg (or arg 1))
+  (interactive "P")
+  (setq arg (prefix-numeric-value arg))
   (if (> arg 0)
       (let ((n arg)
             (ok t))
@@ -2301,15 +2301,15 @@ go down a level.
 If the point is inside sexp and there is no down expression to
 descend to, jump to the end of current one.  If moving forward,
 jump to beginning of current one."
-  (interactive "^p")
-  (setq arg (or arg 1))
+  (interactive "P")
+  (setq arg (prefix-numeric-value arg))
   (sp-down-sexp (- arg)))
 
 (defun sp-up-sexp (&optional arg)
   "Move forward out of one level of parentheses.  With ARG, do
 this that many times.  A negative argument means move backward
 but still to a less deep spot."
-  (interactive "^p")
+  (interactive "p")
   (setq arg (or arg 1))
   (let ((ok (sp-get-enclosing-sexp (abs arg))))
     (when ok
@@ -2321,7 +2321,7 @@ but still to a less deep spot."
   "Move backward out of one level of parentheses.  With ARG, do
 this that many times.  A negative argument means move forward but
 still to a less deep spot."
-  (interactive "^p")
+  (interactive "p")
   (setq arg (or arg 1))
   (sp-up-sexp (- arg)))
 
@@ -2337,8 +2337,8 @@ after point.  Negative arg -N means kill N sexps before point.
 
 With `sp-navigate-consider-symbols' symbols and strings are also
 considered balanced expressions."
-  (interactive "^p")
-  (setq arg (or arg 1))
+  (interactive "P")
+  (setq arg (prefix-numeric-value arg))
   (if (> arg 0)
       (let ((n arg)
             (ok t))
@@ -2356,8 +2356,8 @@ considered balanced expressions."
 (defun sp-backward-kill-sexp (&optional arg)
   "This is exactly like calling `sp-kill-sexp' with -ARG.  See
 the description there."
-  (interactive "^p")
-  (setq arg (or arg 1))
+  (interactive "P")
+  (setq arg (prefix-numeric-value arg))
   (sp-kill-sexp (- arg)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
