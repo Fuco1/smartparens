@@ -2373,9 +2373,9 @@ backward direction.
 With ARG being raw prefix C-u, kill all the expressions from
 point up until the end of current list.  With raw prefix - C-u,
 kill all the expressions from beginning of current list up until
-point.  If point is inside an expression (symbol), this is also
-killed.  If there is no expression after/before the point, just
-delete the whitespace up until the closing/opening delimiter.
+point.  If point is inside a symbol, this is also killed.  If
+there is no expression after/before the point, just delete the
+whitespace up until the closing/opening delimiter.
 
 With ARG being raw prefix C-u C-u, kill current list (the list
 point is inside).
@@ -2536,64 +2536,93 @@ Examples:
 
 (defmacro sp-barf-sexp-1 (fw-1)
   "Internal.  Generate forward/backward barf functions."
-  `(let ((n (abs arg))
-         (fw (> arg 0)))
-     (if fw
-         (while (> n 0)
-           (let* ((ok (sp-get-enclosing-sexp))
-                  next-thing)
-             (if ok
-                 (save-excursion
-                   (goto-char ,(if fw-1 '(- (cadr ok) (length (nth 3 ok)))
-                                 '(+ (car ok) (length (nth 2 ok)))))
-                   (setq next-thing (sp-get-thing ,(if fw-1 't 'nil)))
-                   (if (and next-thing
-                            (/= (car next-thing) (car ok))) ;; ok == next-thing
-                       (progn
-                         (delete-char ,(if fw-1 '(length (nth 3 ok))
-                                         '(- (length (nth 2 ok)))))
-                         (goto-char ,(if fw-1 '(car next-thing)
-                                       '(- (cadr next-thing) (length (nth 2 ok)))))
-                         ,(if fw-1 '(sp-skip-backward-to-symbol t) '(sp-skip-forward-to-symbol t))
-                         (insert (nth ,(if fw-1 '3 '2) ok))
-                         (setq n (1- n)))
-                     (message "The expression is empty.")
-                     (setq n -1)))
-               (message "We can't barf without breaking strictly balanced expression. Ignored.")
-               (setq n -1))))
-       (,(if fw-1 'sp-backward-barf-sexp 'sp-forward-barf-sexp) n))))
+  `(let ((n (abs arg)))
+     (while (> n 0)
+       (let* ((ok (sp-get-enclosing-sexp))
+              next-thing)
+         (if ok
+             (save-excursion
+               (goto-char ,(if fw-1 '(- (cadr ok) (length (nth 3 ok)))
+                             '(+ (car ok) (length (nth 2 ok)))))
+               ;; NOTE: sp-get-thing is "reversed", if we barf forward
+               ;; we search from end of list backward for the thing to
+               ;; barf.
+               (setq next-thing (sp-get-thing ,fw-1))
+               (if (and next-thing
+                        (/= (car next-thing) (car ok))) ;; ok == next-thing
+                   (progn
+                     (delete-char ,(if fw-1 '(length (nth 3 ok))
+                                     '(- (length (nth 2 ok)))))
+                     (goto-char ,(if fw-1 '(car next-thing)
+                                   '(- (cadr next-thing) (length (nth 2 ok)))))
+                     ,(if fw-1 '(sp-skip-backward-to-symbol t) '(sp-skip-forward-to-symbol t))
+                     (insert (nth ,(if fw-1 '3 '2) ok))
+                     (setq n (1- n)))
+                 (message "The expression is empty.")
+                 (setq n -1)))
+           (message "We can't barf without breaking strictly balanced expression. Ignored.")
+           (setq n -1))))))
 
 (defun sp-forward-barf-sexp (&optional arg)
   "Remove the last S-expression in the current list by moving the
-closing delimiter.  If arg is N, barf that many expressions.  If
-arg is negative -N, contract the opening pair instead.  If the
-current list is empty, do nothing.
+closing delimiter.
 
-Examples:
+If ARG is positive number N, barf that many expressions.
 
-  (foo bar| baz)   -> (foo bar|) baz
+If ARG is negative number -N, contract the opening pair instead.
 
-  (foo| [bar baz]) -> (foo|) [bar baz]"
-  (interactive "p")
-  (setq arg (or arg 1))
-  (sp-barf-sexp-1 t))
+If ARG is raw prefix C-u, barf all expressions from the one after
+point to the end of current list and place the point before the
+closing delimiter of the list.
+
+If the current list is empty, do nothing.
+
+Examples (prefix arg in comment):
+
+  (foo bar| baz)   -> (foo bar|) baz   ;; nil (defaults to 1)
+
+  (foo| [bar baz]) -> (foo|) [bar baz] ;; 1
+
+  (1 2 3| 4 5 6)   -> (1 2 3|) 4 5 6   ;; C-u (or numeric prefix 3)
+
+  (foo bar| baz)   -> foo (bar| baz)   ;; -1"
+  (interactive "P")
+  (setq arg (prefix-numeric-value arg))
+  (if (> arg 0)
+      (let ((raw (sp-raw-argument-p-1 current-prefix-arg)))
+        (if raw
+            (let* ((lst (sp-get-list-items))
+                   (last nil))
+              (!cdr lst)
+              (while (and lst (>= (point) (caar lst))) (setq last (car lst)) (!cdr lst))
+              (setq arg (length lst))
+              (when (/= arg 0)
+                (sp-barf-sexp-1 t)
+                (when (> (point) (cadr last)) (goto-char (cadr last)))))
+          (sp-barf-sexp-1 t)))
+    (sp-backward-barf-sexp (- arg))))
 
 (defun sp-backward-barf-sexp (&optional arg)
-  "Remove the first S-expression in the current list by moving
-the opening delimiter.  If arg is N, barf that many expressions.
-If arg is negative -N, contract the closing pair instead.  If the
-current list is empty, do nothing.
+  "This is exactly like calling `sp-forward-barf-sexp' with -ARG.
+In other words, instead of contracting the closing pair, the
+opening pair is contracted.  For more information, see the
+documentation of sp-forward-barf-sexp."
+  (interactive "P")
+  (setq arg (prefix-numeric-value arg))
+  (if (> arg 0)
+      (let ((raw (sp-raw-argument-p-1 current-prefix-arg)))
+        (if raw
+            (let* ((lst (sp-get-list-items))
+                   (n 0))
+              (!cdr lst)
+              (while (and lst (> (point) (cadar lst))) (!cdr lst) (setq n (1+ n)))
+              (setq arg n)
+              (when (/= arg 0)
+                (sp-barf-sexp-1 nil)
+                (when (< (point) (caar lst)) (goto-char (caar lst)))))
+          (sp-barf-sexp-1 nil)))
+    (sp-forward-barf-sexp (- arg))))
 
-Examples:
-
-  (foo bar| baz)   -> foo (bar| baz)
-
-  ([bar baz] |foo) -> [bar baz] (|foo)"
-  (interactive "p")
-  (setq arg (or arg 1))
-  (sp-barf-sexp-1 nil))
-
-;; TODO: stop if looking at pair!
 (defmacro sp-skip-to-symbol-1 (forward)
   "Internal.  Generate `sp-skip-forward-to-symbol' or
 `sp-skip-backward-to-symbol'."
@@ -2772,7 +2801,6 @@ Examples:
   (interactive)
   (skip-chars-forward " \t\n"))
 
-
 (defun sp-backward-whitespace ()
   "Skip backward past the whitespace characters."
   (interactive)
@@ -2786,6 +2814,7 @@ Examples:
       (forward-char (- (prog1 (sp-backward-whitespace) (insert (nth 3 ok)))))
       (save-excursion (sp-forward-whitespace) (insert (nth 2 ok))))))
 
+;; TODO: accept C-u, C-u C-u (select enclosing expression)
 (defun sp-select-next-thing (&optional arg)
   "Set active region over ARG next things as recognized by
 `sp-get-thing'.  If ARG is negative -N, select that many
@@ -2801,6 +2830,7 @@ considered balanced expressions."
     (set-mark (if (> arg 0) (car b) (cadr b)))
     (goto-char (if (> arg 0) (cadr e) (car e)))))
 
+;; TODO: accept C-u, C-u C-u (select enclosing expression)
 (defun sp-select-previous-thing (&optional arg)
   "Set active region over ARG previous things as recognized by
 `sp-get-thing'.  If ARG is negative -N, select that many
