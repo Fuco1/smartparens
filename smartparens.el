@@ -2096,23 +2096,26 @@ positive argument."
         (setq n (1- n)))
       ok)))
 
-(defun sp-get-list-items (&optional list)
-  "Return the information about expressions inside LIST.  LIST
+(defun sp-get-list-items (&optional lst)
+  "Return the information about expressions inside LST.  LST
 should be a data structure in format as returned by
-`sp-get-sexp'.  The return value is a list of such structures in
-order as they occur inside LIST.
+`sp-get-sexp'.
 
-If LIST is nil, the list at point is used (that is the list
+The return value is a list of such structures in order as they
+occur inside LST describing each expression, with LST itself
+prepended to the front.
+
+If LST is nil, the list at point is used (that is the list
 following point after `sp-backward-up-list' is called)."
   (let ((r nil))
     (save-excursion
-      (unless list
-        (setq list (sp-backward-up-sexp)))
-      (when list
-        (goto-char (+ (car list) (length (nth 2 list))))
-        (while (< (point) (cadr list))
+      (unless lst
+        (setq lst (sp-backward-up-sexp)))
+      (when lst
+        (goto-char (+ (car lst) (length (nth 2 lst))))
+        (while (< (point) (cadr lst))
           (!cons (sp-forward-sexp) r))
-        (nreverse (cdr r))))))
+        (cons lst (nreverse (cdr r)))))))
 
 (defun sp-get-symbol (&optional back)
   "Find the nearest symbol that is after point, or before point if
@@ -2360,34 +2363,99 @@ still to a less deep spot."
 (defun sp-kill-sexp (&optional arg)
   "Kill the balanced expression following point.  If point is
 inside an expression and there is no following expression, kill
-the topmost enclosing expression.  With ARG, kill that many sexps
-after point.  Negative arg -N means kill N sexps before point.
+the topmost enclosing expression.
 
- (foo |(abc) bar)  -> (foo bar)
+With ARG being positive number N, repeat that many times.
 
- (foo (bar) | baz) -> |.
+With ARG being Negative number -N, repeat that many times in
+backward direction.
 
-With `sp-navigate-consider-symbols' symbols and strings are also
-considered balanced expressions."
+With ARG being raw prefix C-u, kill all the expressions from
+point up until the end of current list.  With raw prefix - C-u,
+kill all the expressions from beginning of current list up until
+point.  If point is inside an expression (symbol), this is also
+killed.  If there is no expression after/before the point, just
+delete the whitespace up until the closing/opening delimiter.
+
+With ARG being raw prefix C-u C-u, kill current list (the list
+point is inside).
+
+If ARG is nil, default to 1 (kill single expression forward)
+
+With `sp-navigate-consider-symbols', symbols and strings are also
+considered balanced expressions.
+
+Examples. Prefix argument is shown after the example in
+\"comment\". Assumes `sp-navigate-consider-symbols' equal to t:
+
+ (foo |(abc) bar)  -> (foo bar) ;; nil, defaults to 1
+
+ (foo (bar) | baz) -> |         ;; 2
+
+ (foo |(bar) baz)  -> |         ;; C-u C-u
+
+ (1 2 |3 4 5 6)    -> (1 2)     ;; C-u
+
+ (1 |2 3 4 5 6)    -> (1 |5 6)  ;; 3
+
+ (1 2 3 4 5| 6)    -> (1 2 3 6) ;; -2
+
+ (1 2 3 4| 5 6)    -> (5 6)     ;; - C-u
+
+ (1 2 |   )        -> (1 2|)    ;; C-u, kill useless whitespace
+"
   (interactive "P")
   (setq arg (prefix-numeric-value arg))
-  (if (> arg 0)
-      (let ((n arg)
-            (ok t))
+  (let ((n (abs arg))
+        (raw (sp-raw-argument-p-1 current-prefix-arg))
+        (ok t)
+        (b (point-max))
+        (e (point-min)))
+    (cond
+     ;; kill to the end or beginning of list
+     ((and raw
+           (= n 4))
+      (let* ((lst (sp-get-list-items))
+             (last nil)
+             (enc (car lst))
+             (inside (+ (car enc) (length (nth 2 enc))))
+             (outside (- (cadr enc) (length (nth 3 enc)))))
+        (!cdr lst)
+        (if (> arg 0)
+            (progn
+              (while (and lst (>= (point) (cadar lst))) (setq last (car lst)) (!cdr lst))
+              (kill-region (if last (cadr last) inside) outside))
+          (while (and lst (> (point) (caar lst))) (!cdr lst))
+          (kill-region (if lst (caar lst) outside) inside))))
+     ;; kill the enclosing list
+     ((and raw
+           (= n 16))
+      (let ((lst (sp-backward-up-sexp)))
+        (kill-region (car lst) (cadr lst))))
+     ;; regular kill
+     (t
+      (save-excursion
         (while (and (> n 0) ok)
-          (setq ok (sp-get-thing))
-          (setq n (1- n))
-          (when ok (kill-region (car ok) (cadr ok)))))
-    (let ((n (- arg))
-          (ok t))
-      (while (and (> n 0) ok)
-        (setq ok (sp-get-thing t))
-        (setq n (1- n))
-        (when ok (kill-region (car ok) (cadr ok)))))))
+          (setq ok (sp-forward-sexp (signum arg)))
+          (when (< (car ok) b) (setq b (car ok)))
+          (when (> (cadr ok) e) (setq e (cadr ok)))
+          (setq n (1- n))))
+      (when ok
+        (kill-region b e)
+        ;; kill useless junk whitespace
+        (append-next-kill)
+        (kill-region (point)
+                     (progn
+                       (eval
+                        `(,(if (> arg 0)
+                               'skip-chars-forward
+                             'skip-chars-backward) " \t"))
+                       (point))))))))
 
 (defun sp-backward-kill-sexp (&optional arg)
-  "This is exactly like calling `sp-kill-sexp' with -ARG.  See
-the description there."
+  "This is exactly like calling `sp-kill-sexp' with -ARG.  In
+other words, the direction of all commands is reversed.  For more
+information, see the documentation of sp-kill-sexp."
   (interactive "P")
   (setq arg (prefix-numeric-value arg))
   (sp-kill-sexp (- arg)))
