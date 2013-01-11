@@ -1,6 +1,8 @@
 Important announcements
 ==========
 
+* Docs are in process of moving to the github project [wiki](https://github.com/Fuco1/smartparens/wiki). As you can see, this is not done yet, but is a priority as this file is getting ridiculously big.
+
 * Very important option `sp-navigate-consider-symbols` has been added. Setting this to `t` will make spartparens consider symbols and strings as balanced expressions. That is, `something-like-this` will be considered as balanced expression enclosed by pair of whitespace characters. This emulates the original behaviour of `forward-sexp` and it is recommended you set this option to `t` for best user experience.
 
 * From commit 118 forward, strings (as defined by mode syntax-table) are treated as other paired expressions. This means you can use `sp-up-sexp`, slurping and barfing on strings the same way you would use it with any other expression recognized by `sp-get-sexp`.
@@ -369,7 +371,15 @@ to do the local binding. Note that this has to occur *after* `smartparens-mode` 
 
 Each function where it makes sense comes with forward and backward version, where the backward version does the same thing but in reverse direction.
 
-All of the provided functions can accept a prefix argument in which case they do the thing that many times or operate on arg-th expression. The "not backward" versions also accept negative argument, in which case they behave just as the "backward" versions (in fact, backward versions just call normal ones with negative arguments). These functions work as would be expected by most users, however, if you are unsure check the built-in description with `C-h f name-of-function`.
+These functions work as would be expected by most users, however, if you are unsure check the built-in description with `C-h f name-of-function`, where the behaviour and accepted arguments are explained in detail.
+
+#### Arguments and return values
+
+Most of the provided functions can accept a numeric prefix argument in which case they do the thing that many times or operate on arg-th expression. The "not backward" versions also accept negative argument, in which case they behave just as the "backward" versions (in fact, backward versions just call normal ones with negative arguments).
+
+Some functions accept raw prefix argument `C-u`. This act as "infinity" argument, in a sense that they repeat the thing as much as possible (but within reason). This may mean "until the end of the enclosing list" (instead of "up until end of file") for `sp-kill-sexp` or "move down to the deepst expression" for `sp-down-sexp`.
+
+Some functions accept raw prefix argument `C-u C-u`. This makes the function operate on the enclosing list. Therefore `C-u C-u sp-kill-sexp` will kill the list enclosing point (same as doing `sp-up-list sp-backward-kill-sexp`).
 
 When it makes sense, the function return the expression on which it operated most recently as a return value with format of `sp-get-sexp`, that is 4-tuple `(beg-of-expr end-of-expr opening-pair closing-pair)`. For example `(sp-next-sexp 2)` would return the information about 2nd next expression. This, in combination with `(save-excursion)` macro can be used to quickly query for information about sexps in your own functions.
 
