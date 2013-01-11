@@ -1126,6 +1126,10 @@ info."
 
   ad-do-it
 
+  (setq sp-recent-keys (cons
+                        (single-key-description last-command-event)
+                        (-take 19 sp-recent-keys)))
+
   (when smartparens-mode
     (let (op action)
       (if (= 1 (ad-get-arg 0))
@@ -1200,10 +1204,13 @@ info."
 `delete-selection-mode' or `cua-delete-selection' stuff here."
   (sp-delete-selection-mode-handle))
 
+(defvar sp-recent-keys nil
+  "Last 20 typed keys, registered via `self-insert-command'.")
+
 (defun sp-get-recent-keys-1 ()
   "Internal.  Return 10 recent keys in reverse order (most recent
 is first) as a string."
-  (apply #'concat (-take 10 (reverse (mapcar 'sp-single-key-description (recent-keys))))))
+  (apply #'concat sp-recent-keys))
 
 (defmacro sp-get-pair-list-1 ()
   "Internal.  Return all pairs that can be inserted in this
