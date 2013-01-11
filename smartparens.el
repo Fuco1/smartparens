@@ -2623,6 +2623,10 @@ documentation of sp-forward-barf-sexp."
           (sp-barf-sexp-1 nil)))
     (sp-forward-barf-sexp (- arg))))
 
+;; TODO: since most pair characters are in \( class, they are not
+;; skipped by this function.  But in some modes, maybe they are
+;; considered punctuation or something else. We should test if we look
+;; at a pair opener/closer too.
 (defmacro sp-skip-to-symbol-1 (forward)
   "Internal.  Generate `sp-skip-forward-to-symbol' or
 `sp-skip-backward-to-symbol'."
@@ -2814,7 +2818,6 @@ Examples:
       (forward-char (- (prog1 (sp-backward-whitespace) (insert (nth 3 ok)))))
       (save-excursion (sp-forward-whitespace) (insert (nth 2 ok))))))
 
-;; TODO: accept C-u, C-u C-u (select enclosing expression)
 (defun sp-select-next-thing (&optional arg)
   "Set active region over ARG next things as recognized by
 `sp-get-thing'.  If ARG is negative -N, select that many
@@ -2822,15 +2825,50 @@ expressions backward.
 
 With `sp-navigate-consider-symbols' symbols and strings are also
 considered balanced expressions."
-  (interactive "p")
-  (setq arg (or arg 1))
-  (let* ((b (sp-forward-sexp (signum arg)))
-         (e (if (> (abs arg) 1) (sp-forward-sexp (* (signum arg) (1- (abs arg)))) b)))
+  (interactive "P")
+  (setq arg (prefix-numeric-value arg))
+  (let* ((raw (sp-raw-argument-p-1 current-prefix-arg))
+         (first (sp-forward-sexp (signum arg)))
+         (last first)
+         (b (if first
+                (if (> arg 0) (car first) (cadr first))
+              (error "No following expressions.")))
+         (e (cond
+             ;; select things up until the end of current list,
+             ;; ignoring whitespace and possible comments inside
+             ((and raw
+                   (= (abs arg) 4))
+              (let ((enc (sp-get-enclosing-sexp)))
+                (if enc
+                    (save-excursion
+                      (if (> arg 0)
+                          (progn
+                            (goto-char (- (cadr enc) (length (nth 3 enc))))
+                            (sp-skip-backward-to-symbol t)
+                            (point))
+                        (goto-char (+ (car enc) (length (nth 2 enc))))
+                        (sp-skip-forward-to-symbol t)
+                        (point)))
+                  (error "No enclosing expression."))))
+             ;; select current list
+             ((and raw
+                   (= (abs arg) 16))
+              (let ((enc (sp-get-enclosing-sexp)))
+                ;; UGLY! We override b here. (can we even do that
+                ;; safely in elisp?)
+                (if (not enc)
+                    (error "No enclosing expression.")
+                  (setq b (car enc))
+                  (cadr enc))))
+             ;; regular select, just select ARG things
+             (t
+              (when (> (abs arg) 1)
+                (setq last (sp-forward-sexp (* (signum arg) (1- (abs arg))))))
+              (if (> arg 0) (cadr last) (car last))))))
     (push-mark nil t)
-    (set-mark (if (> arg 0) (car b) (cadr b)))
-    (goto-char (if (> arg 0) (cadr e) (car e)))))
+    (set-mark b)
+    (goto-char e)))
 
-;; TODO: accept C-u, C-u C-u (select enclosing expression)
 (defun sp-select-previous-thing (&optional arg)
   "Set active region over ARG previous things as recognized by
 `sp-get-thing'.  If ARG is negative -N, select that many
