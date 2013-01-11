@@ -479,10 +479,11 @@ times pressing \" would insert \"\"\"|\"\"\" instead of
   :group 'smartparens)
 
 ;; navigation & manip custom
-(defcustom sp-navigate-consider-symbols nil
+(defcustom sp-navigate-consider-symbols t
   "If non-nil, consider symbols outside balanced expressions as
 such.  Symbols are recognized by function `sp-forward-symbol'.
-This setting affect all the functions where it make sense.
+This setting affect all the navigation and manipulation functions
+where it make sense.
 
 Also, special handling of strings is enabled, where the whole
 string delimited with \"\" is considered as one token."
