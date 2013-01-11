@@ -2301,6 +2301,9 @@ go down a level.
 If ARG is raw prefix argument C-u, descend forward as much as
 possible.
 
+If ARG is raw prefix argument C-u C-u, jump to the beginning of
+current list.
+
 If the point is inside sexp and there is no down expression to
 descend to, jump to the beginning of current one.  If moving
 backwards, jump to end of current one."
@@ -2310,19 +2313,28 @@ backwards, jump to end of current one."
         (ok t)
         (raw (sp-raw-argument-p-1 current-prefix-arg))
         (last-point -1))
-    (while (and ok (> n 0))
-      (setq ok (sp-get-sexp (< arg 0)))
-      ;; if the prefix was C-u, we do not decrease n and instead set
-      ;; it to -1 when (point) == "last ok"
-      (if raw
-          (when (= (point) last-point)
-            (setq n -1))
-        (setq n (1- n)))
-      (when ok
-        (setq last-point (point))
-        (if (< arg 0)
-            (goto-char (- (cadr ok) (length (nth 3 ok))))
-          (goto-char (+ (car ok) (length (nth 2 ok)))))))
+    (if (and raw (= (abs arg) 16))
+        ;; jump to the beginning/end of current list
+        (let ((enc (sp-get-enclosing-sexp)))
+          (when enc
+            (if (> arg 0)
+                (goto-char (+ (car enc) (length (nth 2 enc))))
+              (goto-char (- (cadr enc) (length (nth 3 enc)))))
+            enc))
+      ;; otherwise descend normally
+      (while (and ok (> n 0))
+        (setq ok (sp-get-sexp (< arg 0)))
+        ;; if the prefix was C-u, we do not decrease n and instead set
+        ;; it to -1 when (point) == "last ok"
+        (if raw
+            (when (= (point) last-point)
+              (setq n -1))
+          (setq n (1- n)))
+        (when ok
+          (setq last-point (point))
+          (if (< arg 0)
+              (goto-char (- (cadr ok) (length (nth 3 ok))))
+            (goto-char (+ (car ok) (length (nth 2 ok))))))))
     ok))
 
 (defun sp-backward-down-sexp (&optional arg)
@@ -2332,6 +2344,9 @@ go down a level.
 
 If ARG is raw prefix argument C-u, descend backward as much as
 possible.
+
+If ARG is raw prefix argument C-u C-u, jump to the end of current
+list.
 
 If the point is inside sexp and there is no down expression to
 descend to, jump to the end of current one.  If moving forward,
