@@ -477,7 +477,9 @@ wrap on this region with current pair."
   :type 'boolean
   :group 'smartparens)
 
-(defcustom sp-autoescape-string-quote-if-empty nil
+(defcustom sp-autoescape-string-quote-if-empty '(
+                                                 python-mode
+                                                 )
   "List of modes where the string quotes aren't escaped if the
 string we're in is empty.  You can list modes where multiple
 quote characters are used for multi-line strings, such as
