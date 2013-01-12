@@ -562,6 +562,7 @@ handler."
   "Adds ARG as last argument to each form.  This can be used on
 most of the permission functions to automatically supply the mode
 where we operate."
+  (declare (indent 1))
   `(progn
      ,@(mapcar (lambda (form) (append form (list arg))) forms)))
 
@@ -569,6 +570,7 @@ where we operate."
   "Adds ARG as first argument to each form.  This can be used on
 most of the permission functions to automatically supply the
 tag on which we want to operate."
+  (declare (indent 1))
   `(progn
      ,@(mapcar (lambda (form) (append (list (car form) arg) (cdr form))) forms)))
 
