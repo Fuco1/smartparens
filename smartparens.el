@@ -326,8 +326,21 @@ to update all the buffer-local definitions."
 (defcustom sp-ignore-modes-list '(
                                   calc-mode
                                   dired-mode
+                                  gnus-article-mode
+                                  gnus-group-mode
+                                  gnus-summary-mode
                                   ibuffer-mode
+                                  magit-branch-manager-mode
+                                  magit-commit-mode
+                                  magit-diff-mode
+                                  magit-key-mode
+                                  magit-log-mode
+                                  magit-reflog-mode
+                                  magit-stash-mode
+                                  magit-status-mode
+                                  magit-wazzup-mode
                                   minibuffer-inactive-mode
+                                  monky-mode
                                   sr-mode
                                   )
   "Modes where smartparens mode is inactive if allowed globally."
