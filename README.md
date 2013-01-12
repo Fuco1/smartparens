@@ -3,7 +3,7 @@ Important announcements
 
 * Docs are in process of moving to the github project [wiki](https://github.com/Fuco1/smartparens/wiki). As you can see, this is not done yet, but is a priority as this file is getting ridiculously big.
 
-* Very important option `sp-navigate-consider-symbols` has been added. Setting this to `t` will make spartparens consider symbols and strings as balanced expressions. That is, `something-like-this` will be considered as balanced expression enclosed by pair of whitespace characters. This emulates the original behaviour of `forward-sexp` and it is recommended you set this option to `t` for best user experience.
+* Very important option `sp-navigate-consider-symbols` has been added. Setting this to `t` will make spartparens consider symbols and strings as balanced expressions. That is, `something-like-this` will be considered as balanced expression enclosed by pair of whitespace characters. This emulates the original behaviour of `forward-sexp` and it is recommended you set this option to `t` for best user experience. From commit 130 this is set to `t` by default!
 
 * From commit 118 forward, strings (as defined by mode syntax-table) are treated as other paired expressions. This means you can use `sp-up-sexp`, slurping and barfing on strings the same way you would use it with any other expression recognized by `sp-get-sexp`.
 
@@ -22,6 +22,9 @@ Table of content
     1. [Wrapping with tags](#wrapping-with-tags)
 7. [Automatic escaping](#automatic-escaping)
 8. [Navigation and S-exp manipulation](#navigation-and-s-exp-manipulation)
+    1. [Arguments and return values](#arguments-and-return-values)
+    2. [Navigation functions](#navigation-functions)
+    3. [Manipulation functions](#manipulation-functions)
 9. [Show smartparens mode](#show-smartparens-mode)
 10. [Example configuration](#example-configuration)
 
@@ -258,8 +261,6 @@ into
     (this-is-some-function (complex-function arg))
 
 all you need to do is `C-2 C-] (` (when `sp-select-next-thing` is bound to `C-]`). For more info, see the section about [navigation](#navigation-and-s-exp-manipulation).
-
-*Note: By default, `sp-select-next-thing` only operate on balanced expressions enclosed with pairs. If you want to also consider symbols, set `sp-navigate-consider-symbols` to `t`.*
 
 #### Repeated wrapping
 
