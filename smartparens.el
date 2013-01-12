@@ -1139,7 +1139,16 @@ info."
       (setq sp-previous-point (point)))
 
     (unless (sp-this-command-self-insert-p)
-      (setq sp-last-operation nil))))
+      (setq sp-last-operation nil))
+
+    ;; unless the last command was a self-insert, remove the
+    ;; information about the last wrapped region.  It is only used
+    ;; for: 1. deleting the wrapping immediately after the wrap,
+    ;; 2. re-wrapping region immediatelly after a sucessful wrap.
+    ;; Therefore,t he deletion should have no ill-effect.  If the
+    ;; necessity will arise, we can add a different flag.
+    (unless (sp-this-command-self-insert-p)
+      (setq sp-last-wrapped-region nil))))
 
 (defmacro sp-setaction (action &rest forms)
   `(if (not action)
