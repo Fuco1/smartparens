@@ -1140,11 +1140,10 @@ info."
 
   ad-do-it
 
-  (setq sp-recent-keys (cons
-                        (single-key-description last-command-event)
-                        (-take 19 sp-recent-keys)))
-
   (when smartparens-mode
+    (setq sp-recent-keys (cons
+                          (single-key-description last-command-event)
+                          (-take 19 sp-recent-keys)))
     (let (op action)
       (if (= 1 (ad-get-arg 0))
           (progn
