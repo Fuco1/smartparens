@@ -248,12 +248,21 @@ For example, for list (\"\\\\(\",\"\\}\"), (\"\\\",
                                     nil pair-list))
               "" t)))
 
-
-(defun sp-update-pair-triggers ()
+(defun sp-update-pair-triggers (&optional open)
   "Update the `sp-keymap' to include all trigger keys.  Trigger
 key is any character present in any pair.  Each trigger key must
-map to `self-insert-command'."
-  (let ((triggers (sp-get-trigger-keys sp-pair-list)))
+map to `self-insert-command'.
+
+The optional argument OPEN is a key to remove.  If non-nil,
+remove the trigger keys defined by this key and then re-insert
+the rest from `sp-pair-list'."
+  ;; remove all the bindings to the `sp-self-insert-command' from
+  ;; trigger keys in open
+  (when open
+    (--each (split-string open "" t)
+      (define-key sp-keymap it nil)))
+  ;; update the bindings
+  (let ((triggers (sp-get-trigger-keys (default-value 'sp-pair-list))))
     (--each triggers (define-key sp-keymap it 'sp-self-insert-command))))
 
 (defun sp-self-insert-command (arg)
@@ -709,8 +718,7 @@ should be banned by default.  BANNED-MODES can also be a list."
     (sp-add-local-ban-insert-pair open banned-modes)
     (sp-update-pair-triggers)
     ;; we need to update local versions of sp-pair-list in all the buffers
-    (sp-update-local-pairs-everywhere)
-  ))
+    (sp-update-local-pairs-everywhere)))
 
 (defun sp-remove-pair (open)
   "Remove a pair from the pair list.  See variable `sp-pair-list'
@@ -719,9 +727,8 @@ for current list."
                 (--remove (equal open (car it)) sp-pair-list))
   (sp-remove-local-ban-insert-pair open)
   (sp-remove-local-allow-insert-pair open)
-  (sp-update-pair-triggers)
-  (sp-update-local-pairs-everywhere)
-  )
+  (sp-update-pair-triggers open)
+  (sp-update-local-pairs-everywhere))
 
 (defun sp-add-local-pair (open close &rest modes)
   "Add a pair to the local pair list.  Use this only if you need
