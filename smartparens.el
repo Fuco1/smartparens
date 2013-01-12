@@ -641,6 +641,17 @@ beginning."
                        org-self-insert-command
                        sp-self-insert-command)))
 
+;; no need to load all of CL machinery for just two functions
+(unless (fboundp 'cadar)
+  (defun cadar (x)
+    "Return the `car' of the `cdr' of the `car' of X."
+    (car (cdr (car x)))))
+
+(unless (fbound 'signum)
+  (defun signum (x)
+    "Return 1 if X is positive, -1 if negative, 0 if zero."
+    (cond ((> x 0) 1) ((< x 0) -1) (t 0))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Adding/removing of pairs/bans/allows etc.
 
@@ -1097,6 +1108,9 @@ info."
      ;; if not in string, we must be in code
      (t (sp-insert-pair-in-code-p id mode)))))
 
+;; TODO: add a test for a symbol property that would tell this handler
+;; not to re=set `sp-last-operation'. Useful for example in "macro
+;; funcions" like `my-wrap-with-paren'.
 (defun sp-post-command-hook-handler ()
   "Handle the situation after some command has executed."
   (when smartparens-mode
@@ -2774,6 +2788,7 @@ expect positive arg."
   (let ((ok (sp-get-enclosing-sexp arg)))
     (when ok (sp-unwrap-sexp-1 ok))))
 
+;; TODO: add some sane automatic re-indentation/deletion of whitespace
 (defun sp-splice-sexp-killing-backward ()
   "Unwrap the current list and also kill all the content between
 start of this list and the point.
