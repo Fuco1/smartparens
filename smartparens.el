@@ -647,7 +647,7 @@ beginning."
     "Return the `car' of the `cdr' of the `car' of X."
     (car (cdr (car x)))))
 
-(unless (fbound 'signum)
+(unless (fboundp 'signum)
   (defun signum (x)
     "Return 1 if X is positive, -1 if negative, 0 if zero."
     (cond ((> x 0) 1) ((< x 0) -1) (t 0))))
