@@ -300,13 +300,13 @@ would execute if smartparens-mode were disabled."
   "Update local pairs after removal or at mode initialization."
   (setq sp-pair-list (default-value 'sp-pair-list))
   (--each sp-local-pair-list
-          (when (member major-mode (cdr it))
-            (let ((open (caar it))
-                  (close (cdar it)))
-              (setq sp-pair-list
-                    (--remove (equal open (car it)) sp-pair-list))
-              (setq sp-pair-list
-                    (sp-add-to-ordered-list (car it) sp-pair-list #'sp-order-pairs))))))
+    (when (member major-mode (cdr it))
+      (let ((open (caar it))
+            (close (cdar it)))
+        (setq sp-pair-list
+              (--remove (equal open (car it)) sp-pair-list))
+        (setq sp-pair-list
+              (sp-add-to-ordered-list (car it) sp-pair-list #'sp-order-pairs))))))
 
 (defun sp-update-local-pairs-everywhere ()
   "Run `sp-update-local-pairs' in all buffers.  This is necessary
@@ -697,14 +697,14 @@ pair entirely."
   "Add ELM to the LIST ordered by comparator ORDER.  The list is
 ordered in descending order."
   (if (not list) (list elm)
-  (if (funcall order elm (car list))
-      (cons elm list)
+    (if (funcall order elm (car list))
+        (cons elm list)
       (cons (car list) (sp-add-to-ordered-list elm (cdr list) order)))))
 
 (defun sp-order-pairs (a b)
   "Compare two pairs A and B by open pair length.  Return t if A
 is leq to B."
-    (>= (length (car a)) (length (car b))))
+  (>= (length (car a)) (length (car b))))
 
 (defun sp-order-tag-pairs (a b)
   "Compare two tag pairs A and B by trigger length.  Return t if A is geq to B."
@@ -718,7 +718,7 @@ Additional arguments are interpreted as modes where this pair
 should be banned by default.  BANNED-MODES can also be a list."
   (unless (--any? (equal open (car it)) sp-pair-list)
     (setq-default sp-pair-list
-                 (sp-add-to-ordered-list (cons open close) sp-pair-list #'sp-order-pairs))
+                  (sp-add-to-ordered-list (cons open close) sp-pair-list #'sp-order-pairs))
     (sp-add-local-ban-insert-pair open banned-modes)
     (sp-update-pair-triggers)
     ;; we need to update local versions of sp-pair-list in all the buffers
@@ -1001,8 +1001,7 @@ tracking the position of the point."
 
     (goto-char sp-wrap-point)
     (when can-delete
-      (insert sp-last-inserted-characters))
-  ))
+      (insert sp-last-inserted-characters))))
 
 (defun sp-pair-overlay-fix-highlight ()
   "Fix highlighting of the pair overlays.  Only the active overlay
@@ -1284,7 +1283,7 @@ This is used for navigation functions."
                        (= (length (sp-single-key-description last-command-event)) 1))
               (insert (sp-single-key-description last-command-event)))))
       (let* ((p (1- (point))) ;; we want the point *before* the
-                              ;; insertion of the character
+             ;; insertion of the character
              (m (mark))
              (ostart (if (> p m) m p))
              (oend (if (> p m) p m))
@@ -1350,10 +1349,10 @@ This is used for navigation functions."
 
             ;; insert the possible pair into end overlay
             (let ((close-pair (cdr (--last (string-prefix-p
-                                             sp-last-inserted-characters
-                                             (car it))
-                                            sp-pair-list))))
-               (when close-pair
+                                            sp-last-inserted-characters
+                                            (car it))
+                                           sp-pair-list))))
+              (when close-pair
                 (save-excursion
                   (goto-char oend)
                   (insert close-pair))))
@@ -1521,27 +1520,27 @@ wrapped region, exluding any existing possible wrap."
       (insert (apply #'concat tag-close)))
 
     (if (cdr (split-string (nth 0 active-tag) "_"))
-      (let ((oleft (make-overlay
-                    (+ ostart (length (car tag-open)))
-                    (+ ostart (length (car tag-open)))
-                    nil nil t))
-            (oright (make-overlay
-                     (+ oend o (length (car tag-close)))
-                     (+ oend o (length (car tag-close)))
-                     nil nil t)))
-        (setq sp-wrap-tag-overlays (cons oleft oright))
-        (when sp-highlight-wrap-tag-overlay
-          (overlay-put oleft 'face 'sp-wrap-tag-overlay-face)
-          (overlay-put oright 'face 'sp-wrap-tag-overlay-face))
-        (overlay-put oleft 'priority 100)
-        (overlay-put oright 'priority 100)
-        (overlay-put oleft 'keymap sp-wrap-tag-overlay-keymap)
-        (overlay-put oleft 'type 'wrap-tag)
-        (overlay-put oleft 'active-tag active-tag)
-        (overlay-put oleft 'modification-hooks '(sp-wrap-tag-update))
-        (overlay-put oleft 'insert-in-front-hooks '(sp-wrap-tag-update))
-        (overlay-put oleft 'insert-behind-hooks '(sp-wrap-tag-update))
-        (add-hook 'post-command-hook 'sp-wrap-tag-post-command-handler))
+        (let ((oleft (make-overlay
+                      (+ ostart (length (car tag-open)))
+                      (+ ostart (length (car tag-open)))
+                      nil nil t))
+              (oright (make-overlay
+                       (+ oend o (length (car tag-close)))
+                       (+ oend o (length (car tag-close)))
+                       nil nil t)))
+          (setq sp-wrap-tag-overlays (cons oleft oright))
+          (when sp-highlight-wrap-tag-overlay
+            (overlay-put oleft 'face 'sp-wrap-tag-overlay-face)
+            (overlay-put oright 'face 'sp-wrap-tag-overlay-face))
+          (overlay-put oleft 'priority 100)
+          (overlay-put oright 'priority 100)
+          (overlay-put oleft 'keymap sp-wrap-tag-overlay-keymap)
+          (overlay-put oleft 'type 'wrap-tag)
+          (overlay-put oleft 'active-tag active-tag)
+          (overlay-put oleft 'modification-hooks '(sp-wrap-tag-update))
+          (overlay-put oleft 'insert-in-front-hooks '(sp-wrap-tag-update))
+          (overlay-put oleft 'insert-behind-hooks '(sp-wrap-tag-update))
+          (add-hook 'post-command-hook 'sp-wrap-tag-post-command-handler))
       ;; if the tag didn't have any substitution, that means we only
       ;; insert the "brackets" and not enter the tag-insertion mode.
       ;; Therefore we move the point to the original position, so it
@@ -2544,8 +2543,8 @@ information, see the documentation of sp-kill-sexp."
                      (insert " ")
                      (setq ins-space -1))
                    (goto-char ,(if fw-1
-                                    '(- (cadr next-thing) (length (nth 3 ok)) ins-space)
-                                  '(car next-thing)))
+                                   '(- (cadr next-thing) (length (nth 3 ok)) ins-space)
+                                 '(car next-thing)))
                    (insert (nth ,(if fw-1 '3 '2) ok))
                    (setq n (1- n)))
                (message "We can't slurp without breaking strictly balanced expression. Ignored.")
