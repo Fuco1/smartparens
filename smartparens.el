@@ -1430,15 +1430,15 @@ This is used for navigation functions."
               (setq sp-last-wrapped-region (list s e open-pair close-pair))
               )))))))
 
-(defmacro sp-get-possible-tag-1 (recent)
+;; TODO: maybe it'd be cleaner to change the format of
+;; `sp-tag-pair-list' instead of this mapcat map orgy.
+(defun sp-get-active-tag-1 (recent)
   "Internal.  Return the first tag that matches its trigger to
-the prefix of RECENT."
-  `(--first (string-prefix-p ,recent (car it)) sp-tag-pair-list))
-
-(defmacro sp-get-active-tag-1 (possible)
-  "Internal.  Get active tag.  POSSIBLE is the entry from
-`sp-tag-pair-list' we want to examine."
-  `(cdr (--first (member major-mode (car it)) (cdr ,possible))))
+the prefix of RECENT and is allowed in current mode.  Such a tag
+should be unique."
+  (--first (member major-mode (cadr it))
+           (-mapcat (lambda (x) (--map (-concat (list (car x)) it) (cdr x)))
+                    (--filter (string-prefix-p recent (car it)) sp-tag-pair-list))))
 
 (defun sp-wrap-tag-region-init ()
   "Init a region wrapping with a tag pair.  This is called from
@@ -1452,14 +1452,13 @@ tag.  The tag always gets priority from the regular wrap."
     (if sp-wrap-overlays ;; called from within the wrap-mode
         (let* ((oleft (car sp-wrap-overlays))
                (oright (cdr sp-wrap-overlays))
-               (possible-tag (sp-get-possible-tag-1 sp-last-inserted-characters))
-               (active-tag (sp-get-active-tag-1 possible-tag)))
+               (active-tag (sp-get-active-tag-1 sp-last-inserted-characters)))
           (when active-tag
             ;; if we've found a tag trigger, enter the tag editing mode
-            (if (eq (length sp-last-inserted-characters) (length (car possible-tag)))
+            (if (eq (length sp-last-inserted-characters) (length (car active-tag)))
                 (progn
                   (delete-region (overlay-start oright) (overlay-end oright))
-                  (sp-wrap-tag-create-overlays possible-tag active-tag
+                  (sp-wrap-tag-create-overlays (car active-tag) (cddr active-tag)
                                                (overlay-start oleft)
                                                (-
                                                 (overlay-start oright)
@@ -1476,9 +1475,8 @@ tag.  The tag always gets priority from the regular wrap."
              (m (mark))
              (ostart (if (> p m) m p))
              (oend (if (> p m) p m))
-             (possible-tag (sp-get-possible-tag-1
-                            (sp-single-key-description last-command-event)))
-             (active-tag (sp-get-active-tag-1 possible-tag)))
+             (active-tag (sp-get-active-tag-1
+                            (sp-single-key-description last-command-event))))
         (when active-tag
           (setq sp-last-inserted-characters (sp-single-key-description last-command-event))
           (setq sp-wrap-point p)
@@ -1488,11 +1486,11 @@ tag.  The tag always gets priority from the regular wrap."
             (goto-char ostart)
             (insert sp-last-inserted-characters)
             (setq oend (1+ oend)))
-          (if (= 1 (length (car possible-tag)))
+          (if (= 1 (length (car active-tag)))
               ;; the tag is only 1 character long, we can enter
               ;; insertion mode right away
               ;; I don't know why it needs 1- here, but it does :D
-              (sp-wrap-tag-create-overlays possible-tag active-tag ostart (1- oend))
+              (sp-wrap-tag-create-overlays (car active-tag) (cddr active-tag) ostart (1- oend))
             ;; we don't have a wrap, but we can maybe start a tag
             ;; wrap.  So just init the wrapping overlays as usual, and
             ;; let `sp-wrap-region' handle it
@@ -1509,7 +1507,7 @@ tag.  The tag always gets priority from the regular wrap."
               (goto-char (1+ ostart)))
             ))))))
 
-(defun sp-wrap-tag-create-overlays (possible-tag active-tag ostart oend)
+(defun sp-wrap-tag-create-overlays (tag active-tag ostart oend)
   "Create the wrap tag overlays.
 
 OSTART is the start of the modified area, including the pair trigger string.
@@ -1523,7 +1521,7 @@ wrapped region, exluding any existing possible wrap."
     ;; setup the wrap pairs
     ;; opening one
     (goto-char ostart)
-    (delete-char (length (car possible-tag)))
+    (delete-char (length tag))
     (insert (apply #'concat tag-open))
     (backward-char (length (cadr tag-open)))
 
