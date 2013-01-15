@@ -3098,6 +3098,63 @@ support custom pairs."
 (add-hook 'post-command-hook 'sp-post-command-hook-handler)
 (add-hook 'pre-command-hook 'sp-pre-command-hook-handler)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Default configuration
+
+;; ban insertion of apostrophe (') in strings, as it is used as
+;; contraction marker in many natural languages
+(sp-add-ban-insert-pair-in-string "'")
+
+;; Also disable it in common text modes
+(sp-add-local-ban-insert-pair "'" '(
+                                    fundamental-mode
+                                    text-mode
+                                    tex-mode
+                                    plain-tex-mode
+                                    latex-mode
+                                    markdown-mode
+                                    gfm-mode
+                                    rst-mode
+                                    org-mode
+                                    log-edit-mode
+                                    ))
+
+;; emacs is lisp hacking enviroment, so we set up some most common
+;; lisp modes too
+(sp-with '(
+           emacs-lisp-mode
+           inferior-emacs-lisp-mode
+           lisp-interaction-mode
+           scheme-mode
+           common-lisp-mode
+           )
+  ;; disable ' everywhere, it's the quote character!
+  (sp-add-local-ban-insert-pair "'")
+  ;; also disable the pseudo-quote inside code.  We keep it in
+  ;; commends and strings for hyperlinks
+  (sp-add-local-ban-insert-pair-in-code "`"))
+
+;; markdown based modes
+(sp-with '(
+           markdown-mode
+           gfm-mode
+           rst-mode
+           )
+  ;; overload the `' pair with ``, which is used for inline
+  ;; code in markdown
+  (sp-add-local-pair "`" "`"))
+
+;; LaTeX modes
+(sp-add-pair "$" "$")
+(sp-with '(
+           tex-mode
+           plain-tex-mode
+           latex-mode
+           )
+  ;; allow the dollar pair only in LaTeX related modes.  It
+  ;; often marks a variable elsewhere
+  (sp-add-local-allow-insert-pair "$"))
+
 (provide 'smartparens)
 
 ;;; smartparens.el ends here
