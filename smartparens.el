@@ -404,22 +404,27 @@ it would produce (|word."
   :type 'boolean
   :group 'smartparens)
 
-(defcustom sp-autoinsert-quote-if-followed-by-closing-pair t
+(defcustom sp-autoinsert-quote-if-followed-by-closing-pair nil
   "If non-nil, auto insert string quote pair even if the point is
-followed by (any) closing pair.  This only activates if point is
-inside a string.  In other words, if string is not closed and next
-character is a closing pair.
+followed by (any) closing pair.  This option only changes
+behaviour of the insertion process if point is inside a string.
+In other words, if string is not closed and next character is a
+closing pair.
 
 For example, in a situation like this:
 
   [\"some text|]
 
 after pressing \", one would probably want to insert the closing
-quote, not a nested pair, to close the string literal in the array.
-To enable such behaviour, set this variable to nil.
+quote, not a nested pair (\\\"\\\"), to close the string literal
+in the array.  To enable such behaviour, set this variable to
+nil.
 
-Note: Default value is set to t due to backward compatibility, even if
-it is probably not the desired default setting."
+Note: the values of this varible seem to be backward, i.e. it is
+\"enabled\" when the value is nil.  This was an unfortunate
+choice of wording.  It is kept this way to preserve backward
+compatibility.  The intended meaning is \"insert the pair if
+followed by closing pair?\", t = yes."
   :type 'boolean
   :group 'smartparens)
 
