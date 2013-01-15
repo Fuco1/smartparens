@@ -1,4 +1,4 @@
-<span style="font-size: 26px;">Since the readme file spanned more than 600 lines and grew very unorganized and difficult to manage, documentation has moved to [github smartparens wiki][wiki]</span>
+# Since the readme file spanned more than 600 lines and grew very unorganized and difficult to manage, documentation has moved to [github smartparens wiki][wiki].
 
 # Smartparens
 
@@ -7,5 +7,5 @@ Smartparens is modern minor mode for Emacs that *deals with parens pairs and tri
 For the complete picture of what is it about, visit the [documentation wiki][wiki].
 
 [wiki]: https://github.com/Fuco1/smartparens/wiki
-[wiki-what]: https://github.com/Fuco1/smartparens/wiki#what-is-this-package-about?
+[wiki-what]: https://github.com/Fuco1/smartparens/wiki#wiki-what-is-this-package-about?
 [wiki-new]: https://github.com/Fuco1/smartparens/wiki#wiki-information-for-new-users
