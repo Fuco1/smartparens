@@ -2513,15 +2513,19 @@ Examples. Prefix argument is shown after the example in
           (setq n (1- n))))
       (when ok
         (kill-region b e)
-        ;; kill useless junk whitespace
+        ;; kill useless junk whitespace.
         (append-next-kill)
         (kill-region (point)
                      (progn
-                       (eval
-                        `(,(if (> arg 0)
-                               'skip-chars-forward
-                             'skip-chars-backward) " \t"))
-                       (point))))))))
+                       (if (> arg 0)
+                           (progn
+                             (skip-chars-forward " \t")
+                             (when (looking-back " ")
+                               (backward-char)))
+                         (skip-chars-backward " \t")
+                         (when (looking-at " ") (forward-char)))
+                       (point)))
+        (indent-according-to-mode))))))
 
 (defun sp-backward-kill-sexp (&optional arg)
   "This is exactly like calling `sp-kill-sexp' with -ARG.  In
