@@ -356,8 +356,7 @@ to update all the buffer-local definitions."
 (defun turn-on-smartparens-mode ()
   "Turn on `smartparens-mode'."
   (interactive)
-  (unless (or (member major-mode sp-ignore-modes-list)
-              (minibufferp))
+  (unless (member major-mode sp-ignore-modes-list)
     (smartparens-mode t)))
 
 ;;;###autoload
@@ -3029,8 +3028,7 @@ support custom pairs."
 (defun turn-on-show-smartparens-mode ()
   "Turn on `show-smartparens-mode'."
   (interactive)
-  (unless (or (member major-mode sp-ignore-modes-list)
-              (minibufferp))
+  (unless (member major-mode sp-ignore-modes-list)
     (show-smartparens-mode t)))
 
 ;;;###autoload
