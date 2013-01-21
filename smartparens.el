@@ -2975,8 +2975,8 @@ considered balanced expressions."
                 (setq last (sp-forward-sexp (* (signum arg) (1- (abs arg))))))
               (if (> arg 0) (cadr last) (car last))))))
     (push-mark nil t)
-    (set-mark b)
-    (goto-char e)))
+    (set-mark (save-excursion (goto-char b) (skip-syntax-backward "'") (point)))
+    (goto-char  (save-excursion (goto-char e) (skip-syntax-backward "'") (point)))))
 
 (defun sp-select-previous-thing (&optional arg)
   "Set active region over ARG previous things as recognized by
