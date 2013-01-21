@@ -2496,12 +2496,21 @@ Examples. Prefix argument is shown after the example in
               (while (and lst (>= (point) (cadar lst))) (setq last (car lst)) (!cdr lst))
               (kill-region (if last (cadr last) inside) outside))
           (while (and lst (> (point) (caar lst))) (!cdr lst))
-          (kill-region (if lst (caar lst) outside) inside))))
+          (kill-region (if lst
+                           (if (or (eq (char-syntax (following-char)) ?')
+                                   (eq (char-syntax (preceding-char)) ?'))
+                               (if (caadr lst) (caadr lst) outside)
+                             (caar lst))
+                         outside) inside))))
      ;; kill the enclosing list
      ((and raw
            (= n 16))
       (let ((lst (sp-backward-up-sexp)))
-        (kill-region (car lst) (cadr lst))))
+        (kill-region (save-excursion
+                       (goto-char (car lst))
+                       (skip-syntax-backward "'")
+                       (point))
+                     (cadr lst))))
      ;; regular kill
      (t
       (save-excursion
@@ -2511,7 +2520,10 @@ Examples. Prefix argument is shown after the example in
           (when (> (cadr ok) e) (setq e (cadr ok)))
           (setq n (1- n))))
       (when ok
-        (kill-region b e)
+        (kill-region (save-excursion
+                       (goto-char b)
+                       (skip-syntax-backward "'")
+                       (point)) e)
         ;; kill useless junk whitespace.
         (append-next-kill)
         (kill-region (point)
