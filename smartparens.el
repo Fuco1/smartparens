@@ -2831,7 +2831,10 @@ syntax classes."
         (lo (length (nth 2 sexp)))
         (lc (length (nth 3 sexp))))
     (delete-region s (+ s lo))
-    (delete-region (- e lo lc) (- e lo))))
+    (delete-region (- e lo lc) (- e lo))
+    (save-excursion
+      (goto-char s)
+      (delete-region (point) (progn (skip-syntax-backward "'") (point))))))
 
 (defun sp-unwrap-sexp (&optional arg)
   "Unwrap the following expression.  With arg N, unwrap Nth expression
@@ -2859,6 +2862,17 @@ expect positive arg."
   (let ((ok (sp-get-enclosing-sexp arg)))
     (when ok (sp-unwrap-sexp-1 ok))))
 
+(defun sp-get-sexp-prefix (sexp)
+  "Return the prefix of SEXP.  Prefix is any continuous string of
+  characters from expression prefix syntax class."
+  (save-excursion
+    (goto-char (car sexp))
+    (let* ((e (point))
+           (b (progn (skip-syntax-backward "'") (point)))
+           (prefix (buffer-substring-no-properties b e))
+           (length (- e b)))
+      (list b e prefix length))))
+
 ;; TODO: add some sane automatic re-indentation/deletion of whitespace
 (defun sp-splice-sexp-killing-backward ()
   "Unwrap the current list and also kill all the content between
@@ -2868,10 +2882,11 @@ Examples:
 
   (foo (let ((x 5)) | (sqrt n)) bar) -> (foo | (sqrt n) bar)"
   (interactive)
-  (let ((ok (sp-get-enclosing-sexp 1)))
+  (let* ((ok (sp-get-enclosing-sexp 1))
+         (prefix (sp-get-sexp-prefix ok)))
     (when ok
       (sp-unwrap-sexp-1 ok)
-      (delete-region (car ok) (point)))))
+      (delete-region (car prefix) (point)))))
 
 (defun sp-splice-sexp-killing-forward ()
   "Unwrap the current list and also kill all the content between the
@@ -2881,10 +2896,11 @@ Examples:
 
   (a (b c| d e) f) -> (a b c| f)"
   (interactive)
-  (let ((ok (sp-get-enclosing-sexp 1)))
+  (let* ((ok (sp-get-enclosing-sexp 1))
+         (prefix (sp-get-sexp-prefix ok)))
     (when ok
       (sp-unwrap-sexp-1 ok)
-      (delete-region (point) (- (cadr ok) (length (nth 2 ok)) (length (nth 3 ok)))))))
+      (delete-region (point) (- (cadr ok) (length (nth 2 ok)) (length (nth 3 ok)) (nth 3 prefix))))))
 
 (defun sp-splice-sexp-killing-around (&optional arg)
   "Unwrap the current list and also kill everything inside save
@@ -2898,14 +2914,15 @@ Examples:
   (- (car x) |a 3) -> (car x)| ;; with arg = -1"
   (interactive "p")
   (setq arg (or arg 1))
-  (let ((ok (sp-get-enclosing-sexp)))
+  (let* ((ok (sp-get-enclosing-sexp))
+         (prefix (sp-get-sexp-prefix ok)))
     (when ok
       (sp-unwrap-sexp-1 ok)
       (sp-select-next-thing-exchange arg)
-      (let* ((ob (car ok))
+      (let* ((ob (- (car ok) (nth 3 prefix)))
              (b (region-beginning))
              (e (- (region-end) (- b ob)))
-             (oe (- (cadr ok) (length (nth 2 ok)) (length (nth 3 ok)) (- b ob))))
+             (oe (- (cadr ok) (length (nth 2 ok)) (length (nth 3 ok)) (- b ob) (nth 3 prefix))))
         (delete-region ob b)
         (delete-region e oe)))))
 
