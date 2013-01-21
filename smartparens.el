@@ -2547,6 +2547,7 @@ information, see the documentation of sp-kill-sexp."
                   (b (and ok (car ok)))
                   (e (and ok (cadr ok)))
                   (ins-space 0)
+                  ,@(when (not fw-1) '((prefix-len) prefix))
                   next-thing)
              (if ok
                  (save-excursion
@@ -2558,12 +2559,20 @@ information, see the documentation of sp-kill-sexp."
                      (setq next-thing (sp-get-thing ,(if fw-1 'nil 't))))
                    (goto-char (,(if fw-1 'cadr 'car) ok))
                    (delete-char (,(if fw-1 '- '+) (length (nth ,(if fw-1 '3 '2) ok))))
+                   ;; detecting prefix, see sp-barf-sexp-1
+                   ,(when (not fw-1)
+                      '(when (sp-looking-back "\\s'+" nil t)
+                         (setq prefix (match-string 0))
+                         (setq prefix-len (length (match-string 0)))
+                         (delete-char (- prefix-len))))
                    (when (= (,(if fw-1 'cadr 'car) ok) (,(if fw-1 'car 'cadr) next-thing))
                      (insert " ")
                      (setq ins-space -1))
                    (goto-char ,(if fw-1
                                    '(- (cadr next-thing) (length (nth 3 ok)) ins-space)
                                  '(car next-thing)))
+                   ,@(when (not fw-1) '((skip-syntax-backward "'")
+                                        (when prefix (insert prefix))))
                    (insert (nth ,(if fw-1 '3 '2) ok))
                    (setq n (1- n)))
                (message "We can't slurp without breaking strictly balanced expression. Ignored.")
@@ -2613,6 +2622,7 @@ Examples:
   `(let ((n (abs arg)))
      (while (> n 0)
        (let* ((ok (sp-get-enclosing-sexp))
+              ,@(when (not fw-1) '((prefix nil) (prefix-len 0)))
               next-thing)
          (if ok
              (save-excursion
@@ -2627,9 +2637,21 @@ Examples:
                    (progn
                      (delete-char ,(if fw-1 '(length (nth 3 ok))
                                      '(- (length (nth 2 ok)))))
+                     ;; detecting the expression prefix... this needs
+                     ;; to be refactored! (the whole sp-get-sexp
+                     ;; format could use a rework)
+                     ,(when (not fw-1)
+                        '(when (sp-looking-back "\\s'+" nil t)
+                           (setq prefix (match-string 0))
+                           (setq prefix-len (length (match-string 0)))
+                           (delete-char (- prefix-len))))
                      (goto-char ,(if fw-1 '(car next-thing)
-                                   '(- (cadr next-thing) (length (nth 2 ok)))))
-                     ,(if fw-1 '(sp-skip-backward-to-symbol t) '(sp-skip-forward-to-symbol t))
+                                   '(- (cadr next-thing) (length (nth 2 ok)) prefix-len)))
+                     ,(if fw-1 '(sp-skip-backward-to-symbol t)
+                        '(progn ;; again dealing with prefix
+                           (sp-skip-forward-to-symbol t)
+                           (skip-syntax-backward "'")
+                           (when prefix (insert prefix))))
                      (insert (nth ,(if fw-1 '3 '2) ok))
                      (setq n (1- n)))
                  (message "The expression is empty.")
