@@ -964,6 +964,12 @@ as usual.")
 (define-key sp-wrap-tag-overlay-keymap (kbd "C-e") 'sp-wrap-tag-end)
 
 
+(defun sp--overlays-at (&optional pos)
+  "Simple wrapper of `overlays-at' to get only overlays from
+smartparens.  Smartparens functions must use this function
+instead of `overlays-at' directly."
+  (--filter (overlay-get it 'type) (overlays-at (or pos (point)))))
+
 (defun sp-point-in-overlay-p (overlay)
   "Return t if point is in OVERLAY."
   (and (< (point) (overlay-end overlay))
@@ -977,7 +983,7 @@ as usual.")
   "Get active overlay.  Active overlay is the shortest overlay at
 point.  Optional argument TYPE restrict overlays to only those
 with given type."
-  (let ((overlays (overlays-at (point))))
+  (let ((overlays (sp--overlays-at)))
     (when type
       (setq overlays (--filter (eq (overlay-get it 'type) type) overlays)))
     (cond
@@ -1023,7 +1029,7 @@ tracking the position of the point."
 (defun sp-pair-overlay-fix-highlight ()
   "Fix highlighting of the pair overlays.  Only the active overlay
 should be highlighted."
-  (--each (overlays-at (point)) (overlay-put it 'face nil))
+  (--each (sp--overlays-at) (overlay-put it 'face nil))
   (let* ((active (sp-get-active-overlay))
          (type (and active (overlay-get active 'type))))
     (if active
