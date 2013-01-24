@@ -685,14 +685,15 @@ beginning."
   "Return 1 if X is positive, -1 if negative, 0 if zero."
   (cond ((> x 0) 1) ((< x 0) -1) (t 0)))
 
-(defun sp--get-substitute (list)
-  "Internal.  Only ever call this from sp-get!  This function do
+(eval-when-compile
+  (defun sp--get-substitute (list)
+    "Internal.  Only ever call this from sp-get!  This function do
 the replacement of all the keywords with actual calls to sp-get."
-  (if (listp list)
-      (-map 'sp--get-substitute list)
-    (if (memq list keyword-list)
-        `(sp-get ,struct ,list)
-      list)))
+    (if (listp list)
+        (mapcar 'sp--get-substitute list)
+      (if (memq list keyword-list)
+          `(sp-get ,struct ,list)
+        list))))
 
 ;; The structure returned by sp-get-sexp is a plist with following properties:
 ;;
