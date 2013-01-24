@@ -685,7 +685,7 @@ beginning."
   "Return 1 if X is positive, -1 if negative, 0 if zero."
   (cond ((> x 0) 1) ((< x 0) -1) (t 0)))
 
-(eval-when-compile
+(eval-when (compile eval load)
   (defun sp--get-substitute (list)
     "Internal.  Only ever call this from sp-get!  This function do
 the replacement of all the keywords with actual calls to sp-get."
