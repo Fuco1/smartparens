@@ -634,22 +634,24 @@ tag on which we want to operate."
 (defun sp-point-in-string (&optional p)
   "Return t if point is inside string or documentation string.  If
 optional argument P is present, test this instead of point."
-  (save-excursion
-    (nth 3 (syntax-ppss p))))
+  (ignore-errors
+    (save-excursion
+      (nth 3 (syntax-ppss p)))))
 
 (defun sp-point-in-comment (&optional p)
   "Return t if point is inside comment.  If optional argument P is
 present, test this instead off point."
   (setq p (or p (point)))
-  (save-excursion
-    (or (nth 4 (syntax-ppss p))
-        ;; this also test opening and closing comment delimiters... we
-        ;; need to chack that it is not newline, which is in "comment
-        ;; ender" class in elisp-mode, but we just want it to be
-        ;; treated as whitespace
-        (and (< p (point-max))
-             (memq (char-syntax (char-after p)) '(?< ?>))
-             (not (eq (char-after p) ?\n))))))
+  (ignore-errors
+    (save-excursion
+      (or (nth 4 (syntax-ppss p))
+          ;; this also test opening and closing comment delimiters... we
+          ;; need to chack that it is not newline, which is in "comment
+          ;; ender" class in elisp-mode, but we just want it to be
+          ;; treated as whitespace
+          (and (< p (point-max))
+               (memq (char-syntax (char-after p)) '(?< ?>))
+               (not (eq (char-after p) ?\n)))))))
 
 (defun sp-point-in-string-or-comment (&optional p)
   "Return t if point is inside string, documentation string or a
