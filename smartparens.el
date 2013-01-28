@@ -2210,7 +2210,8 @@ of opening/closing delimiter or prefix)."
                   (if (equal ms open)
                       (setq depth (1+ depth))
                     (setq depth (1- depth))))
-              (message "Search failed.  This means there is unmatched expression somewhere or we are at the beginning/end of file.")
+              (unless (minibufferp)
+                (message "Search failed.  This means there is unmatched expression somewhere or we are at the beginning/end of file."))
               (setq depth -1)
               (setq failure t)))
           (if forward
@@ -2220,7 +2221,8 @@ of opening/closing delimiter or prefix)."
             (cond
              ((or (and (sp-point-in-string-or-comment s) (not (sp-point-in-string-or-comment e)))
                   (and (not (sp-point-in-string-or-comment s)) (sp-point-in-string-or-comment e)))
-              (message "Opening or closing pair is inside a string or comment and matching pair is outside (or vice versa).  Ignored.")
+              (unless (minibufferp)
+                (message "Opening or closing pair is inside a string or comment and matching pair is outside (or vice versa).  Ignored."))
               nil)
              (t (list :beg s
                       :end e
