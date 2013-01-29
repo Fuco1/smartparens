@@ -1023,6 +1023,224 @@ modes MODES if the point is inside code.  If MODES is nil,
 remove all the modes"
   (sp-remove-from-permission-list open sp-local-allow-insert-pair-in-code modes))
 
+(defvar sp-pairs '((t
+                    .
+                    ((:open "\\\\(" :close "\\\\)" :actions (:insert :wrap))
+                     (:open "\\{"   :close "\\}"   :actions (:insert :wrap))
+                     (:open "\\("   :close "\\)"   :actions (:insert :wrap))
+                     (:open "\\\""  :close "\\\""  :actions (:insert :wrap))
+                     (:open "/*"    :close "*/"    :actions (:insert :wrap))
+                     (:open "\""    :close "\""    :actions (:insert :wrap))
+                     (:open "'"     :close "'"     :actions (:insert :wrap))
+                     (:open "("     :close ")"     :actions (:insert :wrap))
+                     (:open "["     :close "]"     :actions (:insert :wrap))
+                     (:open "{"     :close "}"     :actions (:insert :wrap))
+                     (:open "`"     :close "'"     :actions (:insert :wrap)))))
+  "List of pair definitions.  Maximum length of opening or
+closing pair is `sp-max-pair-length-c' characters.")
+
+(defun sp--merge-prop (old-pair new-pair prop)
+  "Merge a property PROP from NEW-PAIR into OLD-PAIR.  The list
+OLD-PAIR must not be nil."
+  (let ((new-val (plist-get new-pair prop)))
+    (case prop
+      (:close (plist-put old-pair :close new-val))
+      ((:actions :filters :pre-handlers :post-handlers)
+       (case (car new-val)
+         (:add (plist-put old-pair prop (-union (plist-get old-pair prop) (cdr new-val))))
+         (:rem (plist-put old-pair prop (-difference (plist-get old-pair prop) (cdr new-val))))
+         (t
+          (cond
+           ;; this means we have ((:add ...) (:rem ...)) argument
+           ((listp (car new-val))
+            (let ((a (assq :add new-val))
+                  (r (assq :rem new-val)))
+              (plist-put old-pair prop (-union (plist-get old-pair prop) (cdr a)))
+              (plist-put old-pair prop (-difference (plist-get old-pair prop) (cdr r)))))
+           (t
+            (plist-put old-pair prop (plist-get new-pair prop))))))))))
+
+(defun sp--merge-pairs (old-pair new-pair)
+  "Merge OLD-PAIR and NEW-PAIR.  This modifies the OLD-PAIR by
+side effect."
+  (let ((ind 0))
+    (--each new-pair
+      (when (= 0 (% ind 2))
+        (sp--merge-prop old-pair new-pair it))
+      (setq ind (1+ ind))))
+  old-pair)
+
+(defun sp--update-pair (old-pair new-pair)
+  "Copy properties from NEW-PAIR to OLD-PAIR.  The list OLD-PAIR
+must not be nil."
+  (let ((ind 0))
+    (--each new-pair
+      (when (= 0 (% ind 2))
+        (plist-put old-pair it (plist-get new-pair it)))
+      (setq ind (1+ ind))))
+  old-pair)
+
+(defun sp--update-pair-list (pair mode)
+  "Update the PAIR for major mode MODE.  If this
+pair is not defined yet for this major mode, add it.  If this
+pair is already defined, replace all the properties in the old
+definition with values from PAIR."
+  ;; get the structure relevant to mode.  t means global setting
+  (let ((struct (--first (eq mode (car it)) sp-pairs)))
+    (if (not struct)
+        (!cons (cons mode (list pair)) sp-pairs)
+      ;; this does NOT merge changes, only replace the values at
+      ;; properties.  Open delimiter works as ID as usual.
+      (let ((old-pair (--first (equal (plist-get pair :open)
+                                      (plist-get it :open))
+                               (cdr struct))))
+        (if (not old-pair)
+            (setcdr struct (cons pair (cdr struct)))
+          (sp--update-pair old-pair pair)))))
+  sp-pairs)
+
+(defun sp--get-pair (open list)
+  "Get the pair from list."
+  (--first (equal open (plist-get it :open)) list))
+
+(defun sp-get-pair (open mode &optional prop)
+  "Get the definition of pair identified by OPEN (opening
+delimiter) for major mode MODE (or global definition if MODE is
+t).
+
+If PROP is non-nil, return the value of that property instead."
+  (let ((pair (sp--get-pair open (cdr (assq mode sp-pairs)))))
+    (if prop
+        (plist-get pair prop)
+      pair)))
+
+(defun sp--merge-with-local (mode)
+  "Merge the global pairs definitions with definitions for major
+mode MODE."
+  (let* ((global (cdr (assq t sp-pairs)))
+         (local (cdr (assq mode sp-pairs)))
+         (result nil))
+    ;; copy the pairs on global list first.  This creates new plists
+    ;; so we can modify them without changing the global "template"
+    ;; values.
+    (dolist (old-pair global)
+      (!cons (list :open (plist-get old-pair :open)) result))
+
+    ;; merge the global list with result.  This basically "deep copy"
+    ;; global list.  We use `sp--merge-pairs' because it also clones
+    ;; the list properties (actions, filters etc.)
+    (dolist (new-pair global)
+      (let ((old-pair (sp--get-pair (plist-get new-pair :open) result)))
+        (sp--merge-pairs old-pair new-pair)))
+
+    ;; for each local pair, merge it into the global definition
+    (dolist (new-pair local)
+      (let ((old-pair (sp--get-pair (plist-get new-pair :open) result)))
+        (if old-pair
+            (sp--merge-pairs old-pair new-pair)
+          ;; pair does not have global definition, simply copy it over
+          (!cons
+           ;; this "deep copy" the new-pair
+           (sp--merge-pairs (list :open (plist-get new-pair :open)) new-pair)
+           result))))
+    result))
+
+(defun* sp-pair (open
+                 close
+                 &key
+                 (actions '(:wrap :insert))
+                 filters
+                 pre-handlers
+                 post-handlers)
+  "Adds a pair definition.
+
+OPEN is the opening delimiter.  Every pair is uniquely determined by
+this string.
+
+CLOSE is the closing delimiter.
+
+ACTIONS is a list of actions that smartparens will perform with this
+pair.  Possible values are:
+
+- \":insert\" - autoinsert the closing pair when opening pair is
+- typed.  \":wrap\" - wrap an active region with the pair defined by
+- opening delimiter if this is typed while region is active.
+
+FILTERS: list of predicates that test whether the action should
+be performed in current context.  The values in the list should
+be names of the predicates (that is symbols, not lambdas!).  They
+should accept three arguments: opening delimiter (which uniquely
+determines the pair), action constant and context (if the point
+is in string/code).
+
+PRE-HANDLERS: list of functions that are called before there has been
+some action caused by this pair.  The arguments are the same as for
+filters.
+
+POST-HANDLERS: list of functions that are called after there has been
+some action caused by this pair.  The arguments are the same as for
+filters."
+  (let ((pair nil))
+    (setq pair (plist-put pair :open open))
+    (plist-put pair :close close)
+    (dolist (arg '((:actions . actions)
+                   (:filters . filters)
+                   (:pre-handlers . pre-handlers)
+                   (:post-handlers . post-handlers)))
+      ;; We only consider "nil" as a proper value if the property
+      ;; already exists in the pair.  In that case, we will set it to
+      ;; nil.  This allows for removing properties in global
+      ;; definitions.
+      (when (or (eval (cdr arg))
+                (sp-get-pair open t (car arg)))
+        (plist-put pair (car arg) (eval (cdr arg)))))
+    (sp--update-pair-list pair t))
+  sp-pairs)
+
+(defun* sp-local-pair (modes
+                       open
+                       close
+                       &key
+                       (actions '(:add))
+                       (filters '(:add))
+                       (pre-handlers '(:add))
+                       (post-handlers '(:add)))
+  "Adds a local pair definition or override a global definition.
+
+MODES can be a single mode or a list of modes where these settings
+should be applied.
+
+The rest of the arguments have same semantics as in `sp-pair'.
+
+The pairs are uniquely identified by the opening delimiter.  If you
+replace the closing one with a different string in the local
+definition, this will override the global closing delimiter.
+
+The list arguments can optionally be of form starting with \":add\" or
+\":rem\" when these mean \"add to the global list\" and \"remove from
+the global list\" respectivelly.  Otherwise, the global list is
+replaced.  If you wish to both add and remove things with single call,
+use \"((:add ...) (:rem ...))\" as an argument.  Therefore,
+
+  :inhibit '(:add my-test)
+
+would mean \"use the global settings for this pair, but also this
+additional test\".
+
+To disable a pair in a major mode, simply set its actions set to
+nil. This will ensure the pair is not even loaded when the mode is
+active."
+  (let* ((pair nil))
+    (setq pair (plist-put pair :open open))
+    (plist-put pair :close close)
+    (plist-put pair :actions actions)
+    (plist-put pair :filters filters)
+    (plist-put pair :pre-handlers pre-handlers)
+    (plist-put pair :post-handlers post-handlers)
+    (dolist (m (-flatten (list modes)))
+      (sp--update-pair-list pair m)))
+  sp-pairs)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Overlay management
 
