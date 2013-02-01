@@ -183,7 +183,7 @@ string.  After the removal, all the pairs are re-checked."
 (defun sp-update-local-pairs ()
   "Update local pairs after removal or at mode initialization."
   (setq sp-local-pairs (sp--merge-with-local major-mode))
-  (setq sp-local-pairs (delete-if (lambda (x) (not (plist-get x :actions))) sp-local-pairs))
+  (setq sp-local-pairs (--filter (plist-get it :actions) sp-local-pairs))
   ;; update the `sp-pair-list'.  This is a list only containing
   ;; (open.close) cons pairs for easier querying.  We also must order
   ;; it by length of opening delimiter in descending order (first
@@ -191,7 +191,7 @@ string.  After the removal, all the pairs are re-checked."
   (let ((l))
     (--each sp-local-pairs
       (!cons (cons (plist-get it :open) (plist-get it :close)) l))
-    (setq l (sort l '(lambda (x y) (> (length (car x)) (length (car y))))))
+    (setq l (sort l #'(lambda (x y) (> (length (car x)) (length (car y))))))
     (setq sp-pair-list l)))
 
 (defun sp-update-local-pairs-everywhere (&rest modes)
@@ -904,9 +904,9 @@ needs."
   (if (eq actions :rem)
       (let ((remove (concat
                      (sp-get-pair-definition open t :open)
-                     (sp-get-pair-definition open t :close))))
-        (delete-if (lambda (x) (equal (plist-get x :open) open))
-                   (cdr (assq t sp-pairs)))
+                     (sp-get-pair-definition open t :close)))
+            (global-list (assq t sp-pairs)))
+        (setcdr global-list (--remove (equal (plist-get it :open) open) (cdr global-list)))
         (sp-update-trigger-keys remove))
     (let ((pair nil))
       (setq pair (plist-put pair :open open))
@@ -976,7 +976,7 @@ activated."
                                (sp-get-pair-definition open m :close)))
           (let ((mode-pairs (assq m sp-pairs)))
             (setcdr mode-pairs
-             (delete-if (lambda (x) (equal (plist-get x :open) open))
+             (--remove (equal (plist-get it :open) open)
                         (cdr mode-pairs)))))
         (sp-update-trigger-keys remove))
     (let* ((pair nil))
