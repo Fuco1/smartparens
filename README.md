@@ -2,13 +2,13 @@ Since the readme file spanned more than 600 lines and grew very unorganized and 
 
 # The changes in commit 168 broke the backward compatibility of the configuration interface. Please, check the documentation on wiki and update your configuration.
 
-The default configuration was moved into a separate file. If you wish to use the default configuration, use as a basis for your own additional customization:
+The default configuration was moved into a separate file. If you wish to use the default configuration as a basis for your own additional customization, add:
 
 ```scheme
 (require 'smartparens-config)
 ```
 
-to load it.
+in your configuration files (e.g. init.el) to load it.
 
 I'm very sorry for the trouble, but the new interface is much more flexible and makes it much easier to configure SP and also to add future features. Thanks for understanding.
 
