@@ -2791,9 +2791,13 @@ information, see the documentation of sp-kill-sexp."
                      (insert " ")
                      (setq ins-space -1))
                    (goto-char ,(if fw-1
-                                   '(sp-get next-thing (- :end-in ins-space))
+                                   '(- (sp-get next-thing :end) (sp-get ok :cl-l) ins-space)
                                  '(sp-get next-thing :beg-prf)))
                    (insert ,@(if fw-1 '((sp-get ok :cl)) '((sp-get ok :prefix) (sp-get ok :op))))
+                   ;; reindent the "slurped region"
+                   ,(if fw-1
+                        '(indent-region (sp-get ok :beg-prf) (point))
+                      '(indent-region (point) (sp-get ok :end)))
                    (setq n (1- n)))
                (message "We can't slurp without breaking strictly balanced expression. Ignored.")
                (setq n -1))))
@@ -2870,6 +2874,8 @@ Examples:
                            (skip-syntax-backward "'")))
                      (insert ,(if fw-1 '(sp-get ok :cl)
                                 '(sp-get ok (concat :prefix :op))))
+                     ;; reindent the "barfed region"
+                     (indent-region (sp-get ok :beg-prf) (sp-get ok :end))
                      (setq n (1- n)))
                  (message "The expression is empty.")
                  (setq n -1)))
