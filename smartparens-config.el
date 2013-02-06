@@ -56,6 +56,10 @@
                  inferior-emacs-lisp-mode
                  lisp-interaction-mode
                  scheme-mode
+                 lisp-mode
+                 eshell-mode
+                 slime-repl-mode
+                 clojure-mode
                  common-lisp-mode
                  )
   ;; disable ', it's the quote character!
