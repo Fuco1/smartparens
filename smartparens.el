@@ -214,24 +214,7 @@ update buffers with major-mode equal to MODES."
 
 ;; global custom
 (defcustom sp-ignore-modes-list '(
-                                  calc-mode
-                                  dired-mode
-                                  gnus-article-mode
-                                  gnus-group-mode
-                                  gnus-summary-mode
-                                  ibuffer-mode
-                                  magit-branch-manager-mode
-                                  magit-commit-mode
-                                  magit-diff-mode
-                                  magit-key-mode
-                                  magit-log-mode
-                                  magit-reflog-mode
-                                  magit-stash-mode
-                                  magit-status-mode
-                                  magit-wazzup-mode
                                   minibuffer-inactive-mode
-                                  monky-mode
-                                  sr-mode
                                   )
   "Modes where smartparens mode is inactive if allowed globally."
   :type '(repeat symbol)
@@ -246,7 +229,8 @@ update buffers with major-mode equal to MODES."
 (defun turn-on-smartparens-mode ()
   "Turn on `smartparens-mode'."
   (interactive)
-  (unless (member major-mode sp-ignore-modes-list)
+  (unless (or (member major-mode sp-ignore-modes-list)
+              (eq (get major-mode 'mode-class) 'special))
     (smartparens-mode t)))
 
 ;;;###autoload
@@ -2762,6 +2746,8 @@ information, see the documentation of sp-kill-sexp."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; "paredit" operations
 
+;; TODO: broken when ` is the expression prefix, it treats it as
+;; opening of `' quote
 (defmacro sp--slurp-sexp (fw-1)
   "Internal.  Generate forward/backward slurp functions."
   `(let ((n (abs arg))
@@ -3070,7 +3056,8 @@ expect positive arg."
   (let ((ok (sp-get-enclosing-sexp arg)))
     (when ok (sp--unwrap-sexp ok))))
 
-;; TODO: add some sane automatic re-indentation/deletion of whitespace
+;; TODO: 1. add some sane automatic re-indentation/deletion of
+;; whitespace 2. THIS IS BROKEN if there are quotes inside...
 (defun sp-splice-sexp-killing-backward ()
   "Unwrap the current list and also kill all the content between
 start of this list and the point.
@@ -3278,7 +3265,8 @@ support custom pairs."
 (defun turn-on-show-smartparens-mode ()
   "Turn on `show-smartparens-mode'."
   (interactive)
-  (unless (member major-mode sp-ignore-modes-list)
+  (unless (or (member major-mode sp-ignore-modes-list)
+              (eq (get major-mode 'mode-class) 'special))
     (show-smartparens-mode t)))
 
 ;;;###autoload
