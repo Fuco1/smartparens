@@ -3135,11 +3135,17 @@ If ARG is a raw prefix C-u C-u select the current expression (as
 if doing `sp-backward-up-sexp' followed by
 `sp-select-next-thing').
 
+If the point is right in front of the expression any potential
+prefix is ignored.  For example, '|(foo) would only select (foo)
+and not include ' in the selection. If you wish to also select '
+you have to move the point backwards.
+
 With `sp-navigate-consider-symbols' symbols and strings are also
 considered balanced expressions."
   (interactive "P")
   (setq arg (prefix-numeric-value arg))
   (let* ((raw (sp--raw-argument-p current-prefix-arg))
+         (old-point (point))
          (first (sp-forward-sexp (sp--signum arg)))
          (last first)
          (b (if first
@@ -3178,6 +3184,12 @@ considered balanced expressions."
                 (setq last (sp-forward-sexp (* (sp--signum arg) (1- (abs arg))))))
               (if (> arg 0) (sp-get last :end) (sp-get last :beg-prf))))))
     (push-mark nil t)
+    ;; if we moved forward check if the old-point was in front of an
+    ;; expression and after a prefix. If so, remove the prefix from
+    ;; the selection
+    (when (and (> arg 0)
+               (= (sp-get first :beg) old-point))
+      (setq b (sp-get first :beg)))
     (set-mark b)
     (goto-char e)))
 
