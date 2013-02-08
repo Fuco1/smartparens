@@ -2597,6 +2597,12 @@ considered balanced expressions."
 non-empty list."
   (and (listp arg) (car arg)))
 
+(defun sp--negate-argument (arg)
+  "Internal.  Return the argument but negated.  If the argument
+is a raw prefix argument (a list) return a list with its car
+negated."
+  (if (listp arg) (list (- (car arg))) (- arg)))
+
 (defun sp-down-sexp (&optional arg)
   "Move forward down one level of sexp.  With ARG, do this that
 many times.  A negative argument -N means move backward but still
@@ -2612,11 +2618,11 @@ If the point is inside sexp and there is no down expression to
 descend to, jump to the beginning of current one.  If moving
 backwards, jump to end of current one."
   (interactive "P")
-  (setq arg (prefix-numeric-value arg))
-  (let ((n (abs arg))
-        (ok t)
-        (raw (sp--raw-argument-p current-prefix-arg))
-        (last-point -1))
+  (let* ((raw (sp--raw-argument-p arg))
+         (arg (prefix-numeric-value arg))
+         (n (abs arg))
+         (ok t)
+         (last-point -1))
     (if (and raw (= (abs arg) 16))
         ;; jump to the beginning/end of current list
         (let ((enc (sp-get-enclosing-sexp)))
@@ -2656,8 +2662,7 @@ If the point is inside sexp and there is no down expression to
 descend to, jump to the end of current one.  If moving forward,
 jump to beginning of current one."
   (interactive "P")
-  (setq arg (prefix-numeric-value arg))
-  (sp-down-sexp (- arg)))
+  (sp-down-sexp (sp--negate-argument arg)))
 
 (defun sp-up-sexp (&optional arg)
   "Move forward out of one level of parentheses.  With ARG, do
@@ -2724,12 +2729,12 @@ Examples. Prefix argument is shown after the example in
  (1 2 |   )        -> (1 2|)    ;; C-u, kill useless whitespace
 "
   (interactive "P")
-  (setq arg (prefix-numeric-value arg))
-  (let ((n (abs arg))
-        (raw (sp--raw-argument-p current-prefix-arg))
-        (ok t)
-        (b (point-max))
-        (e (point-min)))
+  (let* ((raw (sp--raw-argument-p arg))
+         (arg (prefix-numeric-value arg))
+         (n (abs arg))
+         (ok t)
+         (b (point-max))
+         (e (point-min)))
     (cond
      ;; kill to the end or beginning of list
      ((and raw
@@ -2783,14 +2788,11 @@ Examples. Prefix argument is shown after the example in
 other words, the direction of all commands is reversed.  For more
 information, see the documentation of sp-kill-sexp."
   (interactive "P")
-  (setq arg (prefix-numeric-value arg))
-  (sp-kill-sexp (- arg)))
+  (sp-kill-sexp (sp--negate-argument arg)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; "paredit" operations
 
-;; TODO: broken when ` is the expression prefix, it treats it as
-;; opening of `' quote
 (defmacro sp--slurp-sexp (fw-1)
   "Internal.  Generate forward/backward slurp functions."
   `(let ((n (abs arg))
@@ -2935,9 +2937,10 @@ Examples (prefix arg in comment):
 
   (foo bar| baz)   -> foo (bar| baz)   ;; -1"
   (interactive "P")
-  (setq arg (prefix-numeric-value arg))
-  (if (> arg 0)
-      (let ((raw (sp--raw-argument-p current-prefix-arg)))
+  (let ((raw (sp--raw-argument-p arg))
+        (old-arg arg)
+        (arg (prefix-numeric-value arg)))
+    (if (> arg 0)
         (if raw
             (let* ((lst (sp-get-list-items))
                    (last nil))
@@ -2947,8 +2950,8 @@ Examples (prefix arg in comment):
               (when (/= arg 0)
                 (sp--barf-sexp t)
                 (when (> (point) (sp-get last :end)) (goto-char (sp-get last :end)))))
-          (sp--barf-sexp t)))
-    (sp-backward-barf-sexp (- arg))))
+          (sp--barf-sexp t))
+      (sp-backward-barf-sexp (sp--negate-argument old-arg)))))
 
 (defun sp-backward-barf-sexp (&optional arg)
   "This is exactly like calling `sp-forward-barf-sexp' with -ARG.
@@ -2956,9 +2959,10 @@ In other words, instead of contracting the closing pair, the
 opening pair is contracted.  For more information, see the
 documentation of sp-forward-barf-sexp."
   (interactive "P")
-  (setq arg (prefix-numeric-value arg))
-  (if (> arg 0)
-      (let ((raw (sp--raw-argument-p current-prefix-arg)))
+  (let ((raw (sp--raw-argument-p arg))
+        (old-arg arg)
+        (arg (prefix-numeric-value arg)))
+    (if (> arg 0)
         (if raw
             (let* ((lst (sp-get-list-items))
                    (n 0))
@@ -2968,8 +2972,8 @@ documentation of sp-forward-barf-sexp."
               (when (/= arg 0)
                 (sp--barf-sexp nil)
                 (when (< (point) (sp-get (car lst) :beg-prf)) (goto-char (sp-get (car lst) :beg-prf)))))
-          (sp--barf-sexp nil)))
-    (sp-forward-barf-sexp (- arg))))
+          (sp--barf-sexp nil))
+      (sp-forward-barf-sexp (sp--negate-argument old-arg)))))
 
 ;; TODO: since most pair characters are in \( class, they are not
 ;; skipped by this function.  But in some modes, maybe they are
@@ -3100,7 +3104,7 @@ expect positive arg."
     (when ok (sp--unwrap-sexp ok))))
 
 ;; TODO: 1. add some sane automatic re-indentation/deletion of
-;; whitespace 2. THIS IS BROKEN if there are quotes inside...
+;; whitespace
 (defun sp-splice-sexp-killing-backward ()
   "Unwrap the current list and also kill all the content between
 start of this list and the point.
@@ -3186,8 +3190,8 @@ you have to move the point backwards.
 With `sp-navigate-consider-symbols' symbols and strings are also
 considered balanced expressions."
   (interactive "P")
-  (setq arg (prefix-numeric-value arg))
-  (let* ((raw (sp--raw-argument-p current-prefix-arg))
+  (let* ((raw (sp--raw-argument-p arg))
+         (arg (prefix-numeric-value arg))
          (old-point (point))
          (first (sp-forward-sexp (sp--signum arg)))
          (last first)
@@ -3243,20 +3247,20 @@ expressions forward.
 
 With `sp-navigate-consider-symbols' symbols and strings are also
 considered balanced expressions."
-  (interactive "p")
-  (sp-select-next-thing (- (or arg 1))))
+  (interactive "P")
+  (sp-select-next-thing (sp--negate-argument arg)))
 
 (defun sp-select-next-thing-exchange (&optional arg)
   "Just like `sp-select-next-thing' but run
 `exchange-point-and-mark' afterwards."
-  (interactive "p")
+  (interactive "P")
   (sp-select-next-thing arg)
   (exchange-point-and-mark))
 
 (defun sp-select-previous-thing-exchange (&optional arg)
   "Just like `sp-select-previous-thing' but run
 `exchange-point-and-mark' afterwards."
-  (interactive "p")
+  (interactive "P")
   (sp-select-previous-thing arg)
   (exchange-point-and-mark))
 
