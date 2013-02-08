@@ -2991,7 +2991,7 @@ documentation of sp-forward-barf-sexp."
                                  (not (sp-point-in-string))
                                  (sp-point-in-string (,inc (point))))
                             ;; HACK -- fix ` inside strings in emacs modes
-                            (and (sp-point-in-string)
+                            (and (sp-point-in-string-or-comment)
                                  (eq (char-syntax (,next-char-fn)) ?')
                                  (member (,next-char-fn) '(?` ?')))))
                    (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\" ?' ?.))
