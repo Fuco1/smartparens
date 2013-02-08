@@ -2664,6 +2664,22 @@ jump to beginning of current one."
   (interactive "P")
   (sp-down-sexp (sp--negate-argument arg)))
 
+(defun sp-beginning-of-sexp ()
+  "Jump to beginning of the sexp the point is in.  The beginning
+is the point after the opening delimiter.
+
+This is the same as calling C-u C-u `sp-down-sexp'"
+  (interactive)
+  (sp-down-sexp '(16)))
+
+(defun sp-end-of-sexp ()
+  "Jump to end of the sexp the point is in.  The end is the point
+before the closing delimiter.
+
+This is the same as calling C-u C-u `sp-backward-down-sexp'."
+  (interactive)
+  (sp-down-sexp '(-16)))
+
 (defun sp-up-sexp (&optional arg)
   "Move forward out of one level of parentheses.  With ARG, do
 this that many times.  A negative argument means move backward
