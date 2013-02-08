@@ -1436,18 +1436,31 @@ is first) as a string."
 This is used for navigation functions."
   (--filter (not (string= (car it) (cdr it))) sp-pair-list))
 
+(defun sp--get-allowed-pair-list ()
+  "Internal.  Return all pairs that are recognized in this
+`major-mode', do not have same opening and closing delimiter and
+are allowed in the current context.  See also
+`sp--get-pair-list'."
+  (--filter (and (sp--do-action-p (car it) 'insert)
+                 (not (equal (car it) (cdr it)))) sp-pair-list))
+
 (defun sp--get-pair-list-wrap ()
   "Internal.  Return the list of all pairs that can be used for
   wrapping."
   (--filter (sp--do-action-p (car it) 'wrap) sp-pair-list))
 
-(defun sp--get-opening-regexp ()
+(defun* sp--get-opening-regexp (&optional (pair-list (sp--get-pair-list)))
   "Internal.  Return regexp matching any opening pair."
-  (regexp-opt (--map (car it) (sp--get-pair-list))))
+  (regexp-opt (--map (car it) pair-list)))
 
-(defun sp--get-closing-regexp ()
+(defun* sp--get-closing-regexp (&optional (pair-list (sp--get-pair-list)))
   "Internal.  Return regexp matching any closing pair."
-  (regexp-opt (--map (cdr it) (sp--get-pair-list))))
+  (regexp-opt (--map (cdr it) pair-list)))
+
+(defun* sp--get-allowed-regexp (&optional (pair-list (sp--get-allowed-pair-list)))
+  "Internal.  Return regexp matching any opening or closing
+delimiter for any pair allowed in current context."
+  (regexp-opt (--mapcat (list (car it) (cdr it)) pair-list)))
 
 (defun sp-wrap-region-init ()
   "Initialize the region wrapping."
@@ -2177,18 +2190,36 @@ pairs!"
     (sp-looking-back regexp sp-max-pair-length-c t)
     (goto-char (match-beginning 0))))
 
-(defun sp-get-quoted-string-bounds ()
+(defmacro sp--get-bounds (name docstring test)
+  "Internal.  Generate a function called NAME that return the
+bounds of object bounded by TEST."
+  (declare (indent 1))
+  `(defun ,name ()
+     ,docstring
+     (when ,test
+       (let ((open (save-excursion
+                     (while ,test
+                       (forward-char -1))
+                     (1+ (point))))
+             (close (save-excursion
+                      (while ,test
+                        (forward-char 1))
+                      (1- (point)))))
+         (cons open close)))))
+
+(sp--get-bounds sp-get-quoted-string-bounds
   "If the point is inside a quoted string, return its bounds."
-  (when (nth 3 (syntax-ppss))
-    (let ((open (save-excursion
-                  (while (nth 3 (syntax-ppss))
-                    (forward-char -1))
-                  (1+ (point))))
-          (close (save-excursion
-                   (while (nth 3 (syntax-ppss))
-                     (forward-char 1))
-                   (1- (point)))))
-      (cons open close))))
+  (nth 3 (syntax-ppss)))
+
+(sp--get-bounds sp-get-comment-bounds
+  "If the point is inside a comment, return its bounds."
+  (or (sp-point-in-comment)
+      (looking-at "[[:space:]]+;;")))
+
+(defun sp--get-string-or-comment-bounds ()
+  "Internal.  Get the bounds of string or comment the point is in."
+  (or (sp-get-quoted-string-bounds)
+      (sp-get-comment-bounds)))
 
 (defmacro sp-search-and-save-match (search-fn pattern bound res beg end str)
   "Save the last match info."
@@ -2198,6 +2229,9 @@ pairs!"
        (setq ,beg (match-beginning 0))
        (setq ,end (match-end 0))
        (setq ,str (match-string 0)))))
+
+(defvar sp--lisp-modes '(emacs-lisp-mode inferior-emacs-lisp-mode lisp-interaction-mode scheme-mode lisp-mode eshell-mode slime-repl-mode clojure-mode common-lisp-mode)
+  "Internal.  List of lisp modes")
 
 ;; TODO: since this function is used for all the navigation, we should
 ;; optimaze it a lot! Get some elisp profiler!
@@ -2236,22 +2270,31 @@ provide shortcuts for many commonly used queries (such as length
 of opening/closing delimiter or prefix)."
   (let* ((search-fn (if (not back) 'search-forward-regexp 'sp-search-backward-regexp))
          (pair-list (sp--get-pair-list))
-         (pattern (regexp-opt (-flatten (--map (list (car it) (cdr it)) pair-list))))
          (in-string-or-comment (sp-point-in-string-or-comment))
-         (string-bounds (and in-string-or-comment (sp-get-quoted-string-bounds)))
-         (fw-bound (point-max))
-         (bw-bound (point-min))
+         (string-bounds (and in-string-or-comment (sp--get-string-or-comment-bounds)))
+         (fw-bound (if in-string-or-comment (cdr string-bounds) (point-max)))
+         (bw-bound (if in-string-or-comment (car string-bounds) (point-min)))
          (s nil) (e nil) (active-pair nil) (forward nil) (failure nil)
          (mb nil) (me nil) (ms nil) (r nil))
     (save-excursion
-      (sp-search-and-save-match search-fn pattern (if back bw-bound fw-bound)
+      ;; search for the first opening pair.  Here, only consider tags
+      ;; that are allowed in the current context.
+      (sp-search-and-save-match search-fn
+                                (sp--get-allowed-regexp)
+                                (if back bw-bound fw-bound)
                                 r mb me ms)
       (when (not (sp-point-in-string-or-comment))
         (setq in-string-or-comment nil))
-      (unless in-string-or-comment
-        (while (sp-point-in-string-or-comment)
-          (sp-search-and-save-match search-fn pattern (if back bw-bound fw-bound)
-                                    r mb me ms)))
+      ;; if the point originally wasn't inside of a string or comment
+      ;; but now is, jump out of the string/comment and only search
+      ;; the code.  This ensures that the comments and strings are
+      ;; skipped if we search inside code.
+      (when (and (not in-string-or-comment)
+                 (sp-point-in-string-or-comment))
+        (let* ((bounds (sp--get-string-or-comment-bounds))
+               (jump-to (if back (1- (car bounds)) (1+ (cdr bounds)))))
+          (goto-char jump-to)))
+
       (when r
         (setq active-pair (--first (equal ms (car it)) pair-list))
         (if active-pair
@@ -2281,7 +2324,7 @@ of opening/closing delimiter or prefix)."
                             ;; bit tricky to do right, so for now we
                             ;; just handle emacs-lisp ?\ character
                             ;; prefix
-                            (and (member major-mode '(emacs-lisp-mode inferior-emacs-lisp-mode lisp-mode))
+                            (and (member major-mode sp--lisp-modes)
                                  (equal (buffer-substring (max 1 (- mb 2)) mb) "?\\")))
                   (if (equal ms open)
                       (setq depth (1+ depth))
@@ -3290,9 +3333,9 @@ support custom pairs."
 (defun sp-show-pair-function ()
   "Display the show pair overlays."
   (when show-smartparens-mode
-    (let* ((pair-list (sp--get-pair-list))
-           (opening (regexp-opt (--map (car it) pair-list)))
-           (closing (regexp-opt (--map (cdr it) pair-list)))
+    (let* ((pair-list (sp--get-allowed-pair-list))
+           (opening (sp--get-opening-regexp pair-list))
+           (closing (sp--get-closing-regexp pair-list))
            ok match)
       (cond
        ((looking-at opening)
