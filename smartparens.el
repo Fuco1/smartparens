@@ -2567,9 +2567,17 @@ considered balanced expressions."
   (and (listp arg) (car arg)))
 
 (defun sp--negate-argument (arg)
-  "Return the argument but negated.  If the argument is a raw
-prefix argument (a list) return a list with its car negated."
-  (if (listp arg) (list (- (car arg))) (- arg)))
+  "Return the argument ARG but negated.
+
+If the argument is a raw prefix argument (cons num nil) return a
+list with its car negated.  If the argument is just the - symbol,
+return 1.  If the argument is nil, return -1.  Otherwise negate
+the input number."
+  (cond
+   ((sp--raw-argument-p arg) (list (- (car arg))))
+   ((eq arg '-) 1)
+   ((not arg) -1)
+   (t (- arg))))
 
 (defun sp-down-sexp (&optional arg)
   "Move forward down one level of sexp.
