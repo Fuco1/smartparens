@@ -2737,6 +2737,7 @@ Examples.  Prefix argument is shown after the example in
      ;; kill to the end or beginning of list
      ((and raw
            (= n 4))
+      ;; TODO: simply get "next" item and bounds from that?
       (let* ((lst (sp-get-list-items))
              (last nil)
              (enc (car lst))
@@ -2769,6 +2770,9 @@ Examples.  Prefix argument is shown after the example in
         (kill-region b e)
         ;; kill useless junk whitespace.
         (append-next-kill)
+        ;; TODO: this will copy one extra space if the expression is
+        ;; at the "indent" e.g.: |..(interactive) will kill as "
+        ;; (interactive)"
         (kill-region (point)
                      (progn
                        (if (> arg 0)
@@ -3122,39 +3126,82 @@ N times.  This function expect positive arg."
   (let ((ok (sp-get-enclosing-sexp arg)))
     (when ok (sp--unwrap-sexp ok))))
 
-;; TODO: 1. add some sane automatic re-indentation/deletion of
-;; whitespace
-(defun sp-splice-sexp-killing-backward ()
-  "Unwrap the current list and also kill all the content between
-start of this list and the point.
+(defun sp--splice-sexp-do-killing (beg end expr &optional jump-end)
+  "Save the text in the region between BEG and END inside EXPR,
+then delete EXPR and insert the saved text.
+
+If optional argument JUPM-END is equal to the symbol 'end move
+the point after the re-inserted text."
+  (let (str p)
+    (setq str (buffer-substring-no-properties beg end))
+    (delete-region (sp-get expr :beg-prf) (sp-get expr :end))
+    (save-excursion
+      (insert str)
+      (indent-region (sp-get expr :beg-prf) (point))
+      (setq p (point)))
+    (when (eq jump-end 'end) (goto-char p))))
+
+;; The following two functions could be very simply implemented using
+;; `sp-splice-sexp-killing-around' but these are more efficient
+;; implementations.  With sufficiently big lists the difference is
+;; noticable.
+(defun sp-splice-sexp-killing-backward (&optional arg)
+  "Unwrap the current list and also kill all the expressions
+between start of this list and the point.
+
+With the optional argument ARG, repeat that many times.  This
+argument should be positive number.
 
 Examples:
 
-  (foo (let ((x 5)) | (sqrt n)) bar) -> (foo | (sqrt n) bar)"
-  (interactive)
-  (let* ((ok (sp-get-enclosing-sexp 1)))
-    (when ok
-      (sp--unwrap-sexp ok)
-      (delete-region (sp-get ok :beg-prf) (point)))))
+  (foo (let ((x 5)) | (sqrt n)) bar) -> (foo | (sqrt n) bar)
 
-(defun sp-splice-sexp-killing-forward ()
+  (when ok|                             |(perform-operation-1)
+    (perform-operation-1)            ->  (perform-operation-2)
+    (perform-operation-2))
+
+Note that to kill only the content and not the enclosing
+delimiters you can use \\[universal-argument] \\[sp-backward-kill-sexp].
+See `sp-kill-sexp' for more information."
+  (interactive "p")
+  (while (> arg 0)
+    (let ((ok (sp-get-enclosing-sexp 1)))
+      (if ok
+          (sp--splice-sexp-do-killing
+           (sp-get (sp-get-thing) :beg-prf)
+           (sp-get ok :end-in)
+           ok)
+        (setq arg -1)))
+    (setq arg (1- arg))))
+
+(defun sp-splice-sexp-killing-forward (&optional arg)
   "Unwrap the current list and also kill all the content between the
 point and the end of this list.
 
+With the optional argument ARG, repeat that many times.  This
+argument should be positive number.
+
 Examples:
 
-  (a (b c| d e) f) -> (a b c| f)"
-  (interactive)
-  (let* ((ok (sp-get-enclosing-sexp 1)))
-    (when ok
-      (sp--unwrap-sexp ok)
-      (delete-region
-       (point)
-       (sp-get ok (- :end-in :op-l :prefix-l))))))
+  (a (b c| d e) f) -> (a b c| f)
+
+Note that to kill only the content and not the enclosing
+delimiters you can use \\[universal-argument] \\[sp-kill-sexp].
+See `sp-kill-sexp' for more information."
+  (interactive "p")
+  (while (> arg 0)
+    (let ((ok (sp-get-enclosing-sexp 1)))
+      (if ok
+          (sp--splice-sexp-do-killing
+           (sp-get (sp-get-thing t) :end) ;search backward
+           (sp-get ok :beg-in)
+           ok 'end)
+        (setq arg -1)))
+    (setq arg (1- arg))))
 
 (defun sp-splice-sexp-killing-around (&optional arg)
-  "Unwrap the current list and also kill everything inside save
-for ARG next expressions.  With ARG negative N, save that many
+  "Unwrap the current list and also kill everything inside except
+ARG next expressions.  With ARG negative N, save that many
 expressions backward.
 
 Examples:
@@ -3167,9 +3214,10 @@ Examples:
   (let ((ok (sp-get-enclosing-sexp)) str)
     (when ok
       (sp-select-next-thing-exchange arg)
-      (setq str (buffer-substring-no-properties (region-beginning) (region-end)))
-      (delete-region (sp-get ok :beg-prf) (sp-get ok :end))
-      (save-excursion (insert str)))))
+      (sp--splice-sexp-do-killing
+       (region-beginning)
+       (region-end)
+       ok (if (> arg 0) nil 'end)))))
 
 (defun sp-forward-whitespace ()
   "Skip forward past the whitespace characters."
