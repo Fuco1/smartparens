@@ -1896,7 +1896,7 @@ followed by word.  It is disabled by default.  See
                             (eq sp-last-operation 'sp-insert-pair)
                             (save-excursion
                               (backward-char 1)
-                              (sp--looking-back (regexp-quote open-pair) sp-max-pair-length-c))))))
+                              (sp--looking-back (regexp-quote open-pair)))))))
                  (not (run-hook-with-args-until-success
                        'sp-autoinsert-inhibit-functions
                        open-pair
@@ -2083,11 +2083,11 @@ is remove the just added wrapping."
               (delete-char o))
             (setq sp-last-operation 'sp-delete-pair-wrap))))
       (let* ((p (point))
-             (inside-pair (--first (and (sp--looking-back (regexp-quote (car it)) sp-max-pair-length-c)
+             (inside-pair (--first (and (sp--looking-back (regexp-quote (car it)))
                                         (looking-at (regexp-quote (cdr it))))
                                    sp-pair-list))
-             (behind-pair (--first (sp--looking-back (regexp-quote (cdr it)) sp-max-pair-length-c) sp-pair-list))
-             (opening-pair (--first (sp--looking-back (regexp-quote (car it)) sp-max-pair-length-c) sp-pair-list)))
+             (behind-pair (--first (sp--looking-back (regexp-quote (cdr it))) sp-pair-list))
+             (opening-pair (--first (sp--looking-back (regexp-quote (car it))) sp-pair-list)))
         (cond
          ;; we're just before the closing quote of a string.  If there
          ;; is an opening or closing pair behind the point, remove
@@ -2123,16 +2123,31 @@ is remove the just added wrapping."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Navigation
 
-(defun sp--looking-back (regexp &optional limit greedy)
-  "Works just like `looking-back', but LIMIT specifies how many
-characters backward we should be looking instead of a buffer
-position.  If the point is less than LIMIT chars from the start
-of the buffer, it replaces LIMIT with (point)."
-  (when (and limit
-             (< (point) limit))
-    (setq limit (point)))
-  (setq limit (or limit (point)))
-  (looking-back regexp (- (point) limit) greedy))
+(defun sp--looking-back (regexp &optional limit not-greedy)
+  "Return non-nil if text before point matches regular expression REGEXP.
+
+With optional argument LIMIT search only that many characters
+backward.  If LIMIT is nil, default to `sp-max-pair-length-c'.
+
+If optional argument NON-GREEDY is t search for any matching
+sequence, not necessarily the longest possible."
+  (setq limit (or limit sp-max-pair-length-c))
+  (let ((from (max 1 (- (point) limit)))
+        (to (point))
+        (greedy (not not-greedy))
+        has-match)
+    (set-match-data '(0 0))
+    (if greedy
+        (save-excursion
+          (goto-char from)
+          (while (and (not has-match) (< (point) to))
+            (looking-at regexp)
+            (if (= (match-end 0) to)
+                (setq has-match t)
+              (forward-char 1)))
+          has-match)
+      (save-excursion
+        (not (null (search-backward-regexp (concat "\\(?:" regexp "\\)\\=") from t)))))))
 
 (defun sp--search-backward-regexp (regexp &optional bound noerror)
   "Works just like `search-backward-regexp', but returns the
@@ -2144,7 +2159,7 @@ This is an internal function.  Only use this for searching for
 pairs!"
   (when (search-backward-regexp regexp bound noerror)
     (goto-char (match-end 0))
-    (sp--looking-back regexp sp-max-pair-length-c t)
+    (sp--looking-back regexp)
     (goto-char (match-beginning 0))))
 
 (defmacro sp--get-bounds (name docstring test)
@@ -2445,10 +2460,10 @@ returned by `sp-get-sexp'."
        ,(if back '(sp-skip-backward-to-symbol t)
           '(sp-skip-forward-to-symbol t))
        (cond
-        (,(if back '(sp--looking-back (sp--get-closing-regexp) sp-max-pair-length-c)
+        (,(if back '(sp--looking-back (sp--get-closing-regexp) nil t)
             '(looking-at (sp--get-opening-regexp)))
          (sp-get-sexp ,back))
-        (,(if back '(sp--looking-back (sp--get-opening-regexp) sp-max-pair-length-c)
+        (,(if back '(sp--looking-back (sp--get-opening-regexp) nil t)
             '(looking-at (sp--get-closing-regexp)))
          (sp-get-sexp ,back))
         ((eq (char-syntax ,(if back '(preceding-char) '(following-char))) ?\" )
@@ -3023,8 +3038,8 @@ after exiting a string."
 (defmacro sp--forward-symbol-1 (fw-1)
   "Generate forward/backward symbol functions."
   (let ((goto-where (if fw-1 '(match-end 0) '(match-beginning 0)))
-        (look-at-open (if fw-1 '(looking-at open) '(sp--looking-back open sp-max-pair-length-c t)))
-        (look-at-close (if fw-1 '(looking-at close) '(sp--looking-back close sp-max-pair-length-c t))))
+        (look-at-open (if fw-1 '(looking-at open) '(sp--looking-back open)))
+        (look-at-close (if fw-1 '(looking-at close) '(sp--looking-back close))))
     `(let ((n (abs arg))
            (fw (> arg 0))
            (open (sp--get-opening-regexp))
@@ -3430,7 +3445,7 @@ support custom pairs."
         (if ok
             (sp-get ok (sp-show--pair-create-overlays :beg :end :op-l :cl-l))
           (sp-show--pair-create-mismatch-overlay (point) (length match))))
-       ((sp--looking-back closing sp-max-pair-length-c t)
+       ((sp--looking-back closing)
         (setq match (match-string 0))
         (setq ok (sp-get-sexp t))
         (if ok
