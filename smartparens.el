@@ -3146,7 +3146,7 @@ the point after the re-inserted text."
 ;; implementations.  With sufficiently big lists the difference is
 ;; noticable.
 (defun sp-splice-sexp-killing-backward (&optional arg)
-  "Unwrap the current list and also kill all the expressions
+  "Unwrap the current list and kill all the expressions
 between start of this list and the point.
 
 With the optional argument ARG, repeat that many times.  This
@@ -3175,8 +3175,8 @@ See `sp-kill-sexp' for more information."
     (setq arg (1- arg))))
 
 (defun sp-splice-sexp-killing-forward (&optional arg)
-  "Unwrap the current list and also kill all the content between the
-point and the end of this list.
+  "Unwrap the current list and kill all the expressions between
+the point and the end of this list.
 
 With the optional argument ARG, repeat that many times.  This
 argument should be positive number.
@@ -3200,24 +3200,41 @@ See `sp-kill-sexp' for more information."
     (setq arg (1- arg))))
 
 (defun sp-splice-sexp-killing-around (&optional arg)
-  "Unwrap the current list and also kill everything inside except
-ARG next expressions.  With ARG negative N, save that many
-expressions backward.
+  "Unwrap the current list and kill everything inside except next expression.
+
+With ARG save that many next expressions.  With ARG negative -N,
+save that many expressions backward.
+
+If ARG is raw prefix argument \\[universal-argument] this function behaves exactly
+the same as `sp-splice-sexp-killing-backward'.
+
+If ARG is negative raw prefix argument \\[negative-argument] \\[universal-argument] this function
+behaves exactly the same as `sp-splice-sexp-killing-forward'.
+
+Note that the behaviour with the prefix argument seems to be
+reversed.  This is because the backward variant is much more
+common and hence deserve shorter binding.
 
 Examples:
 
   (a b |(c d) e f) -> |(c d)   ;; with arg = 1
   (a b |c d e f)   -> |c d     ;; with arg = 2
   (- (car x) |a 3) -> (car x)| ;; with arg = -1"
-  (interactive "p")
-  (setq arg (or arg 1))
-  (let ((ok (sp-get-enclosing-sexp)) str)
-    (when ok
-      (sp-select-next-thing-exchange arg)
-      (sp--splice-sexp-do-killing
-       (region-beginning)
-       (region-end)
-       ok (if (> arg 0) nil 'end)))))
+  (interactive "P")
+  (cond
+   ((equal arg '(4))
+    (sp-splice-sexp-killing-backward 1))
+   ((equal arg '(-4))
+    (sp-splice-sexp-killing-forward 1))
+   (t
+    (setq arg (prefix-numeric-value arg))
+    (let ((ok (sp-get-enclosing-sexp)) str)
+      (when ok
+        (sp-select-next-thing-exchange arg)
+        (sp--splice-sexp-do-killing
+         (region-beginning)
+         (region-end)
+         ok (if (> arg 0) nil 'end)))))))
 
 (defun sp-forward-whitespace ()
   "Skip forward past the whitespace characters."
