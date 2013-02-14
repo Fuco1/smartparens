@@ -41,6 +41,76 @@
 (defvar sp-keymap (make-sparse-keymap)
   "Keymap used for `smartparens-mode'.")
 
+(defvar sp-paredit-bindings '(
+                              ("C-M-f" . sp-forward-sexp) ;; navigation
+                              ("C-M-b" . sp-backward-sexp)
+                              ("C-M-u" . sp-backward-up-sexp)
+                              ("C-M-d" . sp-down-sexp)
+                              ("C-M-p" . sp-backward-down-sexp)
+                              ("C-M-n" . sp-up-sexp)
+                              ("M-s" . sp-splice-sexp) ;; depth-changing commands
+                              ("M-<up>" . sp-splice-sexp-killing-backward)
+                              ("M-<down>" . sp-splice-sexp-killing-forward)
+                              ("M-r" . sp-splice-sexp-killing-around)
+                              ("C-)" . sp-forward-slurp-sexp) ;; barf/slurp
+                              ("C-<right>" . sp-forward-slurp-sexp)
+                              ("C-}" . sp-forward-barf-sexp)
+                              ("C-<left>" . sp-forward-barf-sexp)
+                              ("C-(" . sp-backward-slurp-sexp)
+                              ("C-M-<left>" . sp-backward-slurp-sexp)
+                              ("C-{" . sp-backward-barf-sexp)
+                              ("C-M-<right>" . sp-backward-barf-sexp)
+                              ("M-S" . sp-split-sexp) ;; misc
+                              )
+  "Alist containing the default paredit bindings to corresponding
+smartparens functions.")
+
+;;;###autoload
+(defun sp-use-paredit-bindings ()
+  "Initiate `sp-keymap' with paredit-compatible bindings for
+corresponding functions provided by smartparens.  See variable
+`sp-paredit-bindings'."
+  (interactive)
+  (--each sp-paredit-bindings
+    (define-key sp-keymap (read-kbd-macro (car it)) (cdr it))))
+
+(defvar sp-smartparens-bindings '(
+                                  ("C-M-f" . sp-forward-sexp)
+                                  ("C-M-b" . sp-backward-sexp)
+                                  ("C-M-d" . sp-down-sexp)
+                                  ("C-M-a" . sp-backward-down-sexp)
+                                  ("C-S-a" . sp-beginning-of-sexp)
+                                  ("C-S-d" . sp-end-of-sexp)
+                                  ("C-M-e" . sp-up-sexp)
+                                  ("C-M-u" . sp-backward-up-sexp)
+                                  ("C-M-n" . sp-next-sexp)
+                                  ("C-M-p" . sp-previous-sexp)
+                                  ("C-M-k" . sp-kill-sexp)
+                                  ("M-<delete>" . sp-unwrap-sexp)
+                                  ("M-<backspace>" . sp-backward-unwrap-sexp)
+                                  ("C-<right>" . sp-forward-slurp-sexp)
+                                  ("C-<left>" . sp-forward-barf-sexp)
+                                  ("C-M-<left>" . sp-backward-slurp-sexp)
+                                  ("C-M-<right>" . sp-backward-barf-sexp)
+                                  ("M-D" . sp-splice-sexp)
+                                  ("C-M-<delete>" . sp-splice-sexp-killing-forward)
+                                  ("C-M-<backspace>" . sp-splice-sexp-killing-backward)
+                                  ("C-S-<backspace>" . sp-splice-sexp-killing-around)
+                                  ("C-]" . sp-select-next-thing-exchange)
+                                  ("C-M-]" . sp-select-next-thing)
+                                  ("M-F" . sp-forward-symbol)
+                                  ("M-B" . sp-backward-symbol)
+                                  )
+  "Alist containing the default smartparens bindings.")
+
+;;;###autoload
+(defun sp-use-smartparens-bindings ()
+  "Initiate `sp-keymap' with smartparens bindings for navigation functions.
+See variable `sp-smartparens-bindings'."
+  (interactive)
+  (--each sp-smartparens-bindings
+    (define-key sp-keymap (read-kbd-macro (car it)) (cdr it))))
+
 (defvar sp-escape-char nil
   "Character used to escape quotes inside strings.")
 (make-variable-buffer-local 'sp-escape-char)
@@ -929,7 +999,7 @@ the global list is replaced.  If you wish to both add and remove
 things with single call, use \"((:add ...) (:rem ...))\" as an
 argument.  Therefore,
 
-  :inhibit '(:add my-test)
+  :when '(:add my-test)
 
 would mean \"use the global settings for this pair, but also this
 additional test\". If no value is provided for list arguments,
