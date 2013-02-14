@@ -1038,7 +1038,7 @@ string and the action."
 
 ;; burlywood4
 (defface sp-pair-overlay-face
-  '((t (:background "#004a5d")))
+  '((t (:inherit highlight)))
   "The face used to highlight pair overlays."
   :group 'smartparens)
 
