@@ -28,11 +28,4 @@ If you want to support this project, you can do it in the following ways:
 
 * Contribute code. If you have an idea that is not yet implemented and will benefit smartparens, feel free to implement it and submit a pull request. If you have any concerns whether your contribution will be accepted, ask beforehand. You can email the author or [start an issue](https://github.com/Fuco1/smartparens/issues/new) on the tracker.
 * Contribute ideas. Even if you can't code Emacs LISP, you can still contribute valuable ideas for other programmers to implement. Simply [start new issue](https://github.com/Fuco1/smartparens/issues/new) on the tracker and submit your suggestion.
-* You can make a financial donation. As much as I hate to ask for money, I need to eat too. I currently double-major in computer science and mathematics, having no full-time job as the school eats most my day time. If you like smartparens and can spare a modest amount on a donation, feel free to do so. Regardless of the donations, smartparens will always be free both as in beer and as in speech.
-
-<form action="https://www.paypal.com/cgi-bin/webscr" method="post">
-<input type="hidden" name="cmd" value="_s-xclick">
-<input type="hidden" name="hosted_button_id" value="CEYP5YVHDRX8C">
-<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
-<img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
-</form>
+* You can make a [financial donation](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CEYP5YVHDRX8C) through PayPal. As much as I hate to ask for money, I need to eat too. I currently double-major in computer science and mathematics, having no full-time job as the school eats most my day time. If you like smartparens and can spare a modest amount on a donation, feel free to do so. Regardless of the donations, smartparens will always be free both as in beer and as in speech.
