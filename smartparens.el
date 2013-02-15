@@ -159,10 +159,8 @@ location of point before the wrapping.")
 (make-variable-buffer-local 'sp-last-inserted-characters)
 
 (defvar sp-last-wrapped-region nil
-  "List containing info about last wrapped region.  The content of the list is:
-\(start-of-the-wrapped-region end-of-the-wrapped-region
-length-of-opening-pair length-of-closing-pair\).  Start and end
-positions include the newly added wrapping pair.")
+  "Information about the last wrapped region.
+The format is the same as returned by `sp-get-sexp'.")
 (make-variable-buffer-local 'sp-last-wrapped-region)
 
 (defvar sp-point-inside-string nil
@@ -1523,6 +1521,19 @@ are allowed in the current context.  See also
 delimiter for any pair allowed in current context."
   (regexp-opt (--mapcat (list (car it) (cdr it)) pair-list)))
 
+(defun sp--get-last-wraped-region (beg end open close)
+  "Return `sp-get-sexp' style plist about the last wrapped region.
+
+Note: this function does not retrieve the actual value of
+`sp-last-wrapped-region', it merely construct the plist from the
+provided values."
+  (let ((b (make-marker))
+        (e (make-marker)))
+    (set-marker b beg)
+    (set-marker e end)
+    (set-marker-insertion-type e t)
+    `(:beg ,b :end ,e :op ,open :cl ,close :prefix "")))
+
 (defun sp-wrap-region-init ()
   "Initialize the region wrapping."
   (when sp-autowrap-region
@@ -1578,8 +1589,12 @@ delimiter for any pair allowed in current context."
                 (setq sp-last-operation 'sp-wrap-region)
                 (setq sp-last-wrapped-region
                       (if (< p m)
-                          (list p (+ len m -1) (car active-pair) (cdr active-pair))
-                        (list m (+ len p) (car active-pair) (cdr active-pair))))
+                          (sp--get-last-wraped-region
+                           p (+ len m -1)
+                           (car active-pair) (cdr active-pair))
+                        (sp--get-last-wraped-region
+                         m (+ len p)
+                         (car active-pair) (cdr active-pair))))
                 ;; only autoescape "" pair, so it has to be one-char
                 ;; length, therefore we can handle it here
                 (when (and (equal (car active-pair) "\"")
@@ -1674,7 +1689,8 @@ delimiter for any pair allowed in current context."
                 (goto-char (+ sp-wrap-point oplen cplen)))
               ;; update info for possible following delete
               (setq sp-last-operation 'sp-wrap-region)
-              (setq sp-last-wrapped-region (list s e open-pair close-pair))
+              (setq sp-last-wrapped-region
+                    (sp--get-last-wraped-region s e open-pair close-pair))
 
               (sp--run-hook-with-args open-pair :post-handlers 'wrap))))))))
 
@@ -1875,8 +1891,8 @@ string quotes inside it.
 This is internal function and should be only called after a
 wrapping."
   (when sp-autoescape-string-quote
-    (let ((b (car sp-last-wrapped-region))
-          (e (cadr sp-last-wrapped-region))
+    (let ((b (sp-get sp-last-wrapped-region :beg))
+          (e (sp-get sp-last-wrapped-region :end))
           was-beg)
       (cond
        ((and strbound
@@ -1887,21 +1903,19 @@ wrapping."
         (save-excursion
           (goto-char b)
           (insert sp-escape-char)
-          (goto-char e)
+          (goto-char (1- e))
           (insert sp-escape-char))
         ;; update the sp-last-wrapped-region info to \" pair
-        (setq sp-last-wrapped-region (list b (+ 2 e) "\\\"" "\\\"")))
+        (setq sp-last-wrapped-region
+              (sp--get-last-wraped-region b e "\\\"" "\\\"")))
        (t
         (setq was-beg (< (point) e))
-        (let ((num 0))
-          (goto-char b)
-          (while (search-forward-regexp "\\([^\\]\\)\"" (+ e -1 num) t)
-            (setq num (1+ num))
-            (replace-match "\\1\\\\\"" t))
-          (setq sp-last-wrapped-region (list b (+ num e) "\"" "\""))
-          (if was-beg
-              (goto-char (1+ b))
-            (goto-char (+ e num)))))))))
+        (goto-char b)
+        (while (search-forward-regexp "\\([^\\]\\)\"" (1- e) t)
+          (replace-match "\\1\\\\\"" t))
+        (setq sp-last-wrapped-region
+              (sp--get-last-wraped-region b e "\"" "\""))
+        (if was-beg (goto-char (1+ b)) (goto-char e)))))))
 
 (defun sp-insert-pair ()
   "Automatically insert the closing pair if it is allowed in current context.
@@ -2005,57 +2019,51 @@ followed by word.  It is disabled by default.  See
 
         (setq sp-last-operation 'sp-insert-pair)))))
 
-(defmacro sp--wrap-repeat-last-2 (same-only)
-  "Internal."
-  `(when sp-last-wrapped-region
-     (let* ((b (car sp-last-wrapped-region))
-            (e (cadr sp-last-wrapped-region))
-            (op (nth 2 sp-last-wrapped-region))
-            (oplen (length op))
-            (cllen (length (nth 3 sp-last-wrapped-region)))
-            (acolen (length (car active-pair)))
-            (acclen (length (cdr active-pair)))
-            (inside-region (< (point) e)))
-       (when (and ,(if same-only '(equal (car active-pair) op) t)
-                  (memq sp-last-operation '(sp-self-insert sp-wrap-region))
-                  (or (= (point) (+ b oplen acolen))
-                      (= (point) (+ e acolen))))
-         ;; TODO: this does not handle escaping of "double quote", that
-         ;; is if we repeat quote wrap after quote wrap.  I think it is
-         ;; reasonable to assume this will never happen, or very very
-         ;; rarely. (same goes for option 2)
-         (delete-char (- acolen))
-         (if inside-region
-             (progn (goto-char (+ b oplen))
-                    (insert (car active-pair))
-                    (goto-char (- (+ e acolen) cllen))
-                    (insert (cdr active-pair))
-                    (goto-char (+ b oplen acolen))
-                    (setq sp-last-wrapped-region
-                          (list (+ b oplen) (+ e acolen acclen (- cllen))
-                                (car active-pair) (cdr active-pair))))
-           (goto-char b)
-           (insert (car active-pair))
-           (goto-char (+ e acolen))
-           (insert (cdr active-pair))
-           (setq sp-last-wrapped-region
-                 (list b (+ e acolen acclen)
-                       (car active-pair) (cdr active-pair))))
-         (setq sp-last-operation 'sp-wrap-region)
-
-         (sp--run-hook-with-args (car active-pair) :post-handlers 'wrap)
-         sp-last-operation))))
-
 (defun sp--wrap-repeat-last (active-pair)
   "If the last operation was a wrap and `sp-wrap-repeat-last' is
 non-nil, repeat the wrapping with this pair around the last
 active region."
-  (cond
-   ((= 0 sp-wrap-repeat-last) nil)
-   ((= 1 sp-wrap-repeat-last)
-    (sp--wrap-repeat-last-2 t))
-   ((= 2 sp-wrap-repeat-last)
-    (sp--wrap-repeat-last-2 nil))))
+  (unless (= 0 sp-wrap-repeat-last)
+    (when sp-last-wrapped-region
+      (let* ((b (sp-get sp-last-wrapped-region :beg))
+             (e (sp-get sp-last-wrapped-region :end))
+             (op (sp-get sp-last-wrapped-region :op))
+             (oplen (length op))
+             (cllen (sp-get sp-last-wrapped-region :cl-l))
+             (acolen (length (car active-pair))))
+        (when (and
+               (cond
+                ((= 1 sp-wrap-repeat-last)
+                 (equal (car active-pair) op))
+                ((= 2 sp-wrap-repeat-last) t))
+               (memq sp-last-operation '(sp-self-insert sp-wrap-region))
+               (or (= (point) (+ b oplen acolen))
+                   (= (point) e)))
+          ;; TODO: this does not handle escaping of "double quote", that
+          ;; is if we repeat quote wrap after quote wrap.  I think it is
+          ;; reasonable to assume this will never happen, or very very
+          ;; rarely. (same goes for option 2)
+          (delete-char (- acolen))
+          (if (< (point) e)
+              (progn (goto-char (+ b oplen))
+                     (insert (car active-pair))
+                     (goto-char (- e cllen))
+                     (insert (cdr active-pair))
+                     (setq sp-last-wrapped-region
+                           (sp--get-last-wraped-region
+                            (+ b oplen) (point)
+                            (car active-pair) (cdr active-pair)))
+                     (goto-char (+ b oplen acolen)))
+            (goto-char b)
+            (insert (car active-pair))
+            (goto-char e)
+            (insert (cdr active-pair))
+            (setq sp-last-wrapped-region
+                  (sp--get-last-wraped-region
+                   b e (car active-pair) (cdr active-pair))))
+          (setq sp-last-operation 'sp-wrap-region)
+          (sp--run-hook-with-args (car active-pair) :post-handlers 'wrap)
+          sp-last-operation)))))
 
 (defun sp-skip-closing-pair ()
   "If point is inside an inserted pair, and the user only moved forward
@@ -2132,32 +2140,28 @@ is remove the just added wrapping."
     (if (and sp-autodelete-wrap
              (eq sp-last-operation 'sp-wrap-region))
         (let ((p (point))
-              (s (nth 0 sp-last-wrapped-region))
-              (e (nth 1 sp-last-wrapped-region))
-              (o (length (nth 2 sp-last-wrapped-region)))
-              (c (length (nth 3 sp-last-wrapped-region))))
+              (b (sp-get sp-last-wrapped-region :beg))
+              (e (sp-get sp-last-wrapped-region :end))
+              (o (sp-get sp-last-wrapped-region :op-l))
+              (c (sp-get sp-last-wrapped-region :cl-l)))
           ;; if the last operation was `sp-wrap-region', and we are at
           ;; the position of either opening or closing pair, delete the
           ;; just-inserted pair
-          (cond
-           ((= p (+ s o))
+          (when (or (= p (+ b o))
+                    (= p e))
+            (insert "x") ;dummy char to account for the regularly deleted one
             (save-excursion
-              (delete-char (- (1- o)))
-              (goto-char (- e o -1))
-              (delete-char (- c)))
-            (setq sp-last-operation 'sp-delete-pair-wrap))
-           ((= p e)
-            (save-excursion
-              (delete-char (- (1- c)))
-              (goto-char s)
+              (goto-char e)
+              (delete-char (- c))
+              (goto-char b)
               (delete-char o))
-            (setq sp-last-operation 'sp-delete-pair-wrap))))
-      (let* ((p (point))
-             (inside-pair (--first (and (sp--looking-back (regexp-quote (car it)))
-                                        (looking-at (regexp-quote (cdr it))))
-                                   sp-pair-list))
-             (behind-pair (--first (sp--looking-back (regexp-quote (cdr it))) sp-pair-list))
-             (opening-pair (--first (sp--looking-back (regexp-quote (car it))) sp-pair-list)))
+            (setq sp-last-operation 'sp-delete-pair-wrap)))
+      (let ((p (point))
+            (inside-pair (--first (and (sp--looking-back (regexp-quote (car it)))
+                                       (looking-at (regexp-quote (cdr it))))
+                                  sp-pair-list))
+            (behind-pair (--first (sp--looking-back (regexp-quote (cdr it))) sp-pair-list))
+            (opening-pair (--first (sp--looking-back (regexp-quote (car it))) sp-pair-list)))
         (cond
          ;; we're just before the closing quote of a string.  If there
          ;; is an opening or closing pair behind the point, remove
@@ -2890,7 +2894,6 @@ more information, see the documentation of `sp-kill-sexp'."
                   (b (and ok (sp-get ok :beg)))
                   (e (and ok (sp-get ok :end)))
                   (ins-space 0)
-                  ,@(when (not fw-1) '((prefix-len) prefix))
                   next-thing)
              (if ok
                  (save-excursion
