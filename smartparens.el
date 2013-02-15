@@ -3567,6 +3567,23 @@ support custom pairs."
 (add-hook 'post-command-hook 'sp--post-command-hook-handler)
 (add-hook 'pre-command-hook 'sp--pre-command-hook-handler)
 
+(defvar sp--mc/cursor-specific-vars
+  '(
+    sp-wrap-point
+    sp-wrap-mark
+    sp-last-wrapped-region
+    sp-pair-overlay-list
+    sp-wrap-overlays
+    sp-wrap-tag-overlays
+    sp-last-operation
+    sp-previous-point
+    )
+  "A list of vars that need to be tracked on a per-cursor basis.")
+
+(eval-after-load 'multiple-cursors
+  '(dolist (it sp--mc/cursor-specific-vars)
+     (add-to-list 'mc/cursor-specific-vars it)))
+
 (provide 'smartparens)
 
 ;;; smartparens.el ends here
