@@ -243,10 +243,10 @@ string.  After the removal, all the pairs are re-checked."
 
   (setq sp-trigger-keys (-distinct sp-trigger-keys)))
 
-(defun sp--keybinding-fallback ()
+(defun sp--keybinding-fallback (&optional key-sequence)
   "Return the fall-back command as if `smartparens-mode' were disabled."
   (let ((smartparens-mode nil)
-        (keys (this-single-command-keys)))
+        (keys (or key-sequence (this-single-command-keys))))
     (key-binding keys t)))
 
 (defun sp--update-local-pairs ()
@@ -1395,10 +1395,14 @@ would execute if smartparens-mode were disabled."
         (progn
           (setq this-command 'self-insert-command)
           (self-insert-command arg))
-      (let ((com (sp--keybinding-fallback))
-            (smartparens-mode nil))
-        (setq this-original-command com)
-        (call-interactively com)))))
+      (sp--call-fallback-command))))
+
+(defun sp--call-fallback-command ()
+  "Call the command bound to last key sequence as if SP were disabled."
+  (let ((com (sp--keybinding-fallback))
+        (smartparens-mode nil))
+    (setq this-original-command com)
+    (call-interactively com)))
 
 (defadvice self-insert-command (around self-insert-command-adviced activate)
   (setq sp-point-inside-string (sp-point-in-string))
@@ -1421,6 +1425,15 @@ would execute if smartparens-mode were disabled."
              (t
               (sp--setaction action (sp-insert-pair))
               (sp--setaction action (sp-skip-closing-pair))
+              ;; try to call the fallback function bound to this key.
+              ;; That is a function that would normally run if SP was
+              ;; inactive. TODO: should this be customizable?
+              (when (not action)
+                (let ((fb-fun (sp--keybinding-fallback)))
+                  (when (not (eq fb-fun 'self-insert-command))
+                    (delete-char -1)
+                    (sp--call-fallback-command)
+                    (setq action t))))
               ;; if nothing happened, we just inserted a character, so
               ;; set the apropriate operation.  We also need to check
               ;; for `sp--self-insert-no-escape' not to overwrite
