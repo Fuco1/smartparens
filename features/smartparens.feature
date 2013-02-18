@@ -1,11 +1,18 @@
-Feature: Do Some things
-  In order to do something
+Feature: Autoinsert pairs
+  In order to type less
   As a user
-  I want to do something
-  
-  Scenario: Do Something
-    Given I have "something"
-    When I have "something"
-    Then I should have "something"
-    And I should have "something"
-    But I should not have "something"
+  I want to insert pairs automatically
+
+  Scenario: Insert pair
+    Given I turn on rst-mode
+      And I turn on smartparens
+     When I press "`"
+     Then I should see "``"
+
+  Scenario: Wrap pair
+    Given I turn on rst-mode
+      And I turn on smartparens
+     When I insert "This is some text"
+      And I select "is some"
+      And I press "`"
+     Then I should see "This `is some` text"

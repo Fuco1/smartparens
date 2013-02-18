@@ -16,6 +16,7 @@
 (add-to-list 'load-path (expand-file-name "ert" smartparens-util-path))
 
 (require 'smartparens)
+(require 'smartparens-config)
 (require 'espuds)
 (require 'ert)
 
@@ -26,11 +27,16 @@
 
 (Before
  ;; Before each scenario is run
- )
+ (switch-to-buffer
+  (get-buffer-create "*smartparens*"))
+ (erase-buffer))
 
 (After
- ;; After each scenario is run
- )
+ ;; Disable smartparens-mode
+ (smartparens-mode -1)
+ (smartparens-global-mode -1)
+ (show-smartparens-mode -1)
+ (show-smartparens-global-mode -1))
 
 (Teardown
  ;; After when everything has been run

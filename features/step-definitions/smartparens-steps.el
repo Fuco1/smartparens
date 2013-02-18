@@ -2,27 +2,15 @@
 ;; files in this directory whose names end with "-steps.el" will be
 ;; loaded automatically by Ecukes.
 
-(Given "^I have \"\\(.+\\)\"$"
-       (lambda (something)
-         ;; Do something
-         ))
 
-(When "^I have \"\\(.+\\)\"$"
-      (lambda (something)
-        ;; Do something
-        ))
+(Given "^I turn on smartparens globally$"
+       (lambda ()
+         (smartparens-global-mode 1)))
 
-(Then "^I should have \"\\(.+\\)\"$"
-      (lambda (something)
-        ;; Do something
-        ))
+(Given "^I turn on smartparens$"
+       (lambda ()
+         (smartparens-mode 1)))
 
-(And "^I have \"\\(.+\\)\"$"
-     (lambda (something)
-       ;; Do something
-       ))
-
-(But "^I should not have \"\\(.+\\)\"$"
-     (lambda (something)
-       ;; Do something
-       ))
+(Given "^I turn off smartparens$"
+       (lambda ()
+         (smartparens-mode -1)))
