@@ -1,0 +1,10 @@
+(source "melpa" "http://melpa.milkbox.net/packages/")
+
+(package "smartparens" "0"
+         "Autoinsert pairs of defined brackets and wrap regions")
+
+(depends-on "dash")
+
+(development
+  (depends-on "ecukes")
+  (depends-on "espuds"))
