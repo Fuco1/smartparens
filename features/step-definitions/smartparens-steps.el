@@ -14,3 +14,12 @@
 (Given "^I turn off smartparens$"
        (lambda ()
          (smartparens-mode -1)))
+
+(Given "^I add a local pair \"\\([^\"]+\\)\" on \"\\([^\"]+\\)\" ?\\(.*\\)$"
+       (lambda (pair modes-1 modifier)
+         (let ((args (split-string pair "/"))
+               (modes (mapcar #'intern (split-string modes-1 ","))))
+           (cond
+            ((equal "enabled only in string" modifier)
+             (setq args (append args '(:when (sp-in-string-p))))))
+           (apply #'sp-local-pair modes args))))

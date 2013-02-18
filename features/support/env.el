@@ -32,6 +32,8 @@
  (erase-buffer))
 
 (After
+ (let ((buf (get-buffer "*new*")))
+   (when buf (kill-buffer buf)))
  ;; Disable smartparens-mode
  (smartparens-mode -1)
  (smartparens-global-mode -1)
