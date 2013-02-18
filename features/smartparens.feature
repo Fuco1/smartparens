@@ -9,6 +9,11 @@ Feature: Autoinsert pairs
      When I press "`"
      Then I should see "``"
 
+  Scenario: Insert multichar pair
+    Given I turn on smartparens
+     When I press "\{"
+     Then I should see "\{\}"
+
   Scenario: Wrap pair
     Given I turn on rst-mode
       And I turn on smartparens
