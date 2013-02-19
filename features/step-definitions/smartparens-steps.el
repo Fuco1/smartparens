@@ -2,6 +2,19 @@
 ;; files in this directory whose names end with "-steps.el" will be
 ;; loaded automatically by Ecukes.
 
+(When "^I exchange point and mark$"
+      (lambda ()
+	(exchange-point-and-mark)))
+
+(Then "^last operation should be \"\\([^\"]+\\)\"$"
+      (lambda (value)
+	(let ((message "sp-last-action should be %s, but is %s")
+	      (last-op (symbol-name sp-last-operation)))
+	  (assert (equal last-op value) nil message value last-op))))
+
+(Then "^last wrapped region should be non-nil$"
+      (lambda ()
+	(assert (not (null sp-last-wrapped-region)) nil "sp-last-wrapped-region should be non-nil, but is nil")))
 
 (Given "^I turn on smartparens globally$"
        (lambda ()

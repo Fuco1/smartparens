@@ -23,13 +23,18 @@
 
 (Setup
  ;; Before anything has run
+ (setq my-counter 1)
  )
 
 (Before
+ ;; Load the default config
+ (load-file "smartparens-config.el")
+
  ;; Before each scenario is run
  (switch-to-buffer
   (get-buffer-create "*smartparens*"))
- (erase-buffer))
+ (erase-buffer)
+ (fundamental-mode))
 
 (After
  (let ((buf (get-buffer "*new*")))
