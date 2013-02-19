@@ -34,6 +34,44 @@
 (After
  (let ((buf (get-buffer "*new*")))
    (when buf (kill-buffer buf)))
+
+ ;; Reset all the customization done to sp
+ (dolist (var (get 'smartparens 'custom-group))
+   (when (equal 'custom-variable (cadr var))
+     (set (car var) (car (get (car var) 'standard-value)))))
+
+ ;; Reset the pairs
+ (setq sp-pairs '((t
+                    .
+                    ((:open "\\\\(" :close "\\\\)" :actions (insert wrap))
+                     (:open "\\{"   :close "\\}"   :actions (insert wrap))
+                     (:open "\\("   :close "\\)"   :actions (insert wrap))
+                     (:open "\\\""  :close "\\\""  :actions (insert wrap))
+                     (:open "/*"    :close "*/"    :actions (insert wrap))
+                     (:open "\""    :close "\""    :actions (insert wrap))
+                     (:open "'"     :close "'"     :actions (insert wrap))
+                     (:open "("     :close ")"     :actions (insert wrap))
+                     (:open "["     :close "]"     :actions (insert wrap))
+                     (:open "{"     :close "}"     :actions (insert wrap))
+                     (:open "`"     :close "'"     :actions (insert wrap))))))
+
+ ;; reset the state between scenarios to not interfere
+ (setq sp-escape-char nil)
+ (setq sp-pair-list nil)
+ (setq sp-local-pairs nil)
+ (setq sp-last-operation nil)
+ (setq sp-previous-point -1)
+ (setq sp-wrap-point nil)
+ (setq sp-wrap-mark nil)
+ (setq sp-last-inserted-characters "")
+ (setq sp-last-wrapped-region nil)
+ (setq sp-point-inside-string nil)
+ (setq sp-tags nil)
+ (setq sp-pair-overlay-list '())
+ (setq sp-wrap-overlays nil)
+ (setq sp-wrap-tag-overlays nil)
+ (setq sp-recent-keys nil)
+
  ;; Disable smartparens-mode
  (smartparens-mode -1)
  (smartparens-global-mode -1)
