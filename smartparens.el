@@ -650,11 +650,11 @@ beginning."
   (cond ((> x 0) 1) ((< x 0) -1) (t 0)))
 
 (eval-when (compile eval load)
-  (defun sp--get-substitute (list)
+  (defun sp--get-substitute (keyword-list struct list)
     "Only ever call this from sp-get!  This function do the
 replacement of all the keywords with actual calls to sp-get."
     (if (listp list)
-        (mapcar 'sp--get-substitute list)
+        (mapcar (lambda (x) (sp--get-substitute keyword-list struct x)) list)
       (if (memq list keyword-list)
           `(sp-get ,struct ,list)
         list))))
@@ -715,7 +715,7 @@ a list and not a single keyword."
      ;; if the attr is a list, we replace all the tags with appropriate
      ;; calls to sp-get. Example: (sp-get ok (- :end :beg))
      ((listp attr)
-      (sp--get-substitute attr))
+      (sp--get-substitute keyword-list struct attr))
      (t
       (case attr
         ;; point in buffer before the opening delimiter
