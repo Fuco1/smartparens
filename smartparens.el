@@ -32,7 +32,11 @@
 ;;; Code:
 
 (require 'dash)
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl)
+                   (defvar cua--region-keymap))
+(declare-function cua-replace-region "cua-base")
+(declare-function cua--pre-command-handler "cua-base")
+(declare-function delete-selection-pre-hook "delsel")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Variables
@@ -174,6 +178,27 @@ run.")
 
 Only the pairs defined by `sp-pair' are considered.  Tag pairs
 can be of any length.")
+
+(defvar sp-pairs '((t
+                    .
+                    ((:open "\\\\(" :close "\\\\)" :actions (insert wrap))
+                     (:open "\\{"   :close "\\}"   :actions (insert wrap))
+                     (:open "\\("   :close "\\)"   :actions (insert wrap))
+                     (:open "\\\""  :close "\\\""  :actions (insert wrap))
+                     (:open "/*"    :close "*/"    :actions (insert wrap))
+                     (:open "\""    :close "\""    :actions (insert wrap))
+                     (:open "'"     :close "'"     :actions (insert wrap))
+                     (:open "("     :close ")"     :actions (insert wrap))
+                     (:open "["     :close "]"     :actions (insert wrap))
+                     (:open "{"     :close "}"     :actions (insert wrap))
+                     (:open "`"     :close "'"     :actions (insert wrap)))))
+  "List of pair definitions.
+
+Maximum length of opening or closing pair is
+`sp-max-pair-length-c' characters.")
+
+(defvar sp-tags nil
+  "List of tag definitions.  See `sp-local-tag' for more information.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Customize & Mode definitions
@@ -625,11 +650,11 @@ beginning."
   (cond ((> x 0) 1) ((< x 0) -1) (t 0)))
 
 (eval-when (compile eval load)
-  (defun sp--get-substitute (list)
+  (defun sp--get-substitute (keyword-list struct list)
     "Only ever call this from sp-get!  This function do the
 replacement of all the keywords with actual calls to sp-get."
     (if (listp list)
-        (mapcar 'sp--get-substitute list)
+        (mapcar (lambda (x) (sp--get-substitute keyword-list struct x)) list)
       (if (memq list keyword-list)
           `(sp-get ,struct ,list)
         list))))
@@ -690,7 +715,7 @@ a list and not a single keyword."
      ;; if the attr is a list, we replace all the tags with appropriate
      ;; calls to sp-get. Example: (sp-get ok (- :end :beg))
      ((listp attr)
-      (sp--get-substitute attr))
+      (sp--get-substitute keyword-list struct attr))
      (t
       (case attr
         ;; point in buffer before the opening delimiter
@@ -729,27 +754,6 @@ a list and not a single keyword."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Adding/removing of pairs/bans/allows etc.
-
-(defvar sp-pairs '((t
-                    .
-                    ((:open "\\\\(" :close "\\\\)" :actions (insert wrap))
-                     (:open "\\{"   :close "\\}"   :actions (insert wrap))
-                     (:open "\\("   :close "\\)"   :actions (insert wrap))
-                     (:open "\\\""  :close "\\\""  :actions (insert wrap))
-                     (:open "/*"    :close "*/"    :actions (insert wrap))
-                     (:open "\""    :close "\""    :actions (insert wrap))
-                     (:open "'"     :close "'"     :actions (insert wrap))
-                     (:open "("     :close ")"     :actions (insert wrap))
-                     (:open "["     :close "]"     :actions (insert wrap))
-                     (:open "{"     :close "}"     :actions (insert wrap))
-                     (:open "`"     :close "'"     :actions (insert wrap)))))
-  "List of pair definitions.
-
-Maximum length of opening or closing pair is
-`sp-max-pair-length-c' characters.")
-
-(defvar sp-tags nil
-  "List of tag definitions.  See `sp-local-tag' for more information.")
 
 (defun sp--merge-prop (old-pair new-pair prop)
   "Merge a property PROP from NEW-PAIR into OLD-PAIR.
