@@ -32,7 +32,11 @@
 ;;; Code:
 
 (require 'dash)
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl)
+                   (defvar cua--region-keymap))
+(declare-function cua-replace-region "cua-base")
+(declare-function cua--pre-command-handler "cua-base")
+(declare-function delete-selection-pre-hook "delsel")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Variables
