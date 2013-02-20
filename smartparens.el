@@ -175,6 +175,27 @@ run.")
 Only the pairs defined by `sp-pair' are considered.  Tag pairs
 can be of any length.")
 
+(defvar sp-pairs '((t
+                    .
+                    ((:open "\\\\(" :close "\\\\)" :actions (insert wrap))
+                     (:open "\\{"   :close "\\}"   :actions (insert wrap))
+                     (:open "\\("   :close "\\)"   :actions (insert wrap))
+                     (:open "\\\""  :close "\\\""  :actions (insert wrap))
+                     (:open "/*"    :close "*/"    :actions (insert wrap))
+                     (:open "\""    :close "\""    :actions (insert wrap))
+                     (:open "'"     :close "'"     :actions (insert wrap))
+                     (:open "("     :close ")"     :actions (insert wrap))
+                     (:open "["     :close "]"     :actions (insert wrap))
+                     (:open "{"     :close "}"     :actions (insert wrap))
+                     (:open "`"     :close "'"     :actions (insert wrap)))))
+  "List of pair definitions.
+
+Maximum length of opening or closing pair is
+`sp-max-pair-length-c' characters.")
+
+(defvar sp-tags nil
+  "List of tag definitions.  See `sp-local-tag' for more information.")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Customize & Mode definitions
 
@@ -729,27 +750,6 @@ a list and not a single keyword."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Adding/removing of pairs/bans/allows etc.
-
-(defvar sp-pairs '((t
-                    .
-                    ((:open "\\\\(" :close "\\\\)" :actions (insert wrap))
-                     (:open "\\{"   :close "\\}"   :actions (insert wrap))
-                     (:open "\\("   :close "\\)"   :actions (insert wrap))
-                     (:open "\\\""  :close "\\\""  :actions (insert wrap))
-                     (:open "/*"    :close "*/"    :actions (insert wrap))
-                     (:open "\""    :close "\""    :actions (insert wrap))
-                     (:open "'"     :close "'"     :actions (insert wrap))
-                     (:open "("     :close ")"     :actions (insert wrap))
-                     (:open "["     :close "]"     :actions (insert wrap))
-                     (:open "{"     :close "}"     :actions (insert wrap))
-                     (:open "`"     :close "'"     :actions (insert wrap)))))
-  "List of pair definitions.
-
-Maximum length of opening or closing pair is
-`sp-max-pair-length-c' characters.")
-
-(defvar sp-tags nil
-  "List of tag definitions.  See `sp-local-tag' for more information.")
 
 (defun sp--merge-prop (old-pair new-pair prop)
   "Merge a property PROP from NEW-PAIR into OLD-PAIR.
