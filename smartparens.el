@@ -2386,10 +2386,10 @@ of opening/closing delimiter or prefix)."
                             ;; we need to check if the match isn't
                             ;; preceded by escape sequence.  This is a
                             ;; bit tricky to do right, so for now we
-                            ;; just handle emacs-lisp ?\ character
+                            ;; just handle emacs-lisp \ or ? escape
                             ;; prefix
                             (and (member major-mode sp--lisp-modes)
-                                 (equal (buffer-substring (max 1 (- mb 2)) mb) "?\\")))
+                                 (member (buffer-substring (1- mb) mb) '("\\" "?"))))
                   (if (equal ms open)
                       (setq depth (1+ depth))
                     (setq depth (1- depth))))
