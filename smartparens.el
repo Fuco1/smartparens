@@ -3083,16 +3083,17 @@ documentation of `sp-forward-barf-sexp'."
           (sp--barf-sexp nil))
       (sp-forward-barf-sexp (sp--negate-argument old-arg)))))
 
-;; TODO: since most pair characters are in \( class, they are not
-;; skipped by this function.  But in some modes, maybe they are
-;; considered punctuation or something else. We should test if we look
-;; at a pair opener/closer too.
 (defmacro sp--skip-to-symbol-1 (forward)
   "Generate `sp-skip-forward-to-symbol' or `sp-skip-backward-to-symbol'."
   (let ((inc (if forward '1+ '1-))
         (dec (if forward '1- '1+))
         (forward-fn (if forward 'forward-char 'backward-char))
-        (next-char-fn (if forward 'following-char 'preceding-char)))
+        (next-char-fn (if forward 'following-char 'preceding-char))
+        (looking (if forward 'looking-at 'sp--looking-back))
+        ;; HACK: if we run out of current context this might skip a
+        ;; pair that was not allowed before.  However, such a call is
+        ;; never made in SP, so it's OK for now
+        (allowed-pairs (sp--get-allowed-regexp)))
     `(let ((in-comment (sp-point-in-comment)))
        (while (and (not (or (eobp)
                             (and stop-after-string
@@ -3101,10 +3102,7 @@ documentation of `sp-forward-barf-sexp'."
                             (and stop-at-string
                                  (not (sp-point-in-string))
                                  (sp-point-in-string (,inc (point))))
-                            ;; HACK -- fix ` inside strings in emacs modes
-                            (and (sp-point-in-string-or-comment)
-                                 (eq (char-syntax (,next-char-fn)) ?')
-                                 (member (,next-char-fn) '(?` ?')))))
+                            (,looking ,allowed-pairs)))
                    (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\" ?' ?.))
                        (unless in-comment (sp-point-in-comment))))
          (,forward-fn 1)))))
