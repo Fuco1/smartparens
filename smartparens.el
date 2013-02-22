@@ -2873,23 +2873,26 @@ Examples.  Prefix argument is shown after the example in
           (when (> (sp-get ok :end) e) (setq e (sp-get ok :end)))
           (setq n (1- n))))
       (when ok
-        (kill-region b e)
-        ;; kill useless junk whitespace.
-        (append-next-kill)
-        ;; TODO: this will copy one extra space if the expression is
-        ;; at the "indent" e.g.: |..(interactive) will kill as "
-        ;; (interactive)"
-        (kill-region (point)
-                     (progn
-                       (if (> arg 0)
-                           (progn
-                             (skip-chars-forward " \t")
-                             (when (looking-back " ")
-                               (backward-char)))
-                         (skip-chars-backward " \t")
-                         (when (looking-at " ") (forward-char)))
-                       (point)))
-        (indent-according-to-mode))))))
+        (let ((bm (set-marker (make-marker) b)))
+          (kill-region b e)
+          ;; kill useless junk whitespace.
+          (let ((bdel (save-excursion
+                        (when (looking-back " ")
+                          (skip-chars-backward " \t")
+                          (when (not (looking-back (sp--get-opening-regexp)))
+                            (forward-char)))
+                        (point)))
+                (edel (save-excursion
+                        (when (looking-at " ")
+                          (skip-chars-forward " \t")
+                          (when (not (looking-at (sp--get-closing-regexp)))
+                            (backward-char)))
+                        (point))))
+            (delete-region bdel edel))
+          (indent-according-to-mode)
+          ;; kill useless newlines
+          (when (string-match-p "\n" (buffer-substring-no-properties bm (point)))
+            (delete-region bm (point)))))))))
 
 (defun sp-backward-kill-sexp (&optional arg)
   "This is exactly like calling `sp-kill-sexp' with minus ARG.
