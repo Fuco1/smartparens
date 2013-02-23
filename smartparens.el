@@ -1405,8 +1405,9 @@ would execute if smartparens-mode were disabled."
   "Call the command bound to last key sequence as if SP were disabled."
   (let ((com (sp--keybinding-fallback))
         (smartparens-mode nil))
-    (setq this-original-command com)
-    (call-interactively com)))
+    (when com
+      (setq this-original-command com)
+      (call-interactively com))))
 
 (defadvice self-insert-command (around self-insert-command-adviced activate)
   (setq sp-point-inside-string (sp-point-in-string))
