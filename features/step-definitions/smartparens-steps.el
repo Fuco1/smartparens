@@ -34,5 +34,11 @@
                (modes (mapcar #'intern (split-string modes-1 ","))))
            (cond
             ((equal "enabled only in string" modifier)
-             (setq args (append args '(:when (sp-in-string-p))))))
+             (setq args (append args '(:when (sp-in-string-p)))))
+	    ((equal "enabled only in code" modifier)
+	     (setq args (append args '(:when (sp-in-code-p)))))
+	    ((equal "disabled only in string" modifier)
+	     (setq args (append args '(:unless (sp-in-string-p)))))
+	    ((equal "disabled only in code" modifier)
+	     (setq args (append args '(:unless (sp-in-code-p))))))
            (apply #'sp-local-pair modes args))))
