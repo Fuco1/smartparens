@@ -32,7 +32,11 @@
 ;;; Code:
 
 (require 'dash)
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl)
+                   (defvar cua--region-keymap))
+(declare-function cua-replace-region "cua-base")
+(declare-function cua--pre-command-handler "cua-base")
+(declare-function delete-selection-pre-hook "delsel")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Variables
@@ -174,6 +178,27 @@ run.")
 
 Only the pairs defined by `sp-pair' are considered.  Tag pairs
 can be of any length.")
+
+(defvar sp-pairs '((t
+                    .
+                    ((:open "\\\\(" :close "\\\\)" :actions (insert wrap))
+                     (:open "\\{"   :close "\\}"   :actions (insert wrap))
+                     (:open "\\("   :close "\\)"   :actions (insert wrap))
+                     (:open "\\\""  :close "\\\""  :actions (insert wrap))
+                     (:open "/*"    :close "*/"    :actions (insert wrap))
+                     (:open "\""    :close "\""    :actions (insert wrap))
+                     (:open "'"     :close "'"     :actions (insert wrap))
+                     (:open "("     :close ")"     :actions (insert wrap))
+                     (:open "["     :close "]"     :actions (insert wrap))
+                     (:open "{"     :close "}"     :actions (insert wrap))
+                     (:open "`"     :close "'"     :actions (insert wrap)))))
+  "List of pair definitions.
+
+Maximum length of opening or closing pair is
+`sp-max-pair-length-c' characters.")
+
+(defvar sp-tags nil
+  "List of tag definitions.  See `sp-local-tag' for more information.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Customize & Mode definitions
@@ -625,11 +650,11 @@ beginning."
   (cond ((> x 0) 1) ((< x 0) -1) (t 0)))
 
 (eval-when (compile eval load)
-  (defun sp--get-substitute (list)
+  (defun sp--get-substitute (keyword-list struct list)
     "Only ever call this from sp-get!  This function do the
 replacement of all the keywords with actual calls to sp-get."
     (if (listp list)
-        (mapcar 'sp--get-substitute list)
+        (mapcar (lambda (x) (sp--get-substitute keyword-list struct x)) list)
       (if (memq list keyword-list)
           `(sp-get ,struct ,list)
         list))))
@@ -690,7 +715,7 @@ a list and not a single keyword."
      ;; if the attr is a list, we replace all the tags with appropriate
      ;; calls to sp-get. Example: (sp-get ok (- :end :beg))
      ((listp attr)
-      (sp--get-substitute attr))
+      (sp--get-substitute keyword-list struct attr))
      (t
       (case attr
         ;; point in buffer before the opening delimiter
@@ -729,27 +754,6 @@ a list and not a single keyword."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Adding/removing of pairs/bans/allows etc.
-
-(defvar sp-pairs '((t
-                    .
-                    ((:open "\\\\(" :close "\\\\)" :actions (insert wrap))
-                     (:open "\\{"   :close "\\}"   :actions (insert wrap))
-                     (:open "\\("   :close "\\)"   :actions (insert wrap))
-                     (:open "\\\""  :close "\\\""  :actions (insert wrap))
-                     (:open "/*"    :close "*/"    :actions (insert wrap))
-                     (:open "\""    :close "\""    :actions (insert wrap))
-                     (:open "'"     :close "'"     :actions (insert wrap))
-                     (:open "("     :close ")"     :actions (insert wrap))
-                     (:open "["     :close "]"     :actions (insert wrap))
-                     (:open "{"     :close "}"     :actions (insert wrap))
-                     (:open "`"     :close "'"     :actions (insert wrap)))))
-  "List of pair definitions.
-
-Maximum length of opening or closing pair is
-`sp-max-pair-length-c' characters.")
-
-(defvar sp-tags nil
-  "List of tag definitions.  See `sp-local-tag' for more information.")
 
 (defun sp--merge-prop (old-pair new-pair prop)
   "Merge a property PROP from NEW-PAIR into OLD-PAIR.
@@ -2382,10 +2386,10 @@ of opening/closing delimiter or prefix)."
                             ;; we need to check if the match isn't
                             ;; preceded by escape sequence.  This is a
                             ;; bit tricky to do right, so for now we
-                            ;; just handle emacs-lisp ?\ character
+                            ;; just handle emacs-lisp \ or ? escape
                             ;; prefix
                             (and (member major-mode sp--lisp-modes)
-                                 (equal (buffer-substring (max 1 (- mb 2)) mb) "?\\")))
+                                 (member (buffer-substring (1- mb) mb) '("\\" "?"))))
                   (if (equal ms open)
                       (setq depth (1+ depth))
                     (setq depth (1- depth))))
@@ -2869,23 +2873,26 @@ Examples.  Prefix argument is shown after the example in
           (when (> (sp-get ok :end) e) (setq e (sp-get ok :end)))
           (setq n (1- n))))
       (when ok
-        (kill-region b e)
-        ;; kill useless junk whitespace.
-        (append-next-kill)
-        ;; TODO: this will copy one extra space if the expression is
-        ;; at the "indent" e.g.: |..(interactive) will kill as "
-        ;; (interactive)"
-        (kill-region (point)
-                     (progn
-                       (if (> arg 0)
-                           (progn
-                             (skip-chars-forward " \t")
-                             (when (looking-back " ")
-                               (backward-char)))
-                         (skip-chars-backward " \t")
-                         (when (looking-at " ") (forward-char)))
-                       (point)))
-        (indent-according-to-mode))))))
+        (let ((bm (set-marker (make-marker) b)))
+          (kill-region b e)
+          ;; kill useless junk whitespace.
+          (let ((bdel (save-excursion
+                        (when (looking-back " ")
+                          (skip-chars-backward " \t")
+                          (when (not (looking-back (sp--get-opening-regexp)))
+                            (forward-char)))
+                        (point)))
+                (edel (save-excursion
+                        (when (looking-at " ")
+                          (skip-chars-forward " \t")
+                          (when (not (looking-at (sp--get-closing-regexp)))
+                            (backward-char)))
+                        (point))))
+            (delete-region bdel edel))
+          (indent-according-to-mode)
+          ;; kill useless newlines
+          (when (string-match-p "\n" (buffer-substring-no-properties bm (point)))
+            (delete-region bm (point)))))))))
 
 (defun sp-backward-kill-sexp (&optional arg)
   "This is exactly like calling `sp-kill-sexp' with minus ARG.
@@ -3079,16 +3086,17 @@ documentation of `sp-forward-barf-sexp'."
           (sp--barf-sexp nil))
       (sp-forward-barf-sexp (sp--negate-argument old-arg)))))
 
-;; TODO: since most pair characters are in \( class, they are not
-;; skipped by this function.  But in some modes, maybe they are
-;; considered punctuation or something else. We should test if we look
-;; at a pair opener/closer too.
 (defmacro sp--skip-to-symbol-1 (forward)
   "Generate `sp-skip-forward-to-symbol' or `sp-skip-backward-to-symbol'."
   (let ((inc (if forward '1+ '1-))
         (dec (if forward '1- '1+))
         (forward-fn (if forward 'forward-char 'backward-char))
-        (next-char-fn (if forward 'following-char 'preceding-char)))
+        (next-char-fn (if forward 'following-char 'preceding-char))
+        (looking (if forward 'looking-at 'sp--looking-back))
+        ;; HACK: if we run out of current context this might skip a
+        ;; pair that was not allowed before.  However, such a call is
+        ;; never made in SP, so it's OK for now
+        (allowed-pairs (sp--get-allowed-regexp)))
     `(let ((in-comment (sp-point-in-comment)))
        (while (and (not (or (eobp)
                             (and stop-after-string
@@ -3097,10 +3105,7 @@ documentation of `sp-forward-barf-sexp'."
                             (and stop-at-string
                                  (not (sp-point-in-string))
                                  (sp-point-in-string (,inc (point))))
-                            ;; HACK -- fix ` inside strings in emacs modes
-                            (and (sp-point-in-string-or-comment)
-                                 (eq (char-syntax (,next-char-fn)) ?')
-                                 (member (,next-char-fn) '(?` ?')))))
+                            (,looking ,allowed-pairs)))
                    (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\" ?' ?.))
                        (unless in-comment (sp-point-in-comment))))
          (,forward-fn 1)))))
