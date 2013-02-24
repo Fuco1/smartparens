@@ -146,6 +146,12 @@ Feature: Autoinsert pairs
     And I type "\""
     Then I should see "[one or two \"words\"\" ]"
 
+  Scenario: Spaces in pair definition
+    Given I add a pair "! / !"
+      And I turn on smartparens
+     When I press "! SPC x"
+     Then I should see "! x !"
+
   Scenario: Add local pair
     Given I add a local pair "'/!" on "rst-mode"
     And I turn on rst-mode
@@ -260,3 +266,34 @@ Feature: Autoinsert pairs
     And I press "*"
     Then I should see "**"
 
+  Scenario: Set local actions to nil to free prefix
+    Given I add a local pair "[/]" on "sh-mode" with actions "nil"
+      And I add a local pair "[ / ]" on "sh-mode"
+      And I add a local pair "[!/!]" on "sh-mode"
+      And I add a local pair "[[/]]" on "sh-mode"
+      And I turn on sh-mode
+      And I turn on smartparens
+     When I type "[["
+     Then I should see "[[]]"
+     When the buffer is empty
+      And I press "[!"
+     Then I should see "[!!]"
+     When the buffer is empty
+      And I press "[ SPC"
+     Then I should see "[  ]"
+
+  Scenario: Remove local actions to free prefix
+    Given I add a local pair "[/]" on "sh-mode" with actions "(:rem wrap insert)"
+      And I add a local pair "[ / ]" on "sh-mode"
+      And I add a local pair "[!/!]" on "sh-mode"
+      And I add a local pair "[[/]]" on "sh-mode"
+      And I turn on sh-mode
+      And I turn on smartparens
+     When I type "[["
+     Then I should see "[[]]"
+     When the buffer is empty
+      And I press "[!"
+     Then I should see "[!!]"
+     When the buffer is empty
+      And I press "[ SPC"
+     Then I should see "[  ]"

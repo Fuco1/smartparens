@@ -28,6 +28,11 @@
        (lambda ()
          (smartparens-mode -1)))
 
+(Given "^I add a pair \"\\([^\"]+\\)\"$"
+       (lambda (pair)
+         (let ((args (split-string pair "/")))
+           (apply #'sp-pair args))))
+
 (Given "^I add a local pair \"\\([^\"]+\\)\" on \"\\([^\"]+\\)\" ?\\(.*\\)$"
        (lambda (pair modes-1 modifier)
          (let ((args (split-string pair "/"))
@@ -40,5 +45,8 @@
 	    ((equal "disabled only in string" modifier)
 	     (setq args (append args '(:unless (sp-in-string-p)))))
 	    ((equal "disabled only in code" modifier)
-	     (setq args (append args '(:unless (sp-in-code-p))))))
+	     (setq args (append args '(:unless (sp-in-code-p)))))
+            ((string-match "with actions \"\\([^\"]+\\)\"" modifier)
+             (setq args (append args `(:actions
+                                       ,(read (match-string 1 modifier)))))))
            (apply #'sp-local-pair modes args))))
