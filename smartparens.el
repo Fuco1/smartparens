@@ -629,8 +629,10 @@ key symbols with garbage character (ň).
 
 TODO: fix this!"
   (let ((original (single-key-description event)))
-    (if (string-match-p "<.*?>" original)
-        "ň" original)))
+    (cond
+     ((string-match-p "<.*?>" original) "ň")
+     ((string-match-p "SPC" original) " ")
+     (t original))))
 
 (defun sp--split-string (string by)
   "Split STRING on BY.  This simply calls `split-string' and if it
@@ -1395,7 +1397,7 @@ just-typed key is not a trigger, fall back to the commant that
 would execute if smartparens-mode were disabled."
   (interactive "p")
   (let ((triggers sp-trigger-keys))
-    (if (member (single-key-description last-command-event) triggers)
+    (if (member (sp--single-key-description last-command-event) triggers)
         (progn
           (setq this-command 'self-insert-command)
           (self-insert-command arg))
@@ -1416,7 +1418,7 @@ would execute if smartparens-mode were disabled."
 
   (when smartparens-mode
     (setq sp-recent-keys (cons
-                          (single-key-description last-command-event)
+                          (sp--single-key-description last-command-event)
                           (-take 19 sp-recent-keys)))
     (let (op action)
       (if (= 1 (ad-get-arg 0))
