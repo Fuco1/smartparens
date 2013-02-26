@@ -2391,7 +2391,8 @@ of opening/closing delimiter or prefix)."
                             ;; bit tricky to do right, so for now we
                             ;; just handle emacs-lisp \ or ? escape
                             ;; prefix
-                            (and (member major-mode sp--lisp-modes)
+                            (and (> mb 1)
+                                 (member major-mode sp--lisp-modes)
                                  (member (buffer-substring (1- mb) mb) '("\\" "?"))))
                   (if (equal ms open)
                       (setq depth (1+ depth))
