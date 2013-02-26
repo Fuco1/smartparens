@@ -2036,7 +2036,7 @@ followed by word.  It is disabled by default.  See
           (overlay-put (sp--get-active-overlay 'pair) 'pair-id "\\\""))
 
         (sp--run-hook-with-args open-pair :post-handlers 'insert)
-
+        (setq sp-recent-keys nil)
         (setq sp-last-operation 'sp-insert-pair)))))
 
 (defun sp--wrap-repeat-last (active-pair)
