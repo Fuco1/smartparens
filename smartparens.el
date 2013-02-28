@@ -1290,6 +1290,11 @@ are of zero length, or if point moved backwards."
   "Return t if point is inside code, nil otherwise."
   (eq context 'code))
 
+(defun sp-in-math-p (id action context)
+  "Return t if point is inside code, nil otherwise."
+  (when (functionp 'texmathp)
+    (texmathp)))
+
 (defun sp-point-after-word-p (id action context)
   "Return t if point is after a word, nil otherwise.
 
