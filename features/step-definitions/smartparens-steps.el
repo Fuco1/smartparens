@@ -59,6 +59,7 @@
        (vconcat (edmacro-parse-keys "M-:")
                 (string-to-vector "(setq result (read-passwd \"> \"))")
                 (edmacro-parse-keys "RET")
-                (string-to-vector type)))
+                (string-to-vector type)
+                (edmacro-parse-keys "RET")))
       (assert (equal result type) nil
               "Typed %S but got %S" type result))))
