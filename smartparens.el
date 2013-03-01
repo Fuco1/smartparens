@@ -3590,7 +3590,8 @@ support custom pairs."
 ;; global initialization
 (sp--update-trigger-keys)
 (defadvice delete-backward-char (before sp-delete-pair-advice activate)
-  (sp-delete-pair (ad-get-arg 0)))
+  (save-match-data
+    (sp-delete-pair (ad-get-arg 0))))
 (add-hook 'post-command-hook 'sp--post-command-hook-handler)
 (add-hook 'pre-command-hook 'sp--pre-command-hook-handler)
 
