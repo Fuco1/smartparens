@@ -1412,7 +1412,7 @@ would execute if smartparens-mode were disabled."
   "Call the command bound to last key sequence as if SP were disabled."
   (let ((com (sp--keybinding-fallback))
         (smartparens-mode nil))
-    (when com
+    (when (and com (commandp com))
       (setq this-original-command com)
       (call-interactively com))))
 
