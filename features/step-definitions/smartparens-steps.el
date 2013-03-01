@@ -50,3 +50,15 @@
              (setq args (append args `(:actions
                                        ,(read (match-string 1 modifier)))))))
            (apply #'sp-local-pair modes args))))
+
+(Then "^typing \"\\([^\"]+\\)\" on password prompt works$"
+  "Check that `read-passwd' based password prompt works."
+  (lambda (type)
+    (let (result)
+      (execute-kbd-macro
+       (vconcat (edmacro-parse-keys "M-:")
+                (string-to-vector "(setq result (read-passwd \"> \"))")
+                (edmacro-parse-keys "RET")
+                (string-to-vector type)))
+      (assert (equal result type) nil
+              "Typed %S but got %S" type result))))

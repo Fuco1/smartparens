@@ -311,3 +311,8 @@ Feature: Autoinsert pairs
       And I execute the action chain
       And I press "C-y"
      Then I should see "()"
+
+  Scenario: Insert characters in read-passwd prompt
+    Given I set sp-ignore-modes-list to nil
+      And I turn on smartparens globally
+     Then typing "my password" on password prompt works
