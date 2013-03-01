@@ -1442,7 +1442,8 @@ would execute if smartparens-mode were disabled."
               ;; inactive. TODO: should this be customizable?
               (when (not action)
                 (let ((fb-fun (sp--keybinding-fallback)))
-                  (when (not (eq fb-fun 'self-insert-command))
+                  (when (and (not (eq fb-fun 'self-insert-command))
+                             (lookup-key sp-keymap (vector last-command-event)))
                     (delete-char -1)
                     (sp--call-fallback-command)
                     (setq action t))))
