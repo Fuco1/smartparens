@@ -297,3 +297,22 @@ Feature: Autoinsert pairs
      When the buffer is empty
       And I press "[ SPC"
      Then I should see "[  ]"
+
+  Scenario: Insert a pair in minibuffer
+    Given I set sp-ignore-modes-list to nil
+      And I turn on smartparens globally
+     When I start an action chain
+      And I press "M-:"
+      And I type "("
+      And I press "C-a"
+      And I press "C-k"
+      And I type "nil"
+      And I press "RET"
+      And I execute the action chain
+      And I press "C-y"
+     Then I should see "()"
+
+  Scenario: Insert characters in read-passwd prompt
+    Given I set sp-ignore-modes-list to nil
+      And I turn on smartparens globally
+     Then typing "my password" on password prompt works
