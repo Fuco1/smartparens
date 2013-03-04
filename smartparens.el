@@ -271,7 +271,7 @@ string.  After the removal, all the pairs are re-checked."
 (defun sp--keybinding-fallback (&optional key-sequence)
   "Return the fall-back command as if `smartparens-mode' were disabled."
   (let ((smartparens-mode nil)
-        (keys (or key-sequence (this-single-command-keys))))
+        (keys (or key-sequence (car sp-recent-keys))))
     (key-binding keys t)))
 
 (defun sp--update-local-pairs ()
