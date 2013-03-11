@@ -333,7 +333,7 @@ MODES."
 (defun turn-off-smartparens-mode ()
   "Turn off `smartparens-mode'."
   (interactive)
-  (smartparens-mode nil))
+  (smartparens-mode -1))
 
 ;; insert custom
 (defcustom sp-autoinsert-pair t
@@ -3530,7 +3530,7 @@ support custom pairs."
 (defun turn-off-show-smartparens-mode ()
   "Turn off `show-smartparens-mode'."
   (interactive)
-  (show-smartparens-mode nil))
+  (show-smartparens-mode -1))
 
 (defun sp-show--pair-function ()
   "Display the show pair overlays."
