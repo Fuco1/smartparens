@@ -73,14 +73,22 @@
 ;; automatically.  If you want to call sp-local-pair outside this
 ;; macro, you MUST supply the major mode argument.
 
-;; markdown based modes
 (sp-with-modes '(
                  markdown-mode
                  gfm-mode
                  rst-mode
+                 go-mode
+                 ruby-mode
+                 perl-mode
+                 cperl-mode
+                 sh-mode
+                 scala-mode
+                 haskell-mode
                  )
-  ;; overload the `' pair with ``, which is used for inline
-  ;; code in markdown
+  ;; overload the `' pair with ``, which is used for inline code in markdown,
+  ;; raw strings in go, command substitution in shell, shell command execution
+  ;; in Ruby and Perl, literal identifiers in Scala, infix function invocation
+  ;; in Haskell.
   (sp-local-pair "`" "`"))
 
 ;; LaTeX modes
