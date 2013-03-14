@@ -66,22 +66,12 @@
   (sp-local-pair "'" nil :actions nil)
   ;; also only use the pseudo-quote inside strings where it serve as
   ;; hyperlink.
-  (sp-local-pair "`" nil :when '(sp-in-string-p)))
+  (sp-local-pair "`" "'" :when '(sp-in-string-p)))
 
 ;; NOTE: Normally, `sp-local-pair' accepts list of modes (or a single
 ;; mode) as a first argument.  The macro `sp-with-modes' adds this
 ;; automatically.  If you want to call sp-local-pair outside this
 ;; macro, you MUST supply the major mode argument.
-
-;; markdown based modes
-(sp-with-modes '(
-                 markdown-mode
-                 gfm-mode
-                 rst-mode
-                 )
-  ;; overload the `' pair with ``, which is used for inline
-  ;; code in markdown
-  (sp-local-pair "`" "`"))
 
 ;; LaTeX modes
 (sp-with-modes '(
@@ -91,6 +81,7 @@
                  )
   ;; math modes, yay.  The :actions are provided automatically if
   ;; these pairs do not have global definition.
+  (sp-local-pair "`" "'")
   (sp-local-pair "$" "$")
   (sp-local-pair "\\[" "\\]")
   (sp-local-tag "\\b" "\\begin{_}" "\\end{_}"))
