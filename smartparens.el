@@ -519,7 +519,7 @@ string delimited with \"\" is considered as one token."
 (defun sp--delete-selection-p ()
   "Return t if `delete-selection-mode' or `cua-delete-selection' is enabled."
   (or (and (boundp 'delete-selection-mode) delete-selection-mode)
-      (and (boundp 'cua-delete-selection) cua-delete-selection)))
+      (and (boundp 'cua-delete-selection) cua-delete-selection cua-mode)))
 
 (defun sp--cua-replace-region (&optional arg)
   "If `smartparens-mode' is on, emulate `self-insert-command',
@@ -1483,6 +1483,7 @@ would execute if smartparens-mode were disabled."
        ;; this handles the special case after `self-insert-command' if
        ;; `sp-autowrap-region' is t.
        ((and (boundp 'cua-mode) cua-mode from-wrap)
+        (setq this-command this-original-command)
         (cua-replace-region))
        ;; if not self-insert, just run the hook from
        ;; `delete-selection-mode'
