@@ -42,15 +42,15 @@ Feature: Wrap Region
     When I insert "This is some text"
     And I select "is some"
     And I type "`"
-    Then I should see "This `is some' text"
+    Then I should see "This `is some` text"
 
   Scenario: Wrap in mode with customized pairs where local value should be used
-    Given I turn on rst-mode
+    Given I turn on latex-mode
     And I turn on smartparens
     When I insert "This is some text"
     And I select "is some"
     And I type "`"
-    Then I should see "This `is some` text"
+    Then I should see "This `is some' text"
 
 
 Scenario: Repeatedly wrap with pair, point after region

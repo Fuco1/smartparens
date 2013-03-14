@@ -58,7 +58,7 @@
                      (:open "("     :close ")"     :actions (insert wrap))
                      (:open "["     :close "]"     :actions (insert wrap))
                      (:open "{"     :close "}"     :actions (insert wrap))
-                     (:open "`"     :close "'"     :actions (insert wrap))))))
+                     (:open "`"     :close "`"     :actions (insert wrap))))))
 
  ;; reset the state between scenarios to not interfere
  (setq sp-escape-char nil)

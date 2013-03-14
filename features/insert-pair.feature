@@ -8,15 +8,13 @@ Feature: Autoinsert pairs
     When I type "("
     Then I should see "()"
     When I type "`"
-    Then I should see "`'"
+    Then I should see "``"
     
   Scenario: Insert singlechar pairs in special modes
-    Given I turn on rst-mode
-    And I turn on smartparens
-    When I type "`"
-    Then I should see "``"
     Given I turn on latex-mode
     And I turn on smartparens
+    When I type "`"
+    Then I should see "`'"
     And I type "$"
     Then I should see "$$"
 
