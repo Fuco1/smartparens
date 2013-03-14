@@ -191,7 +191,7 @@ can be of any length.")
                      (:open "("     :close ")"     :actions (insert wrap))
                      (:open "["     :close "]"     :actions (insert wrap))
                      (:open "{"     :close "}"     :actions (insert wrap))
-                     (:open "`"     :close "'"     :actions (insert wrap)))))
+                     (:open "`"     :close "`"     :actions (insert wrap)))))
   "List of pair definitions.
 
 Maximum length of opening or closing pair is
@@ -333,7 +333,7 @@ MODES."
 (defun turn-off-smartparens-mode ()
   "Turn off `smartparens-mode'."
   (interactive)
-  (smartparens-mode nil))
+  (smartparens-mode -1))
 
 ;; insert custom
 (defcustom sp-autoinsert-pair t
@@ -519,7 +519,7 @@ string delimited with \"\" is considered as one token."
 (defun sp--delete-selection-p ()
   "Return t if `delete-selection-mode' or `cua-delete-selection' is enabled."
   (or (and (boundp 'delete-selection-mode) delete-selection-mode)
-      (and (boundp 'cua-delete-selection) cua-delete-selection)))
+      (and (boundp 'cua-delete-selection) cua-delete-selection cua-mode)))
 
 (defun sp--cua-replace-region (&optional arg)
   "If `smartparens-mode' is on, emulate `self-insert-command',
@@ -1483,6 +1483,7 @@ would execute if smartparens-mode were disabled."
        ;; this handles the special case after `self-insert-command' if
        ;; `sp-autowrap-region' is t.
        ((and (boundp 'cua-mode) cua-mode from-wrap)
+        (setq this-command this-original-command)
         (cua-replace-region))
        ;; if not self-insert, just run the hook from
        ;; `delete-selection-mode'
@@ -3530,7 +3531,7 @@ support custom pairs."
 (defun turn-off-show-smartparens-mode ()
   "Turn off `show-smartparens-mode'."
   (interactive)
-  (show-smartparens-mode nil))
+  (show-smartparens-mode -1))
 
 (defun sp-show--pair-function ()
   "Display the show pair overlays."
