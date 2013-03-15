@@ -2519,7 +2519,7 @@ returned by `sp-get-sexp'."
         (setq e (point))
         (sp-forward-symbol -1)
         (setq b (point))))
-    (list :beg b :end e :op " " :cl " " :prefix (sp--get-prefix b))))
+    (list :beg b :end e :op "" :cl "" :prefix (sp--get-prefix b))))
 
 (defun sp--get-string (bounds)
   "Return the `sp-get-sexp' format info about the string.
@@ -3371,6 +3371,8 @@ Examples:
       (forward-char (- (prog1 (sp-backward-whitespace) (insert (sp-get ok :cl)))))
       (save-excursion (sp-forward-whitespace) (insert (sp-get ok :op))))))
 
+;; TODO: make the begin/end calculation more sane :P. This is turning
+;; into a bowl of spaghetti
 (defun sp-select-next-thing (&optional arg)
   "Set active region over ARG next things as recognized by `sp-get-thing'.
 
@@ -3383,6 +3385,12 @@ If ARG is a raw prefix \\[universal-argument] \\[universal-argument] select the 
 if doing `sp-backward-up-sexp' followed by
 `sp-select-next-thing').
 
+If the currently active region contains a balanced expression,
+following invocation of `sp-select-next-thing' will select the
+inside of this expression (from :beg-in to :end-in, see
+`sp-get').  Therefore calling this function twice with no active
+region will select the inside of the next expression.
+
 If the point is right in front of the expression any potential
 prefix is ignored.  For example, '|(foo) would only select (foo)
 and not include ' in the selection.  If you wish to also select '
@@ -3394,6 +3402,8 @@ considered balanced expressions."
   (let* ((raw (sp--raw-argument-p arg))
          (arg (prefix-numeric-value arg))
          (old-point (point))
+         (rb (region-beginning))
+         (re (region-end))
          (first (sp-forward-sexp (sp--signum arg)))
          (last first)
          (b (if first
@@ -3430,13 +3440,25 @@ considered balanced expressions."
              (t
               (when (> (abs arg) 1)
                 (setq last (sp-forward-sexp (* (sp--signum arg) (1- (abs arg))))))
-              (if (> arg 0) (sp-get last :end) (sp-get last :beg-prf))))))
+              (cond
+               ;; if a region is already active and the argument is 1,
+               ;; try to select the inside of the pair. If inside is
+               ;; selected, select the whole pair again
+               ((and (= arg 1)
+                     (region-active-p)
+                     (eq rb (sp-get last :beg-prf))
+                     (eq re (sp-get last :end)))
+                (setq b (sp-get last :beg-in))
+                (sp-get last :end-in))
+               (t
+                (if (> arg 0) (sp-get last :end) (sp-get last :beg-prf))))))))
     (push-mark nil t)
     ;; if we moved forward check if the old-point was in front of an
     ;; expression and after a prefix. If so, remove the prefix from
     ;; the selection
     (when (and (> arg 0)
-               (= (sp-get first :beg) old-point))
+               (= (sp-get first :beg) old-point)
+               (= (sp-get first :beg-prf) b))
       (setq b (sp-get first :beg)))
     (set-mark b)
     (goto-char e)))
