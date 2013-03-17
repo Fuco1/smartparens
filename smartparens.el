@@ -90,6 +90,7 @@ corresponding functions provided by smartparens.  See variable
                                   ("C-M-n" . sp-next-sexp)
                                   ("C-M-p" . sp-previous-sexp)
                                   ("C-M-k" . sp-kill-sexp)
+                                  ("C-M-w" . sp-copy-sexp)
                                   ("M-<delete>" . sp-unwrap-sexp)
                                   ("M-<backspace>" . sp-backward-unwrap-sexp)
                                   ("C-<right>" . sp-forward-slurp-sexp)
@@ -2799,7 +2800,7 @@ move forward but still to a less deep spot."
   (setq arg (or arg 1))
   (sp-up-sexp (- arg)))
 
-(defun sp-kill-sexp (&optional arg)
+(defun sp-kill-sexp (&optional arg dont-kill)
   "Kill the balanced expression following point.
 
 If point is inside an expression and there is no following
@@ -2821,6 +2822,10 @@ With ARG being raw prefix \\[universal-argument] \\[universal-argument], kill cu
 point is inside).
 
 If ARG is nil, default to 1 (kill single expression forward)
+
+If second optional argument DONT-KILL is non-nil, save the to be
+killed region in the kill ring, but do not kill the region from
+buffer.
 
 With `sp-navigate-consider-symbols', symbols and strings are also
 considered balanced expressions.
@@ -2849,7 +2854,8 @@ Examples.  Prefix argument is shown after the example in
          (n (abs arg))
          (ok t)
          (b (point-max))
-         (e (point-min)))
+         (e (point-min))
+         (kill-fn (if dont-kill 'copy-region-as-kill 'kill-region)))
     (cond
      ;; kill to the end or beginning of list
      ((and raw
@@ -2866,15 +2872,14 @@ Examples.  Prefix argument is shown after the example in
               (while (and lst (>= (point) (sp-get (car lst) :end)))
                 (setq last (car lst))
                 (!cdr lst))
-              (kill-region (if last (sp-get last :end) beg-in) end-in))
+              (funcall kill-fn (if last (sp-get last :end) beg-in) end-in))
           (while (and lst (> (point) (sp-get (car lst) :beg-prf))) (!cdr lst))
-          (kill-region (if lst (sp-get (car lst) :beg-prf) end-in) beg-in))))
+          (funcall kill-fn (if lst (sp-get (car lst) :beg-prf) end-in) beg-in))))
      ;; kill the enclosing list
      ((and raw
            (= n 16))
       (let ((lst (sp-backward-up-sexp)))
-        (kill-region (sp-get lst :beg-prf)
-                     (sp-get lst :end))))
+        (funcall kill-fn (sp-get lst :beg-prf) (sp-get lst :end))))
      ;; regular kill
      (t
       (save-excursion
@@ -2885,32 +2890,54 @@ Examples.  Prefix argument is shown after the example in
           (setq n (1- n))))
       (when ok
         (let ((bm (set-marker (make-marker) b)))
-          (kill-region b e)
-          ;; kill useless junk whitespace.
-          (let ((bdel (save-excursion
-                        (when (looking-back " ")
-                          (skip-chars-backward " \t")
-                          (when (not (looking-back (sp--get-opening-regexp)))
-                            (forward-char)))
-                        (point)))
-                (edel (save-excursion
-                        (when (looking-at " ")
-                          (skip-chars-forward " \t")
-                          (when (not (looking-at (sp--get-closing-regexp)))
-                            (backward-char)))
-                        (point))))
-            (delete-region bdel edel))
-          (indent-according-to-mode)
-          ;; kill useless newlines
-          (when (string-match-p "\n" (buffer-substring-no-properties bm (point)))
-            (delete-region bm (point)))))))))
+          (funcall kill-fn b e)
+          ;; kill useless junk whitespace, but only if we're actually
+          ;; killing the region
+          (when (not dont-kill)
+            (let ((bdel (save-excursion
+                          (when (looking-back " ")
+                            (skip-chars-backward " \t")
+                            (when (not (looking-back (sp--get-opening-regexp)))
+                              (forward-char)))
+                          (point)))
+                  (edel (save-excursion
+                          (when (looking-at " ")
+                            (skip-chars-forward " \t")
+                            (when (not (looking-at (sp--get-closing-regexp)))
+                              (backward-char)))
+                          (point))))
+              (delete-region bdel edel))
+            (indent-according-to-mode)
+            ;; kill useless newlines
+            (when (string-match-p "\n" (buffer-substring-no-properties bm (point)))
+              (delete-region bm (point))))))))))
 
-(defun sp-backward-kill-sexp (&optional arg)
-  "This is exactly like calling `sp-kill-sexp' with minus ARG.
+(defun sp-backward-kill-sexp (&optional arg dont-kill)
+  "Kill the balanced expression preceding point.
+
+This is exactly like calling `sp-kill-sexp' with minus ARG.
 In other words, the direction of all commands is reversed.  For
 more information, see the documentation of `sp-kill-sexp'."
   (interactive "P")
-  (sp-kill-sexp (sp--negate-argument arg)))
+  (sp-kill-sexp (sp--negate-argument arg) dont-kill))
+
+(defun sp-copy-sexp (&optional arg)
+  "Copy the following ARG expressions to the kill-ring.
+
+This is exactly like calling `sp-kill-sexp' with second argument
+t.  All the special prefix arguments work the same way."
+  (interactive "P")
+  (save-excursion
+    (sp-kill-sexp arg t)))
+
+(defun sp-backward-copy-sexp (&optional arg)
+  "Copy the previous ARG expressions to the kill-ring.
+
+This is exactly like calling `sp-backward-kill-sexp' with second argument
+t.  All the special prefix arguments work the same way."
+  (interactive "P")
+  (save-excursion
+    (sp-kill-sexp (sp--negate-argument arg) t)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; "paredit" operations
