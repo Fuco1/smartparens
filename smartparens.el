@@ -3398,6 +3398,21 @@ Examples:
       (forward-char (- (prog1 (sp-backward-whitespace) (insert (sp-get ok :cl)))))
       (save-excursion (sp-forward-whitespace) (insert (sp-get ok :op))))))
 
+(defun sp-join-sexp ()
+  "Join the sexp before and after point if they are of the same type."
+  (interactive)
+  (let ((prev (save-excursion (sp-backward-sexp)))
+        (next (save-excursion (sp-forward-sexp))))
+    (if (and (equal (sp-get prev :op) (sp-get next :op))
+             (equal (sp-get prev :cl) (sp-get next :cl)))
+        ;; if there's some prefix on the second expression, remove it.
+        ;; We do not move it to the first expression, it is assumed
+        ;; there's one already
+        (progn
+          (delete-region (sp-get next :beg-prf) (sp-get next :beg-in))
+          (delete-region (sp-get prev :end-in) (sp-get prev :end)))
+      (message "The expressions to be joined are of different type."))))
+
 ;; TODO: make the begin/end calculation more sane :P. This is turning
 ;; into a bowl of spaghetti
 (defun sp-select-next-thing (&optional arg)
