@@ -768,6 +768,12 @@ a list and not a single keyword."
         ;; expression prefix length
         (:prefix-l    `(length (plist-get ,struct :prefix))))))))
 
+(defun sp--compare-sexps (a b)
+  "Compare the expressions A and B.
+
+Two expressions are equal if their :beg property is the same."
+  (= (sp-get a :beg) (sp-get b :beg)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Adding/removing of pairs/bans/allows etc.
 
@@ -2791,11 +2797,13 @@ This is the same as calling \\[universal-argument] \\[universal-argument] `sp-ba
   (interactive)
   (sp-down-sexp '(-16)))
 
-(defun sp-up-sexp (&optional arg)
+(defun sp-up-sexp (&optional arg interactive)
   "Move forward out of one level of parentheses.
 
 With ARG, do this that many times.  A negative argument means
 move backward but still to a less deep spot.
+
+The argument INTERACTIVE is for internal use only.
 
 If called interactively and `sp-navigate-reindent-after-up' is
 non-nil, remove the whitespace between end of the expression and
@@ -2803,32 +2811,40 @@ the last \"thing\" inside the expression.
 
 Example:
   (a b |c   ) -> (a b c)|"
-  (interactive "p")
+  (interactive "p\np")
   (setq arg (or arg 1))
   (let ((ok (sp-get-enclosing-sexp (abs arg))))
     (when ok
       (if (> arg 0)
           (goto-char (sp-get ok :end))
         (goto-char (sp-get ok :beg)))
-      (when (or (eq sp-navigate-reindent-after-up 'always)
-                (and (eq sp-navigate-reindent-after-up 'interactive)
-                     (interactive-p)))
-        (if (> arg 0)
-            (save-excursion
-              (goto-char (sp-get ok :end-in))
-              (let ((prev (sp-get-thing t)))
-                (delete-region (sp-get prev :end) (point))))
-          (save-excursion
+      (when (and (= (abs arg) 1)
+                 (or (eq sp-navigate-reindent-after-up 'always)
+                     (and (eq sp-navigate-reindent-after-up 'interactive)
+                          interactive)))
+        (save-excursion
+          (if (> arg 0)
+              (progn
+                (goto-char (sp-get ok :end-in))
+                (let ((prev (sp-get-thing t)))
+                  ;; if the expression is empty remove everything inside
+                  (if (sp--compare-sexps ok prev)
+                      (delete-region (sp-get ok :beg-in) (sp-get ok :end-in))
+                    (delete-region (sp-get prev :end) (point)))))
             (goto-char (sp-get ok :beg-in))
             (let ((next (sp-get-thing)))
-              (delete-region (point) (sp-get next :beg)))))))
+              (if (sp--compare-sexps ok next)
+                  (delete-region (sp-get ok :beg-in) (sp-get ok :end-in))
+                (delete-region (point) (sp-get next :beg))))))))
     ok))
 
-(defun sp-backward-up-sexp (&optional arg)
+(defun sp-backward-up-sexp (&optional arg interactive)
   "Move backward out of one level of parentheses.
 
 With ARG, do this that many times.  A negative argument means
 move forward but still to a less deep spot.
+
+The argument INTERACTIVE is for internal use only.
 
 If called interactively and `sp-navigate-reindent-after-up' is
 non-nil, remove the whitespace between beginning of the
@@ -2836,9 +2852,9 @@ expression and the first \"thing\" inside the expression.
 
 Example:
   (    a |b c) -> |(a b c)"
-  (interactive "p")
+  (interactive "p\np")
   (setq arg (or arg 1))
-  (sp-up-sexp (- arg)))
+  (sp-up-sexp (- arg) interactive))
 
 (defun sp-kill-sexp (&optional arg dont-kill)
   "Kill the balanced expression following point.
