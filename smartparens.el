@@ -44,6 +44,7 @@
 ;;;###autoload
 (defvar sp-keymap (make-sparse-keymap)
   "Keymap used for `smartparens-mode'.")
+(defvaralias 'smartparens-mode-map 'sp-keymap)
 
 (defvar sp-paredit-bindings '(
                               ("C-M-f" . sp-forward-sexp) ;; navigation
@@ -496,6 +497,18 @@ where it make sense.
 Also, special handling of strings is enabled, where the whole
 string delimited with \"\" is considered as one token."
   :type 'boolean
+  :group 'smartparens)
+
+(defcustom sp-navigate-reindent-after-up 'interactive
+  "If non-nil, reindent sexp after jumping out of it using `sp-up-sexp'.
+
+The whitespace between the closing delimiter and last \"thing\"
+inside the expression is removed.  It works analogically for the
+`sp-backward-up-sexp'."
+  :type '(radio
+          (const :tag "Always reindent" 'always)
+          (const :tag "Reindent only if called interactively" 'interactive)
+          (const :tag "Never reindent" nil))
   :group 'smartparens)
 
 ;; ui custom
@@ -2782,20 +2795,47 @@ This is the same as calling \\[universal-argument] \\[universal-argument] `sp-ba
   "Move forward out of one level of parentheses.
 
 With ARG, do this that many times.  A negative argument means
-move backward but still to a less deep spot."
+move backward but still to a less deep spot.
+
+If called interactively and `sp-navigate-reindent-after-up' is
+non-nil, remove the whitespace between end of the expression and
+the last \"thing\" inside the expression.
+
+Example:
+  (a b |c   ) -> (a b c)|"
   (interactive "p")
   (setq arg (or arg 1))
   (let ((ok (sp-get-enclosing-sexp (abs arg))))
     (when ok
-      (if (> arg 0) (goto-char (sp-get ok :end))
-        (goto-char (sp-get ok :beg))))
+      (if (> arg 0)
+          (goto-char (sp-get ok :end))
+        (goto-char (sp-get ok :beg)))
+      (when (or (eq sp-navigate-reindent-after-up 'always)
+                (and (eq sp-navigate-reindent-after-up 'interactive)
+                     (interactive-p)))
+        (if (> arg 0)
+            (save-excursion
+              (goto-char (sp-get ok :end-in))
+              (let ((prev (sp-get-thing t)))
+                (delete-region (sp-get prev :end) (point))))
+          (save-excursion
+            (goto-char (sp-get ok :beg-in))
+            (let ((next (sp-get-thing)))
+              (delete-region (point) (sp-get next :beg)))))))
     ok))
 
 (defun sp-backward-up-sexp (&optional arg)
   "Move backward out of one level of parentheses.
 
 With ARG, do this that many times.  A negative argument means
-move forward but still to a less deep spot."
+move forward but still to a less deep spot.
+
+If called interactively and `sp-navigate-reindent-after-up' is
+non-nil, remove the whitespace between beginning of the
+expression and the first \"thing\" inside the expression.
+
+Example:
+  (    a |b c) -> |(a b c)"
   (interactive "p")
   (setq arg (or arg 1))
   (sp-up-sexp (- arg)))
