@@ -2331,7 +2331,9 @@ object bounded by TEST."
   "List of Lisp modes.")
 
 ;; TODO: since this function is used for all the navigation, we should
-;; optimaze it a lot! Get some elisp profiler!
+;; optimaze it a lot! Get some elisp profiler! Also, we should split
+;; this into smaller functions (esp. the "first expression search"
+;; business)
 (defun sp-get-sexp (&optional back)
   "Find the nearest balanced expression that is after (before) point.
 
@@ -2373,26 +2375,27 @@ of opening/closing delimiter or prefix)."
          (fw-bound (if in-string-or-comment (cdr string-bounds) (point-max)))
          (bw-bound (if in-string-or-comment (car string-bounds) (point-min)))
          (s nil) (e nil) (active-pair nil) (forward nil) (failure nil)
-         (mb nil) (me nil) (ms nil) (r nil))
+         (mb nil) (me nil) (ms nil) (r nil) (done nil))
     (save-excursion
-      ;; search for the first opening pair.  Here, only consider tags
-      ;; that are allowed in the current context.
-      (sp--search-and-save-match search-fn
-                                 (sp--get-allowed-regexp)
-                                 (if back bw-bound fw-bound)
-                                 r mb me ms)
-      (when (not (sp-point-in-string-or-comment))
-        (setq in-string-or-comment nil))
-      ;; if the point originally wasn't inside of a string or comment
-      ;; but now is, jump out of the string/comment and only search
-      ;; the code.  This ensures that the comments and strings are
-      ;; skipped if we search inside code.
-      (when (and (not in-string-or-comment)
+      (while (not done)
+        ;; search for the first opening pair.  Here, only consider tags
+        ;; that are allowed in the current context.
+        (sp--search-and-save-match search-fn
+                                   (sp--get-allowed-regexp)
+                                   (if back bw-bound fw-bound)
+                                   r mb me ms)
+        (when (not (sp-point-in-string-or-comment))
+          (setq in-string-or-comment nil))
+        ;; if the point originally wasn't inside of a string or comment
+        ;; but now is, jump out of the string/comment and only search
+        ;; the code.  This ensures that the comments and strings are
+        ;; skipped if we search inside code.
+        (if (and (not in-string-or-comment)
                  (sp-point-in-string-or-comment))
-        (let* ((bounds (sp--get-string-or-comment-bounds))
-               (jump-to (if back (1- (car bounds)) (1+ (cdr bounds)))))
-          (goto-char jump-to)))
-
+            (let* ((bounds (sp--get-string-or-comment-bounds))
+                   (jump-to (if back (1- (car bounds)) (1+ (cdr bounds)))))
+              (goto-char jump-to))
+          (setq done t)))
       (when r
         (setq active-pair (--first (equal ms (car it)) pair-list))
         (if active-pair
@@ -3052,7 +3055,8 @@ Examples:
                     (goto-char (sp-get next-thing :end-in))
                     (insert (sp-get enc :cl))
                     (goto-char (sp-get enc :end))
-                    (delete-char (sp-get enc (- :cl-l)))))
+                    (delete-char (sp-get enc (- :cl-l)))
+                    (indent-region (sp-get enc :beg-prf) (sp-get next-thing :end))))
               (while (> n 0)
                 (goto-char (sp-get enc :end))
                 (setq ok enc)
