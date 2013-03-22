@@ -768,11 +768,15 @@ a list and not a single keyword."
         ;; expression prefix length
         (:prefix-l    `(length (plist-get ,struct :prefix))))))))
 
-(defun sp--compare-sexps (a b)
+(defmacro sp--compare-sexps (a b &optional what)
   "Return non-nil if the expressions A and B are equal.
 
-Two expressions are equal if their :beg property is the same."
-  (= (sp-get a :beg) (sp-get b :beg)))
+Two expressions are equal if their :beg property is the same.
+
+If optional argument WHAT is non-nil, use it as a keyword on
+which to do the comparsion."
+  (setq what (or what :beg))
+  `(equal (sp-get ,a ,what) (sp-get ,b ,what)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Adding/removing of pairs/bans/allows etc.
@@ -3004,54 +3008,22 @@ t.  All the special prefix arguments work the same way."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; "paredit" operations
 
-(defmacro sp--slurp-sexp (fw-1)
-  "Generate forward/backward slurp functions."
-  `(let ((n (abs arg))
-         (fw (> arg 0)))
-     (if fw
-         (while (> n 0)
-           (let* ((ok (sp-get-enclosing-sexp))
-                  (b (and ok (sp-get ok :beg)))
-                  (e (and ok (sp-get ok :end)))
-                  (ins-space 0)
-                  next-thing)
-             (if ok
-                 (save-excursion
-                   (goto-char ,(if fw-1 'e 'b))
-                   (setq next-thing (sp-get-thing ,(if fw-1 'nil 't)))
-                   (while ,(if fw-1 '(< (sp-get next-thing :beg) b) '(> (sp-get next-thing :end) e))
-                     (goto-char (sp-get next-thing ,(if fw-1 :end :beg)))
-                     (setq ok next-thing)
-                     (setq next-thing (sp-get-thing ,(if fw-1 'nil 't))))
-                   (goto-char (sp-get ok ,(if fw-1 :end :beg-prf)))
-                   (delete-char
-                    ,(if fw-1 '(sp-get ok (- :cl-l)) '(sp-get ok (+ :op-l :prefix-l))))
-                   (when ,(if fw-1
-                              '(= (sp-get ok :end) (sp-get next-thing :beg-prf))
-                            '(= (sp-get ok :beg-prf) (sp-get next-thing :end)))
-                     (insert " ")
-                     (setq ins-space -1))
-                   (goto-char ,(if fw-1
-                                   '(- (sp-get next-thing :end) (sp-get ok :cl-l) ins-space)
-                                 '(sp-get next-thing :beg-prf)))
-                   (insert ,@(if fw-1 '((sp-get ok :cl)) '((sp-get ok :prefix) (sp-get ok :op))))
-                   ;; reindent the "slurped region"
-                   ,(if fw-1
-                        '(indent-region (sp-get ok :beg-prf) (point))
-                      '(indent-region (point) (sp-get ok :end)))
-                   (setq n (1- n)))
-               (message "We can't slurp without breaking strictly balanced expression. Ignored.")
-               (setq n -1))))
-       (,(if fw-1 'sp-backward-slurp-sexp 'sp-forward-slurp-sexp) n))))
-
 (defun sp-forward-slurp-sexp (&optional arg)
   "Add sexp following the current list in it by moving the closing delimiter.
 
 If the current list is the last in a parent list, extend that
 list (and possibly apply recursively until we can extend a list
-or end of file).  If ARG is N, apply this function that many
-times.  If ARG is negative -N, extend the opening pair
-instead (that is, backward).
+or end of file).
+
+If ARG is N, apply this function that many times.
+
+If ARG is negative -N, extend the opening pair instead (that is,
+backward).
+
+If ARG is raw prefix \\[universal-argument], extend all the way to the end of the parent list.
+
+If both the current expression and the expression to be slurped
+are strings, they are joined together.
 
 Examples:
 
@@ -3059,19 +3031,74 @@ Examples:
 
  [(foo |bar)] baz -> [(foo |bar) baz]
 
- [(foo |bar) baz] -> [(foo |bar baz)]"
-  (interactive "p")
-  (setq arg (or arg 1))
-  (sp--slurp-sexp t))
+ [(foo |bar) baz] -> [(foo |bar baz)]
+
+ ((|foo) bar baz quux) -> ((|foo bar baz quux)) ;; with \\[universal-argument]
+
+ \"foo| bar\" \"baz quux\" -> \"foo| bar baz quux\""
+  (interactive "P")
+  (if (> (prefix-numeric-value arg) 0)
+      (let ((n (abs (prefix-numeric-value arg)))
+            (enc (sp-get-enclosing-sexp))
+            (ins-space 0)
+            next-thing ok)
+        (when enc
+          (save-excursion
+            (if (sp--raw-argument-p arg)
+                (progn
+                  (goto-char (sp-get enc :end))
+                  (setq next-thing (sp-get-enclosing-sexp))
+                  (when next-thing
+                    (goto-char (sp-get next-thing :end-in))
+                    (insert (sp-get enc :cl))
+                    (goto-char (sp-get enc :end))
+                    (delete-char (sp-get enc (- :cl-l)))))
+              (while (> n 0)
+                (goto-char (sp-get enc :end))
+                (setq ok enc)
+                (setq next-thing (sp-get-thing nil))
+                (while (< (sp-get next-thing :beg) (sp-get ok :beg))
+                  (goto-char (sp-get next-thing :end))
+                  (setq ok next-thing)
+                  (setq next-thing (sp-get-thing nil)))
+                (if ok
+                    (progn
+                      (if (and (equal (sp-get next-thing :cl) "\"")
+                               (equal (sp-get ok :cl) "\""))
+                          (progn
+                            (sp-join-sexp ok next-thing)
+                            (goto-char (- (sp-get next-thing :end) 2))
+                            (plist-put enc :end (- (sp-get next-thing :end) 2)))
+                        (delete-char (sp-get ok (- :cl-l)))
+                        (when (= (sp-get ok :end) (sp-get next-thing :beg-prf))
+                          (insert " ")
+                          (setq ins-space -1))
+                        (goto-char (- (sp-get next-thing :end) (sp-get ok :cl-l) ins-space))
+                        (insert (sp-get ok :cl))
+                        (indent-region (sp-get ok :beg-prf) (point))
+                        ;; HACK: update the "enc" data structure if ok==enc
+                        (when (= (sp-get enc :beg) (sp-get ok :beg)) (plist-put enc :end (point))))
+                      (setq n (1- n)))
+                  (message "We can't slurp without breaking strictly balanced expression. Ignored.")
+                  (setq n -1)))))))
+    (sp-backward-slurp-sexp (sp--negate-argument arg))))
 
 (defun sp-backward-slurp-sexp (&optional arg)
   "Add the sexp preceding the current list in it by moving the opening delimiter.
 
 If the current list is the first in a parent list, extend that
 list (and possibly apply recursively until we can extend a list
-or beginning of file).  If arg is N, apply this function that
-many times.  If arg is negative -N, extend the closing pair
-instead (that is, forward).
+or beginning of file).
+
+If arg is N, apply this function that many times.
+
+If arg is negative -N, extend the closing pair instead (that is,
+forward).
+
+If ARG is raw prefix \\[universal-argument], extend all the way to the beginning of the parent list.
+
+If both the current expression and the expression to be slurped
+are strings, they are joined together.
 
 Examples:
 
@@ -3079,10 +3106,54 @@ Examples:
 
  foo [(bar| baz)] -> [foo (bar| baz)]
 
- [foo (bar| baz)] -> [(foo bar| baz)]"
-  (interactive "p")
-  (setq arg (or arg 1))
-  (sp--slurp-sexp nil))
+ [foo (bar| baz)] -> [(foo bar| baz)]
+
+ (foo bar baz (|quux)) -> ((foo bar baz |quux)) ;; with \\[universal-argument]
+
+ \"foo bar\" \"baz |quux\" -> \"foo bar baz |quux\""
+  (interactive "P")
+  (if (> (prefix-numeric-value arg) 0)
+      (let ((n (abs (prefix-numeric-value arg)))
+            (enc (sp-get-enclosing-sexp))
+            next-thing ok)
+        (when enc
+          (save-excursion
+            (if (sp--raw-argument-p arg)
+                (progn
+                  (goto-char (sp-get enc :beg-prf))
+                  (setq next-thing (sp-get-enclosing-sexp))
+                  (when next-thing
+                    (delete-char (sp-get enc (+ :op-l :prefix-l)))
+                    (goto-char (sp-get next-thing :beg-in))
+                    (insert (sp-get enc :prefix) (sp-get enc :op))))
+              (while (> n 0)
+                (goto-char (sp-get enc :beg-prf))
+                (setq ok enc)
+                (setq next-thing (sp-get-thing t))
+                (while (> (sp-get next-thing :end) (sp-get ok :end))
+                  (goto-char (sp-get next-thing :beg-prf))
+                  (setq ok next-thing)
+                  (setq next-thing (sp-get-thing t)))
+                (if ok
+                    (progn
+                      (if (and (equal (sp-get next-thing :cl) "\"")
+                               (equal (sp-get ok :cl) "\""))
+                          (progn
+                            (sp-join-sexp next-thing ok)
+                            (goto-char (sp-get next-thing :beg-prf))
+                            (plist-put enc :beg (sp-get next-thing :beg)))
+                        (delete-char (sp-get ok (+ :op-l :prefix-l)))
+                        (when (= (sp-get ok :beg-prf) (sp-get next-thing :end))
+                          (insert " "))
+                        (goto-char (sp-get next-thing :beg-prf))
+                        (insert (sp-get ok :prefix) (sp-get ok :op))
+                        (indent-region (point) (sp-get ok :end))
+                        ;; HACK: update the "enc" data structure if ok==enc
+                        (when (sp--compare-sexps enc ok) (plist-put enc :beg (- (point) (sp-get ok :op-l)))))
+                      (setq n (1- n)))
+                  (message "We can't slurp without breaking strictly balanced expression. Ignored.")
+                  (setq n -1)))))))
+    (sp-forward-slurp-sexp (sp--negate-argument arg))))
 
 (defmacro sp--barf-sexp (fw-1)
   "Generate forward/backward barf functions."
