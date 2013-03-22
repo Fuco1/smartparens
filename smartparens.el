@@ -769,7 +769,7 @@ a list and not a single keyword."
         (:prefix-l    `(length (plist-get ,struct :prefix))))))))
 
 (defun sp--compare-sexps (a b)
-  "Compare the expressions A and B.
+  "Return non-nil if the expressions A and B are equal.
 
 Two expressions are equal if their :beg property is the same."
   (= (sp-get a :beg) (sp-get b :beg)))
@@ -2574,6 +2574,17 @@ returned by `sp-get-sexp'."
         (let ((r (sp-get-quoted-string-bounds)))
           (when r (sp--get-string r)))))))
 
+(defun sp-get-whitespace ()
+  "Get the whitespace around point.
+
+Whitespace here is defined as any of the characters: space, tab
+and newline."
+  (list :beg (save-excursion (skip-chars-backward " \t\n") (point))
+        :end (save-excursion (skip-chars-forward " \t\n") (point))
+        :op ""
+        :cl ""
+        :prefix ""))
+
 (defmacro sp--get-thing (back)
   "Internal."
   `(if (not sp-navigate-consider-symbols)
@@ -2916,21 +2927,16 @@ Examples.  Prefix argument is shown after the example in
      ;; kill to the end or beginning of list
      ((and raw
            (= n 4))
-      ;; TODO: simply get "next" item and bounds from that?
-      (let* ((lst (sp-get-list-items))
-             (last nil)
-             (enc (car lst))
-             (beg-in (sp-get enc :beg-in))
-             (end-in (sp-get enc :end-in)))
-        (!cdr lst)
-        (if (> arg 0)
-            (progn
-              (while (and lst (>= (point) (sp-get (car lst) :end)))
-                (setq last (car lst))
-                (!cdr lst))
-              (funcall kill-fn (if last (sp-get last :end) beg-in) end-in))
-          (while (and lst (> (point) (sp-get (car lst) :beg-prf))) (!cdr lst))
-          (funcall kill-fn (if lst (sp-get (car lst) :beg-prf) end-in) beg-in))))
+      (let ((next (sp-get-thing (< arg 0)))
+            (enc (sp-get-enclosing-sexp)))
+        (if (sp--compare-sexps next enc)
+            (let ((del (sp-get-whitespace)))
+              (sp-get del (delete-region :beg :end)))
+          (if (> arg 0)
+              (funcall kill-fn (sp-get next :beg-prf) (sp-get enc :end-in))
+            (funcall kill-fn (sp-get next :end) (sp-get enc :beg-in)))
+          (let ((del (sp-get-whitespace)))
+            (sp-get del (delete-region :beg :end))))))
      ;; kill the enclosing list
      ((and raw
            (= n 16))
