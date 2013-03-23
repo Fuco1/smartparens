@@ -359,11 +359,19 @@ The third option behaves as second, but if the opening and closing
 pairs are the same, and we are looking at the closing pair, insert the
 whole pair.  For example \"|\" followed by \" produce \"\"|\"\".  This
 is useful in modes where pairs of same characters have special
-meaning, such as `markdown-mode' and * for italics and ** for bold."
+meaning, such as `markdown-mode' and * for italics and ** for bold.
+
+The forth option is a combination of first and third.  The pairs
+where opening and closing pair are different are always inserted
+normally.  The pairs with same opening and closing delimiter are
+only inserted if the enclosing expression is empty (for nested
+quotations etc.), otherwise the closing delimiter is skipped
+instead."
   :type '(radio
           (const :tag "Insert the pair normally" 0)
           (const :tag "Insert the pair only if not followed by same" 1)
-          (const :tag "Insert the pair only if not followed by same, but if the closing pair is the same as opening, insert new pair (useful for nested quote insertion)" 2))
+          (const :tag "Insert the pair only if not followed by same, but if the closing pair is the same as opening, insert new pair (useful for nested quote insertion)" 2)
+          (const :tag "Insert the pair if opening and closing pair is the same and the containing expression is empty and always insert other pairs normally." 3))
   :group 'smartparens)
 
 (defcustom sp-autoinsert-if-followed-by-word nil
@@ -2031,7 +2039,15 @@ followed by word.  It is disabled by default.  See
                             (eq sp-last-operation 'sp-insert-pair)
                             (save-excursion
                               (backward-char 1)
-                              (sp--looking-back (regexp-quote open-pair)))))))
+                              (sp--looking-back (regexp-quote open-pair))))))
+                  ((eq sp-autoinsert-if-followed-by-same 3)
+                   (or (or (not (looking-at (regexp-quote open-pair)))
+                           (and (equal open-pair close-pair)
+                                (eq sp-last-operation 'sp-insert-pair)
+                                (save-excursion
+                                  (backward-char 1)
+                                  (sp--looking-back (regexp-quote open-pair)))))
+                       (not (equal open-pair close-pair)))))
                  (not (run-hook-with-args-until-success
                        'sp-autoinsert-inhibit-functions
                        open-pair
