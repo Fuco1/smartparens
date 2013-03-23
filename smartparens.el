@@ -3545,11 +3545,16 @@ Note that the behaviour with the prefix argument seems to be
 reversed.  This is because the backward variant is much more
 common and hence deserve shorter binding.
 
+If ARG is raw prefix argument \\[universal-argument] \\[universal-argument] raise the expression the point
+is inside of.  This is the same as `sp-backward-up-sexp' followed by
+`sp-splice-sexp-killing-around'.
+
 Examples:
 
-  (a b |(c d) e f) -> |(c d)   ;; with arg = 1
-  (a b |c d e f)   -> |c d     ;; with arg = 2
-  (- (car x) |a 3) -> (car x)| ;; with arg = -1"
+  (a b |(c d) e f)      -> |(c d)     ;; with arg = 1
+  (a b |c d e f)        -> |c d       ;; with arg = 2
+  (- (car x) |a 3)      -> (car x)|   ;; with arg = -1
+  (foo (bar |baz) quux) -> |(bar baz) ;; with arg = \\[universal-argument] \\[universal-argument]"
   (interactive "P")
   (cond
    ((equal arg '(4))
@@ -3557,7 +3562,11 @@ Examples:
    ((equal arg '(-4))
     (sp-splice-sexp-killing-forward 1))
    (t
-    (setq arg (prefix-numeric-value arg))
+    (if (equal arg '(16))
+        (progn
+          (sp-backward-up-sexp)
+          (setq arg 1))
+      (setq arg (prefix-numeric-value arg)))
     (let ((ok (sp-get-enclosing-sexp)) str)
       (when ok
         (sp-select-next-thing-exchange arg)
@@ -3565,6 +3574,8 @@ Examples:
          (region-beginning)
          (region-end)
          ok (if (> arg 0) nil 'end)))))))
+
+(defalias 'sp-raise-sexp 'sp-splice-sexp-killing-around)
 
 (defun sp-forward-whitespace ()
   "Skip forward past the whitespace characters."
