@@ -3070,7 +3070,7 @@ Examples:
                       (if (and (equal (sp-get next-thing :cl) "\"")
                                (equal (sp-get ok :cl) "\""))
                           (progn
-                            (sp-join-sexp ok next-thing)
+                            (sp--join-sexp ok next-thing)
                             (goto-char (- (sp-get next-thing :end) 2))
                             (plist-put enc :end (- (sp-get next-thing :end) 2)))
                         (delete-char (sp-get ok (- :cl-l)))
@@ -3143,7 +3143,7 @@ Examples:
                       (if (and (equal (sp-get next-thing :cl) "\"")
                                (equal (sp-get ok :cl) "\""))
                           (progn
-                            (sp-join-sexp next-thing ok)
+                            (sp--join-sexp next-thing ok)
                             (goto-char (sp-get next-thing :beg-prf))
                             (plist-put enc :beg (sp-get next-thing :beg)))
                         (delete-char (sp-get ok (+ :op-l :prefix-l)))
@@ -3535,22 +3535,67 @@ Examples:
       (forward-char (- (prog1 (sp-backward-whitespace) (insert (sp-get ok :cl)))))
       (save-excursion (sp-forward-whitespace) (insert (sp-get ok :op))))))
 
-(defun sp-join-sexp (prev next)
-  "Join the sexp before and after point if they are of the same type.
+(defun sp--join-sexp (prev next)
+  "Join the expressions PREV and NEXT if they are of the same type.
 
-If called non-interactively, you can supply the expressions to be
-joined.  The expected format is that returned by `sp-get-sexp'."
-  (interactive (list (save-excursion (sp-backward-sexp))
-                     (save-excursion (sp-forward-sexp))))
+The expression with smaller :beg is considered the previous one,
+so the input order does not actually matter.
+
+Return the information about resulting expression."
   (if (and (equal (sp-get prev :op) (sp-get next :op))
            (equal (sp-get prev :cl) (sp-get next :cl)))
       ;; if there's some prefix on the second expression, remove it.
       ;; We do not move it to the first expression, it is assumed
       ;; there's one already
       (progn
+        (if (> (sp-get prev :beg) (sp-get next :beg))
+            (let ((tmp prev))
+              (setq prev next)
+              (setq next tmp)))
         (delete-region (sp-get next :beg-prf) (sp-get next :beg-in))
-        (delete-region (sp-get prev :end-in) (sp-get prev :end)))
+        (delete-region (sp-get prev :end-in) (sp-get prev :end))
+        (list :beg (sp-get prev :beg)
+              :end (- (sp-get next (- :end :op-l :prefix-l)) (sp-get prev :cl-l))
+              :op (sp-get prev :op)
+              :cl (sp-get prev :cl)
+              :prefix (sp-get prev :prefix)))
     (message "The expressions to be joined are of different type.")))
+
+(defun sp-join-sexp (&optional arg)
+  "Join the sexp before and after point if they are of the same type.
+
+If ARG is positive N, join N expressions after the point with the
+one before the point.
+
+If ARG is negative -N, join N expressions before the point with
+the one after the point.
+
+If ARG is a raw prefix \\[universal-argument] join all the things up until the end
+of current expression.
+
+The joining stops at the first expression of different type."
+  (interactive "P")
+  (let* ((raw (sp--raw-argument-p arg))
+         (arg (prefix-numeric-value arg))
+         (n (abs arg))
+         (prev (save-excursion (sp-backward-sexp (sp--signum arg))))
+         next)
+    (save-excursion
+      (cond
+       ((and raw (= n 4))
+        (setq next (sp-forward-sexp (sp--signum arg)))
+        (while (cond
+                ((> arg 0)
+                 (> (sp-get next :beg) (sp-get prev :end)))
+                ((< arg 0)
+                 (< (sp-get next :end) (sp-get prev :beg))))
+          (setq prev (sp--join-sexp prev next))
+          (setq next (sp-forward-sexp (sp--signum arg)))))
+       (t (while (> n 0)
+            (setq next (sp-forward-sexp (sp--signum arg)))
+            (setq prev (sp--join-sexp prev next))
+            (setq n (1- n)))))
+      prev)))
 
 ;; TODO: make the begin/end calculation more sane :P. This is turning
 ;; into a bowl of spaghetti
