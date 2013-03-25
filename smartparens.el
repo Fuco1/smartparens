@@ -3208,6 +3208,50 @@ Examples:
                   (setq n -1)))))))
     (sp-forward-slurp-sexp (sp--negate-argument arg))))
 
+(defun sp-add-to-previous-sexp (&optional arg)
+  "Add the expression following point to the list preceding point.
+
+With ARG positive N add that many expressions after point to the
+preceding list.
+
+If ARG is raw prefix argument \\[universal-argument] add all expressions until
+the end of enclosing list to the previous list.
+
+If ARG is raw prefix argument \\[universal-argument] \\[universal-argument] add the current
+list into the previous list."
+  (interactive "P")
+  (save-excursion
+    (cond
+     ((equal arg '(16))
+      (sp-backward-up-sexp)
+      (sp-backward-down-sexp)
+      (sp-forward-slurp-sexp))
+     (t
+      (sp-backward-down-sexp)
+      (sp-forward-slurp-sexp arg)))))
+
+(defun sp-add-to-next-sexp (&optional arg)
+  "Add the expressions preceding point to the list following point.
+
+With ARG positive N add that many expressions before point to the
+following list.
+
+If ARG is raw prefix argument \\[universal-argument] add all expressions until
+the beginning of enclosing list to the following list.
+
+If ARG is raw prefix argument \\[universal-argument] \\[universal-argument] add the current
+list into the following list."
+  (interactive "P")
+  (save-excursion
+    (cond
+     ((equal arg '(16))
+      (sp-up-sexp)
+      (sp-down-sexp)
+      (sp-backward-slurp-sexp))
+     (t
+      (sp-down-sexp)
+      (sp-backward-slurp-sexp arg)))))
+
 (defmacro sp--barf-sexp (fw-1)
   "Generate forward/backward barf functions."
   `(let ((n (abs arg)))
