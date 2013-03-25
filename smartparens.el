@@ -3628,6 +3628,40 @@ results into:
         (insert raise))
       (indent-sexp))))
 
+(defun sp-absorb-sexp (&optional arg)
+  "Absorb previous expression.
+
+Save the expressions preceding point and delete them.  Then slurp
+an expression backward and insert the saved expressions.
+
+With ARG positive N, absorb that many expressions.
+
+Example:
+
+\(do-stuff 1)
+\(save-excursion
+ |(do-stuff 2))
+
+turns into:
+
+\(save-excursion
+ |(do-stuff 1)
+  (do-stuff 2))"
+  (interactive "p")
+  (let* ((old (point))
+         (raise (progn
+                  (sp-beginning-of-sexp)
+                  (buffer-substring (point) old))))
+    (delete-region (point) old)
+    (sp-backward-slurp-sexp arg)
+    (sp-forward-whitespace)
+    (sp-beginning-of-sexp)
+    (insert raise)
+    (save-excursion
+      (sp-backward-up-sexp)
+      (indent-sexp)))
+  (sp-forward-whitespace))
+
 (defun sp-forward-whitespace ()
   "Skip forward past the whitespace characters."
   (interactive)
