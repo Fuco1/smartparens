@@ -3178,7 +3178,8 @@ Examples:
                   (when next-thing
                     (delete-char (sp-get enc (+ :op-l :prefix-l)))
                     (goto-char (sp-get next-thing :beg-in))
-                    (insert (sp-get enc :prefix) (sp-get enc :op))))
+                    (insert (sp-get enc :prefix) (sp-get enc :op))
+                    (indent-region (sp-get next-thing :beg-in) (sp-get enc :end))))
               (while (> n 0)
                 (goto-char (sp-get enc :beg-prf))
                 (setq ok enc)
