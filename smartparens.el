@@ -3662,6 +3662,41 @@ turns into:
       (indent-sexp)))
   (sp-forward-whitespace))
 
+(defun sp-emit-sexp (&optional arg)
+  "Move all expression preceding point except the first one out of the current list.
+
+With ARG positive N, keep that many expressions from the start of
+the current list.
+
+Example:
+
+\(save-excursion
+  (do-stuff 1)
+  (do-stuff 2)
+ |(do-stuff 3))   ;; with arg = 2
+
+turns into:
+
+\(do-stuff 2)
+\(save-excursion   ;; this
+  (do-stuff 1)    ;; and this was kept inside
+ |(do-stuff 3))"
+  (interactive "p")
+  (let (save-text)
+    (save-excursion
+      (sp-beginning-of-sexp)
+      (let* ((start (point)))
+        (sp-forward-sexp arg)
+        (sp-skip-forward-to-symbol t)
+        (setq save-text (buffer-substring start (point)))
+        (delete-region start (point))))
+    (save-excursion (sp-backward-barf-sexp '(4)))
+    (sp-down-sexp)
+    (insert save-text)
+    (save-excursion
+      (sp-backward-up-sexp)
+      (indent-sexp))))
+
 (defun sp-forward-whitespace ()
   "Skip forward past the whitespace characters."
   (interactive)
