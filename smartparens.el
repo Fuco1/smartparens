@@ -3430,12 +3430,17 @@ syntax classes."
 
 With ARG N, unwrap Nth expression as returned by
 `sp-forward-sexp'.  If ARG is negative -N, unwrap Nth expression
-backwards as returned by `sp-backward-sexp'."
+backwards as returned by `sp-backward-sexp'.
+
+Return the information about the just unwrapped expression.  Note
+that this structure does not represent a valid expression in the
+buffer."
   (interactive "p")
   (setq arg (or arg 1))
   (let ((sp-navigate-consider-symbols nil))
     (let ((ok (save-excursion (sp-forward-sexp arg))))
-      (when ok (sp--unwrap-sexp ok)))))
+      (when ok (sp--unwrap-sexp ok))
+      ok)))
 
 (defun sp-backward-unwrap-sexp (&optional arg)
   "Unwrap the previous expression.
@@ -3576,6 +3581,52 @@ Examples:
          ok (if (> arg 0) nil 'end)))))))
 
 (defalias 'sp-raise-sexp 'sp-splice-sexp-killing-around)
+
+(defun sp-convolute-sexp (&optional arg)
+  "Convolute balanced expressions.
+
+Save the expressions preceding point and delete them.  Then
+splice the resulting expression.  Wrap the current enclosing list
+with the delimiters of the spliced list and insert the saved
+expressions.
+
+With ARG positive N, move up N lists before wrapping.
+
+Examples:
+
+We want to move the `while' before the `let'. | represents point.
+
+\(let ((stuff 1)
+      (other 2))
+  (while (we-are-good)
+   |(do-thing 1)
+    (do-thing 2)
+    (do-thing 3)))
+
+results into:
+
+|(while (we-are-good)
+  (let ((stuff 1)
+        (other 2))
+    (do-thing 1)
+    (do-thing 2)
+    (do-thing 3)))"
+  (interactive "p")
+  (sp-forward-whitespace)
+  (let* ((old (point))
+         (raise (progn
+                  (sp-beginning-of-sexp)
+                  (buffer-substring (point) old))))
+    (delete-region (point) old)
+    (let ((bot (sp-unwrap-sexp -1))
+          (enc (sp-backward-up-sexp arg)))
+      (goto-char (sp-get enc :end))
+      (insert (sp-get bot :cl))
+      (goto-char (sp-get enc :beg-prf))
+      (save-excursion
+        (sp-get bot (insert :prefix :op))
+        (insert raise))
+      (indent-sexp))))
 
 (defun sp-forward-whitespace ()
   "Skip forward past the whitespace characters."
