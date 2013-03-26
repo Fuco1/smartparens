@@ -795,6 +795,7 @@ The list OLD-PAIR must not be nil."
   (let ((new-val (plist-get new-pair prop)))
     (case prop
       (:close (plist-put old-pair :close new-val))
+      (:prefix (plist-put old-pair :prefix new-val))
       ((:actions :when :unless :pre-handlers :post-handlers)
        (case (car new-val)
          (:add (plist-put old-pair prop (-union (plist-get old-pair prop) (cdr new-val))))
@@ -1036,11 +1037,19 @@ wrap ARG (default 1) expressions with this pair (like
                        (unless '(:add))
                        (pre-handlers '(:add))
                        (post-handlers '(:add))
-                       bind)
+                       bind
+                       prefix)
   "Add a local pair definition or override a global definition.
 
 MODES can be a single mode or a list of modes where these settings
 should be applied.
+
+PREFIX is a regular expression matching an optional prefix for
+this pair in the specified major modes.  If not specified, the
+characters of expression prefix syntax class are automatically
+considered instead.  This can be used to attach custom prefixes
+to pairs, such as prefix \"\\function\" in \\function{arg} in
+`LaTeX-mode'.
 
 The rest of the arguments have same semantics as in `sp-pair'.
 
@@ -1089,6 +1098,7 @@ clashes between different modes."
       (let* ((pair nil))
         (setq pair (plist-put pair :open open))
         (when close (plist-put pair :close close))
+        (when prefix (plist-put pair :prefix prefix))
         (when (and (not (sp-get-pair-definition open t))
                    (equal actions '(:add)))
           (setq actions '(wrap insert)))
@@ -2494,11 +2504,14 @@ of opening/closing delimiter or prefix)."
               (unless (minibufferp)
                 (message "Opening or closing pair is inside a string or comment and matching pair is outside (or vice versa).  Ignored."))
               nil)
-             (t (list :beg s
+             (t
+              (let* ((op (if forward open close))
+                     (pref (sp-get-pair op :prefix)))
+                (list :beg s
                       :end e
-                      :op (if forward open close)
+                      :op op
                       :cl (if forward close open)
-                      :prefix (sp--get-prefix s))))))))))
+                      :prefix (sp--get-prefix s pref)))))))))))
 
 (defun sp-get-enclosing-sexp (&optional arg)
   "Return the balanced expression that wraps point at the same level.
@@ -2564,13 +2577,16 @@ following point after `sp-backward-up-sexp' is called)."
           (!cons (sp-forward-sexp) r))
         (cons lst (nreverse (cdr r)))))))
 
-(defun* sp--get-prefix (&optional (p (point)))
+(defun* sp--get-prefix (&optional (p (point)) use-mode-regexp)
   "Get the prefix of EXPR. Prefix is any continuous sequence of
 characters in \"expression prefix\" syntax class."
   (save-excursion
     (goto-char p)
-    (skip-syntax-backward "'")
-    (buffer-substring-no-properties (point) p)))
+    (if use-mode-regexp
+        (when (looking-back use-mode-regexp)
+          (substring-no-properties (match-string 0)))
+      (skip-syntax-backward "'")
+      (buffer-substring-no-properties (point) p))))
 
 (defun sp-get-symbol (&optional back)
   "Find the nearest symbol that is after point, or before point if BACK is non-nil.
