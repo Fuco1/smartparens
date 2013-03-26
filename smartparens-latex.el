@@ -54,6 +54,9 @@
   (sp-local-pair "/*" nil :actions nil)
   (sp-local-pair "\\\\(" nil :actions nil)
 
+  ;; add the prefix funciton sticking to {} pair
+  (sp-local-pair "{" nil :prefix "\\\\\\(\\sw\\|\\s_\\)*")
+
   ;; pairs for big brackets.  Needs more research on what pairs are
   ;; useful to add here.  Post suggestions if you know some.
   (sp-local-pair "\\left(" "\\right)")
