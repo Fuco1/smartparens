@@ -32,6 +32,7 @@
 ;;; Code:
 
 (require 'dash)
+(require 'thingatpt)
 (eval-when-compile (require 'cl)
                    (defvar cua--region-keymap))
 (declare-function cua-replace-region "cua-base")
@@ -3561,13 +3562,36 @@ syntax classes."
   (sp--forward-symbol-1 nil))
 
 (defun sp--unwrap-sexp (sexp)
-  "Unwrap expression defined by SEXP."
+  "Unwrap expression defined by SEXP.
+
+Warning: this function remove possible empty lines and reindents
+the unwrapped sexp, so the SEXP structure will no longer
+represent a valid object in a buffer!"
+  (delete-region
+   (sp-get sexp :end-in)
+   (sp-get sexp :end))
   (delete-region
    (sp-get sexp :beg-prf)
    (sp-get sexp :beg-in))
-  (delete-region
-   (sp-get sexp (- :end-in :op-l :prefix-l))
-   (sp-get sexp (- :end :op-l :prefix-l))))
+  ;; if the delimiters were the only thing on the line, we should also
+  ;; get rid of the (possible) empty line that will be the result of
+  ;; their removal.  This is especially nice in HTML mode or
+  ;; long-running tags like \[\] in latex.
+  (let ((new-start (sp-get sexp :beg-prf))
+        (new-end (sp-get sexp (- :end-in :op-l :prefix-l)))
+        indent-from indent-to)
+    (save-excursion
+      (goto-char new-end)
+      (when (string-match-p "^[\n\t ]+\\'" (thing-at-point 'line))
+        (let ((b (bounds-of-thing-at-point 'line)))
+          (delete-region (car b) (cdr b))))
+      (setq indent-to (point))
+      (goto-char new-start)
+      (when (string-match-p "^[\n\t ]+\\'" (thing-at-point 'line))
+        (let ((b (bounds-of-thing-at-point 'line)))
+          (delete-region (car b) (cdr b))))
+      (setq indent-from (point)))
+    (indent-region indent-from indent-to)))
 
 (defun sp-unwrap-sexp (&optional arg)
   "Unwrap the following expression.
@@ -3758,19 +3782,29 @@ results into:
   (interactive "p")
   (sp-forward-whitespace)
   (let* ((old (point))
-         (raise (progn
-                  (sp-beginning-of-sexp)
-                  (buffer-substring (point) old))))
+         (bot (sp-beginning-of-sexp))
+         raise cl-own-line)
+    ;; we need to check if the :cl was on its own line
+    (save-excursion
+      (goto-char (sp-get bot :end))
+      (when (string-match-p (concat "^[\n\t ]*"
+                                    (regexp-quote (sp-get bot (concat :cl)))
+                                    "[\n\t ]*\\'")
+                            (thing-at-point 'line))
+        (setq cl-own-line t)))
+    (setq raise (buffer-substring (point) old))
     (delete-region (point) old)
-    (let ((bot (sp-unwrap-sexp -1))
-          (enc (sp-backward-up-sexp arg)))
+    (sp-unwrap-sexp -1)
+    (let ((enc (sp-backward-up-sexp arg)))
       (goto-char (sp-get enc :end))
-      (insert (sp-get bot :cl))
+      (insert (if cl-own-line "\n" "") (sp-get bot :cl))
       (goto-char (sp-get enc :beg-prf))
       (save-excursion
         (sp-get bot (insert :prefix :op))
         (insert raise))
-      (indent-sexp))))
+      (indent-region
+       (sp-get enc :beg-prf)
+       (+ (sp-get enc :end) (length raise) (sp-get bot (+ :op-l :cl-l :prefix-l)))))))
 
 (defun sp-absorb-sexp (&optional arg)
   "Absorb previous expression.
