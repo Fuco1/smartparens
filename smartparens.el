@@ -494,6 +494,13 @@ less annoying (that is, three times pressing \" would insert
   :type '(repeat symbol)
   :group 'smartparens)
 
+(defcustom sp-navigate-consider-sgml-tags '(
+                                            html-mode
+                                            )
+  "List of modes where sgml tags are considered to be sexps."
+  :type '(repeat symbol)
+  :group 'smartparens)
+
 ;; navigation & manip custom
 (defcustom sp-navigate-consider-symbols t
   "If non-nil, consider symbols outside balanced expressions as such.
@@ -2431,7 +2438,7 @@ of opening/closing delimiter or prefix)."
   ;; To Consider: Is this hackish enough to be moved to some outside
   ;; proxy function or should we do the junction here? Right now there
   ;; seems to be no problem.
-  (or (when (memq major-mode '(html-mode)) (sp-get-sgml-tag back))
+  (or (when (memq major-mode sp-navigate-consider-sgml-tags) (sp-get-sgml-tag back))
       (let* ((search-fn (if (not back) 'search-forward-regexp 'sp--search-backward-regexp))
              (pair-list (sp--get-pair-list))
              (in-string-or-comment (sp-point-in-string-or-comment))
@@ -2966,7 +2973,7 @@ Example:
   (a b |c   ) -> (a b c)|"
   (interactive "p\np")
   (setq arg (or arg 1))
-  (setq interactive (if (memq major-mode '(html-mode)) nil interactive))
+  (setq interactive (if (memq major-mode sp-navigate-consider-sgml-tags) nil interactive))
   (let ((ok (sp-get-enclosing-sexp (abs arg))))
     (when ok
       (if (> arg 0)
