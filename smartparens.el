@@ -2904,7 +2904,7 @@ backwards, jump to end of current one."
             (if (> arg 0)
                 (goto-char (sp-get enc :beg-in))
               (goto-char (sp-get enc :end-in)))
-            enc))
+            (setq ok enc)))
       ;; otherwise descend normally
       (while (and ok (> n 0))
         (setq ok (sp-get-sexp (< arg 0)))
