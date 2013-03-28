@@ -519,6 +519,14 @@ inside the expression is removed.  It works analogically for the
           (const :tag "Never reindent" nil))
   :group 'smartparens)
 
+(defcustom sp-navigate-close-if-unbalanced nil
+  "If non-nil, insert the closing pair of the un-matched pair on `sp-up-sexp'.
+
+The closing delimiter is inserted after the symbol at
+point (using `sp-previous-sexp')."
+  :type 'boolean
+  :group 'smartparens)
+
 ;; ui custom
 (defcustom sp-highlight-pair-overlay t
   "If non-nil, autoinserted pairs are highlighted until point is inside the pair."
@@ -2897,28 +2905,45 @@ Example:
   (interactive "p\np")
   (setq arg (or arg 1))
   (let ((ok (sp-get-enclosing-sexp (abs arg))))
-    (when ok
-      (if (> arg 0)
-          (goto-char (sp-get ok :end))
-        (goto-char (sp-get ok :beg)))
-      (when (and (= (abs arg) 1)
-                 (or (eq sp-navigate-reindent-after-up 'always)
-                     (and (eq sp-navigate-reindent-after-up 'interactive)
-                          interactive)))
-        (save-excursion
+    (if ok
+        (progn
           (if (> arg 0)
-              (progn
-                (goto-char (sp-get ok :end-in))
-                (let ((prev (sp-get-thing t)))
-                  ;; if the expression is empty remove everything inside
-                  (if (sp--compare-sexps ok prev)
+              (goto-char (sp-get ok :end))
+            (goto-char (sp-get ok :beg)))
+          (when (and (= (abs arg) 1)
+                     (or (eq sp-navigate-reindent-after-up 'always)
+                         (and (eq sp-navigate-reindent-after-up 'interactive)
+                              interactive)))
+            (save-excursion
+              (if (> arg 0)
+                  (progn
+                    (goto-char (sp-get ok :end-in))
+                    (let ((prev (sp-get-thing t)))
+                      ;; if the expression is empty remove everything inside
+                      (if (sp--compare-sexps ok prev)
+                          (delete-region (sp-get ok :beg-in) (sp-get ok :end-in))
+                        (delete-region (sp-get prev :end) (point)))))
+                (goto-char (sp-get ok :beg-in))
+                (let ((next (sp-get-thing)))
+                  (if (sp--compare-sexps ok next)
                       (delete-region (sp-get ok :beg-in) (sp-get ok :end-in))
-                    (delete-region (sp-get prev :end) (point)))))
-            (goto-char (sp-get ok :beg-in))
-            (let ((next (sp-get-thing)))
-              (if (sp--compare-sexps ok next)
-                  (delete-region (sp-get ok :beg-in) (sp-get ok :end-in))
-                (delete-region (point) (sp-get next :beg))))))))
+                    (delete-region (point) (sp-get next :beg))))))))
+      ;; on forward up, we can detect that the pair was not closed.
+      ;; Therefore, jump sexps backwards until we hit the error, then
+      ;; extract the opening pair and insert it at point.  Only works
+      ;; for pairs defined in `sp-pair-list'.
+      (when (and (> arg 0)
+                 sp-navigate-close-if-unbalanced)
+        (let (active-pair)
+          (save-excursion
+            (while (sp-backward-sexp))
+            (sp-skip-backward-to-symbol t)
+            (when (sp--looking-back (sp--get-opening-regexp))
+              (let* ((op (match-string 0)))
+                (setq active-pair (assoc op sp-pair-list)))))
+          (when active-pair
+            (sp-previous-sexp)
+            (insert (cdr active-pair))))))
     ok))
 
 (defun sp-backward-up-sexp (&optional arg interactive)
