@@ -3098,6 +3098,43 @@ t.  All the special prefix arguments work the same way."
   (save-excursion
     (sp-kill-sexp (sp--negate-argument arg) t)))
 
+(defun sp-transpose-sexp (&optional arg)
+  "Transpose the expressions around point.
+
+The operation will move the point after the transposed block, so
+the next transpose will \"drag\" it forward.
+
+With arg positive N, apply that many times, dragging the
+expression forward.
+
+With arg negative -N, apply N times backward, pushing the word
+before cursor backward.  This will therefore not transpose the
+expressions before and after point, but push the expression
+before point over the one before it."
+  (interactive "P")
+  (let* ((raw (sp--raw-argument-p arg))
+         (arg (prefix-numeric-value arg))
+         (n (abs arg)))
+    ;; if we're inside a symbol, we need to move out of it first
+    (when (> arg 0)
+      (when (and (memq (char-syntax (following-char)) '(?w ?_))
+                 (memq (char-syntax (preceding-char)) '(?w ?_)))
+        (sp-forward-sexp)))
+    (while (> n 0)
+      (when (< arg 0) (sp-backward-sexp))
+      (let ((next (save-excursion (sp-forward-sexp)))
+            (prev (save-excursion (sp-backward-sexp)))
+            ins between)
+        (save-excursion
+          (goto-char (sp-get next :beg-prf))
+          (setq ins (sp-get next (delete-and-extract-region :beg-prf :end)))
+          (setq between (delete-and-extract-region (sp-get prev :end) (point)))
+          (goto-char (sp-get prev :beg-prf))
+          (insert ins between))
+        (when (< arg 0)
+          (goto-char (+ (sp-get prev :beg-prf) (sp-get next :len))))
+        (setq n (1- n))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; "paredit" operations
 
