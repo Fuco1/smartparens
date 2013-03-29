@@ -2758,13 +2758,19 @@ and newline."
                     :prefix ""))))))))
 
 (defvar sp-prefix-tag-object nil
-  "If non-nil, only consider tags while searching for next sexp.")
+  "If non-nil, only consider tags while searching for next thing.")
 
 (defvar sp-prefix-pair-object nil
-  "If non-nil, only consider pairs while searching for next sexp.
+  "If non-nil, only consider pairs while searching for next thing.
 
 Pairs are defined as expressions delimited by pairs from
 `sp-pair-list'.")
+
+(defvar sp-prefix-symbol-object nil
+  "If non-nil, only consider symbols while searching for next thing.
+
+Symbol is defined as a chunk of text recognized by
+`sp-forward-symbol'.")
 
 (defun sp-prefix-tag-object (&optional arg)
   "Read the command and invoke it on the next tag object.
@@ -2801,6 +2807,24 @@ Pair object is anything delimited by pairs from `sp-pair-list'."
         (call-interactively com)
       (execute-kbd-macro cmd))))
 
+(defun sp-prefix-symbol-object (&optional arg)
+  "Read the command and invoke it on the next pair object.
+
+If you specify a regular emacs prefix argument this is passed to
+the executed command.  Therefore, executing
+\"\\[universal-argument] 2 \\[sp-prefix-symbol-object] \\[sp-forward-sexp]\" will move two symbols
+forward, ignoring any structure.
+
+Symbol is defined as a chunk of text recognized by
+`sp-forward-symbol'."
+  (interactive "P")
+  (let* ((cmd (read-key-sequence "" t))
+         (com (key-binding cmd))
+         (sp-prefix-symbol-object t))
+    (if (commandp com)
+        (call-interactively com)
+      (execute-kbd-macro cmd))))
+
 (defun sp-get-thing (&optional back)
   "Find next thing after point, or before if BACK is non-nil.
 
@@ -2813,6 +2837,7 @@ expressions are considered."
   (cond
    (sp-prefix-tag-object (sp-get-sgml-tag back))
    (sp-prefix-pair-object (sp-get-paired-expression back))
+   (sp-prefix-symbol-object (sp-get-symbol back))
    (t
     (if back
         (if (not sp-navigate-consider-symbols)
