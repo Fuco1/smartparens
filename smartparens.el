@@ -3735,6 +3735,7 @@ turns into:
  |(do-stuff 1)
   (do-stuff 2))"
   (interactive "p")
+  (sp-forward-whitespace)
   (let* ((old (point))
          (raise (progn
                   (sp-beginning-of-sexp)
