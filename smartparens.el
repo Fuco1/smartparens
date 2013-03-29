@@ -2401,11 +2401,15 @@ object bounded by TEST."
 ;; optimaze it a lot! Get some elisp profiler! Also, we should split
 ;; this into smaller functions (esp. the "first expression search"
 ;; business)
-(defun sp-get-sexp (&optional back)
+(defun sp-get-sexp (&optional back no-special)
   "Find the nearest balanced expression that is after (before) point.
 
 Search backward if BACK is non-nil.  This also means, if the
 point is inside an expression, this expression is returned.
+
+If NO-SPECIAL is non-nil, do not consider \"special\" expressions
+such as html tags during the search.  That means only expressions
+delimited with pairs from `sp-pair-list' are considered.
 
 For the moment, this function (ignores) pairs where the opening and
 closing pair is the same, as it is impossible to correctly
@@ -2439,7 +2443,9 @@ of opening/closing delimiter or prefix)."
   ;; To Consider: Is this hackish enough to be moved to some outside
   ;; proxy function or should we do the junction here? Right now there
   ;; seems to be no problem.
-  (or (when (memq major-mode sp-navigate-consider-sgml-tags) (sp-get-sgml-tag back))
+  (or (when (and (not no-special)
+                 (memq major-mode sp-navigate-consider-sgml-tags))
+        (sp-get-sgml-tag back))
       (let* ((search-fn (if (not back) 'search-forward-regexp 'sp--search-backward-regexp))
              (pair-list (sp--get-pair-list))
              (in-string-or-comment (sp-point-in-string-or-comment))
@@ -2745,10 +2751,10 @@ and newline."
            (cond
             (,(if back '(sp--looking-back (sp--get-closing-regexp) nil t)
                 '(looking-at (sp--get-opening-regexp)))
-             (sp-get-sexp ,back))
+             (sp-get-sexp ,back t))
             (,(if back '(sp--looking-back (sp--get-opening-regexp) nil t)
                 '(looking-at (sp--get-closing-regexp)))
-             (sp-get-sexp ,back))
+             (sp-get-sexp ,back t))
             ((eq (char-syntax ,(if back '(preceding-char) '(following-char))) ?\" )
              (sp-get-string ,back))
             (t (sp-get-symbol ,back))))))))
@@ -4149,13 +4155,15 @@ support custom pairs."
       (cond
        ((looking-at opening)
         (setq match (match-string 0))
-        (setq ok (sp-get-sexp))
+        ;; we can use `sp-get-thing' here because we *are* at some
+        ;; pair opening, and so only the tag or the sexp can trigger.
+        (setq ok (sp-get-thing))
         (if ok
             (sp-get ok (sp-show--pair-create-overlays :beg :end :op-l :cl-l))
           (sp-show--pair-create-mismatch-overlay (point) (length match))))
        ((sp--looking-back closing)
         (setq match (match-string 0))
-        (setq ok (sp-get-sexp t))
+        (setq ok (sp-get-thing t))
         (if ok
             (sp-get ok (sp-show--pair-create-overlays :beg :end :op-l :cl-l))
           (sp-show--pair-create-mismatch-overlay (- (point) (length match))
