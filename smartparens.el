@@ -32,6 +32,7 @@
 ;;; Code:
 
 (require 'dash)
+(require 'thingatpt)
 (eval-when-compile (require 'cl)
                    (defvar cua--region-keymap))
 (declare-function cua-replace-region "cua-base")
@@ -491,6 +492,13 @@ You can list modes where multiple quote characters are used for
 multi-line strings, such as `python-mode' to make the insertion
 less annoying (that is, three times pressing \" would insert
 \"\"\"|\"\"\" instead of \"\\\"\\\"|\\\"\\\"\")."
+  :type '(repeat symbol)
+  :group 'smartparens)
+
+(defcustom sp-navigate-consider-sgml-tags '(
+                                            html-mode
+                                            )
+  "List of modes where sgml tags are considered to be sexps."
   :type '(repeat symbol)
   :group 'smartparens)
 
@@ -2401,40 +2409,11 @@ object bounded by TEST."
 ;; optimaze it a lot! Get some elisp profiler! Also, we should split
 ;; this into smaller functions (esp. the "first expression search"
 ;; business)
-(defun sp-get-sexp (&optional back)
-  "Find the nearest balanced expression that is after (before) point.
+(defun sp-get-paired-expression (&optional back)
+  "Find the nearest balanced pair expression after point.
 
-Search backward if BACK is non-nil.  This also means, if the
-point is inside an expression, this expression is returned.
-
-For the moment, this function (ignores) pairs where the opening and
-closing pair is the same, as it is impossible to correctly
-determine the opening/closing relation without keeping track of
-the content of the entire buffer.
-
-If the search starts outside a comment, all subsequent comments
-are skipped.
-
-If the search starts inside a string or comment, it tries to find
-the first balanced expression that is completely contained inside
-the string or comment.  If no such expression exist, a warning is
-raised (for example, when you comment out imbalanced expression).
-However, if you start a search from within a string and the next
-complete sexp lies completely outside, this is returned.
-
-The return value is a plist with following keys:
-
-  :beg    - point in the buffer before the opening
-  delimiter (ignoring prefix)
-  :end    - point in the buffer after the closing delimiter
-  :op     - opening delimiter
-  :cl     - closing delimiter
-  :prefix - expression prefix
-
-However, you should never access this structure directly as it is
-subject to change.  Instead, use the macro `sp-get' which also
-provide shortcuts for many commonly used queries (such as length
-of opening/closing delimiter or prefix)."
+The expressions considered are those delimited by pairs on
+`sp-pair-list'."
   (let* ((search-fn (if (not back) 'search-forward-regexp 'sp--search-backward-regexp))
          (pair-list (sp--get-pair-list))
          (in-string-or-comment (sp-point-in-string-or-comment))
@@ -2520,6 +2499,58 @@ of opening/closing delimiter or prefix)."
                       :op op
                       :cl (if forward close open)
                       :prefix (sp--get-prefix s pref)))))))))))
+
+(defun sp-get-sexp (&optional back)
+  "Find the nearest balanced expression that is after (before) point.
+
+Search backward if BACK is non-nil.  This also means, if the
+point is inside an expression, this expression is returned.
+
+For the moment, this function (ignores) pairs where the opening and
+closing pair is the same, as it is impossible to correctly
+determine the opening/closing relation without keeping track of
+the content of the entire buffer.
+
+If the search starts outside a comment, all subsequent comments
+are skipped.
+
+If the search starts inside a string or comment, it tries to find
+the first balanced expression that is completely contained inside
+the string or comment.  If no such expression exist, a warning is
+raised (for example, when you comment out imbalanced expression).
+However, if you start a search from within a string and the next
+complete sexp lies completely outside, this is returned.  Note
+that this only works in modes where strings and comments are
+properly defined via the syntax tables.
+
+The return value is a plist with following keys:
+
+  :beg    - point in the buffer before the opening
+  delimiter (ignoring prefix)
+  :end    - point in the buffer after the closing delimiter
+  :op     - opening delimiter
+  :cl     - closing delimiter
+  :prefix - expression prefix
+
+However, you should never access this structure directly as it is
+subject to change.  Instead, use the macro `sp-get' which also
+provide shortcuts for many commonly used queries (such as length
+of opening/closing delimiter or prefix)."
+  (cond
+   (sp-prefix-tag-object
+    (sp-get-sgml-tag back))
+   (sp-prefix-pair-object
+    (sp-get-paired-expression back))
+   ((memq major-mode sp-navigate-consider-sgml-tags)
+    (let ((paired (sp-get-paired-expression back)))
+      (if (and paired
+               (equal "<" (sp-get paired :op)))
+          ;; if the point is inside the tag delimiter, return the pair.
+          (if (sp-get paired (and (<= :beg-in (point)) (>= :end-in (point))))
+              paired
+            (sp-get-sgml-tag back))
+        paired)))
+   (t (sp-get-paired-expression back))))
 
 (defun sp-get-enclosing-sexp (&optional arg)
   "Return the balanced expression that wraps point at the same level.
@@ -2665,23 +2696,91 @@ and newline."
         :cl ""
         :prefix ""))
 
-(defmacro sp--get-thing (back)
-  "Internal."
-  `(if (not sp-navigate-consider-symbols)
-       (sp-get-sexp ,back)
-     (save-excursion
-       ,(if back '(sp-skip-backward-to-symbol t)
-          '(sp-skip-forward-to-symbol t))
-       (cond
-        (,(if back '(sp--looking-back (sp--get-closing-regexp) nil t)
-            '(looking-at (sp--get-opening-regexp)))
-         (sp-get-sexp ,back))
-        (,(if back '(sp--looking-back (sp--get-opening-regexp) nil t)
-            '(looking-at (sp--get-closing-regexp)))
-         (sp-get-sexp ,back))
-        ((eq (char-syntax ,(if back '(preceding-char) '(following-char))) ?\" )
-         (sp-get-string ,back))
-        (t (sp-get-symbol ,back))))))
+(defun sp--sgml-get-tag-name (match)
+  (let ((sub (if (equal "/" (substring match 1 2))
+                 (substring match 2)
+               (substring match 1))))
+    (car (split-string sub "\\( \\|>\\)"))))
+
+(defun sp--sgml-opening-p (tag)
+  (not (equal "/" (substring tag 1 2))))
+
+(defun sp-get-sgml-tag (&optional back)
+  (save-excursion
+    (let ((search-fn (if (not back) 'search-forward-regexp 'search-backward-regexp))
+          tag tag-name needle
+          open-start open-end
+          close-start close-end)
+      (when (funcall search-fn "</?.*?\\s-?.*?>" nil t)
+        (setq tag (substring-no-properties (match-string 0)))
+        (setq tag-name (sp--sgml-get-tag-name tag))
+        (setq needle (concat "</?" tag-name))
+        (let* ((forward (sp--sgml-opening-p tag))
+               (search-fn (if forward 'search-forward-regexp 'search-backward-regexp))
+               (depth 1))
+          (save-excursion
+            (if (not back)
+                (progn
+                  (setq open-end (point))
+                  (search-backward-regexp "<" nil t)
+                  (setq open-start (point)))
+              (setq open-start (point))
+              (search-forward-regexp ">" nil t)
+              (setq open-end (point))))
+          (cond
+           ((and (not back) (not forward))
+            (goto-char (match-beginning 0)))
+           ((and back forward)
+            (goto-char (match-end 0))))
+          (while (> depth 0)
+            (if (funcall search-fn needle nil t)
+                (if (sp--sgml-opening-p (match-string 0))
+                    (if forward (setq depth (1+ depth)) (setq depth (1- depth)))
+                  (if forward (setq depth (1- depth)) (setq depth (1+ depth))))
+              (setq depth -1)))
+          (if (eq depth -1)
+              (progn (message "Search failed. No matching tag found.") nil)
+            (save-excursion
+              (if forward
+                  (progn
+                    (setq close-start (match-beginning 0))
+                    (search-forward-regexp ">" nil t)
+                    (setq close-end (point)))
+                (setq close-start (point))
+                (search-forward-regexp ">" nil t)
+                (setq close-end (point))))
+            (let ((op (buffer-substring-no-properties open-start open-end))
+                  (cl (buffer-substring-no-properties close-start close-end)))
+              (list :beg (if forward open-start close-start)
+                    :end (if forward close-end open-end)
+                    :op (if forward op cl)
+                    :cl (if forward cl op)
+                    :prefix ""))))))))
+
+(defvar sp-prefix-tag-object nil
+  "If non-nil, only consider tags while searching for next sexp.")
+
+(defvar sp-prefix-pair-object nil
+  "If non-nil, only consider pairs while searching for next sexp.
+
+Pairs are defined as expressions delimited by pairs from
+`sp-pair-list'.")
+
+(defun sp-prefix-tag-object ()
+  "Read the command and invoke it on the next tag object."
+  (interactive)
+  (let ((cmd (read-key-sequence "" t))
+        (sp-prefix-tag-object t))
+    (execute-kbd-macro cmd)))
+
+(defun sp-prefix-pair-object ()
+  "Read the command and invoke it on the next pair object.
+
+Pair object is anything delimited by pairs from `sp-pair-list'."
+  (interactive)
+  (let ((cmd (read-key-sequence "" t))
+        (sp-prefix-pair-object t))
+    (execute-kbd-macro cmd)))
 
 (defun sp-get-thing (&optional back)
   "Find next thing after point, or before if BACK is non-nil.
@@ -2693,8 +2792,32 @@ string (`sp-get-string') or balanced expression recognized by
 If `sp-navigate-consider-symbols' is nil, only balanced
 expressions are considered."
   (if back
-      (sp--get-thing t)
-    (sp--get-thing nil)))
+      (if (not sp-navigate-consider-symbols)
+          (sp-get-sexp t)
+        (save-excursion
+          (sp-skip-backward-to-symbol t)
+          (cond
+           ((when (looking-back ">") (sp-get-sgml-tag t)))
+           ((sp--looking-back (sp--get-closing-regexp) nil t)
+            (sp-get-sexp t))
+           ((sp--looking-back (sp--get-opening-regexp) nil t)
+            (sp-get-sexp t))
+           ((eq (char-syntax (preceding-char)) 34)
+            (sp-get-string t))
+           (t (sp-get-symbol t)))))
+    (if (not sp-navigate-consider-symbols)
+        (sp-get-sexp nil)
+      (save-excursion
+        (sp-skip-forward-to-symbol t)
+        (cond
+         ((when (looking-at "<") (sp-get-sgml-tag nil)))
+         ((looking-at (sp--get-opening-regexp))
+          (sp-get-sexp nil))
+         ((looking-at (sp--get-closing-regexp))
+          (sp-get-sexp nil))
+         ((eq (char-syntax (following-char)) 34)
+          (sp-get-string nil))
+         (t (sp-get-symbol nil)))))))
 
 (defun sp-forward-sexp (&optional arg)
   "Move forward across one balanced expression.
@@ -2835,7 +2958,7 @@ backwards, jump to end of current one."
             (if (> arg 0)
                 (goto-char (sp-get enc :beg-in))
               (goto-char (sp-get enc :end-in)))
-            enc))
+            (setq ok enc)))
       ;; otherwise descend normally
       (while (and ok (> n 0))
         (setq ok (sp-get-sexp (< arg 0)))
@@ -2904,6 +3027,7 @@ Example:
   (a b |c   ) -> (a b c)|"
   (interactive "p\np")
   (setq arg (or arg 1))
+  (setq interactive (if (memq major-mode sp-navigate-consider-sgml-tags) nil interactive))
   (let ((ok (sp-get-enclosing-sexp (abs arg))))
     (if ok
         (progn
@@ -2914,6 +3038,10 @@ Example:
                      (or (eq sp-navigate-reindent-after-up 'always)
                          (and (eq sp-navigate-reindent-after-up 'interactive)
                               interactive)))
+            ;; TODO: this needs different indent rules for different
+            ;; modes.  Should we concern with such things?  Lisp rules are
+            ;; funny in HTML... :/ For now, disable this in html-mode by
+            ;; setting interactive to nil.
             (save-excursion
               (if (> arg 0)
                   (progn
@@ -3541,13 +3669,36 @@ syntax classes."
   (sp--forward-symbol-1 nil))
 
 (defun sp--unwrap-sexp (sexp)
-  "Unwrap expression defined by SEXP."
+  "Unwrap expression defined by SEXP.
+
+Warning: this function remove possible empty lines and reindents
+the unwrapped sexp, so the SEXP structure will no longer
+represent a valid object in a buffer!"
+  (delete-region
+   (sp-get sexp :end-in)
+   (sp-get sexp :end))
   (delete-region
    (sp-get sexp :beg-prf)
    (sp-get sexp :beg-in))
-  (delete-region
-   (sp-get sexp (- :end-in :op-l :prefix-l))
-   (sp-get sexp (- :end :op-l :prefix-l))))
+  ;; if the delimiters were the only thing on the line, we should also
+  ;; get rid of the (possible) empty line that will be the result of
+  ;; their removal.  This is especially nice in HTML mode or
+  ;; long-running tags like \[\] in latex.
+  (let ((new-start (sp-get sexp :beg-prf))
+        (new-end (sp-get sexp (- :end-in :op-l :prefix-l)))
+        indent-from indent-to)
+    (save-excursion
+      (goto-char new-end)
+      (when (string-match-p "^[\n\t ]+\\'" (thing-at-point 'line))
+        (let ((b (bounds-of-thing-at-point 'line)))
+          (delete-region (car b) (cdr b))))
+      (setq indent-to (point))
+      (goto-char new-start)
+      (when (string-match-p "^[\n\t ]+\\'" (thing-at-point 'line))
+        (let ((b (bounds-of-thing-at-point 'line)))
+          (delete-region (car b) (cdr b))))
+      (setq indent-from (point)))
+    (indent-region indent-from indent-to)))
 
 (defun sp-unwrap-sexp (&optional arg)
   "Unwrap the following expression.
@@ -3738,19 +3889,29 @@ results into:
   (interactive "p")
   (sp-forward-whitespace)
   (let* ((old (point))
-         (raise (progn
-                  (sp-beginning-of-sexp)
-                  (buffer-substring (point) old))))
+         (bot (sp-beginning-of-sexp))
+         raise cl-own-line)
+    ;; we need to check if the :cl was on its own line
+    (save-excursion
+      (goto-char (sp-get bot :end))
+      (when (string-match-p (concat "^[\n\t ]*"
+                                    (regexp-quote (sp-get bot (concat :cl)))
+                                    "[\n\t ]*\\'")
+                            (thing-at-point 'line))
+        (setq cl-own-line t)))
+    (setq raise (buffer-substring (point) old))
     (delete-region (point) old)
-    (let ((bot (sp-unwrap-sexp -1))
-          (enc (sp-backward-up-sexp arg)))
+    (sp-unwrap-sexp -1)
+    (let ((enc (sp-backward-up-sexp arg)))
       (goto-char (sp-get enc :end))
-      (insert (sp-get bot :cl))
+      (insert (if cl-own-line "\n" "") (sp-get bot :cl))
       (goto-char (sp-get enc :beg-prf))
       (save-excursion
         (sp-get bot (insert :prefix :op))
         (insert raise))
-      (indent-sexp))))
+      (indent-region
+       (sp-get enc :beg-prf)
+       (+ (sp-get enc :end) (length raise) (sp-get bot (+ :op-l :cl-l :prefix-l)))))))
 
 (defun sp-absorb-sexp (&optional arg)
   "Absorb previous expression.
@@ -4096,13 +4257,15 @@ support custom pairs."
       (cond
        ((looking-at opening)
         (setq match (match-string 0))
-        (setq ok (sp-get-sexp))
+        ;; we can use `sp-get-thing' here because we *are* at some
+        ;; pair opening, and so only the tag or the sexp can trigger.
+        (setq ok (sp-get-thing))
         (if ok
             (sp-get ok (sp-show--pair-create-overlays :beg :end :op-l :cl-l))
           (sp-show--pair-create-mismatch-overlay (point) (length match))))
        ((sp--looking-back closing)
         (setq match (match-string 0))
-        (setq ok (sp-get-sexp t))
+        (setq ok (sp-get-thing t))
         (if ok
             (sp-get ok (sp-show--pair-create-overlays :beg :end :op-l :cl-l))
           (sp-show--pair-create-mismatch-overlay (- (point) (length match))
