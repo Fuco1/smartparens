@@ -2401,15 +2401,102 @@ object bounded by TEST."
 ;; optimaze it a lot! Get some elisp profiler! Also, we should split
 ;; this into smaller functions (esp. the "first expression search"
 ;; business)
-(defun sp-get-sexp (&optional back no-special)
+(defun sp-get-paired-expression (&optional back)
+  "Find the nearest balanced pair expression after point.
+
+The expressions considered are those delimited by pairs on
+`sp-pair-list'."
+  (let* ((search-fn (if (not back) 'search-forward-regexp 'sp--search-backward-regexp))
+         (pair-list (sp--get-pair-list))
+         (in-string-or-comment (sp-point-in-string-or-comment))
+         (string-bounds (and in-string-or-comment (sp--get-string-or-comment-bounds)))
+         (fw-bound (if in-string-or-comment (cdr string-bounds) (point-max)))
+         (bw-bound (if in-string-or-comment (car string-bounds) (point-min)))
+         (s nil) (e nil) (active-pair nil) (forward nil) (failure nil)
+         (mb nil) (me nil) (ms nil) (r nil) (done nil))
+    (save-excursion
+      (while (not done)
+        ;; search for the first opening pair.  Here, only consider tags
+        ;; that are allowed in the current context.
+        (sp--search-and-save-match search-fn
+                                   (sp--get-allowed-regexp)
+                                   (if back bw-bound fw-bound)
+                                   r mb me ms)
+        (when (not (sp-point-in-string-or-comment))
+          (setq in-string-or-comment nil))
+        ;; if the point originally wasn't inside of a string or comment
+        ;; but now is, jump out of the string/comment and only search
+        ;; the code.  This ensures that the comments and strings are
+        ;; skipped if we search inside code.
+        (if (and (not in-string-or-comment)
+                 (sp-point-in-string-or-comment))
+            (let* ((bounds (sp--get-string-or-comment-bounds))
+                   (jump-to (if back (1- (car bounds)) (1+ (cdr bounds)))))
+              (goto-char jump-to))
+          (setq done t)))
+      (when r
+        (setq active-pair (--first (equal ms (car it)) pair-list))
+        (if active-pair
+            (progn
+              (setq forward t)
+              (setq s mb)
+              (when back
+                (forward-char (length (car active-pair)))))
+          (setq active-pair (--first (equal ms (cdr it)) pair-list))
+          (setq e me)
+          (when (not back)
+            (backward-char (length (cdr active-pair)))))
+        (let* ((open (if forward (car active-pair) (cdr active-pair)))
+               (close (if forward (cdr active-pair) (car active-pair)))
+               (needle (regexp-opt (list (car active-pair) (cdr active-pair))))
+               (search-fn (if forward 'search-forward-regexp 'search-backward-regexp))
+               (depth 1)
+               (eof (if forward 'eobp 'bobp))
+               (b (if forward fw-bound bw-bound)))
+          (while (and (> depth 0) (not (funcall eof)))
+            (sp--search-and-save-match search-fn needle b r mb me ms)
+            (if r
+                (unless (or (and (not in-string-or-comment)
+                                 (sp-point-in-string-or-comment))
+                            ;; we need to check if the match isn't
+                            ;; preceded by escape sequence.  This is a
+                            ;; bit tricky to do right, so for now we
+                            ;; just handle emacs-lisp \ or ? escape
+                            ;; prefix
+                            (and (> mb 1)
+                                 (member major-mode sp--lisp-modes)
+                                 (member (buffer-substring (1- mb) mb) '("\\" "?"))))
+                  (if (equal ms open)
+                      (setq depth (1+ depth))
+                    (setq depth (1- depth))))
+              (unless (minibufferp)
+                (message "Search failed.  This means there is unmatched expression somewhere or we are at the beginning/end of file."))
+              (setq depth -1)
+              (setq failure t)))
+          (if forward
+              (setq e me)
+            (setq s mb))
+          (unless failure
+            (cond
+             ((or (and (sp-point-in-string-or-comment s) (not (sp-point-in-string-or-comment e)))
+                  (and (not (sp-point-in-string-or-comment s)) (sp-point-in-string-or-comment e)))
+              (unless (minibufferp)
+                (message "Opening or closing pair is inside a string or comment and matching pair is outside (or vice versa).  Ignored."))
+              nil)
+             (t
+              (let* ((op (if forward open close))
+                     (pref (sp-get-pair op :prefix)))
+                (list :beg s
+                      :end e
+                      :op op
+                      :cl (if forward close open)
+                      :prefix (sp--get-prefix s pref)))))))))))
+
+(defun sp-get-sexp (&optional back)
   "Find the nearest balanced expression that is after (before) point.
 
 Search backward if BACK is non-nil.  This also means, if the
 point is inside an expression, this expression is returned.
-
-If NO-SPECIAL is non-nil, do not consider \"special\" expressions
-such as html tags during the search.  That means only expressions
-delimited with pairs from `sp-pair-list' are considered.
 
 For the moment, this function (ignores) pairs where the opening and
 closing pair is the same, as it is impossible to correctly
@@ -2424,7 +2511,9 @@ the first balanced expression that is completely contained inside
 the string or comment.  If no such expression exist, a warning is
 raised (for example, when you comment out imbalanced expression).
 However, if you start a search from within a string and the next
-complete sexp lies completely outside, this is returned.
+complete sexp lies completely outside, this is returned.  Note
+that this only works in modes where strings and comments are
+properly defined via the syntax tables.
 
 The return value is a plist with following keys:
 
@@ -2439,98 +2528,21 @@ However, you should never access this structure directly as it is
 subject to change.  Instead, use the macro `sp-get' which also
 provide shortcuts for many commonly used queries (such as length
 of opening/closing delimiter or prefix)."
-  ;; if we're in a tag-supported mode, try tag search first.
-  ;; To Consider: Is this hackish enough to be moved to some outside
-  ;; proxy function or should we do the junction here? Right now there
-  ;; seems to be no problem.
-  (or (when (and (not no-special)
-                 (memq major-mode sp-navigate-consider-sgml-tags))
-        (sp-get-sgml-tag back))
-      (let* ((search-fn (if (not back) 'search-forward-regexp 'sp--search-backward-regexp))
-             (pair-list (sp--get-pair-list))
-             (in-string-or-comment (sp-point-in-string-or-comment))
-             (string-bounds (and in-string-or-comment (sp--get-string-or-comment-bounds)))
-             (fw-bound (if in-string-or-comment (cdr string-bounds) (point-max)))
-             (bw-bound (if in-string-or-comment (car string-bounds) (point-min)))
-             (s nil) (e nil) (active-pair nil) (forward nil) (failure nil)
-             (mb nil) (me nil) (ms nil) (r nil) (done nil))
-        (save-excursion
-          (while (not done)
-            ;; search for the first opening pair.  Here, only consider tags
-            ;; that are allowed in the current context.
-            (sp--search-and-save-match search-fn
-                                       (sp--get-allowed-regexp)
-                                       (if back bw-bound fw-bound)
-                                       r mb me ms)
-            (when (not (sp-point-in-string-or-comment))
-              (setq in-string-or-comment nil))
-            ;; if the point originally wasn't inside of a string or comment
-            ;; but now is, jump out of the string/comment and only search
-            ;; the code.  This ensures that the comments and strings are
-            ;; skipped if we search inside code.
-            (if (and (not in-string-or-comment)
-                     (sp-point-in-string-or-comment))
-                (let* ((bounds (sp--get-string-or-comment-bounds))
-                       (jump-to (if back (1- (car bounds)) (1+ (cdr bounds)))))
-                  (goto-char jump-to))
-              (setq done t)))
-          (when r
-            (setq active-pair (--first (equal ms (car it)) pair-list))
-            (if active-pair
-                (progn
-                  (setq forward t)
-                  (setq s mb)
-                  (when back
-                    (forward-char (length (car active-pair)))))
-              (setq active-pair (--first (equal ms (cdr it)) pair-list))
-              (setq e me)
-              (when (not back)
-                (backward-char (length (cdr active-pair)))))
-            (let* ((open (if forward (car active-pair) (cdr active-pair)))
-                   (close (if forward (cdr active-pair) (car active-pair)))
-                   (needle (regexp-opt (list (car active-pair) (cdr active-pair))))
-                   (search-fn (if forward 'search-forward-regexp 'search-backward-regexp))
-                   (depth 1)
-                   (eof (if forward 'eobp 'bobp))
-                   (b (if forward fw-bound bw-bound)))
-              (while (and (> depth 0) (not (funcall eof)))
-                (sp--search-and-save-match search-fn needle b r mb me ms)
-                (if r
-                    (unless (or (and (not in-string-or-comment)
-                                     (sp-point-in-string-or-comment))
-                                ;; we need to check if the match isn't
-                                ;; preceded by escape sequence.  This is a
-                                ;; bit tricky to do right, so for now we
-                                ;; just handle emacs-lisp \ or ? escape
-                                ;; prefix
-                                (and (> mb 1)
-                                     (member major-mode sp--lisp-modes)
-                                     (member (buffer-substring (1- mb) mb) '("\\" "?"))))
-                      (if (equal ms open)
-                          (setq depth (1+ depth))
-                        (setq depth (1- depth))))
-                  (unless (minibufferp)
-                    (message "Search failed.  This means there is unmatched expression somewhere or we are at the beginning/end of file."))
-                  (setq depth -1)
-                  (setq failure t)))
-              (if forward
-                  (setq e me)
-                (setq s mb))
-              (unless failure
-                (cond
-                 ((or (and (sp-point-in-string-or-comment s) (not (sp-point-in-string-or-comment e)))
-                      (and (not (sp-point-in-string-or-comment s)) (sp-point-in-string-or-comment e)))
-                  (unless (minibufferp)
-                    (message "Opening or closing pair is inside a string or comment and matching pair is outside (or vice versa).  Ignored."))
-                  nil)
-                 (t
-                  (let* ((op (if forward open close))
-                         (pref (sp-get-pair op :prefix)))
-                    (list :beg s
-                          :end e
-                          :op op
-                          :cl (if forward close open)
-                          :prefix (sp--get-prefix s pref))))))))))))
+  (cond
+   (sp-prefix-tag-object
+    (sp-get-sgml-tag back))
+   (sp-prefix-pair-object
+    (sp-get-paired-expression back))
+   ((memq major-mode sp-navigate-consider-sgml-tags)
+    (let ((paired (sp-get-paired-expression back)))
+      (if (and paired
+               (equal "<" (sp-get paired :op)))
+          ;; if the point is inside the tag delimiter, return the pair.
+          (if (sp-get paired (and (<= :beg-in (point)) (>= :end-in (point))))
+              paired
+            (sp-get-sgml-tag back))
+        paired)))
+   (t (sp-get-paired-expression back))))
 
 (defun sp-get-enclosing-sexp (&optional arg)
   "Return the balanced expression that wraps point at the same level.
@@ -2691,73 +2703,76 @@ and newline."
           tag tag-name needle
           open-start open-end
           close-start close-end)
-      (funcall search-fn "</?.*?\\s-?.*?>" nil t)
-      (setq tag (substring-no-properties (match-string 0)))
-      (setq tag-name (sp--sgml-get-tag-name tag))
-      (setq needle (concat "</?" tag-name))
-      (let* ((forward (sp--sgml-opening-p tag))
-             (search-fn (if forward 'search-forward-regexp 'search-backward-regexp))
-             (depth 1))
-        (save-excursion
-          (if (not back)
-              (progn
-                (setq open-end (point))
-                (search-backward-regexp "<" nil t)
-                (setq open-start (point)))
-            (setq open-start (point))
-            (search-forward-regexp ">" nil t)
-            (setq open-end (point))))
-        (cond
-         ((and (not back) (not forward))
-          (goto-char (match-beginning 0)))
-         ((and back forward)
-          (goto-char (match-end 0))))
-        (while (> depth 0)
-          (if (funcall search-fn needle nil t)
-              (if (sp--sgml-opening-p (match-string 0))
-                  (if forward (setq depth (1+ depth)) (setq depth (1- depth)))
-                (if forward (setq depth (1- depth)) (setq depth (1+ depth))))
-            (setq depth -1)))
-        (if (eq depth -1)
-            (progn (message "Search failed. No matching tag found.") nil)
+      (when (funcall search-fn "</?.*?\\s-?.*?>" nil t)
+        (setq tag (substring-no-properties (match-string 0)))
+        (setq tag-name (sp--sgml-get-tag-name tag))
+        (setq needle (concat "</?" tag-name))
+        (let* ((forward (sp--sgml-opening-p tag))
+               (search-fn (if forward 'search-forward-regexp 'search-backward-regexp))
+               (depth 1))
           (save-excursion
-            (if forward
+            (if (not back)
                 (progn
-                  (setq close-start (match-beginning 0))
-                  (search-forward-regexp ">" nil t)
-                  (setq close-end (point)))
-              (setq close-start (point))
+                  (setq open-end (point))
+                  (search-backward-regexp "<" nil t)
+                  (setq open-start (point)))
+              (setq open-start (point))
               (search-forward-regexp ">" nil t)
-              (setq close-end (point))))
-          (let ((op (buffer-substring-no-properties open-start open-end))
-                (cl (buffer-substring-no-properties close-start close-end)))
-            (list :beg (if forward open-start close-start)
-                  :end (if forward close-end open-end)
-                  :op (if forward op cl)
-                  :cl (if forward cl op)
-                  :prefix "")))))))
+              (setq open-end (point))))
+          (cond
+           ((and (not back) (not forward))
+            (goto-char (match-beginning 0)))
+           ((and back forward)
+            (goto-char (match-end 0))))
+          (while (> depth 0)
+            (if (funcall search-fn needle nil t)
+                (if (sp--sgml-opening-p (match-string 0))
+                    (if forward (setq depth (1+ depth)) (setq depth (1- depth)))
+                  (if forward (setq depth (1- depth)) (setq depth (1+ depth))))
+              (setq depth -1)))
+          (if (eq depth -1)
+              (progn (message "Search failed. No matching tag found.") nil)
+            (save-excursion
+              (if forward
+                  (progn
+                    (setq close-start (match-beginning 0))
+                    (search-forward-regexp ">" nil t)
+                    (setq close-end (point)))
+                (setq close-start (point))
+                (search-forward-regexp ">" nil t)
+                (setq close-end (point))))
+            (let ((op (buffer-substring-no-properties open-start open-end))
+                  (cl (buffer-substring-no-properties close-start close-end)))
+              (list :beg (if forward open-start close-start)
+                    :end (if forward close-end open-end)
+                    :op (if forward op cl)
+                    :cl (if forward cl op)
+                    :prefix ""))))))))
 
-(defmacro sp--get-thing (back)
-  "Internal."
-  `(if (not sp-navigate-consider-symbols)
-       (sp-get-sexp ,back)
-     (save-excursion
-       ,(if back '(sp-skip-backward-to-symbol t)
-          '(sp-skip-forward-to-symbol t))
-       ;; tags should be tested first. This should be generalized
-       ;; somehow to be user definable.
-       (let ((tag (when ,(if back '(looking-back ">") '(looking-at "<")) (sp-get-sgml-tag ,back))))
-         (if tag tag
-           (cond
-            (,(if back '(sp--looking-back (sp--get-closing-regexp) nil t)
-                '(looking-at (sp--get-opening-regexp)))
-             (sp-get-sexp ,back t))
-            (,(if back '(sp--looking-back (sp--get-opening-regexp) nil t)
-                '(looking-at (sp--get-closing-regexp)))
-             (sp-get-sexp ,back t))
-            ((eq (char-syntax ,(if back '(preceding-char) '(following-char))) ?\" )
-             (sp-get-string ,back))
-            (t (sp-get-symbol ,back))))))))
+(defvar sp-prefix-tag-object nil
+  "If non-nil, only consider tags while searching for next sexp.")
+
+(defvar sp-prefix-pair-object nil
+  "If non-nil, only consider pairs while searching for next sexp.
+
+Pairs are defined as expressions delimited by pairs from
+`sp-pair-list'.")
+
+(defun sp-prefix-tag-object ()
+  "Read the command and invoke it on the next tag object."
+  (interactive)
+  (let ((cmd (read-key-sequence "" t))
+        (sp-prefix-tag-object t))
+    (execute-kbd-macro cmd)))
+
+(defun sp-prefix-pair-object ()
+  "Read the command and invoke it on the next pair object.
+
+Pair object is anything delimited by pairs from `sp-pair-list'."
+  (interactive)
+  (let ((cmd (read-key-sequence "" t))
+        (sp-prefix-pair-object t))
+    (execute-kbd-macro cmd)))
 
 (defun sp-get-thing (&optional back)
   "Find next thing after point, or before if BACK is non-nil.
@@ -2769,8 +2784,32 @@ string (`sp-get-string') or balanced expression recognized by
 If `sp-navigate-consider-symbols' is nil, only balanced
 expressions are considered."
   (if back
-      (sp--get-thing t)
-    (sp--get-thing nil)))
+      (if (not sp-navigate-consider-symbols)
+          (sp-get-sexp t)
+        (save-excursion
+          (sp-skip-backward-to-symbol t)
+          (cond
+           ((when (looking-back ">") (sp-get-sgml-tag t)))
+           ((sp--looking-back (sp--get-closing-regexp) nil t)
+            (sp-get-sexp t))
+           ((sp--looking-back (sp--get-opening-regexp) nil t)
+            (sp-get-sexp t))
+           ((eq (char-syntax (preceding-char)) 34)
+            (sp-get-string t))
+           (t (sp-get-symbol t)))))
+    (if (not sp-navigate-consider-symbols)
+        (sp-get-sexp nil)
+      (save-excursion
+        (sp-skip-forward-to-symbol t)
+        (cond
+         ((when (looking-at "<") (sp-get-sgml-tag nil)))
+         ((looking-at (sp--get-opening-regexp))
+          (sp-get-sexp nil))
+         ((looking-at (sp--get-closing-regexp))
+          (sp-get-sexp nil))
+         ((eq (char-syntax (following-char)) 34)
+          (sp-get-string nil))
+         (t (sp-get-symbol nil)))))))
 
 (defun sp-forward-sexp (&optional arg)
   "Move forward across one balanced expression.
