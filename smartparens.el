@@ -2766,21 +2766,40 @@ and newline."
 Pairs are defined as expressions delimited by pairs from
 `sp-pair-list'.")
 
-(defun sp-prefix-tag-object ()
-  "Read the command and invoke it on the next tag object."
-  (interactive)
-  (let ((cmd (read-key-sequence "" t))
-        (sp-prefix-tag-object t))
-    (execute-kbd-macro cmd)))
+(defun sp-prefix-tag-object (&optional arg)
+  "Read the command and invoke it on the next tag object.
 
-(defun sp-prefix-pair-object ()
+If you specify a regular emacs prefix argument this is passed to
+the executed command.  Therefore, executing
+\"\\[universal-argument] 2 \\[sp-prefix-tag-object] \\[sp-forward-sexp]\" will move two tag
+expressions forward, ignoring possible symbols or paired
+expressions inbetween.
+
+Tag object is anything delimited by sgml tag."
+  (interactive "P")
+  (let* ((cmd (read-key-sequence "" t))
+         (com (key-binding cmd))
+         (sp-prefix-tag-object t))
+    (if (commandp com)
+        (call-interactively com)
+      (execute-kbd-macro cmd))))
+
+(defun sp-prefix-pair-object (&optional arg)
   "Read the command and invoke it on the next pair object.
 
+If you specify a regular emacs prefix argument this is passed to
+the executed command.  Therefore, executing
+\"\\[universal-argument] 2 \\[sp-prefix-pair-object] \\[sp-forward-sexp]\" will move two paired
+expressions forward, ignoring possible symbols inbetween.
+
 Pair object is anything delimited by pairs from `sp-pair-list'."
-  (interactive)
-  (let ((cmd (read-key-sequence "" t))
-        (sp-prefix-pair-object t))
-    (execute-kbd-macro cmd)))
+  (interactive "P")
+  (let* ((cmd (read-key-sequence "" t))
+         (com (key-binding cmd))
+         (sp-prefix-pair-object t))
+    (if (commandp com)
+        (call-interactively com)
+      (execute-kbd-macro cmd))))
 
 (defun sp-get-thing (&optional back)
   "Find next thing after point, or before if BACK is non-nil.
@@ -2791,33 +2810,37 @@ string (`sp-get-string') or balanced expression recognized by
 
 If `sp-navigate-consider-symbols' is nil, only balanced
 expressions are considered."
-  (if back
+  (cond
+   (sp-prefix-tag-object (sp-get-sgml-tag back))
+   (sp-prefix-pair-object (sp-get-paired-expression back))
+   (t
+    (if back
+        (if (not sp-navigate-consider-symbols)
+            (sp-get-sexp t)
+          (save-excursion
+            (sp-skip-backward-to-symbol t)
+            (cond
+             ((when (looking-back ">") (sp-get-sgml-tag t)))
+             ((sp--looking-back (sp--get-closing-regexp) nil t)
+              (sp-get-sexp t))
+             ((sp--looking-back (sp--get-opening-regexp) nil t)
+              (sp-get-sexp t))
+             ((eq (char-syntax (preceding-char)) 34)
+              (sp-get-string t))
+             (t (sp-get-symbol t)))))
       (if (not sp-navigate-consider-symbols)
-          (sp-get-sexp t)
+          (sp-get-sexp nil)
         (save-excursion
-          (sp-skip-backward-to-symbol t)
+          (sp-skip-forward-to-symbol t)
           (cond
-           ((when (looking-back ">") (sp-get-sgml-tag t)))
-           ((sp--looking-back (sp--get-closing-regexp) nil t)
-            (sp-get-sexp t))
-           ((sp--looking-back (sp--get-opening-regexp) nil t)
-            (sp-get-sexp t))
-           ((eq (char-syntax (preceding-char)) 34)
-            (sp-get-string t))
-           (t (sp-get-symbol t)))))
-    (if (not sp-navigate-consider-symbols)
-        (sp-get-sexp nil)
-      (save-excursion
-        (sp-skip-forward-to-symbol t)
-        (cond
-         ((when (looking-at "<") (sp-get-sgml-tag nil)))
-         ((looking-at (sp--get-opening-regexp))
-          (sp-get-sexp nil))
-         ((looking-at (sp--get-closing-regexp))
-          (sp-get-sexp nil))
-         ((eq (char-syntax (following-char)) 34)
-          (sp-get-string nil))
-         (t (sp-get-symbol nil)))))))
+           ((when (looking-at "<") (sp-get-sgml-tag nil)))
+           ((looking-at (sp--get-opening-regexp))
+            (sp-get-sexp nil))
+           ((looking-at (sp--get-closing-regexp))
+            (sp-get-sexp nil))
+           ((eq (char-syntax (following-char)) 34)
+            (sp-get-string nil))
+           (t (sp-get-symbol nil)))))))))
 
 (defun sp-forward-sexp (&optional arg)
   "Move forward across one balanced expression.
