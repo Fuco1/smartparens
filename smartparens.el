@@ -39,6 +39,59 @@
 (declare-function cua--pre-command-handler "cua-base")
 (declare-function delete-selection-pre-hook "delsel")
 
+(defun sp-cheat-sheet ()
+  "Generate a cheat sheet of all the smartparens interactive functions.
+
+You can follow the links to the function or variable help page.
+To get back to the full list, use \\[help-go-back].
+
+Examples are fontified using the `font-lock-string-face' for
+better orientation."
+  (interactive)
+  (let ((do-not-display '(
+                          smartparens-mode
+                          smartparens-global-mode
+                          turn-on-smartparens-mode
+                          turn-off-smartparens-mode
+                          sp--cua-replace-region
+                          sp-wrap-cancel
+                          sp-remove-active-pair-overlay
+                          sp--self-insert-command
+                          sp-wrap-tag-beginning
+                          sp-wrap-tag-end
+                          sp-wrap-tag-done
+                          show-smartparens-mode
+                          show-smartparens-global-mode
+                          turn-on-show-smartparens-mode
+                          turn-off-show-smartparens-mode
+                          ))
+        (commands (loop for i in (cdr (assoc-string (locate-library "smartparens") load-history))
+                        if (and (consp i) (eq (car i) 'defun) (commandp (cdr i)))
+                        collect (cdr i))))
+    (with-current-buffer (get-buffer-create "*Smartparens cheat sheet*")
+      (let ((standard-output (current-buffer))
+            (help-xref-following t))
+        (toggle-read-only -1)
+        (erase-buffer)
+        (help-mode)
+        (help-setup-xref (list #'sp-cheat-sheet)
+                         (called-interactively-p 'interactive))
+        (toggle-read-only -1)
+
+        (--each (remove-if (lambda (it) (memq it do-not-display)) commands)
+          (unless (equal (symbol-name it) "advice-compilation")
+            (insert (propertize (symbol-name it) 'face 'font-lock-function-name-face))
+            (insert " is ")
+            (describe-function-1 it)
+            (insert (propertize "\n\n========================================================================\n\n" 'face 'font-lock-comment-face))))
+        (goto-char (point-min))
+        (while (re-search-forward "\\(->\\|​\\)" nil t)
+          (let ((thing (bounds-of-thing-at-point 'line)))
+            (put-text-property (car thing) (cdr thing) 'face 'font-lock-string-face)))
+        (help-make-xrefs)
+        (goto-char (point-min))))
+    (pop-to-buffer "*Smartparens cheat sheet*")))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Variables
 
@@ -3814,9 +3867,9 @@ Examples:
 
   (foo (let ((x 5)) | (sqrt n)) bar) -> (foo | (sqrt n) bar)
 
-  (when ok|                             |(perform-operation-1)
-    (perform-operation-1)            ->  (perform-operation-2)
-    (perform-operation-2))
+​  (when ok|                             |(perform-operation-1)
+​    (perform-operation-1)            ->  (perform-operation-2)
+​    (perform-operation-2))
 
 Note that to kill only the content and not the enclosing
 delimiters you can use \\[universal-argument] \\[sp-backward-kill-sexp].
@@ -3919,21 +3972,21 @@ Examples:
 
 We want to move the `while' before the `let'. | represents point.
 
-\(let ((stuff 1)
-      (other 2))
-  (while (we-are-good)
-   |(do-thing 1)
-    (do-thing 2)
-    (do-thing 3)))
+​\(let ((stuff 1)
+​      (other 2))
+​  (while (we-are-good)
+​   |(do-thing 1)
+​    (do-thing 2)
+​    (do-thing 3)))
 
 results into:
 
-|(while (we-are-good)
-  (let ((stuff 1)
-        (other 2))
-    (do-thing 1)
-    (do-thing 2)
-    (do-thing 3)))"
+​|(while (we-are-good)
+​  (let ((stuff 1)
+​        (other 2))
+​    (do-thing 1)
+​    (do-thing 2)
+​    (do-thing 3)))"
   (interactive "p")
   (sp-forward-whitespace)
   (let* ((old (point))
@@ -3971,15 +4024,15 @@ With ARG positive N, absorb that many expressions.
 
 Example:
 
-\(do-stuff 1)
-\(save-excursion
- |(do-stuff 2))
+​\(do-stuff 1)
+​\(save-excursion
+​ |(do-stuff 2))
 
 turns into:
 
-\(save-excursion
- |(do-stuff 1)
-  (do-stuff 2))"
+​\(save-excursion
+​ |(do-stuff 1)
+​  (do-stuff 2))"
   (interactive "p")
   (sp-forward-whitespace)
   (let* ((old (point))
@@ -4004,17 +4057,17 @@ the current list.
 
 Example:
 
-\(save-excursion
-  (do-stuff 1)
-  (do-stuff 2)
- |(do-stuff 3))   ;; with arg = 2
+​\(save-excursion
+​  (do-stuff 1)
+​  (do-stuff 2)
+​ |(do-stuff 3))   ;; with arg = 2
 
 turns into:
 
-\(do-stuff 2)
-\(save-excursion   ;; this
-  (do-stuff 1)    ;; and this was kept inside
- |(do-stuff 3))"
+​\(do-stuff 2)
+​\(save-excursion   ;; this
+​  (do-stuff 1)    ;; and this was kept inside
+​ |(do-stuff 3))"
   (interactive "p")
   (let (save-text)
     (save-excursion
@@ -4379,5 +4432,9 @@ support custom pairs."
      (add-to-list 'mc/cursor-specific-vars it)))
 
 (provide 'smartparens)
+
+;; Local Variables:
+;; coding: utf-8
+;; End:
 
 ;;; smartparens.el ends here
