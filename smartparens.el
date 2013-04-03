@@ -1423,9 +1423,9 @@ If USE-INSIDE-STRING is non-nil, use value of
       (setq r (when (memq a actions)
                 ;;(and (when-clause) (not (unless-clause)))
                 (and (or (not when-l)
-                         (run-hook-with-args-until-success 'when-l id a context))
+                         (ignore-errors (run-hook-with-args-until-success 'when-l id a context)))
                      (or (not unless-l)
-                         (not (run-hook-with-args-until-success 'unless-l id a context))))))
+                         (not (ignore-errors (run-hook-with-args-until-success 'unless-l id a context)))))))
       (!cdr action))
     r))
 
