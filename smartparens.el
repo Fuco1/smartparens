@@ -39,15 +39,20 @@
 (declare-function cua--pre-command-handler "cua-base")
 (declare-function delete-selection-pre-hook "delsel")
 
-(defun sp-cheat-sheet ()
+(defun sp-cheat-sheet (&optional arg)
   "Generate a cheat sheet of all the smartparens interactive functions.
+
+With non-nil prefix argument, show only the examples.
 
 You can follow the links to the function or variable help page.
 To get back to the full list, use \\[help-go-back].
 
+You can use `beginning-of-defun' and `end-of-defun' to jump to
+the previous/next entry.
+
 Examples are fontified using the `font-lock-string-face' for
 better orientation."
-  (interactive)
+  (interactive "P")
   (let ((do-not-display '(
                           smartparens-mode
                           smartparens-global-mode
@@ -60,11 +65,16 @@ better orientation."
                           sp-wrap-tag-beginning
                           sp-wrap-tag-end
                           sp-wrap-tag-done
+                          sp-splice-sexp-killing-around ;; is aliased to `sp-raise-sexp'
                           show-smartparens-mode
                           show-smartparens-global-mode
                           turn-on-show-smartparens-mode
                           turn-off-show-smartparens-mode
                           ))
+        (do-not-display-with-arg '(
+                                   sp-use-paredit-bindings
+                                   sp-use-smartparens-bindings
+                                   ))
         (commands (loop for i in (cdr (assoc-string (locate-library "smartparens") load-history))
                         if (and (consp i) (eq (car i) 'defun) (commandp (cdr i)))
                         collect (cdr i))))
@@ -74,20 +84,49 @@ better orientation."
         (toggle-read-only -1)
         (erase-buffer)
         (help-mode)
+        (smartparens-mode 1)
         (help-setup-xref (list #'sp-cheat-sheet)
                          (called-interactively-p 'interactive))
         (toggle-read-only -1)
-
-        (--each (remove-if (lambda (it) (memq it do-not-display)) commands)
+        (--each (--remove (or (memq it do-not-display)
+                              (and arg (memq it do-not-display-with-arg)))
+                          commands)
           (unless (equal (symbol-name it) "advice-compilation")
-            (insert (propertize (symbol-name it) 'face 'font-lock-function-name-face))
-            (insert " is ")
-            (describe-function-1 it)
-            (insert (propertize "\n\n========================================================================\n\n" 'face 'font-lock-comment-face))))
+            (let ((start (point)) kill-from)
+              (insert (propertize (symbol-name it) 'face 'font-lock-function-name-face))
+              (insert " is ")
+              (describe-function-1 it)
+              (save-excursion
+                (when arg
+                  (goto-char start)
+                  (forward-paragraph 1)
+                  (forward-line 1)
+                  (if (looking-at "^It is bound")
+                      (forward-paragraph 2)
+                    (forward-paragraph 1))
+                  (setq kill-from (point))
+                  (when (re-search-forward "^Examples:" nil t)
+                    (delete-region kill-from
+                                   (save-excursion
+                                     (forward-line 1)
+                                     (point))))))
+              (insert (propertize (concat
+                                   "\n\n"
+                                   (make-string 72 ?―)
+                                   "\n\n") 'face 'font-lock-function-name-face)))))
         (goto-char (point-min))
         (while (re-search-forward "\\(->\\|​\\)" nil t)
           (let ((thing (bounds-of-thing-at-point 'line)))
             (put-text-property (car thing) (cdr thing) 'face 'font-lock-string-face)))
+        (goto-char (point-min))
+        (while (re-search-forward "|" nil t)
+          (put-text-property (1- (point)) (point) 'face 'font-lock-warning-face))
+        (goto-char (point-min))
+        (while (re-search-forward "^It is bound to \\(.*?\\)\\." nil t)
+          (put-text-property (match-beginning 1) (match-end 1) 'face 'font-lock-keyword-face))
+        (goto-char (point-min))
+        (while (re-search-forward ";;.*?$" nil t)
+          (put-text-property (match-beginning 0) (match-end 0) 'face 'font-lock-comment-face))
         (help-make-xrefs)
         (goto-char (point-min))))
     (pop-to-buffer "*Smartparens cheat sheet*")))
@@ -2929,7 +2968,17 @@ expression, jump out of the current one (effectively doing
 `sp-up-sexp').
 
 With `sp-navigate-consider-symbols' symbols and strings are also
-considered balanced expressions."
+considered balanced expressions.
+
+Examples: (prefix arg in comment)
+
+  |(foo bar baz)   -> (foo bar baz)|
+
+  (|foo bar baz)   -> (foo| bar baz)
+
+  (|foo bar baz)   -> (foo bar| baz) ;; 2
+
+  (foo (bar baz|)) -> (foo (bar baz)|)"
   (interactive "p")
   (setq arg (or arg 1))
   (if (< arg 0)
@@ -2951,7 +3000,17 @@ expression, jump out of the current one (effectively doing
 `sp-backward-up-sexp').
 
 With `sp-navigate-consider-symbols' symbols and strings are also
-considered balanced expressions."
+considered balanced expressions.
+
+Examples: (prefix arg in comment)
+
+  (foo bar baz)|   -> |(foo bar baz)
+
+  (foo| bar baz)   -> (|foo bar baz)
+
+  (foo bar| baz)   -> (|foo bar baz) ;; 2
+
+  (|(foo bar) baz) -> ((|foo bar) baz)"
   (interactive "p")
   (setq arg (or arg 1))
   (if (< arg 0)
@@ -2973,7 +3032,13 @@ at current level, jump one level up (effectively doing
 beginning of N-th previous balanced expression.
 
 With `sp-navigate-consider-symbols' symbols and strings are also
-considered balanced expressions."
+considered balanced expressions.
+
+Examples:
+
+  ((foo) |bar (baz quux)) -> ((foo) bar |(baz quux))
+
+  ((foo) bar |(baz quux)) -> |((foo) bar (baz quux))"
   (interactive "p")
   (setq arg (or arg 1))
   (if (> arg 0)
@@ -2998,7 +3063,13 @@ doing `sp-up-sexp').  Negative arg -N means move to the end of
 N-th following balanced expression.
 
 With `sp-navigate-consider-symbols' symbols and strings are also
-considered balanced expressions."
+considered balanced expressions.
+
+Examples:
+
+  ((foo) bar| (baz quux)) -> ((foo)| bar (baz quux))
+
+  ((foo)| bar (baz quux)) -> ((foo) bar (baz quux))|"
   (interactive "p")
   (setq arg (or arg 1))
   (if (> arg 0)
@@ -3045,7 +3116,19 @@ current list.
 
 If the point is inside sexp and there is no down expression to
 descend to, jump to the beginning of current one.  If moving
-backwards, jump to end of current one."
+backwards, jump to end of current one.
+
+Examples:
+
+  |foo (bar (baz quux)) -> foo (|bar (baz quux))
+
+  |foo (bar (baz quux)) -> foo (bar (|baz quux)) ;; 2
+
+  |foo (bar (baz (quux) blab)) -> foo (bar (baz (|quux) blab)) ;; \\[universal-argument]
+
+  (foo (bar baz) |quux) -> (|foo (bar baz) quux)
+
+  (blab foo |(bar baz) quux) -> (|blab foo (bar baz) quux) ;; \\[universal-argument] \\[universal-argument]"
   (interactive "P")
   (let* ((raw (sp--raw-argument-p arg))
          (arg (prefix-numeric-value arg))
@@ -3090,7 +3173,19 @@ list.
 
 If the point is inside sexp and there is no down expression to
 descend to, jump to the end of current one.  If moving forward,
-jump to beginning of current one."
+jump to beginning of current one.
+
+Examples:
+
+  foo (bar (baz quux))| -> foo (bar (baz quux)|)
+
+  (bar (baz quux)) foo| -> foo (bar (baz quux|)) foo ;; 2
+
+  foo (bar (baz (quux) blab))| -> foo (bar (baz (quux|) blab)) ;; \\[universal-argument]
+
+  (foo| (bar baz) quux) -> (foo (bar baz) quux|)
+
+  (foo (bar baz) |quux blab) -> (foo (bar baz) quux blab|) ;; \\[universal-argument] \\[universal-argument]"
   (interactive "P")
   (sp-down-sexp (sp--negate-argument arg)))
 
@@ -3099,7 +3194,13 @@ jump to beginning of current one."
 
 The beginning is the point after the opening delimiter.
 
-This is the same as calling \\[universal-argument] \\[universal-argument] `sp-down-sexp'"
+This is the same as calling \\[universal-argument] \\[universal-argument] `sp-down-sexp'
+
+Examples:
+
+  (foo (bar baz) quux| (blab glob)) -> (|foo (bar baz) quux (blab glob))
+
+  (foo (bar baz|) quux (blab glob)) -> (foo (|bar baz) quux (blab glob))"
   (interactive)
   (sp-down-sexp '(16)))
 
@@ -3108,7 +3209,13 @@ This is the same as calling \\[universal-argument] \\[universal-argument] `sp-do
 
 The end is the point before the closing delimiter.
 
-This is the same as calling \\[universal-argument] \\[universal-argument] `sp-backward-down-sexp'."
+This is the same as calling \\[universal-argument] \\[universal-argument] `sp-backward-down-sexp'.
+
+Examples:
+
+  (foo |(bar baz) quux (blab glob)) -> (foo (bar baz) quux (blab glob)|)
+
+  (foo (|bar baz) quux (blab glob)) -> (foo (bar baz|) quux (blab glob))"
   (interactive)
   (sp-down-sexp '(-16)))
 
@@ -3124,8 +3231,16 @@ If called interactively and `sp-navigate-reindent-after-up' is
 non-nil, remove the whitespace between end of the expression and
 the last \"thing\" inside the expression.
 
-Example:
-  (a b |c   ) -> (a b c)|"
+Examples:
+
+  (foo |(bar baz) quux blab) -> (foo (bar baz) quux blab)|
+
+  (foo (bar |baz) quux blab) -> (foo (bar baz) quux blab)| ;; 2
+
+  (foo bar |baz              -> (foo bar baz)| ;; re-indent the expression
+​   )
+
+  (foo  |(bar baz)           -> (foo)| (bar baz) ;; close unbalanced expr."
   (interactive "p\np")
   (setq arg (or arg 1))
   (setq interactive (if (memq major-mode sp-navigate-consider-sgml-tags) nil interactive))
@@ -3187,8 +3302,14 @@ If called interactively and `sp-navigate-reindent-after-up' is
 non-nil, remove the whitespace between beginning of the
 expression and the first \"thing\" inside the expression.
 
-Example:
-  (    a |b c) -> |(a b c)"
+Examples:
+
+  (foo (bar baz) quux| blab) -> |(foo (bar baz) quux blab)
+
+  (foo (bar |baz) quux blab) -> |(foo (bar baz) quux blab) ;; 2
+
+  (                  -> |(foo bar baz)
+​    foo |bar baz)"
   (interactive "p\np")
   (setq arg (or arg 1))
   (sp-up-sexp (- arg) interactive))
@@ -3223,24 +3344,26 @@ buffer.
 With `sp-navigate-consider-symbols', symbols and strings are also
 considered balanced expressions.
 
-Examples.  Prefix argument is shown after the example in
-\"comment\". Assumes `sp-navigate-consider-symbols' equal to t:
+Examples:
 
- (foo |(abc) bar)  -> (foo bar) ;; nil, defaults to 1
+ (foo |(abc) bar)  -> (foo | bar) ;; nil, defaults to 1
 
- (foo (bar) | baz) -> |         ;; 2
+ (foo (bar) | baz) -> |           ;; 2
 
- (foo |(bar) baz)  -> |         ;; \\[universal-argument] \\[universal-argument]
+ (foo |(bar) baz)  -> |           ;; \\[universal-argument] \\[universal-argument]
 
- (1 2 |3 4 5 6)    -> (1 2)     ;; \\[universal-argument]
+ (1 |2 3 4 5 6)    -> (1|)        ;; \\[universal-argument]
 
- (1 |2 3 4 5 6)    -> (1 |5 6)  ;; 3
+ (1 |2 3 4 5 6)    -> (1 | 5 6)   ;; 3
 
- (1 2 3 4 5| 6)    -> (1 2 3 6) ;; -2
+ (1 2 3 4 5| 6)    -> (1 2 3 | 6) ;; -2
 
- (1 2 3 4| 5 6)    -> (5 6)     ;; - \\[universal-argument]
+ (1 2 3 4| 5 6)    -> (|5 6)      ;; - \\[universal-argument]
 
- (1 2 |   )        -> (1 2|)    ;; \\[universal-argument], kill useless whitespace"
+ (1 2 |   )        -> (1 2|)      ;; \\[universal-argument], kill useless whitespace
+
+Note: prefix argument is shown after the example in
+\"comment\". Assumes `sp-navigate-consider-symbols' equal to t."
   (interactive "P")
   (let* ((raw (sp--raw-argument-p arg))
          (arg (prefix-numeric-value arg))
@@ -3305,7 +3428,15 @@ Examples.  Prefix argument is shown after the example in
 
 This is exactly like calling `sp-kill-sexp' with minus ARG.
 In other words, the direction of all commands is reversed.  For
-more information, see the documentation of `sp-kill-sexp'."
+more information, see the documentation of `sp-kill-sexp'.
+
+Examples:
+
+  (foo (abc)| bar)           -> (foo | bar)
+
+  blab (foo (bar baz) quux)| -> blab |
+
+  (1 2 3 |4 5 6)             -> (|4 5 6) ;; \\[universal-argument]"
   (interactive "P")
   (sp-kill-sexp (sp--negate-argument arg) dont-kill))
 
@@ -3339,7 +3470,20 @@ expression forward.
 With arg negative -N, apply N times backward, pushing the word
 before cursor backward.  This will therefore not transpose the
 expressions before and after point, but push the expression
-before point over the one before it."
+before point over the one before it.
+
+Examples:
+
+  foo |bar baz     -> bar foo| baz
+
+  foo |bar baz     -> bar baz foo| ;; 2
+
+  (foo) |(bar baz) -> (bar baz) (foo)|
+
+  (foo bar)        ->    (baz quux)   ;; keeps the formatting
+​    |(baz quux)            |(foo bar)
+
+  foo bar baz|     -> foo baz| bar ;; -1"
   (interactive "P")
   (let* ((raw (sp--raw-argument-p arg))
          (arg (prefix-numeric-value arg))
@@ -3386,15 +3530,15 @@ are strings, they are joined together.
 
 Examples:
 
- (foo |bar) baz   -> (foo |bar baz)
+  (foo |bar) baz        -> (foo |bar baz)
 
- [(foo |bar)] baz -> [(foo |bar) baz]
+  [(foo |bar)] baz      -> [(foo |bar) baz]
 
- [(foo |bar) baz] -> [(foo |bar baz)]
+  [(foo |bar) baz]      -> [(foo |bar baz)]
 
- ((|foo) bar baz quux) -> ((|foo bar baz quux)) ;; with \\[universal-argument]
+  ((|foo) bar baz quux) -> ((|foo bar baz quux)) ;; with \\[universal-argument]
 
- \"foo| bar\" \"baz quux\" -> \"foo| bar baz quux\""
+  \"foo| bar\" \"baz quux\" -> \"foo| bar baz quux\""
   (interactive "P")
   (if (> (prefix-numeric-value arg) 0)
       (let ((n (abs (prefix-numeric-value arg)))
@@ -3462,15 +3606,15 @@ are strings, they are joined together.
 
 Examples:
 
- foo (bar| baz)   -> (foo bar| baz)
+  foo (bar| baz)        -> (foo bar| baz)
 
- foo [(bar| baz)] -> [foo (bar| baz)]
+  foo [(bar| baz)]      -> [foo (bar| baz)]
 
- [foo (bar| baz)] -> [(foo bar| baz)]
+  [foo (bar| baz)]      -> [(foo bar| baz)]
 
- (foo bar baz (|quux)) -> ((foo bar baz |quux)) ;; with \\[universal-argument]
+  (foo bar baz (|quux)) -> ((foo bar baz |quux)) ;; with \\[universal-argument]
 
- \"foo bar\" \"baz |quux\" -> \"foo bar baz |quux\""
+  \"foo bar\" \"baz |quux\" -> \"foo bar baz |quux\""
   (interactive "P")
   (if (> (prefix-numeric-value arg) 0)
       (let ((n (abs (prefix-numeric-value arg)))
@@ -3526,7 +3670,17 @@ If ARG is raw prefix argument \\[universal-argument] add all expressions until
 the end of enclosing list to the previous list.
 
 If ARG is raw prefix argument \\[universal-argument] \\[universal-argument] add the current
-list into the previous list."
+list into the previous list.
+
+Examples:
+
+  (foo bar) |baz quux        -> (foo bar |baz) quux
+
+  (foo bar) |baz quux        -> (foo bar |baz quux) ;; 2
+
+  (blab (foo bar) |baz quux) -> (blab (foo bar |baz quux)) ;; \\[universal-argument]
+
+  (foo bar) (baz |quux)      -> (foo bar (baz |quux)) ;; \\[universal-argument] \\[universal-argument]"
   (interactive "P")
   (save-excursion
     (cond
@@ -3548,7 +3702,17 @@ If ARG is raw prefix argument \\[universal-argument] add all expressions until
 the beginning of enclosing list to the following list.
 
 If ARG is raw prefix argument \\[universal-argument] \\[universal-argument] add the current
-list into the following list."
+list into the following list.
+
+Examples:
+
+  foo bar| (baz quux)        -> foo (bar| baz quux)
+
+  foo bar| (baz quux)        -> (foo bar| baz quux) ;; 2
+
+  (foo bar |(bar quux) blab) -> ((foo bar |bar quux) blab) ;; \\[universal-argument]
+
+  (foo |bar) (baz quux)      -> ((foo |bar) baz quux) ;; \\[universal-argument] \\[universal-argument]"
   (interactive "P")
   (save-excursion
     (cond
@@ -3614,7 +3778,7 @@ closing delimiter of the list.
 
 If the current list is empty, do nothing.
 
-Examples (prefix arg in comment):
+Examples: (prefix arg in comment)
 
   (foo bar| baz)   -> (foo bar|) baz   ;; nil (defaults to 1)
 
@@ -3644,7 +3808,15 @@ Examples (prefix arg in comment):
   "This is exactly like calling `sp-forward-barf-sexp' with minus ARG.
 In other words, instead of contracting the closing pair, the
 opening pair is contracted.  For more information, see the
-documentation of `sp-forward-barf-sexp'."
+documentation of `sp-forward-barf-sexp'.
+
+Examples:
+
+  (foo bar| baz) -> foo (bar| baz)
+
+  ([foo bar] |baz) -> [foo bar] (|baz)
+
+  (1 2 3 |4 5 6) -> 1 2 3 (|4 5 6) ;; \\[universal-argument] (or 3)"
   (interactive "P")
   (let ((raw (sp--raw-argument-p arg))
         (old-arg arg)
@@ -3691,7 +3863,13 @@ documentation of `sp-forward-barf-sexp'."
   "Skip whitespace and comments moving forward.
 If STOP-AT-STRING is non-nil, stop before entering a string (if
 not already in a string).  If STOP-AFTER-STRING is non-nil, stop
-after exiting a string."
+after exiting a string.
+
+Examples:
+
+  foo|   bar -> foo   |bar
+
+  foo|   [bar baz] -> foo   |[bar baz]"
   (interactive)
   (sp--skip-to-symbol-1 t))
 
@@ -3699,7 +3877,13 @@ after exiting a string."
   "Skip whitespace and comments moving backward.
 If STOP-AT-STRING is non-nil, stop before entering a string (if
 not already in a string).  If STOP-AFTER-STRING is non-nil, stop
-after exiting a string."
+after exiting a string.
+
+Examples:
+
+  foo   |bar -> foo|   bar
+
+  [bar baz]   |foo -> [bar baz]|   foo"
   (interactive)
   (sp--skip-to-symbol-1 nil))
 
@@ -3747,7 +3931,15 @@ A symbol is any sequence of characters that are in either the
 word constituent or symbol constituent syntax class.  Current
 symbol only extend to the possible opening or closing delimiter
 as defined by `sp-add-pair' even if part of this delimiter
-would match \"symbol\" syntax classes."
+would match \"symbol\" syntax classes.
+
+Examples:
+
+  |foo bar baz          -> foo| bar baz
+
+  |foo (bar (baz))      -> foo (bar| (baz)) ;; 2
+
+  |foo (bar (baz) quux) -> foo (bar (baz) quux|) ;; 4"
   (interactive "p")
   (setq arg (or arg 1))
   (sp--forward-symbol-1 t))
@@ -3764,7 +3956,15 @@ A symbol is any sequence of characters that are in either the word
 constituent or symbol constituent syntax class.  Current symbol only
 extend to the possible opening or closing delimiter as defined by
 `sp-add-pair' even if part of this delimiter would match \"symbol\"
-syntax classes."
+syntax classes.
+
+Examples:
+
+  foo bar| baz            -> foo |bar baz
+
+  ((foo bar) baz)|        -> ((foo |bar) baz) ;; 2
+
+  (quux ((foo) bar) baz)| -> (|quux ((foo) bar) baz) ;; 4"
   (interactive "p")
   (setq arg (or arg 1))
   (sp--forward-symbol-1 nil))
@@ -3810,7 +4010,15 @@ backwards as returned by `sp-backward-sexp'.
 
 Return the information about the just unwrapped expression.  Note
 that this structure does not represent a valid expression in the
-buffer."
+buffer.
+
+Examples:
+
+  |(foo bar baz)     -> |foo bar baz
+
+  (foo bar| baz)     -> foo bar| baz
+
+  |(foo) (bar) (baz) -> |(foo) bar (baz) ;; 2"
   (interactive "p")
   (setq arg (or arg 1))
   (let ((sp-navigate-consider-symbols nil))
@@ -3823,7 +4031,15 @@ buffer."
 
 With ARG N, unwrap Nth expression as returned by
 `sp-backward-sexp'.  If ARG is negative -N, unwrap Nth expression
-forward as returned by `sp-forward-sexp'."
+forward as returned by `sp-forward-sexp'.
+
+Examples:
+
+  (foo bar baz)|     -> foo bar baz|
+
+  (foo bar)| (baz)   -> foo bar| (baz)
+
+  (foo) (bar) (baz)| -> foo (bar) (baz) ;; 3"
   (interactive "p")
   (sp-unwrap-sexp (- (or arg 1))))
 
@@ -3831,7 +4047,15 @@ forward as returned by `sp-forward-sexp'."
   "Unwrap the current list.
 
 With ARG N, unwrap Nth list as returned by applying `sp-up-sexp'
-N times.  This function expect positive arg."
+N times.  This function expect positive arg.
+
+Examples:
+
+  (foo (bar| baz) quux) -> (foo bar| baz quux)
+
+  (foo |(bar baz) quux) -> foo |(bar baz) quux
+
+  (foo (bar| baz) quux) -> foo (bar| baz) quux ;; 2"
   (interactive "p")
   (setq arg (or arg 1))
   (let ((ok (sp-get-enclosing-sexp arg)))
@@ -3865,11 +4089,15 @@ argument should be positive number.
 
 Examples:
 
-  (foo (let ((x 5)) | (sqrt n)) bar) -> (foo | (sqrt n) bar)
+  (foo (let ((x 5)) |(sqrt n)) bar)  -> (foo |(sqrt n) bar)
 
 ​  (when ok|                             |(perform-operation-1)
 ​    (perform-operation-1)            ->  (perform-operation-2)
 ​    (perform-operation-2))
+
+​  (save-excursion                    -> |(awesome-stuff-happens) ;; 2
+​    (unless (test)
+​      |(awesome-stuff-happens)))
 
 Note that to kill only the content and not the enclosing
 delimiters you can use \\[universal-argument] \\[sp-backward-kill-sexp].
@@ -3895,6 +4123,8 @@ argument should be positive number.
 Examples:
 
   (a (b c| d e) f) -> (a b c| f)
+
+  (+ (x |y z) w)   -> (+ x| w)
 
 Note that to kill only the content and not the enclosing
 delimiters you can use \\[universal-argument] \\[sp-kill-sexp].
@@ -3933,8 +4163,11 @@ is inside of.  This is the same as `sp-backward-up-sexp' followed by
 Examples:
 
   (a b |(c d) e f)      -> |(c d)     ;; with arg = 1
+
   (a b |c d e f)        -> |c d       ;; with arg = 2
+
   (- (car x) |a 3)      -> (car x)|   ;; with arg = -1
+
   (foo (bar |baz) quux) -> |(bar baz) ;; with arg = \\[universal-argument] \\[universal-argument]"
   (interactive "P")
   (cond
@@ -3970,23 +4203,16 @@ With ARG positive N, move up N lists before wrapping.
 
 Examples:
 
-We want to move the `while' before the `let'. | represents point.
+We want to move the `while' before the `let'.
 
-​\(let ((stuff 1)
-​      (other 2))
-​  (while (we-are-good)
-​   |(do-thing 1)
-​    (do-thing 2)
-​    (do-thing 3)))
+​  (let ((stuff 1)            |(while (we-are-good)
+​        (other 2))              (let ((stuff 1)
+​    (while (we-are-good)  ->          (other 2))
+​     |(do-thing 1)                (do-thing 1)
+​      (do-thing 2)                (do-thing 2)
+​      (do-thing 3)))              (do-thing 3)))
 
-results into:
-
-​|(while (we-are-good)
-​  (let ((stuff 1)
-​        (other 2))
-​    (do-thing 1)
-​    (do-thing 2)
-​    (do-thing 3)))"
+  (forward-char (sp-get env |:op-l)) -> |(sp-get env (forward-char :op-l))"
   (interactive "p")
   (sp-forward-whitespace)
   (let* ((old (point))
@@ -4022,17 +4248,13 @@ an expression backward and insert the saved expressions.
 
 With ARG positive N, absorb that many expressions.
 
-Example:
+Examples:
 
-​\(do-stuff 1)
-​\(save-excursion
-​ |(do-stuff 2))
+​  (do-stuff 1)         (save-excursion
+​  (save-excursion  ->   |(do-stuff 1)
+​   |(do-stuff 2))        (do-stuff 2))
 
-turns into:
-
-​\(save-excursion
-​ |(do-stuff 1)
-​  (do-stuff 2))"
+  foo bar (concat |baz quux) -> (concat |foo bar baz quux) ;; 2"
   (interactive "p")
   (sp-forward-whitespace)
   (let* ((old (point))
@@ -4055,19 +4277,19 @@ turns into:
 With ARG positive N, keep that many expressions from the start of
 the current list.
 
-Example:
+This is similar as `sp-backward-barf-sexp' but it also drags the
+first N expressions with the delimiter.
 
-​\(save-excursion
-​  (do-stuff 1)
-​  (do-stuff 2)
-​ |(do-stuff 3))   ;; with arg = 2
+Examples:
 
-turns into:
+​  (save-excursion     ​(do-stuff 1)
+​    (do-stuff 1)      (do-stuff 2)
+​    (do-stuff 2)  ->  (save-excursion
+​   |(do-stuff 3))      |(do-stuff 3))
 
-​\(do-stuff 2)
-​\(save-excursion   ;; this
-​  (do-stuff 1)    ;; and this was kept inside
-​ |(do-stuff 3))"
+​  (while not-done-yet       (execute-only-once)
+​    (execute-only-once) ->  (while not-done-yet    ;; arg = 2
+​   |(execute-in-loop))       |(execute-in-loop))"
   (interactive "p")
   (let (save-text)
     (save-excursion
@@ -4095,7 +4317,15 @@ turns into:
   (skip-chars-backward " \t\n"))
 
 (defun sp-split-sexp ()
-  "Split the list or string the point is on into two."
+  "Split the list or string the point is on into two.
+
+Examples:
+
+  (foo bar |baz quux)   -> (foo bar) |(baz quux)
+
+  \"foo bar |baz quux\"   -> \"foo bar\" |\"baz quux\"
+
+  ([foo |bar baz] quux) -> ([foo] |[bar baz] quux)"
   (interactive)
   (let ((ok (sp-get-enclosing-sexp 1)))
     (when ok
@@ -4140,7 +4370,17 @@ the one after the point.
 If ARG is a raw prefix \\[universal-argument] join all the things up until the end
 of current expression.
 
-The joining stops at the first expression of different type."
+The joining stops at the first expression of different type.
+
+Examples:
+
+  (foo bar) |(baz)                    -> (foo bar |baz)
+
+  (foo) |(bar) (baz)                  -> (foo |bar baz) ;; 2
+
+  [foo] [bar] |[baz]                  -> [foo bar |baz] ;; -2
+
+  (foo bar (baz)| (quux) (blob bluq)) -> (foo bar (baz| quux blob bluq)) ;; \\[universal-argument]"
   (interactive "P")
   (let* ((raw (sp--raw-argument-p arg))
          (arg (prefix-numeric-value arg))
