@@ -1584,16 +1584,18 @@ handled in its advice provided by `smartparens-mode'.  If the
 just-typed key is not a trigger, fall back to the commant that
 would execute if smartparens-mode were disabled."
   (interactive "p")
-  (let ((triggers sp-trigger-keys))
-    (if (member (sp--single-key-description last-command-event) triggers)
-        (progn
-          (setq this-command 'self-insert-command)
-          (self-insert-command arg))
-      (sp--call-fallback-command))))
+  (if (and (member (sp--single-key-description last-command-event) sp-trigger-keys)
+           (not buffer-read-only))
+      (progn
+        (setq this-command 'self-insert-command)
+        (self-insert-command arg))
+    (sp--call-fallback-command)))
 
 (defun sp--call-fallback-command ()
   "Call the command bound to last key sequence as if SP were disabled."
-  (let ((com (sp--keybinding-fallback))
+  (let ((com (sp--keybinding-fallback
+              (when buffer-read-only
+                (single-key-description last-command-event))))
         (smartparens-mode nil))
     (when (and com (commandp com))
       (setq this-original-command com)
