@@ -177,8 +177,8 @@ corresponding functions provided by smartparens.  See variable
                                   ("C-M-b" . sp-backward-sexp)
                                   ("C-M-d" . sp-down-sexp)
                                   ("C-M-a" . sp-backward-down-sexp)
-                                  ("C-S-a" . sp-beginning-of-sexp)
-                                  ("C-S-d" . sp-end-of-sexp)
+                                  ("C-S-d" . sp-beginning-of-sexp)
+                                  ("C-S-a" . sp-end-of-sexp)
                                   ("C-M-e" . sp-up-sexp)
                                   ("C-M-u" . sp-backward-up-sexp)
                                   ("C-M-n" . sp-next-sexp)
@@ -3191,35 +3191,101 @@ Examples:
   (interactive "P")
   (sp-down-sexp (sp--negate-argument arg)))
 
-(defun sp-beginning-of-sexp ()
+(defun sp-beginning-of-sexp (&optional arg)
   "Jump to beginning of the sexp the point is in.
 
 The beginning is the point after the opening delimiter.
 
-This is the same as calling \\[universal-argument] \\[universal-argument] `sp-down-sexp'
+With no argument, this is the same as calling
+\\[universal-argument] \\[universal-argument] `sp-down-sexp'
+
+With ARG positive N > 1, move forward out of the current
+expression, move N-2 expressions forward and move down one level
+into next expression.
+
+With ARG negative -N < 1, move backward out of the current
+expression, move N-1 expressions backward and move down one level
+into next expression.
+
+With ARG raw prefix argument \\[universal-argument] move out of the current expressions
+and then to the beginning of enclosing expression.
 
 Examples:
 
   (foo (bar baz) quux| (blab glob)) -> (|foo (bar baz) quux (blab glob))
 
-  (foo (bar baz|) quux (blab glob)) -> (foo (|bar baz) quux (blab glob))"
-  (interactive)
-  (sp-down-sexp '(16)))
+  (foo (bar baz|) quux (blab glob)) -> (foo (|bar baz) quux (blab glob))
 
-(defun sp-end-of-sexp ()
+  (|foo) (bar) (baz quux) -> (foo) (bar) (|baz quux) ;; 3
+
+  (foo bar) (baz) (quux|) -> (|foo bar) (baz) (quux) ;; -3
+
+  ((foo bar) (baz |quux) blab) -> (|(foo bar) (baz quux) blab) ;; \\[universal-argument]"
+  (interactive "P")
+  (let ((raw (sp--raw-argument-p arg))
+        (arg (prefix-numeric-value arg)))
+    (cond
+     ((and raw (= arg 4))
+      (sp-up-sexp)
+      (sp-beginning-of-sexp))
+     ((= arg 1)
+      (sp-down-sexp '(16)))
+     ((< arg 0)
+      (sp-backward-up-sexp)
+      (sp-forward-sexp (1+ arg))
+      (sp-down-sexp))
+     ((> arg 0)
+      (sp-up-sexp)
+      (sp-forward-sexp (- arg 2))
+      (sp-down-sexp)))))
+
+(defun sp-end-of-sexp (&optional arg)
   "Jump to end of the sexp the point is in.
 
 The end is the point before the closing delimiter.
 
-This is the same as calling \\[universal-argument] \\[universal-argument] `sp-backward-down-sexp'.
+With no argument, this is the same as calling
+\\[universal-argument] \\[universal-argument] `sp-backward-down-sexp'.
+
+With ARG positive N > 1, move forward out of the current
+expression, move N-1 expressions forward and move down backward
+one level into previous expression.
+
+With ARG negative -N < 1, move backward out of the current
+expression, move N-2 expressions backward and move down backward
+one level into previous expression.
+
+With ARG raw prefix argument \\[universal-argument] move out of the current expressions
+and then to the end of enclosing expression.
 
 Examples:
 
   (foo |(bar baz) quux (blab glob)) -> (foo (bar baz) quux (blab glob)|)
 
-  (foo (|bar baz) quux (blab glob)) -> (foo (bar baz|) quux (blab glob))"
-  (interactive)
-  (sp-down-sexp '(-16)))
+  (foo (|bar baz) quux (blab glob)) -> (foo (bar baz|) quux (blab glob))
+
+  (|foo) (bar) (baz quux) -> (foo) (bar) (baz quux|) ;; 3
+
+  (foo bar) (baz) (quux|) -> (foo bar|) (baz) (quux) ;; -3
+
+  ((foo |bar) (baz quux) blab) -> ((foo bar) (baz quux) blab|) ;; \\[universal-argument]"
+  (interactive "P")
+  (let ((raw (sp--raw-argument-p arg))
+        (arg (prefix-numeric-value arg)))
+    (cond
+     ((and raw (= arg 4))
+      (sp-up-sexp)
+      (sp-end-of-sexp))
+     ((= arg 1)
+      (sp-down-sexp '(-16)))
+     ((< arg 0)
+      (sp-backward-up-sexp)
+      (sp-forward-sexp (+ 2 arg))
+      (sp-backward-down-sexp))
+     ((> arg 0)
+      (sp-up-sexp)
+      (sp-forward-sexp (1- arg))
+      (sp-backward-down-sexp)))))
 
 (defun sp-up-sexp (&optional arg interactive)
   "Move forward out of one level of parentheses.
@@ -3328,7 +3394,7 @@ With ARG being Negative number -N, repeat that many times in
 backward direction.
 
 With ARG being raw prefix \\[universal-argument], kill all the expressions from
-point up until the end of current list.  With raw prefix - \\[universal-argument],
+point up until the end of current list.  With raw prefix \\[negative-argument] \\[universal-argument],
 kill all the expressions from beginning of current list up until
 point.  If point is inside a symbol, this is also killed.  If
 there is no expression after/before the point, just delete the
