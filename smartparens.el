@@ -210,6 +210,27 @@ See variable `sp-smartparens-bindings'."
   (--each sp-smartparens-bindings
     (define-key sp-keymap (read-kbd-macro (car it)) (cdr it))))
 
+(defun sp--set-base-key-bindings (&optional symbol value)
+  "Set up the default keymap based on `sp-base-key-bindings'.
+
+This function is also used as a setter for this customize value."
+  (when symbol (set-default symbol value))
+  (cond
+   ((eq sp-base-key-bindings 'sp)
+    (sp-use-smartparens-bindings))
+   ((eq sp-base-key-bindings 'paredit)
+    (sp-use-paredit-bindings))))
+
+(defun sp--update-override-key-bindings (&optional symbol value)
+  "Override the key bindings with values from `sp-override-key-bindings'.
+
+This function is also used as a setter for this customize value."
+  (when symbol (set-default symbol value))
+  ;; this also needs to reload the base set, if any is present.
+  (sp--set-base-key-bindings)
+  (--each sp-override-key-bindings
+    (define-key sp-keymap (read-kbd-macro (car it)) (cdr it))))
+
 (defcustom sp-base-key-bindings nil
   "A default set of key bindings for commands provided by smartparens.
 
@@ -250,27 +271,6 @@ See `sp-base-key-bindings'."
           :value-type symbol)
   :set 'sp--update-override-key-bindings
   :group 'smartparens)
-
-(defun sp--set-base-key-bindings (&optional symbol value)
-  "Set up the default keymap based on `sp-base-key-bindings'.
-
-This function is also used as a setter for this customize value."
-  (when symbol (set-default symbol value))
-  (cond
-   ((eq sp-base-key-bindings 'sp)
-    (sp-use-smartparens-bindings))
-   ((eq sp-base-key-bindings 'paredit)
-    (sp-use-paredit-bindings))))
-
-(defun sp--update-override-key-bindings (&optional symbol value)
-  "Override the key bindings with values from `sp-override-key-bindings'.
-
-This function is also used as a setter for this customize value."
-  (when symbol (set-default symbol value))
-  ;; this also needs to reload the base set, if any is present.
-  (sp--set-base-key-bindings)
-  (--each sp-override-key-bindings
-    (define-key sp-keymap (read-kbd-macro (car it)) (cdr it))))
 
 (defvar sp-escape-char nil
   "Character used to escape quotes inside strings.")
@@ -3243,7 +3243,7 @@ Examples:
 
   foo (bar (baz quux))| -> foo (bar (baz quux)|)
 
-  (bar (baz quux)) foo| -> foo (bar (baz quux|)) foo ;; 2
+  (bar (baz quux)) foo| -> (bar (baz quux|)) foo ;; 2
 
   foo (bar (baz (quux) blab))| -> foo (bar (baz (quux|) blab)) ;; \\[universal-argument]
 
