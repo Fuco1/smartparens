@@ -210,6 +210,68 @@ See variable `sp-smartparens-bindings'."
   (--each sp-smartparens-bindings
     (define-key sp-keymap (read-kbd-macro (car it)) (cdr it))))
 
+(defcustom sp-base-key-bindings nil
+  "A default set of key bindings for commands provided by smartparens.
+
+Paredit binding adds the paredit bindings to the corresponding
+smartparens commands. It does not add bindings to any other
+commands, or commands that do not have a paredit counterpart.
+
+Smartparens binding adds bindings to most common smartparens
+commands.  These are somewhat inspired by paredit, but in many
+cases differ.
+
+Note that neither \"paredit\" nor \"smartparens\" bindings add a
+binding for all the provided commands."
+  :type '(radio
+          (const :tag "Don't use any default set of bindings" nil)
+          (const :tag "Use smartparens set of bindings" sp)
+          (const :tag "Use paredit set of bindings" paredit))
+  :set 'sp--set-base-key-bindings
+  :group 'smartparens)
+
+(defcustom sp-override-key-bindings nil
+  "An alist of bindings and commands that should override the base key set.
+
+If you wish to override a binding from the base set, set the
+value for the binding to the `kbd' recognizable string constant
+and command to the command symbol you wish to bind there.
+
+If you wish to disable a binding from the base set, set the value
+for the command to nil.
+
+Examples:
+ (\"C-M-f\" . sp-forward-sexp)
+ (\"C-<right>\" . nil)
+
+See `sp-base-key-bindings'."
+  :type '(alist
+          :key-type string
+          :value-type symbol)
+  :set 'sp--update-override-key-bindings
+  :group 'smartparens)
+
+(defun sp--set-base-key-bindings (&optional symbol value)
+  "Set up the default keymap based on `sp-base-key-bindings'.
+
+This function is also used as a setter for this customize value."
+  (when symbol (set-default symbol value))
+  (cond
+   ((eq sp-base-key-bindings 'sp)
+    (sp-use-smartparens-bindings))
+   ((eq sp-base-key-bindings 'paredit)
+    (sp-use-paredit-bindings))))
+
+(defun sp--update-override-key-bindings (&optional symbol value)
+  "Override the key bindings with values from `sp-override-key-bindings'.
+
+This function is also used as a setter for this customize value."
+  (when symbol (set-default symbol value))
+  ;; this also needs to reload the base set, if any is present.
+  (sp--set-base-key-bindings)
+  (--each sp-override-key-bindings
+    (define-key sp-keymap (read-kbd-macro (car it)) (cdr it))))
+
 (defvar sp-escape-char nil
   "Character used to escape quotes inside strings.")
 (make-variable-buffer-local 'sp-escape-char)
@@ -4721,6 +4783,8 @@ support custom pairs."
     (sp-delete-pair (ad-get-arg 0))))
 (add-hook 'post-command-hook 'sp--post-command-hook-handler)
 (add-hook 'pre-command-hook 'sp--pre-command-hook-handler)
+(sp--set-base-key-bindings)
+(sp--update-override-key-bindings)
 
 (defvar sp--mc/cursor-specific-vars
   '(
