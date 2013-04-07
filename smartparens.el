@@ -614,8 +614,8 @@ The whitespace between the closing delimiter and last \"thing\"
 inside the expression is removed.  It works analogically for the
 `sp-backward-up-sexp'."
   :type '(radio
-          (const :tag "Always reindent" 'always)
-          (const :tag "Reindent only if called interactively" 'interactive)
+          (const :tag "Always reindent" always)
+          (const :tag "Reindent only if called interactively" interactive)
           (const :tag "Never reindent" nil))
   :group 'smartparens)
 
