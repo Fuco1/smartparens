@@ -42,7 +42,9 @@
 (defun sp-cheat-sheet (&optional arg)
   "Generate a cheat sheet of all the smartparens interactive functions.
 
-With non-nil prefix argument, show only the examples.
+Without a prefix argument, print only the short documentation and examples.
+
+With non-nil prefix argument, show the full documentation for each function.
 
 You can follow the links to the function or variable help page.
 To get back to the full list, use \\[help-go-back].
@@ -53,6 +55,7 @@ the previous/next entry.
 Examples are fontified using the `font-lock-string-face' for
 better orientation."
   (interactive "P")
+  (setq arg (not arg))
   (let ((do-not-display '(
                           smartparens-mode
                           smartparens-global-mode
