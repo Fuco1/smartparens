@@ -237,13 +237,14 @@ This function is also used as a setter for this customize value."
 (defcustom sp-base-key-bindings nil
   "A default set of key bindings for commands provided by smartparens.
 
-Paredit binding adds the paredit bindings to the corresponding
-smartparens commands. It does not add bindings to any other
-commands, or commands that do not have a paredit counterpart.
+Paredit binding adds the bindings in `sp-paredit-bindings' to the
+corresponding smartparens commands. It does not add bindings to
+any other commands, or commands that do not have a paredit
+counterpart.
 
-Smartparens binding adds bindings to most common smartparens
-commands.  These are somewhat inspired by paredit, but in many
-cases differ.
+Smartparens binding adds the bindings in
+`sp-smartparens-bindings' to most common smartparens commands.
+These are somewhat inspired by paredit, but in many cases differ.
 
 Note that neither \"paredit\" nor \"smartparens\" bindings add a
 binding for all the provided commands."
