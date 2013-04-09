@@ -1634,7 +1634,12 @@ If USE-INSIDE-STRING is non-nil, use value of
     ;; Therefore,t he deletion should have no ill-effect.  If the
     ;; necessity will arise, we can add a different flag.
     (unless (sp--this-command-self-insert-p)
-      (setq sp-last-wrapped-region nil))))
+      (setq sp-last-wrapped-region nil))
+
+    (when show-smartparens-mode
+      (if (member this-command sp-show-enclosing-pair-commands)
+          (sp-show--pair-enc-function)
+        (sp-show--pair-delete-enc-overlays)))))
 
 (defmacro sp--setaction (action &rest forms)
   `(if (not action)
@@ -4664,6 +4669,19 @@ considered balanced expressions."
   :type '(number :tag "seconds")
   :group 'show-smartparens)
 
+(defcustom sp-show-enclosing-pair-commands '(
+                                             sp-show-enclosing-pair
+                                             sp-forward-slurp-sexp
+                                             sp-backward-slurp-sexp
+                                             sp-forward-barf-sexp
+                                             sp-backward-barf-sexp
+                                             )
+  "List of commands after which the enclosing pair is highlighted.
+
+After the next command the pair will automatically disappear."
+  :type '(repeat symbol)
+  :group 'show-smartparens)
+
 (defface sp-show-pair-match-face
   '((((class color) (background light))
      :background "turquoise")       ; looks OK on tty (becomes cyan)
@@ -4682,9 +4700,16 @@ considered balanced expressions."
   "`show-smartparens-mode' face used for a mismatching pair."
   :group 'show-smartparens)
 
+(defface sp-show-pair-enclosing
+  '((t (:inherit highlight)))
+  "The face used to highlight pair overlays."
+  :group 'show-smartparens)
+
 (defvar sp-show-pair-idle-timer nil)
 
 (defvar sp-show-pair-overlays nil)
+
+(defvar sp-show-pair-enc-overlays nil)
 
 ;;;###autoload
 (define-minor-mode show-smartparens-mode
@@ -4722,6 +4747,10 @@ support custom pairs."
   (interactive)
   (show-smartparens-mode -1))
 
+(defun sp-show-enclosing-pair ()
+  "Highlight the enclosing pair around point."
+  (interactive))
+
 (defun sp-show--pair-function ()
   "Display the show pair overlays."
   (when show-smartparens-mode
@@ -4748,6 +4777,13 @@ support custom pairs."
        (sp-show-pair-overlays
         (sp-show--pair-delete-overlays))))))
 
+(defun sp-show--pair-enc-function ()
+  "Display the show pair overlays for enclosing expression."
+  (when show-smartparens-mode
+    (let ((enc (sp-get-enclosing-sexp)))
+      (when enc
+        (sp-get enc (sp-show--pair-create-enc-overlays :beg :end :op-l :cl-l))))))
+
 (defun sp-show--pair-create-overlays (start end olen clen)
   "Create the show pair overlays."
   (when sp-show-pair-overlays
@@ -4760,6 +4796,19 @@ support custom pairs."
     (overlay-put oleft 'priority 1000)
     (overlay-put oright 'priority 1000)
     (overlay-put oleft 'type 'show-pair)))
+
+(defun sp-show--pair-create-enc-overlays (start end olen clen)
+  "Create the show pair enclosing overlays"
+  (when sp-show-pair-enc-overlays
+    (sp-show--pair-delete-enc-overlays))
+  (let* ((oleft (make-overlay start (+ start olen) nil t nil))
+         (oright (make-overlay (- end clen) end nil t nil)))
+    (setq sp-show-pair-enc-overlays (cons oleft oright))
+    (overlay-put oleft 'face 'sp-show-pair-enclosing)
+    (overlay-put oright 'face 'sp-show-pair-enclosing)
+    (overlay-put oleft 'priority 1000)
+    (overlay-put oright 'priority 1000)
+    (overlay-put oleft 'type 'show-pair-enc)))
 
 (defun sp-show--pair-create-mismatch-overlay (start len)
   "Create the mismatch pair overlay."
@@ -4780,6 +4829,16 @@ support custom pairs."
       (delete-overlay (cdr sp-show-pair-overlays)))
     (setq sp-show-pair-overlays nil)))
 
+(defun sp-show--pair-delete-enc-overlays ()
+  "Remove both show pair enclosing overlays."
+  (when sp-show-pair-enc-overlays
+    (when (car sp-show-pair-enc-overlays)
+      (delete-overlay (car sp-show-pair-enc-overlays)))
+    (when (cdr sp-show-pair-enc-overlays)
+      (delete-overlay (cdr sp-show-pair-enc-overlays)))
+    (setq sp-show-pair-enc-overlays nil)))
+
+
 ;; global initialization
 (sp--update-trigger-keys)
 (defadvice delete-backward-char (before sp-delete-pair-advice activate)
