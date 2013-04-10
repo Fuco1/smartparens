@@ -1639,7 +1639,8 @@ If USE-INSIDE-STRING is non-nil, use value of
     (when show-smartparens-mode
       (if (member this-command sp-show-enclosing-pair-commands)
           (sp-show--pair-enc-function)
-        (sp-show--pair-delete-enc-overlays)))))
+        (when (not (eq this-command 'sp-highlight-current-sexp))
+            (sp-show--pair-delete-enc-overlays))))))
 
 (defmacro sp--setaction (action &rest forms)
   `(if (not action)
@@ -4751,6 +4752,17 @@ support custom pairs."
   "Highlight the enclosing pair around point."
   (interactive))
 
+(defun sp-highlight-current-sexp (arg)
+  "Highlight the expression returned by the next command, preserving point position."
+  (interactive "P")
+  (let* ((cmd (read-key-sequence "" t))
+         (com (key-binding cmd)))
+    (if (commandp com)
+        (save-excursion
+          (let ((ok (call-interactively com)))
+            (sp-show--pair-enc-function ok)))
+      (execute-kbd-macro cmd))))
+
 (defun sp-show--pair-function ()
   "Display the show pair overlays."
   (when show-smartparens-mode
@@ -4777,10 +4789,10 @@ support custom pairs."
        (sp-show-pair-overlays
         (sp-show--pair-delete-overlays))))))
 
-(defun sp-show--pair-enc-function ()
+(defun sp-show--pair-enc-function (&optional thing)
   "Display the show pair overlays for enclosing expression."
   (when show-smartparens-mode
-    (let ((enc (sp-get-enclosing-sexp)))
+    (let ((enc (or thing (sp-get-enclosing-sexp))))
       (when enc
         (sp-get enc (sp-show--pair-create-enc-overlays :beg :end :op-l :cl-l))))))
 
