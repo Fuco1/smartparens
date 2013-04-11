@@ -869,7 +869,7 @@ replacement of all the keywords with actual calls to sp-get."
 ;; exposed by the sp-get macro.  This way, we can later change the
 ;; internal representation without much trouble.
 
-(defmacro sp-get (struct attr)
+(defmacro sp-get (struct attr &rest forms)
   "Get a property from a structure.
 
 STRUCT is a plist with the format as returned by `sp-get-sexp'.
@@ -906,6 +906,7 @@ expression prefix and the opening delimiter.
 
 This replacement is considered any time when the ATTR argument is
 a list and not a single keyword."
+  (declare (indent 1))
   (let ((keyword-list '(:beg :end :beg-in :end-in :beg-prf
                              :op :cl :op-l :cl-l :len :len-out :len-in
                              :prefix :prefix-l)))
@@ -913,7 +914,7 @@ a list and not a single keyword."
      ;; if the attr is a list, we replace all the tags with appropriate
      ;; calls to sp-get. Example: (sp-get ok (- :end :beg))
      ((listp attr)
-      (sp--get-substitute keyword-list struct attr))
+      (sp--get-substitute keyword-list struct (cons 'progn (cons attr forms))))
      (t
       (case attr
         ;; point in buffer before the opening delimiter
