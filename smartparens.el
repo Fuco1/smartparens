@@ -2992,6 +2992,19 @@ Symbol is defined as a chunk of text recognized by
         (call-interactively com)
       (execute-kbd-macro cmd))))
 
+(defun sp-prefix-save-excursion (&optional arg)
+  "Execute the command keeping the point fixed.
+
+If you specify a regular emacs prefix argument this is passed to
+the executed command."
+  (interactive "P")
+  (let* ((cmd (read-key-sequence "" t))
+         (com (key-binding cmd)))
+    (save-excursion
+      (if (commandp com)
+          (call-interactively com)
+        (execute-kbd-macro cmd)))))
+
 (defun sp-get-thing (&optional back)
   "Find next thing after point, or before if BACK is non-nil.
 
