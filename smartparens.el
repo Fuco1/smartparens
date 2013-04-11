@@ -4460,6 +4460,104 @@ Examples:
       (sp-backward-up-sexp)
       (indent-sexp))))
 
+(defun sp-extract-before-sexp (&optional arg)
+  "Move the expression after point before the enclosing balanced expression.
+
+The point moves with the extracted expression.
+
+With ARG positive N, extract N expressions after point.
+
+With ARG negative -N, extract N expressions before point.
+
+With ARG being raw prefix argument \\[universal-argument], extract all the expressions
+up until the end of enclosing list.
+
+If the raw prefix is negative, this behaves as \\[universal-argument] `sp-backward-barf-sexp'."
+  (interactive "P")
+  (if (equal arg '(-4))
+      (sp-backward-barf-sexp '(4))
+    (sp-select-next-thing arg)
+    (let ((enc (sp-get-enclosing-sexp))
+          save-text b e nl)
+      (save-excursion
+        ;; TODO: extract this use pattern into general "get X things
+        ;; with or without surrounding whitespace."
+        (setq b (region-beginning))
+        (setq e (region-end))
+        (goto-char (sp-get enc :end-in))
+        (if (looking-back "\n[ \t]*")
+            (let ((whitespace (sp-get-whitespace)))
+              (sp-get whitespace (when (= :beg e)
+                                   (delete-region :beg :end))))
+          (setq nl t))
+        (setq save-text (delete-and-extract-region b e))
+        (when nl
+          (let ((whitespace (sp-get-whitespace)))
+            (sp-get whitespace (delete-region :beg :end))))
+        (goto-char (sp-get enc :beg-prf))
+        (insert save-text "\n")
+        (sp-get enc (indent-region :beg-prf :end)))
+      ;; if we're at an empty line, remove it
+      (when (string-match-p "^[\n\t ]+\\'" (thing-at-point 'line))
+        (let ((b (bounds-of-thing-at-point 'line)))
+          (delete-region (car b) (cdr b))))
+      (goto-char (sp-get enc :beg-prf)))))
+
+(defun sp-extract-after-sexp (&optional arg)
+  "Move the expression after point after the enclosing balanced expression.
+
+The point moves with the extracted expression.
+
+With ARG positive N, extract N expressions after point.
+
+With ARG negative -N, extract N expressions before point.
+
+With ARG being raw prefix argument \\[universal-argument], extract all the
+expressions up until the end of enclosing list.
+
+With ARG being negative raw prefix argument \\[negative-argument] \\[universal-argument], extract all the
+expressions up until the start of enclosing list."
+  ;; this is uch uglier than the "before" version, since the
+  ;; calculations forward have to account for the deleted text. Figure
+  ;; out a way to make it smoother.
+  (interactive "P")
+  (sp-select-next-thing arg)
+  (let ((enc (sp-get-enclosing-sexp))
+        (dws 0) ;length of deleted whitespace
+        save-text b e nl)
+    (save-excursion
+      (setq b (region-beginning))
+      (setq e (region-end))
+      (goto-char (sp-get enc :end-in))
+      (if (looking-back "\n[ \t]*")
+          (let ((whitespace (sp-get-whitespace)))
+            (sp-get whitespace
+              (when (= :beg e)
+                (delete-region :beg :end)
+                (setq dws (- :end :beg)))))
+        (setq nl t))
+      (setq save-text (delete-and-extract-region b e))
+      (when nl
+        (let ((whitespace (sp-get-whitespace)))
+          (sp-get whitespace (delete-region :beg :end))
+          (sp-get whitespace (setq dws (+ dws (- :end :beg))))))
+      (sp-get enc (goto-char (- :end (length save-text) dws)))
+      (insert "\n" save-text)
+      (sp-get enc (indent-region :beg-prf :end))
+      (setq e (point)))
+    ;; if we're at an empty line, remove it
+    (setq dws 0) ; variable reuse, ugly :/
+    (when (string-match-p "^[\n\t ]+\\'" (thing-at-point 'line))
+      (let ((b (bounds-of-thing-at-point 'line)))
+        (delete-region (car b) (cdr b))
+        (setq dws (- (cdr b) (car b)))))
+    (when (sp--looking-back (sp--get-opening-regexp) nil t)
+      (let ((whitespace (sp-get-whitespace)))
+        (sp-get whitespace
+          (delete-region :beg :end)
+          (setq dws (- :end :beg)))))
+    (goto-char (- e dws))))
+
 (defun sp-forward-whitespace ()
   "Skip forward past the whitespace characters."
   (interactive)
