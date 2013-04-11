@@ -673,16 +673,26 @@ string delimited with \"\" is considered as one token."
   :type 'boolean
   :group 'smartparens)
 
-(defcustom sp-navigate-reindent-after-up 'interactive
-  "If non-nil, reindent sexp after jumping out of it using `sp-up-sexp'.
+(defcustom sp-navigate-reindent-after-up '(
+                                           (interactive
+                                            emacs-lisp-mode
+                                            )
+                                           )
+  "Modes where sexps should be reindented after jumping out of them with `sp-up-sexp'.
 
 The whitespace between the closing delimiter and last \"thing\"
 inside the expression is removed.  It works analogically for the
-`sp-backward-up-sexp'."
-  :type '(radio
-          (const :tag "Always reindent" always)
-          (const :tag "Reindent only if called interactively" interactive)
-          (const :tag "Never reindent" nil))
+`sp-backward-up-sexp'.
+
+If the mode is in the list \"interactive\", only reindent the sexp
+if the command was called interactively.  This is recommended for
+general use.
+
+If the mode is in the list \"always\", reindend the sexp even if the
+command was called programatically."
+  :type '(alist
+          :options (interactive always)
+          :value-type (repeat symbol))
   :group 'smartparens)
 
 (defcustom sp-navigate-close-if-unbalanced nil
@@ -3382,8 +3392,8 @@ move backward but still to a less deep spot.
 The argument INTERACTIVE is for internal use only.
 
 If called interactively and `sp-navigate-reindent-after-up' is
-non-nil, remove the whitespace between end of the expression and
-the last \"thing\" inside the expression.
+enabled for current major-mode, remove the whitespace between end
+of the expression and the last \"thing\" inside the expression.
 
 Examples:
 
@@ -3397,7 +3407,6 @@ Examples:
   (foo  |(bar baz)           -> (foo)| (bar baz) ;; close unbalanced expr."
   (interactive "p\np")
   (setq arg (or arg 1))
-  (setq interactive (if (memq major-mode sp-navigate-consider-sgml-tags) nil interactive))
   (let ((ok (sp-get-enclosing-sexp (abs arg))))
     (if ok
         (progn
@@ -3405,13 +3414,12 @@ Examples:
               (goto-char (sp-get ok :end))
             (goto-char (sp-get ok :beg)))
           (when (and (= (abs arg) 1)
-                     (or (eq sp-navigate-reindent-after-up 'always)
-                         (and (eq sp-navigate-reindent-after-up 'interactive)
+                     (or (memq major-mode (assq 'always sp-navigate-reindent-after-up))
+                         (and (memq major-mode (assq 'interactive sp-navigate-reindent-after-up))
                               interactive)))
             ;; TODO: this needs different indent rules for different
             ;; modes.  Should we concern with such things?  Lisp rules are
-            ;; funny in HTML... :/ For now, disable this in html-mode by
-            ;; setting interactive to nil.
+            ;; funny in HTML... :/
             (save-excursion
               (if (> arg 0)
                   (progn
@@ -3453,8 +3461,9 @@ move forward but still to a less deep spot.
 The argument INTERACTIVE is for internal use only.
 
 If called interactively and `sp-navigate-reindent-after-up' is
-non-nil, remove the whitespace between beginning of the
-expression and the first \"thing\" inside the expression.
+enabled for current major-mode, remove the whitespace between
+beginning of the expression and the first \"thing\" inside the
+expression.
 
 Examples:
 
