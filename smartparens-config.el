@@ -83,13 +83,18 @@
                  )
   ;; math modes, yay.  The :actions are provided automatically if
   ;; these pairs do not have global definition.
-  (sp-local-pair "`" "'")
   (sp-local-pair "$" "$")
   (sp-local-pair "\\[" "\\]")
+  (sp-local-pair "`" "'")
   (sp-local-tag "\\b" "\\begin{_}" "\\end{_}"))
 
 ;; html modes
-(sp-local-tag '(sgml-mode html-mode) "<" "<_>" "</_>" :transform 'sp-match-sgml-tags)
+(sp-with-modes '(
+                 sgml-mode
+                 html-mode
+                 )
+  (sp-local-pair "<" ">")
+  (sp-local-tag  "<" "<_>" "</_>" :transform 'sp-match-sgml-tags))
 
 (provide 'smartparens-config)
 
