@@ -1638,7 +1638,8 @@ If USE-INSIDE-STRING is non-nil, use value of
       (setq sp-previous-point (point)))
 
     (unless (sp--this-command-self-insert-p)
-      (setq sp-last-operation nil))
+      (setq sp-last-operation nil)
+      (setq sp-recent-keys nil))
 
     ;; unless the last command was a self-insert, remove the
     ;; information about the last wrapped region.  It is only used
