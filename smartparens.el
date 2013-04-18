@@ -1102,7 +1102,8 @@ If PROP is non-nil, return the value of that property instead."
 
 If ARG is positive N, wrap N following expressions.  If ARG is
 negative -N, wrap N preceeding expressions.")
-                      (interactive "p")
+                      (interactive "P")
+                      (setq arg (or arg 1))
                       (sp-select-next-thing-exchange arg)
                       (execute-kbd-macro (kbd ,pair))))
     (define-key keymap (read-kbd-macro binding) fun-name)))
