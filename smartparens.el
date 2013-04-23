@@ -850,7 +850,13 @@ beginning."
     (if (not (cdr sp)) (cons "" sp) sp)))
 
 (defun sp--this-command-self-insert-p ()
-  "Return t if `this-command' is some sort of `self-insert-command'."
+  "Return non-nil if `this-command' is some sort of `self-insert-command'."
+  (memq this-command '(self-insert-command
+                       org-self-insert-command
+                       sp--self-insert-command)))
+
+(defun sp--this-original-command-self-insert-p ()
+  "Return non-nil if `this-original-command' is some sort of `self-insert-command'."
   (memq this-original-command '(self-insert-command
                                 org-self-insert-command
                                 sp--self-insert-command)))
@@ -1639,23 +1645,21 @@ If USE-INSIDE-STRING is non-nil, use value of
       (setq sp-previous-point (point)))
 
     (unless (sp--this-command-self-insert-p)
+      ;; unless the last command was a self-insert, remove the
+      ;; information about the last wrapped region.  It is only used
+      ;; for: 1. deleting the wrapping immediately after the wrap,
+      ;; 2. re-wrapping region immediatelly after a sucessful wrap.
+      ;; Therefore,t he deletion should have no ill-effect.  If the
+      ;; necessity will arise, we can add a different flag.
+      (setq sp-last-wrapped-region nil)
       (setq sp-last-operation nil)
       (setq sp-recent-keys nil))
-
-    ;; unless the last command was a self-insert, remove the
-    ;; information about the last wrapped region.  It is only used
-    ;; for: 1. deleting the wrapping immediately after the wrap,
-    ;; 2. re-wrapping region immediatelly after a sucessful wrap.
-    ;; Therefore,t he deletion should have no ill-effect.  If the
-    ;; necessity will arise, we can add a different flag.
-    (unless (sp--this-command-self-insert-p)
-      (setq sp-last-wrapped-region nil))
 
     (when show-smartparens-mode
       (if (member this-command sp-show-enclosing-pair-commands)
           (sp-show--pair-enc-function)
         (when (not (eq this-command 'sp-highlight-current-sexp))
-            (sp-show--pair-delete-enc-overlays))))))
+          (sp-show--pair-delete-enc-overlays))))))
 
 (defmacro sp--setaction (action &rest forms)
   `(if (not action)
@@ -1742,7 +1746,7 @@ would execute if smartparens-mode were disabled."
       (cond
        ;; try the cua-mode emulation with `cua-delete-selection'
        ((and (boundp 'cua-mode) cua-mode
-             (or (not (sp--this-command-self-insert-p))
+             (or (not (sp--this-original-command-self-insert-p))
                  (not sp-autowrap-region)))
         ;; if sp-autowrap-region is disabled, we need to translate
         ;; `sp--cua-replace-region' back to `self-insert-command'
@@ -1762,7 +1766,7 @@ would execute if smartparens-mode were disabled."
        ((and (boundp 'delete-selection-mode) delete-selection-mode
              (or from-wrap
                  (not sp-autowrap-region)
-                 (not (sp--this-command-self-insert-p))))
+                 (not (sp--this-original-command-self-insert-p))))
         (delete-selection-pre-hook)))
     ;; this handles the callbacks properly if the smartparens mode is
     ;; disabled.  Smartparens-mode adds advices on cua-mode and
