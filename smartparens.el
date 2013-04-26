@@ -756,6 +756,8 @@ handler."
 (defadvice cua-mode (after cua-mode-fix-selection activate)
   (when (and cua-mode)
     (define-key cua--region-keymap [remap self-insert-command] 'sp--cua-replace-region)
+    (define-key cua--region-keymap [remap sp-backward-delete-char] 'cua-delete-region)
+    (define-key cua--region-keymap [remap sp-delete-char] 'cua-delete-region)
     (remove-hook 'pre-command-hook 'cua--pre-command-handler)))
 
 (defadvice delete-selection-mode (after delete-selection-mode-fix-selection activate)
@@ -1806,6 +1808,11 @@ are allowed in the current context.  See also
 `sp--get-pair-list'."
   (--filter (and (sp--do-action-p (car it) 'insert)
                  (not (equal (car it) (cdr it)))) sp-pair-list))
+
+(defun sp--get-pair-list-context ()
+  "Return all pairs that are recognized in this `major-mode' and
+are allowed in the current context."
+  (--filter (sp--do-action-p (car it) 'insert) sp-pair-list))
 
 (defun sp--get-pair-list-wrap ()
   "Return the list of all pairs that can be used for wrapping."
@@ -3041,29 +3048,37 @@ expressions are considered."
         (if (not sp-navigate-consider-symbols)
             (sp-get-sexp t)
           (save-excursion
-            (sp-skip-backward-to-symbol t)
             (cond
-             ((when (looking-back ">") (sp-get-sgml-tag t)))
-             ((sp--looking-back (sp--get-closing-regexp) nil t)
-              (sp-get-sexp t))
-             ((sp--looking-back (sp--get-opening-regexp) nil t)
-              (sp-get-sexp t))
-             ((eq (char-syntax (preceding-char)) 34)
+             ((sp-point-in-empty-string)
               (sp-get-string t))
-             (t (sp-get-symbol t)))))
+             (t
+             (sp-skip-backward-to-symbol t)
+             (cond
+              ((when (looking-back ">") (sp-get-sgml-tag t)))
+              ((sp--looking-back (sp--get-closing-regexp) nil t)
+               (sp-get-sexp t))
+              ((sp--looking-back (sp--get-opening-regexp) nil t)
+               (sp-get-sexp t))
+              ((eq (char-syntax (preceding-char)) 34)
+               (sp-get-string t))
+              (t (sp-get-symbol t)))))))
       (if (not sp-navigate-consider-symbols)
           (sp-get-sexp nil)
         (save-excursion
-          (sp-skip-forward-to-symbol t)
           (cond
-           ((when (looking-at "<") (sp-get-sgml-tag nil)))
-           ((looking-at (sp--get-opening-regexp))
-            (sp-get-sexp nil))
-           ((looking-at (sp--get-closing-regexp))
-            (sp-get-sexp nil))
-           ((eq (char-syntax (following-char)) 34)
+           ((sp-point-in-empty-string)
             (sp-get-string nil))
-           (t (sp-get-symbol nil)))))))))
+           (t
+            (sp-skip-forward-to-symbol t)
+            (cond
+             ((when (looking-at "<") (sp-get-sgml-tag nil)))
+             ((looking-at (sp--get-opening-regexp))
+              (sp-get-sexp nil))
+             ((looking-at (sp--get-closing-regexp))
+              (sp-get-sexp nil))
+             ((eq (char-syntax (following-char)) 34)
+              (sp-get-string nil))
+             (t (sp-get-symbol nil)))))))))))
 
 (defun sp-forward-sexp (&optional arg)
   "Move forward across one balanced expression.
@@ -4786,6 +4801,208 @@ considered balanced expressions."
   (interactive "P")
   (sp-select-previous-thing arg)
   (exchange-point-and-mark))
+
+(defun sp-delete-char (&optional arg)
+  "Delete a character forward or move forward over a delimiter.
+
+If on an opening delimiter, move forward into balanced expression.
+
+If on a closing delimiter, refuse to delete unless the balanced
+expression is empty, in which case delete the entire expression.
+
+With a numeric prefix argument N > 0, delete N characters forward.
+
+With a numeric prefix argument N < 0, delete N characters backward.
+
+With a numeric prefix argument N = 0, simply delete a character
+forward, without regard for delimiter balancing.
+
+If ARG is raw prefix argument \\[universal-argument], delete
+characters forward until a closing delimiter whose deletion would
+break the proper pairing is hit.
+
+Examples:
+
+ (quu|x \"zot\") -> (quu| \"zot\")
+
+ (quux |\"zot\") -> (quux \"|zot\") -> (quux \"|ot\")
+
+ (foo (|) bar) -> (foo | bar)
+
+ |(foo bar) -> (|foo bar)"
+  (interactive "P")
+  (let* ((raw (sp--raw-argument-p arg))
+         ;; if you edit 10 gigabyte files in Emacs, you're gonna have
+         ;; a bad time.
+         (n (if raw 100000000
+              (prefix-numeric-value arg))))
+    (cond
+     ((> n 0)
+      (while (> n 0)
+        (cond
+         ((let ((ok (sp-point-in-empty-sexp)))
+            (when ok
+              (backward-char (length (car ok)))
+              (delete-char (+ (length (car ok)) (length (cdr ok)))))
+            ok)
+          ;; make this customizable
+          (setq n (1- n)))
+         ((and (sp-point-in-string)
+               (save-excursion (forward-char) (not (sp-point-in-string))))
+          (setq n 0))
+         ((looking-at (sp--get-opening-regexp (sp--get-pair-list-context)))
+          (goto-char (match-end 0))
+          ;; make this customizable
+          (setq n (1- n)))
+         ((and (not (sp-point-in-string))
+               (save-excursion (forward-char) (sp-point-in-string)))
+          (forward-char)
+          ;; make this customizable
+          (setq n (1- n)))
+         ((looking-at (sp--get-closing-regexp (sp--get-pair-list-context)))
+          ;; make this customizable -- maybe we want to skip and
+          ;; continue deleting
+          (setq n 0))
+         (t
+          (delete-char 1)
+          (setq n (1- n))))))
+     ((= n 0) (delete-char 1))
+     (t (sp-backward-delete-char (sp--negate-argument arg))))))
+
+(defun sp-backward-delete-char (&optional arg)
+  "Delete a character backward or move backward over a delimiter.
+
+If on a closing delimiter, move backward into balanced expression.
+
+If on a opening delimiter, refuse to delete unless the balanced
+expression is empty, in which case delete the entire expression.
+
+With a numeric prefix argument N > 0, delete N characters backward.
+
+With a numeric prefix argument N < 0, delete N characters forward.
+
+With a numeric prefix argument N = 0, simply delete a character
+backward, without regard for delimiter balancing.
+
+If ARG is raw prefix argument \\[universal-argument], delete
+characters backward until a opening delimiter whose deletion would
+break the proper pairing is hit.
+
+Examples:
+
+ (\"zot\" q|uux) -> (\"zot\" |uux)
+
+ (\"zot\"| quux) -> (\"zot|\" quux) -> (\"zo|\" quux)
+
+ (foo (|) bar) -> (foo | bar)
+
+ (foo bar)| -> (foo bar|)"
+  (interactive "P")
+  (let* ((raw (sp--raw-argument-p arg))
+         ;; if you edit 10 gigabyte files in Emacs, you're gonna have
+         ;; a bad time.
+         (n (if raw 100000000
+              (prefix-numeric-value arg))))
+    (cond
+     ((> n 0)
+      (while (> n 0)
+        (cond
+         ((let ((ok (sp-point-in-empty-sexp)))
+            (when ok
+              (backward-char (length (car ok)))
+              (delete-char (+ (length (car ok)) (length (cdr ok)))))
+            ok)
+          ;; make this customizable
+          (setq n (1- n)))
+         ((and (sp-point-in-string)
+               (save-excursion (backward-char) (not (sp-point-in-string))))
+          (setq n 0))
+         ((sp--looking-back (sp--get-closing-regexp (sp--get-pair-list-context)))
+          (goto-char (match-beginning 0))
+          ;; make this customizable
+          (setq n (1- n)))
+         ((and (not (sp-point-in-string))
+               (save-excursion (backward-char) (sp-point-in-string)))
+          (backward-char)
+          ;; make this customizable
+          (setq n (1- n)))
+         ((sp--looking-back (sp--get-opening-regexp (sp--get-pair-list-context)))
+          ;; make this customizable -- maybe we want to skip and
+          ;; continue deleting
+          (setq n 0))
+         (t
+          (delete-char -1)
+          (setq n (1- n))))))
+     ((= n 0) (delete-char -1))
+     (t (sp-delete-char (sp--negate-argument arg))))))
+
+(put 'sp-backward-delete-char 'delete-selection 'supersede)
+(put 'sp-delete-char 'delete-selection 'supersede)
+
+(defun sp-point-in-empty-sexp (&optional pos)
+  "Return non-nil if point is in empty sexp or string.
+
+The return value is active cons pair of opening and closing sexp
+delimiter enclosing this sexp."
+  (setq pos (or pos (point)))
+  (let (op act)
+    (cond
+     ((sp--looking-back (sp--get-opening-regexp (sp--get-pair-list-context)))
+      (setq op (match-string 0))
+      (setq act (--first (equal (car it) op) sp-pair-list))
+      (when (looking-at (regexp-quote (cdr act))) act))
+     ((sp-point-in-empty-string pos)))))
+
+(defun sp-point-in-empty-string (&optional pos)
+  "Return non-nil if point is in empty sexp or string.
+
+The return value is actually cons pair of opening and closing
+string delimiter enclosing this string."
+  (setq pos (or pos (point)))
+  (when (and (sp-point-in-string)
+             (save-excursion (forward-char) (not (sp-point-in-string)))
+             (save-excursion (backward-char) (not (sp-point-in-string))))
+    (save-excursion
+      (let ((c (char-to-string (nth 3 (syntax-ppss pos)))))
+        (cons c c)))))
+
+(defun sp-kill-symbol (&optional arg)
+  "Kill a symbol forward, skipping over any intervening delimiters.
+
+With ARG being positive number N, repeat that many times.
+
+With ARG being Negative number -N, repeat that many times in
+backward direction.
+
+See `sp-forward-symbol' for what constitutes a symbol."
+  (interactive "p")
+  (if (> arg 0)
+      (while (> arg 0)
+        (let ((s (sp-get-symbol)))
+          (sp-get s
+            (goto-char :beg-prf)
+            (sp-kill-sexp)))
+        (setq arg (1- arg)))
+    (sp-backward-kill-symbol (sp--negate-argument arg))))
+
+(defun sp-backward-kill-symbol (&optional arg)
+  "Kill a symbol backward, skipping over any intervening delimiters.
+
+With ARG being positive number N, repeat that many times.
+
+With ARG being Negative number -N, repeat that many times in
+forward direction.
+
+See `sp-backward-symbol' for what constitutes a symbol."
+  (interactive "p")
+  (if (> arg 0)
+      (while (> arg 0)
+        (let ((s (sp-get-symbol t)))
+          (sp-get s
+            (goto-char :end)
+            (sp-kill-sexp -1)))
+        (setq arg (1- arg)))
+    (sp-kill-symbol (sp--negate-argument arg))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; show-smartparens-mode
