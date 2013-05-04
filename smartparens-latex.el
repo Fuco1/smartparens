@@ -55,6 +55,9 @@
   ;; disable useless pairs.  Maybe also remove " ' and \"?
   (sp-local-pair "/*" nil :actions nil)
   (sp-local-pair "\\\\(" nil :actions nil)
+  (sp-local-pair "'" nil :actions nil)
+  (sp-local-pair "\"" nil :actions nil)
+  (sp-local-pair "\\\"" nil :actions nil)
 
   ;; add the prefix funciton sticking to {} pair
   (sp-local-pair "{" nil :prefix "\\\\\\(\\sw\\|\\s_\\)*")
