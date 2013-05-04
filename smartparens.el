@@ -4141,7 +4141,8 @@ Examples:
            ;; HACK: if we run out of current context this might skip a
            ;; pair that was not allowed before.  However, such a call is
            ;; never made in SP, so it's OK for now
-           (allowed-pairs (sp--get-allowed-regexp)))
+           (allowed-pairs (sp--get-allowed-regexp))
+           (allowed-strings (sp--get-stringlike-regexp)))
        (while (and (not (or (eobp)
                             (and stop-after-string
                                  (not (sp-point-in-string))
@@ -4149,7 +4150,9 @@ Examples:
                             (and stop-at-string
                                  (not (sp-point-in-string))
                                  (sp-point-in-string (,inc (point))))
-                            (,looking allowed-pairs)))
+                            (,looking allowed-pairs)
+                            (and (memq major-mode sp-navigate-consider-stringlike-sexp)
+                                 (,looking allowed-strings))))
                    (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\" ?' ?.))
                        (unless in-comment (sp-point-in-comment))))
          (,forward-fn 1)))))
