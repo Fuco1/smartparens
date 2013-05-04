@@ -1,5 +1,9 @@
 # News
 
+#### Experimental support for pairs with same opening and closing delimiter
+
+Smartparens now support pairs with same opening and closing delimiter! That is, pairs like `$$` in latex are now recognized as any other `sexp`. There are still some problems in modes where the delimiters serve multiple purposes, like `*` in markdown (unary list item, binary emphatic text). Use the variable `sp-navigate-consider-stringlike-sexp` to set the major modes where these should be supported. `latex-mode` is added by default.
+
 #### Experimental SGML tags support
 
 Smartparens now has fully transparent support of sgml tags (html, xml etc.). You can use all the operations on these as if they were normal paired expressions. Use the variable `sp-navigate-consider-sgml-tags` to set the major modes where tags should be supported. `html-mode` is added by default.
