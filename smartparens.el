@@ -662,6 +662,21 @@ less annoying (that is, three times pressing \" would insert
   :type '(repeat symbol)
   :group 'smartparens)
 
+(defcustom sp-navigate-consider-stringlike-sexp '(
+                                                  latex-mode
+                                                  )
+  "List of modes where string-like sexps are considered to be sexps.
+
+A string-like sexp is an expression where opening and closing
+delimeter is the same sequence of characters. For example: *...*,
+$...$.
+
+Warning: these are problematic in modes where the symbol might
+have multiple functions, such as * in markdown, where it denotes
+start of list item (unary) OR emphatic text (binary)."
+  :type '(repeat symbol)
+  :group 'smartparens)
+
 ;; navigation & manip custom
 (defcustom sp-navigate-consider-symbols t
   "If non-nil, consider symbols outside balanced expressions as such.
@@ -1809,6 +1824,13 @@ are allowed in the current context.  See also
   (--filter (and (sp--do-action-p (car it) 'insert)
                  (not (equal (car it) (cdr it)))) sp-pair-list))
 
+(defun sp--get-allowed-stringlike-list ()
+  "Return all pairs that are recognized in this `major-mode',
+have the same opening and closing delimiter and are allowed in
+the current context."
+  (--filter (and (sp--do-action-p (car it) 'insert)
+                 (equal (car it) (cdr it))) sp-pair-list))
+
 (defun sp--get-pair-list-context ()
   "Return all pairs that are recognized in this `major-mode' and
 are allowed in the current context."
@@ -1830,6 +1852,9 @@ are allowed in the current context."
   "Return regexp matching any opening or closing
 delimiter for any pair allowed in current context."
   (regexp-opt (--mapcat (list (car it) (cdr it)) pair-list)))
+
+(defun* sp--get-stringlike-regexp (&optional (pair-list (sp--get-allowed-stringlike-list)))
+  (regexp-opt (--map (car it) pair-list)))
 
 (defun sp--get-last-wraped-region (beg end open close)
   "Return `sp-get-sexp' style plist about the last wrapped region.
@@ -2541,7 +2566,7 @@ sequence, not necessarily the longest possible."
       (save-excursion
         (not (null (search-backward-regexp (concat "\\(?:" regexp "\\)\\=") from t)))))))
 
-(defun sp--search-backward-regexp (regexp &optional bound noerror)
+(defun sp--search-backward-regexp (regexp &optional bound noerror count)
   "Works just like `search-backward-regexp', but returns the
 longest possible match.  That means that searching for
 \"defun|fun\" backwards would return \"defun\" instead of
@@ -2549,10 +2574,15 @@ longest possible match.  That means that searching for
 
 This is an internal function.  Only use this for searching for
 pairs!"
-  (when (search-backward-regexp regexp bound noerror)
-    (goto-char (match-end 0))
-    (sp--looking-back regexp)
-    (goto-char (match-beginning 0))))
+  (setq count (or count 1))
+  (let (r)
+    (while (> count 0)
+      (when (search-backward-regexp regexp bound noerror)
+        (goto-char (match-end 0))
+        (sp--looking-back regexp)
+        (setq r (goto-char (match-beginning 0))))
+      (setq count (1- count)))
+    r))
 
 (defmacro sp--get-bounds (name docstring test)
   "Generate a function called NAME that return the bounds of
@@ -2692,6 +2722,73 @@ The expressions considered are those delimited by pairs on
                       :cl (if forward close open)
                       :prefix (sp--get-prefix s pref)))))))))))
 
+(defun sp-get-stringlike-expression (&optional back)
+  "Find the nearest string-like expression after point.
+
+String-like expression is expression enclosed with the same
+opening and closing delimiter, such as *...*, \"...\", `...` etc."
+  (save-excursion
+    (let ((needle (sp--get-stringlike-regexp))
+          (search-fn-f (if (not back) 'search-forward-regexp 'sp--search-backward-regexp))
+          (search-fn-b (if back 'search-forward-regexp 'sp--search-backward-regexp))
+          (hit nil)
+          (count 0)
+          (m nil)
+          b e)
+      (when (not (equal needle ""))
+        (while (and (not hit)
+                    (funcall search-fn-f needle nil t))
+          (setq m (match-string-no-properties 0))
+          (unless (or (and (= (length m) 1)
+                           (eq (char-syntax (string-to-char m)) 34))
+                      (save-excursion
+                        (goto-char (match-beginning 0))
+                        (sp-point-in-string))
+                      (save-excursion
+                        (goto-char (match-beginning 0))
+                        ;; assumes \ is always the escape... bad?
+                        (looking-back "\\\\")))
+            (setq hit t)))
+        (when hit
+          (setq needle (regexp-quote m))
+          (save-excursion
+            ;; assumes \ is always the escape... bad?
+            (while (re-search-backward (concat "[^\\]" needle) nil t) (setq count (1+ count))))
+          (if (= (mod count 2) 0)
+              ;; outside
+              (progn
+                (setq e (point))
+                (funcall search-fn-b needle nil t 2)
+                (setq b (point)))
+            ;;inside
+            (funcall search-fn-b needle nil t)
+            (setq b (point))
+            (funcall search-fn-f needle nil t 2)
+            (setq e (point)))
+          (let ((mb b) (me e))
+            (setq b (min mb me))
+            (setq e (max mb me)))
+          (let ((pref (sp-get-pair m :prefix)))
+            (list :beg b :end e :op m :cl m :prefix (sp--get-prefix b pref))))))))
+
+(defun sp-get-expression (&optional back)
+  "Find the nearest balanced expression of any kind.
+
+See also: `sp-navigate-consider-stringlike-sexp'."
+  (if (memq major-mode sp-navigate-consider-stringlike-sexp)
+      (let ((pre (sp--get-allowed-regexp))
+            (sre (sp--get-stringlike-regexp))
+            (search-fn (if (not back) 'search-forward-regexp 'sp--search-backward-regexp))
+            (ps (if back (point-min) (point-max)))
+            (ss (if back (point-min) (point-max))))
+        (setq ps (or (save-excursion (funcall search-fn pre nil t)) ps))
+        (setq ss (or (save-excursion (funcall search-fn sre nil t)) ss))
+        (if (or (and (not back) (< ps ss))
+                (and back (> ps ss)))
+            (sp-get-paired-expression back)
+          (sp-get-stringlike-expression back)))
+    (sp-get-paired-expression back)))
+
 (defun sp-get-sexp (&optional back)
   "Find the nearest balanced expression that is after (before) point.
 
@@ -2734,7 +2831,7 @@ of opening/closing delimiter or prefix)."
    (sp-prefix-pair-object
     (sp-get-paired-expression back))
    ((memq major-mode sp-navigate-consider-sgml-tags)
-    (let ((paired (sp-get-paired-expression back)))
+    (let ((paired (sp-get-expression back)))
       (if (and paired
                (equal "<" (sp-get paired :op)))
           ;; if the point is inside the tag delimiter, return the pair.
@@ -2742,7 +2839,7 @@ of opening/closing delimiter or prefix)."
               paired
             (sp-get-sgml-tag back))
         paired)))
-   (t (sp-get-paired-expression back))))
+   (t (sp-get-expression back))))
 
 (defun sp-get-enclosing-sexp (&optional arg)
   "Return the balanced expression that wraps point at the same level.
@@ -3052,16 +3149,20 @@ expressions are considered."
              ((sp-point-in-empty-string)
               (sp-get-string t))
              (t
-             (sp-skip-backward-to-symbol t)
-             (cond
-              ((when (looking-back ">") (sp-get-sgml-tag t)))
-              ((sp--looking-back (sp--get-closing-regexp) nil t)
-               (sp-get-sexp t))
-              ((sp--looking-back (sp--get-opening-regexp) nil t)
-               (sp-get-sexp t))
-              ((eq (char-syntax (preceding-char)) 34)
-               (sp-get-string t))
-              (t (sp-get-symbol t)))))))
+              (sp-skip-backward-to-symbol t)
+              (cond
+               ((when (looking-back ">") (sp-get-sgml-tag t)))
+               ((sp--looking-back (sp--get-closing-regexp) nil t)
+                (sp-get-sexp t))
+               ((sp--looking-back (sp--get-opening-regexp) nil t)
+                (sp-get-sexp t))
+               ((eq (char-syntax (preceding-char)) 34)
+                (sp-get-string t))
+               ((and (memq major-mode sp-navigate-consider-stringlike-sexp)
+                     (sp--looking-back (sp--get-stringlike-regexp) nil t)
+                     (let ((ok (sp-get-stringlike-expression t)))
+                       (when (and ok (= (sp-get ok :end) (point))) ok))))
+               (t (sp-get-symbol t)))))))
       (if (not sp-navigate-consider-symbols)
           (sp-get-sexp nil)
         (save-excursion
@@ -3078,6 +3179,11 @@ expressions are considered."
               (sp-get-sexp nil))
              ((eq (char-syntax (following-char)) 34)
               (sp-get-string nil))
+             ((and (memq major-mode sp-navigate-consider-stringlike-sexp)
+                   (looking-at (sp--get-stringlike-regexp))
+                   (let ((ok (sp-get-stringlike-expression nil)))
+                     (when (and ok (= (sp-get ok :beg-prf) (point))) ok)))
+              (sp-get-stringlike-expression nil))
              (t (sp-get-symbol nil)))))))))))
 
 (defun sp-forward-sexp (&optional arg)
@@ -3417,6 +3523,9 @@ The argument INTERACTIVE is for internal use only.
 If called interactively and `sp-navigate-reindent-after-up' is
 enabled for current major-mode, remove the whitespace between end
 of the expression and the last \"thing\" inside the expression.
+
+If `sp-navigate-close-if-unbalanced' is non-nil, close the
+unbalanced expressions automatically.
 
 Examples:
 
@@ -5117,7 +5226,9 @@ support custom pairs."
            (closing (sp--get-closing-regexp pair-list))
            ok match)
       (cond
-       ((looking-at opening)
+       ((or (looking-at opening)
+            (and (memq major-mode sp-navigate-consider-stringlike-sexp)
+                 (looking-at (sp--get-stringlike-regexp))))
         (setq match (match-string 0))
         ;; we can use `sp-get-thing' here because we *are* at some
         ;; pair opening, and so only the tag or the sexp can trigger.
@@ -5125,7 +5236,9 @@ support custom pairs."
         (if ok
             (sp-get ok (sp-show--pair-create-overlays :beg :end :op-l :cl-l))
           (sp-show--pair-create-mismatch-overlay (point) (length match))))
-       ((sp--looking-back closing)
+       ((or (sp--looking-back closing)
+            (and (memq major-mode sp-navigate-consider-stringlike-sexp)
+                 (sp--looking-back (sp--get-stringlike-regexp))))
         (setq match (match-string 0))
         (setq ok (sp-get-thing t))
         (if ok
