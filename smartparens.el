@@ -3630,6 +3630,10 @@ whitespace up until the closing/opening delimiter.
 With ARG being raw prefix \\[universal-argument] \\[universal-argument], kill current list (the list
 point is inside).
 
+With ARG numeric prefix 0 (zero) kill the insides of the current
+list, that is everything from after the opening delimiter to
+before the closing delimiter.
+
 If ARG is nil, default to 1 (kill single expression forward)
 
 If second optional argument DONT-KILL is non-nil, save the to be
@@ -3656,6 +3660,8 @@ Examples:
  (1 2 3 4| 5 6)    -> (|5 6)      ;; - \\[universal-argument]
 
  (1 2 |   )        -> (1 2|)      ;; \\[universal-argument], kill useless whitespace
+
+ (1 2 3 |4 5 6)    -> (|)         ;; 0
 
 Note: prefix argument is shown after the example in
 \"comment\". Assumes `sp-navigate-consider-symbols' equal to t."
@@ -3686,6 +3692,11 @@ Note: prefix argument is shown after the example in
            (= n 16))
       (let ((lst (sp-backward-up-sexp)))
         (funcall kill-fn (sp-get lst :beg-prf) (sp-get lst :end))))
+     ;; kill inside of sexp
+     ((= n 0)
+      (let ((e (sp-get-enclosing-sexp)))
+        (when e
+          (sp-get e (funcall kill-fn :beg-in :end-in)))))
      ;; regular kill
      (t
       (save-excursion
