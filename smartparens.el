@@ -58,6 +58,7 @@ Examples are fontified using the `font-lock-string-face' for
 better orientation."
   (interactive "P")
   (setq arg (not arg))
+  (require 'help-mode) ;; for help-xref-following #85
   (let ((do-not-display '(
                           smartparens-mode
                           smartparens-global-mode
