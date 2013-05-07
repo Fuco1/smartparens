@@ -411,17 +411,27 @@ Symbol is defined as a chunk of text recognized by
   :keymap sp-keymap
   (if smartparens-mode
       (progn
-        ;; setup local pair replacements
-        (sp--update-local-pairs)
-        ;; set the escape char
-        (dotimes (char 256)
-          (unless sp-escape-char
-            (if (= ?\\ (char-syntax char))
-                (setq sp-escape-char (string char)))))
+        (sp--init)
         (when (sp--delete-selection-p)
           (sp--init-delete-selection-mode-emulation))
         (run-hooks 'smartparens-enabled-hook))
     (run-hooks 'smartparens-disabled-hook)))
+
+(defun sp--init ()
+  "Initialize the buffer local pair bindings and other buffer
+local variables that depend on the active `major-mode'."
+  ;; setup local pair replacements
+  (sp--update-local-pairs)
+  ;; set the escape char
+  (dotimes (char 256)
+    (unless sp-escape-char
+      (when (= ?\\ (char-syntax char))
+        (setq sp-escape-char (string char))))))
+
+(defun sp--maybe-init ()
+  "Initialize the buffer if it is not already initialized. See `sp--init'."
+  (unless sp-pair-list
+    (sp--init)))
 
 (defvar sp-trigger-keys nil
   "List of trigger keys.")
@@ -2857,6 +2867,7 @@ However, you should never access this structure directly as it is
 subject to change.  Instead, use the macro `sp-get' which also
 provide shortcuts for many commonly used queries (such as length
 of opening/closing delimiter or prefix)."
+  (sp--maybe-init)
   (cond
    (sp-prefix-tag-object
     (sp-get-sgml-tag back))
@@ -2957,6 +2968,7 @@ returned.  Symbol is defined as a chunk of text recognized by
 
 The return value is a plist with the same format as the value
 returned by `sp-get-sexp'."
+  (sp--maybe-init)
   (let (b e prefix)
     (save-excursion
       (if back
@@ -2995,6 +3007,7 @@ expression.
 
 The return value is a plist with the same format as the value
 returned by `sp-get-sexp'."
+  (sp--maybe-init)
   (let (b e)
     (if (sp-point-in-string)
         (let ((r (sp-get-quoted-string-bounds)))
@@ -3027,6 +3040,7 @@ and newline."
   (not (equal "/" (substring tag 1 2))))
 
 (defun sp-get-sgml-tag (&optional back)
+  (sp--maybe-init)
   (save-excursion
     (let ((search-fn (if (not back) 'search-forward-regexp 'search-backward-regexp))
           tag tag-name needle
@@ -3153,6 +3167,7 @@ string (`sp-get-string') or balanced expression recognized by
 
 If `sp-navigate-consider-symbols' is nil, only balanced
 expressions are considered."
+  (sp--maybe-init)
   (cond
    (sp-prefix-tag-object (sp-get-sgml-tag back))
    (sp-prefix-pair-object (sp-get-paired-expression back))
