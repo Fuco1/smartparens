@@ -137,6 +137,7 @@ better orientation."
         (goto-char (point-min))))
     (pop-to-buffer "*Smartparens cheat sheet*")))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Variables
 
@@ -364,6 +365,36 @@ Maximum length of opening or closing pair is
 (defvar sp-tags nil
   "List of tag definitions.  See `sp-local-tag' for more information.")
 
+(defvar sp-prefix-tag-object nil
+  "If non-nil, only consider tags while searching for next thing.")
+
+(defvar sp-prefix-pair-object nil
+  "If non-nil, only consider pairs while searching for next thing.
+
+Pairs are defined as expressions delimited by pairs from
+`sp-pair-list'.")
+
+(defvar sp-prefix-symbol-object nil
+  "If non-nil, only consider symbols while searching for next thing.
+
+Symbol is defined as a chunk of text recognized by
+`sp-forward-symbol'.")
+
+(defvar sp-recent-keys nil
+  "Last 20 typed keys, registered via `self-insert-command'.")
+
+(defvar sp--lisp-modes '(emacs-lisp-mode
+                         inferior-emacs-lisp-mode
+                         lisp-interaction-mode
+                         scheme-mode
+                         lisp-mode
+                         eshell-mode
+                         slime-repl-mode
+                         clojure-mode
+                         common-lisp-mode)
+  "List of Lisp modes.")
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Customize & Mode definitions
 
@@ -737,6 +768,7 @@ point (using `sp-previous-sexp')."
   :type 'boolean
   :group 'smartparens)
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Selection mode emulation
 
@@ -780,6 +812,7 @@ handler."
   (when (and delete-selection-mode)
     (remove-hook 'pre-command-hook 'delete-selection-pre-hook)))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Misc functions
 
@@ -997,6 +1030,7 @@ which to do the comparsion."
   (setq what (or what :beg))
   `(equal (sp-get ,a ,what) (sp-get ,b ,what)))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Adding/removing of pairs/bans/allows etc.
 
@@ -1394,6 +1428,7 @@ string and the action."
           (!cons (cons mode (list new-tag)) sp-tags)))))
   (sp--update-trigger-keys))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Overlay management
 
@@ -1566,6 +1601,7 @@ are of zero length, or if point moved backwards."
   (delete-overlay overlay)
   (sp--pair-overlay-fix-highlight))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Pair insertion/deletion/skipping
 
@@ -1803,9 +1839,6 @@ would execute if smartparens-mode were disabled."
 Handle the `delete-selection-mode' or `cua-delete-selection'
 stuff here."
   (sp--delete-selection-mode-handle))
-
-(defvar sp-recent-keys nil
-  "Last 20 typed keys, registered via `self-insert-command'.")
 
 (defun sp--get-recent-keys ()
   "Return 10 recent keys in reverse order (most recent first) as a string."
@@ -2538,6 +2571,7 @@ is remove the just added wrapping."
           (delete-char (- (1- (length (car opening-pair)))))
           (setq sp-last-operation 'sp-delete-pair-opening)))))))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Navigation
 
@@ -2624,9 +2658,6 @@ object bounded by TEST."
        (setq ,beg (match-beginning 0))
        (setq ,end (match-end 0))
        (setq ,str (match-string 0)))))
-
-(defvar sp--lisp-modes '(emacs-lisp-mode inferior-emacs-lisp-mode lisp-interaction-mode scheme-mode lisp-mode eshell-mode slime-repl-mode clojure-mode common-lisp-mode)
-  "List of Lisp modes.")
 
 ;; TODO: since this function is used for all the navigation, we should
 ;; optimaze it a lot! Get some elisp profiler! Also, we should split
@@ -3046,21 +3077,6 @@ and newline."
                     :op (if forward op cl)
                     :cl (if forward cl op)
                     :prefix ""))))))))
-
-(defvar sp-prefix-tag-object nil
-  "If non-nil, only consider tags while searching for next thing.")
-
-(defvar sp-prefix-pair-object nil
-  "If non-nil, only consider pairs while searching for next thing.
-
-Pairs are defined as expressions delimited by pairs from
-`sp-pair-list'.")
-
-(defvar sp-prefix-symbol-object nil
-  "If non-nil, only consider symbols while searching for next thing.
-
-Symbol is defined as a chunk of text recognized by
-`sp-forward-symbol'.")
 
 (defun sp-prefix-tag-object (&optional arg)
   "Read the command and invoke it on the next tag object.
@@ -3815,6 +3831,7 @@ Examples:
           (goto-char (+ (sp-get prev :beg-prf) (sp-get next :len))))
         (setq n (1- n))))))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; "paredit" operations
 
@@ -5128,6 +5145,7 @@ See `sp-backward-symbol' for what constitutes a symbol."
         (setq arg (1- arg)))
     (sp-kill-symbol (sp--negate-argument arg))))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; show-smartparens-mode
 
