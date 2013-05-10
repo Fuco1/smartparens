@@ -4311,6 +4311,45 @@ Examples:
   (setq arg (or arg 1))
   (sp--forward-symbol-1 nil))
 
+(defun sp-rewrap-sexp (&optional arg)
+  "Rewrap the enclosing expression with a different pair.
+
+The new pair is specified in minibuffer by typing the *opening*
+delimiter, same way as with pair wrapping.
+
+With raw prefix argument \\[universal-argument] do not remove the
+old delimiters.
+
+Examples:
+
+  (foo bar baz) -> [foo bar baz]   ;; [
+
+  (foo bar baz) -> [(foo bar baz)] ;; \\[universal-argument] ["
+  (interactive "P")
+  (let ((raw (sp--raw-argument-p arg))
+        (pair "")
+        (done nil)
+        ev ac)
+    (while (not done)
+      (setq ev (read-event (format "Rewrap with: %s" pair) t))
+      (setq pair (concat pair (format-kbd-macro (vector ev))))
+      (setq ac (--first (equal pair (car it)) (sp--get-pair-list-context)))
+      (when ac
+        (setq done t)
+        (let ((enc (sp-get-enclosing-sexp)))
+          (when enc
+            (save-excursion
+              (sp-get enc
+                (goto-char :end)
+                (unless raw
+                  (delete-char (- :cl-l))))
+              (insert (cdr ac))
+              (sp-get enc
+                (goto-char :beg)
+                (unless raw
+                  (delete-char :op-l)))
+              (insert (car ac)))))))))
+
 (defun sp--unwrap-sexp (sexp)
   "Unwrap expression defined by SEXP.
 
