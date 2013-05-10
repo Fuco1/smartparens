@@ -2153,7 +2153,7 @@ priority from the regular wrap."
               (overlay-put oleft 'type 'wrap)
               (goto-char (1+ ostart)))))))))
 
-(defun sp--wrap-tag-create-overlays (tag ostart oend)
+(defun sp--wrap-tag-create-overlays (tag ostart oend &optional no-cleanup)
   "Create the wrap tag overlays.
 
 TAG is the tag definition from `sp-tags'.
@@ -2170,7 +2170,7 @@ wrapped region, exluding any existing possible wrap."
     ;; setup the wrap pairs
     ;; opening one
     (goto-char ostart)
-    (delete-char (length (plist-get tag :trigger)))
+    (unless no-cleanup (delete-char (length (plist-get tag :trigger))))
     (insert (apply #'concat tag-open))
     (backward-char (length (cadr tag-open)))
 
@@ -4320,21 +4320,35 @@ delimiter, same way as with pair wrapping.
 With raw prefix argument \\[universal-argument] do not remove the
 old delimiters.
 
+With numeric prefix argument 0 (zero) ignore rewrapping with
+tags. This is sometimes useful because the tags always take
+precedence over regular pairs.
+
 Examples:
 
-  (foo bar baz) -> [foo bar baz]   ;; [
+  (foo |bar baz) -> [foo |bar baz]   ;; [
 
-  (foo bar baz) -> [(foo bar baz)] ;; \\[universal-argument] ["
+  (foo |bar baz) -> [(foo |bar baz)] ;; \\[universal-argument] [
+
+  \"foo |bar\"     -> <|>foo bar</>    ;; < in `html-mode'"
   (interactive "P")
   (let ((raw (sp--raw-argument-p arg))
         (pair "")
         (done nil)
-        ev ac)
+        ev ac at)
     (while (not done)
       (setq ev (read-event (format "Rewrap with: %s" pair) t))
       (setq pair (concat pair (format-kbd-macro (vector ev))))
       (setq ac (--first (equal pair (car it)) (sp--get-pair-list-context)))
-      (when ac
+      (setq at (sp--get-active-tag pair))
+      (cond
+       ((and (/= (prefix-numeric-value arg) 0)
+             (eq (length pair) (length (plist-get at :trigger))))
+        (setq done t)
+        (let ((enc (sp-get-enclosing-sexp)))
+          (sp--unwrap-sexp enc t)
+          (sp-get enc (sp--wrap-tag-create-overlays at :beg-prf (- :end :op-l :cl-l :prefix-l) t))))
+       (ac
         (setq done t)
         (let ((enc (sp-get-enclosing-sexp)))
           (when enc
@@ -4346,11 +4360,11 @@ Examples:
               (insert (cdr ac))
               (sp-get enc
                 (goto-char :beg)
+                (insert (car ac))
                 (unless raw
-                  (delete-char :op-l)))
-              (insert (car ac)))))))))
+                  (delete-char :op-l)))))))))))
 
-(defun sp--unwrap-sexp (sexp)
+(defun sp--unwrap-sexp (sexp &optional no-cleanup)
   "Unwrap expression defined by SEXP.
 
 Warning: this function remove possible empty lines and reindents
@@ -4366,21 +4380,22 @@ represent a valid object in a buffer!"
   ;; get rid of the (possible) empty line that will be the result of
   ;; their removal.  This is especially nice in HTML mode or
   ;; long-running tags like \[\] in latex.
-  (let ((new-start (sp-get sexp :beg-prf))
-        (new-end (sp-get sexp (- :end-in :op-l :prefix-l)))
-        indent-from indent-to)
-    (save-excursion
-      (goto-char new-end)
-      (when (string-match-p "^[\n\t ]+\\'" (thing-at-point 'line))
-        (let ((b (bounds-of-thing-at-point 'line)))
-          (delete-region (car b) (cdr b))))
-      (setq indent-to (point))
-      (goto-char new-start)
-      (when (string-match-p "^[\n\t ]+\\'" (thing-at-point 'line))
-        (let ((b (bounds-of-thing-at-point 'line)))
-          (delete-region (car b) (cdr b))))
-      (setq indent-from (point)))
-    (indent-region indent-from indent-to)))
+  (unless no-cleanup
+    (let ((new-start (sp-get sexp :beg-prf))
+          (new-end (sp-get sexp (- :end-in :op-l :prefix-l)))
+          indent-from indent-to)
+      (save-excursion
+        (goto-char new-end)
+        (when (string-match-p "^[\n\t ]+\\'" (thing-at-point 'line))
+          (let ((b (bounds-of-thing-at-point 'line)))
+            (delete-region (car b) (cdr b))))
+        (setq indent-to (point))
+        (goto-char new-start)
+        (when (string-match-p "^[\n\t ]+\\'" (thing-at-point 'line))
+          (let ((b (bounds-of-thing-at-point 'line)))
+            (delete-region (car b) (cdr b))))
+        (setq indent-from (point)))
+      (indent-region indent-from indent-to))))
 
 (defun sp-unwrap-sexp (&optional arg)
   "Unwrap the following expression.
