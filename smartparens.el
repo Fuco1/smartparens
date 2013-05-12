@@ -546,7 +546,7 @@ MODES."
   :type 'boolean
   :group 'smartparens)
 
-(defcustom sp-autoinsert-if-followed-by-same 2
+(defcustom sp-autoinsert-if-followed-by-same 3
   "Customizes behaviour of pair insertion if the point is followed by
 the same opening pair as currently inserted pair.
 
