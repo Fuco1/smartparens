@@ -2795,7 +2795,9 @@ opening and closing delimiter, such as *...*, \"...\", `...` etc."
           (setq needle (regexp-quote m))
           (save-excursion
             ;; assumes \ is always the escape... bad?
-            (while (re-search-backward (concat "[^\\]" needle) nil t) (setq count (1+ count))))
+            (while (re-search-backward (concat "[^\\]" needle) nil t)
+              (forward-char 1)
+              (setq count (1+ count))))
           (if (= (mod count 2) 0)
               ;; outside
               (progn
