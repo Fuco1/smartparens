@@ -2882,7 +2882,9 @@ of opening/closing delimiter or prefix)."
           ;; if the point is inside the tag delimiter, return the pair.
           (if (sp-get paired (and (<= :beg-in (point)) (>= :end-in (point))))
               paired
-            (sp-get-sgml-tag back))
+            ;; if the tag can't be completed, we can at least return
+            ;; the <> pair
+            (or (sp-get-sgml-tag back) paired))
         paired)))
    (t (sp-get-expression back))))
 
@@ -3185,7 +3187,6 @@ expressions are considered."
              (t
               (sp-skip-backward-to-symbol t)
               (cond
-               ((when (looking-back ">") (sp-get-sgml-tag t)))
                ((sp--looking-back (sp--get-closing-regexp) nil t)
                 (sp-get-sexp t))
                ((sp--looking-back (sp--get-opening-regexp) nil t)
@@ -3206,7 +3207,6 @@ expressions are considered."
            (t
             (sp-skip-forward-to-symbol t)
             (cond
-             ((when (looking-at "<") (sp-get-sgml-tag nil)))
              ((looking-at (sp--get-opening-regexp))
               (sp-get-sexp nil))
              ((looking-at (sp--get-closing-regexp))
