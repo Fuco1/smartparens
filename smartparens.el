@@ -1521,7 +1521,7 @@ with given type."
   "Create an overlay over the currently inserted pair for
 tracking the position of the point.  START and END are the
 boundaries of the overlay, ID is the id of the pair."
-  (let ((overlay (make-overlay start end nil nil t)))
+  (let ((overlay (make-overlay start end)))
     (overlay-put overlay 'priority 100)
     (overlay-put overlay 'keymap sp-pair-overlay-keymap)
     (overlay-put overlay 'pair-id id)
