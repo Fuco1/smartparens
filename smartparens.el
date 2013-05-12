@@ -3195,8 +3195,7 @@ expressions are considered."
                 (sp-get-string t))
                ((and (memq major-mode sp-navigate-consider-stringlike-sexp)
                      (sp--looking-back (sp--get-stringlike-regexp) nil t)
-                     (let ((ok (sp-get-stringlike-expression t)))
-                       (when (and ok (= (sp-get ok :end) (point))) ok))))
+                     (sp-get-stringlike-expression t)))
                (t (sp-get-symbol t)))))))
       (if (not sp-navigate-consider-symbols)
           (sp-get-sexp nil)
@@ -3215,9 +3214,7 @@ expressions are considered."
               (sp-get-string nil))
              ((and (memq major-mode sp-navigate-consider-stringlike-sexp)
                    (looking-at (sp--get-stringlike-regexp))
-                   (let ((ok (sp-get-stringlike-expression nil)))
-                     (when (and ok (= (sp-get ok :beg-prf) (point))) ok)))
-              (sp-get-stringlike-expression nil))
+                   (sp-get-stringlike-expression nil)))
              (t (sp-get-symbol nil)))))))))))
 
 (defun sp-forward-sexp (&optional arg)
@@ -5242,6 +5239,12 @@ After the next command the pair will automatically disappear."
   :type '(repeat symbol)
   :group 'show-smartparens)
 
+(defcustom sp-show-pair-from-inside nil
+  "If non-nil, highlight the enclosing pair if immediately after
+the opening delimiter or before the closing delimiter."
+  :type 'boolean
+  :group 'show-smartparens)
+
 (defface sp-show-pair-match-face
   '((((class color) (background light))
      :background "turquoise")       ; looks OK on tty (becomes cyan)
@@ -5328,9 +5331,10 @@ support custom pairs."
     (let* ((pair-list (sp--get-allowed-pair-list))
            (opening (sp--get-opening-regexp pair-list))
            (closing (sp--get-closing-regexp pair-list))
+           (allowed (and sp-show-pair-from-inside (sp--get-allowed-regexp)))
            ok match)
       (cond
-       ((or (looking-at opening)
+       ((or (looking-at (if sp-show-pair-from-inside allowed opening))
             (and (memq major-mode sp-navigate-consider-stringlike-sexp)
                  (looking-at (sp--get-stringlike-regexp))))
         (setq match (match-string 0))
@@ -5340,7 +5344,7 @@ support custom pairs."
         (if ok
             (sp-get ok (sp-show--pair-create-overlays :beg :end :op-l :cl-l))
           (sp-show--pair-create-mismatch-overlay (point) (length match))))
-       ((or (sp--looking-back closing)
+       ((or (sp--looking-back (if sp-show-pair-from-inside allowed closing))
             (and (memq major-mode sp-navigate-consider-stringlike-sexp)
                  (sp--looking-back (sp--get-stringlike-regexp))))
         (setq match (match-string 0))
