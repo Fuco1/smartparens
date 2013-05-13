@@ -2885,7 +2885,22 @@ of opening/closing delimiter or prefix)."
             ;; if the tag can't be completed, we can at least return
             ;; the <> pair
             (or (sp-get-sgml-tag back) paired))
-        paired)))
+        ;; we can still try the tag if the first < or > is closer than
+        ;; the pair.  This is a bit too complicated... seems like a
+        ;; more clever solution would be needed in the future, esp if
+        ;; we add the python hack.
+        (cond
+         ((and (not back)
+               (< (save-excursion
+                    (or (search-forward "<" nil t) (point-max)))
+                  (or (sp-get paired :beg) (point-max))))
+          (or (sp-get-sgml-tag) paired))
+         ((and back
+               (> (save-excursion
+                    (or (search-backward ">" nil t) (point-min)))
+                  (or (sp-get paired :end) (point-max))))
+          (or (sp-get-sgml-tag t) paired))
+         (t paired)))))
    (t (sp-get-expression back))))
 
 (defun sp-get-enclosing-sexp (&optional arg)
@@ -3187,6 +3202,12 @@ expressions are considered."
              (t
               (sp-skip-backward-to-symbol t)
               (cond
+               ;; this is an optimization, we do not need to look up
+               ;; the "pair" expression first. If this fails, follow
+               ;; up with regular sexps
+               ((and (memq major-mode sp-navigate-consider-sgml-tags)
+                     (sp--looking-back ">")
+                     (sp-get-sgml-tag t)))
                ((sp--looking-back (sp--get-closing-regexp) nil t)
                 (sp-get-sexp t))
                ((sp--looking-back (sp--get-opening-regexp) nil t)
@@ -3206,6 +3227,9 @@ expressions are considered."
            (t
             (sp-skip-forward-to-symbol t)
             (cond
+             ((and (memq major-mode sp-navigate-consider-sgml-tags)
+                   (looking-at "<")
+                   (sp-get-sgml-tag)))
              ((looking-at (sp--get-opening-regexp))
               (sp-get-sexp nil))
              ((looking-at (sp--get-closing-regexp))
@@ -5336,7 +5360,9 @@ support custom pairs."
       (cond
        ((or (looking-at (if sp-show-pair-from-inside allowed opening))
             (and (memq major-mode sp-navigate-consider-stringlike-sexp)
-                 (looking-at (sp--get-stringlike-regexp))))
+                 (looking-at (sp--get-stringlike-regexp)))
+            (and (memq major-mode sp-navigate-consider-sgml-tags)
+                 (looking-at "<")))
         (setq match (match-string 0))
         ;; we can use `sp-get-thing' here because we *are* at some
         ;; pair opening, and so only the tag or the sexp can trigger.
@@ -5346,7 +5372,9 @@ support custom pairs."
           (sp-show--pair-create-mismatch-overlay (point) (length match))))
        ((or (sp--looking-back (if sp-show-pair-from-inside allowed closing))
             (and (memq major-mode sp-navigate-consider-stringlike-sexp)
-                 (sp--looking-back (sp--get-stringlike-regexp))))
+                 (sp--looking-back (sp--get-stringlike-regexp)))
+            (and (memq major-mode sp-navigate-consider-sgml-tags)
+                 (sp--looking-back ">")))
         (setq match (match-string 0))
         (setq ok (sp-get-thing t))
         (if ok
