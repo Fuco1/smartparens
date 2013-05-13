@@ -4387,6 +4387,38 @@ Examples:
                 (unless raw
                   (delete-char :op-l)))))))))))
 
+(defun sp-swap-enclosing-sexp (&optional arg)
+  "Swap the enclosing delimiters of this and the parent expression.
+
+With N > 0 numeric argument, ascend that many levels before
+swapping.
+
+Examples:
+
+  (foo [|bar] baz)              -> [foo (|bar) baz] ;; 1
+
+  (foo {bar [|baz] quux} quack) -> [foo {bar (|baz) quux} quack] ;; 2"
+  (interactive "p")
+  (let ((enc (sp-get-enclosing-sexp))
+        (encp (sp-get-enclosing-sexp (1+ arg))))
+    (if (and enc encp)
+        (save-excursion
+          (sp-get encp
+            (goto-char :end)
+            (delete-char (- :cl-l)))
+          (sp-get enc
+            (insert :cl)
+            (goto-char :end)
+            (delete-char (- :cl-l)))
+          (sp-get encp (insert :cl))
+          (sp-get enc (goto-char :beg-prf))
+          (sp-get encp (insert :prefix :op))
+          (sp-get enc (delete-char (+ :op-l :prefix-l)))
+          (sp-get encp (goto-char :beg-prf))
+          (sp-get enc (insert :prefix :op))
+          (sp-get encp (delete-char (+ :op-l :prefix-l))))
+      (message "Point has to be at least two levels deep to swap the enclosing delimiters."))))
+
 (defun sp--unwrap-sexp (sexp &optional no-cleanup)
   "Unwrap expression defined by SEXP.
 
