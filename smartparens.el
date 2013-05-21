@@ -2973,7 +2973,7 @@ characters in \"expression prefix\" syntax class."
   (save-excursion
     (goto-char p)
     (if use-mode-regexp
-        (when (looking-back use-mode-regexp)
+        (when (sp--looking-back use-mode-regexp)
           (substring-no-properties (match-string 0)))
       (skip-syntax-backward "'")
       (buffer-substring-no-properties (point) p))))
@@ -3239,7 +3239,23 @@ expressions are considered."
              ((and (memq major-mode sp-navigate-consider-stringlike-sexp)
                    (looking-at (sp--get-stringlike-regexp))
                    (sp-get-stringlike-expression nil)))
-             (t (sp-get-symbol nil)))))))))))
+             ;; it can still be that we are looking at a /prefix/ of a
+             ;; sexp.  We should skip a symbol forward and check if it
+             ;; is a sexp, and then maybe readjust the output.
+             (t (let* ((sym (sp-get-symbol nil))
+                       (sym-string (sp-get sym (buffer-substring-no-properties :beg :end))))
+                  (goto-char (sp-get sym :end))
+                  (if (looking-at (sp--get-opening-regexp))
+                      (let* ((ms (match-string 0))
+                             (pref-re (sp-get-pair ms :prefix))
+                             (pref (sp--get-prefix (point) pref-re)))
+                        (if (and pref
+                                 (string-prefix-p
+                                  (sp--reverse-string sym-string)
+                                  (sp--reverse-string pref)))
+                            (sp-get-sexp nil)
+                          sym))
+                    sym))))))))))))
 
 (defun sp-forward-sexp (&optional arg)
   "Move forward across one balanced expression.
@@ -4109,7 +4125,11 @@ Examples:
                      (goto-char ,(if fw-1 '(sp-get next-thing :beg)
                                    '(- (sp-get next-thing :end)
                                        (sp-get ok (+ :op-l :prefix-l)))))
-                     ,(if fw-1 '(sp-skip-backward-to-symbol t)
+                     ,(if fw-1
+                          '(progn
+                             (let ((next-prefix (sp-get next-thing :prefix)))
+                               (when next-prefix (backward-char (length next-prefix))))
+                             (sp-skip-backward-to-symbol t))
                         ;; skip the prefix backward.  We don't have
                         ;; info about this prefix, since it is the
                         ;; "following-sexp" to the one being jumped
