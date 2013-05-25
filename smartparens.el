@@ -2328,7 +2328,8 @@ followed by word.  It is disabled by default.  See
         sp-last-operation
       (when (and sp-autoinsert-pair
                  active-pair
-                 (not (eq sp-last-operation 'sp-skip-closing-pair))
+                 (not (and (eq sp-last-operation 'sp-skip-closing-pair)
+                           (sp--get-active-overlay 'pair)))
                  (sp--do-action-p open-pair 'insert t)
                  (if sp-autoinsert-if-followed-by-word t
                    (or (= (point) (point-max))
@@ -2362,12 +2363,13 @@ followed by word.  It is disabled by default.  See
                               (backward-char 1)
                               (sp--looking-back (regexp-quote open-pair))))))
                   ((eq sp-autoinsert-if-followed-by-same 3)
-                   (or (or (not (looking-at (regexp-quote open-pair)))
-                           (and (equal open-pair close-pair)
-                                (eq sp-last-operation 'sp-insert-pair)
-                                (save-excursion
-                                  (backward-char 1)
-                                  (sp--looking-back (regexp-quote open-pair)))))
+                   (or (not (sp--get-active-overlay 'pair))
+                       (not (looking-at (regexp-quote open-pair)))
+                       (and (equal open-pair close-pair)
+                            (eq sp-last-operation 'sp-insert-pair)
+                            (save-excursion
+                              (backward-char (length open-pair))
+                              (sp--looking-back (regexp-quote open-pair))))
                        (not (equal open-pair close-pair)))))
                  (not (run-hook-with-args-until-success
                        'sp-autoinsert-inhibit-functions
