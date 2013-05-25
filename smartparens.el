@@ -1694,36 +1694,37 @@ If USE-INSIDE-STRING is non-nil, use value of
 ;; funcions" like `my-wrap-with-paren'.
 (defun sp--post-command-hook-handler ()
   "Handle the situation after some command has executed."
-  (when smartparens-mode
-    ;; handle the wrap overlays
-    (when sp-wrap-overlays
-      (let* ((overlay (car sp-wrap-overlays))
-             (start (overlay-start overlay))
-             (end (overlay-end overlay))
-             (p (point)))
-        (when (or (< p sp-previous-point)
-                  (> p end)
-                  (< p start))
-          (sp-wrap-cancel))))
-    (when sp-wrap-overlays
-      (setq sp-previous-point (point)))
+  (ignore-errors
+    (when smartparens-mode
+      ;; handle the wrap overlays
+      (when sp-wrap-overlays
+        (let* ((overlay (car sp-wrap-overlays))
+               (start (overlay-start overlay))
+               (end (overlay-end overlay))
+               (p (point)))
+          (when (or (< p sp-previous-point)
+                    (> p end)
+                    (< p start))
+            (sp-wrap-cancel))))
+      (when sp-wrap-overlays
+        (setq sp-previous-point (point)))
 
-    (unless (sp--this-command-self-insert-p)
-      ;; unless the last command was a self-insert, remove the
-      ;; information about the last wrapped region.  It is only used
-      ;; for: 1. deleting the wrapping immediately after the wrap,
-      ;; 2. re-wrapping region immediatelly after a sucessful wrap.
-      ;; Therefore,t he deletion should have no ill-effect.  If the
-      ;; necessity will arise, we can add a different flag.
-      (setq sp-last-wrapped-region nil)
-      (setq sp-last-operation nil)
-      (setq sp-recent-keys nil))
+      (unless (sp--this-command-self-insert-p)
+        ;; unless the last command was a self-insert, remove the
+        ;; information about the last wrapped region.  It is only used
+        ;; for: 1. deleting the wrapping immediately after the wrap,
+        ;; 2. re-wrapping region immediatelly after a sucessful wrap.
+        ;; Therefore,t he deletion should have no ill-effect.  If the
+        ;; necessity will arise, we can add a different flag.
+        (setq sp-last-wrapped-region nil)
+        (setq sp-last-operation nil)
+        (setq sp-recent-keys nil))
 
-    (when show-smartparens-mode
-      (if (member this-command sp-show-enclosing-pair-commands)
-          (sp-show--pair-enc-function)
-        (when (not (eq this-command 'sp-highlight-current-sexp))
-          (sp-show--pair-delete-enc-overlays))))))
+      (when show-smartparens-mode
+        (if (member this-command sp-show-enclosing-pair-commands)
+            (sp-show--pair-enc-function)
+          (when (not (eq this-command 'sp-highlight-current-sexp))
+            (sp-show--pair-delete-enc-overlays)))))))
 
 (defmacro sp--setaction (action &rest forms)
   `(if (not action)
