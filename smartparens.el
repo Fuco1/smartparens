@@ -4973,12 +4973,139 @@ Examples:
             (setq n (1- n)))))
       prev)))
 
-;; TODO: make the begin/end calculation more sane :P. This is turning
-;; into a bowl of spaghetti
-(defun sp-select-next-thing (&optional arg)
-  "Set active region over ARG next things as recognized by `sp-get-thing'.
+(defun sp--next-thing-selection (arg &optional point)
+  "Return the bounds of selection over next thing.
 
-If ARG is negative -N, select that many expressions backward.
+See `sp-select-next-thing' for the meaning of ARG.
+
+If POINT is non-nil, it is assumed it's a point inside the buffer
+from which the selection extends, either forward or backward,
+depending on the value of ARG.
+
+The return value has the same format as `sp-get-sexp'.  This does
+not necessarily represent a valid balanced expression!"
+  (save-excursion
+    (let* ((raw (sp--raw-argument-p arg))
+           (arg (prefix-numeric-value arg))
+           (dir (sp--signum arg))
+           (beg point) (end point)
+           (op "") (cl "")
+           (prefix ""))
+      (cond
+       ;; select up until end of list
+       ((and raw (= arg 4))
+        (let ((enc (sp-get-enclosing-sexp)))
+          (if (not enc)
+              (error "No enclosing expression")
+            (save-excursion
+              (goto-char (sp-get enc :end-in))
+              (let ((ok (sp-get-thing t)))
+                (when ok
+                  (sp-get ok
+                    (setq end :end)
+                    (setq cl :cl)))))))
+        (unless point
+          (let ((ok (sp-get-thing)))
+            (when ok
+              (sp-get ok
+                (setq beg :beg)
+                (setq op :op)
+                (setq prefix :prefix))))))
+       ;; select up until beg of list
+       ((and raw (= arg -4))
+        (let ((enc (sp-get-enclosing-sexp)))
+          (if (not enc)
+              (error "No enclosing expression")
+            (save-excursion
+              (goto-char (sp-get enc :beg-in))
+              (let ((ok (sp-get-thing)))
+                (when ok
+                  (sp-get ok
+                    (setq beg :beg)
+                    (setq op :op)
+                    (setq prefix :prefix)))))))
+        (unless point
+          (let ((ok (sp-get-thing t)))
+            (when ok
+              (sp-get ok
+                (setq end :end)
+                (setq cl :cl))))))
+       ;; select the enclosing expression
+       ((and raw (= (abs arg) 16))
+        (let ((enc (sp-get-enclosing-sexp)))
+          (if (not enc)
+              (error "No enclosing expression")
+            (sp-get enc (setq beg :beg) (setq end :end)
+                    (setq op :op) (setq cl :cl)
+                    (setq prefix :prefix)))))
+       ;; normal selection, select N expressions
+       ((> arg 0)
+        (let* ((first (sp-forward-sexp))
+               (last first))
+          (setq arg (1- arg))
+          (setq beg (or point (sp-get first :beg)))
+          (while (and (> arg 0) last)
+            (setq last (sp-forward-sexp))
+            (let ((nb (sp-get last :beg))) (when (< nb beg)
+                                             (setq first last)
+                                             (setq beg nb)))
+            (setq arg (1- arg)))
+          (unless (and point (= point beg))
+            (sp-get first
+              (setq beg :beg)
+              (setq op :op)
+              (setq prefix :prefix)))
+          (sp-get last
+            (setq end :end)
+            (setq cl :cl))))
+       ;; normal select, select -N expressions
+       ((< arg 0)
+        (let* ((first (sp-backward-sexp))
+               (last first))
+          (setq arg (1+ arg))
+          (setq end (or point (sp-get first :end)))
+          (while (and (< arg 0) last)
+            (setq last (sp-backward-sexp))
+            (let ((ne (sp-get last :end))) (when (> ne end)
+                                             (setq first last)
+                                             (setq end ne)))
+            (setq arg (1+ arg)))
+          (sp-get last
+            (setq beg :beg)
+            (setq op :op)
+            (setq prefix :prefix))
+          (unless (and point (= point end))
+            (sp-get first
+              (setq end :end)
+              (setq cl :cl)))))
+       ;; N = 0, select insides
+       ((= arg 0)
+        (let ((enc (sp-get-enclosing-sexp)))
+          (if (not enc)
+              (error "No enclosing expression")
+            (save-excursion
+              (goto-char (sp-get enc :beg-in))
+              (let ((ok (sp-get-thing)))
+                (when ok
+                  (sp-get ok
+                    (setq beg :beg)
+                    (setq op :op)
+                    (setq prefix :prefix)))))
+            (save-excursion
+              (goto-char (sp-get enc :end-in))
+              (let ((ok (sp-get-thing t)))
+                (when ok
+                  (sp-get ok
+                    (setq end :end)
+                    (setq cl :cl)))))))))
+      (list :beg beg :end end :op op :cl cl :prefix prefix))))
+
+(defun sp-select-next-thing (&optional arg)
+  "Set active region over next thing as recognized by `sp-get-thing'.
+
+If ARG is positive N, select N expressions forward.
+
+If ARG is negative -N, select N expressions backward.
 
 If ARG is a raw prefix \\[universal-argument] select all the things up until the
 end of current expression.
@@ -4987,82 +5114,49 @@ If ARG is a raw prefix \\[universal-argument] \\[universal-argument] select the 
 if doing `sp-backward-up-sexp' followed by
 `sp-select-next-thing').
 
+If ARG is number 0 (zero), select all the things inside the
+current expression.
+
 If the currently active region contains a balanced expression,
 following invocation of `sp-select-next-thing' will select the
-inside of this expression (from :beg-in to :end-in, see
-`sp-get').  Therefore calling this function twice with no active
-region will select the inside of the next expression.
+inside of this expression .  Therefore calling this function
+twice with no active region will select the inside of the next
+expression.
 
 If the point is right in front of the expression any potential
 prefix is ignored.  For example, '|(foo) would only select (foo)
-and not include ' in the selection.  If you wish to also select '
-you have to move the point backwards.
+and not include ' in the selection.  If you wish to also select
+the prefix, you have to move the point backwards.
 
 With `sp-navigate-consider-symbols' symbols and strings are also
 considered balanced expressions."
   (interactive "P")
-  (let* ((raw (sp--raw-argument-p arg))
-         (arg (prefix-numeric-value arg))
-         (old-point (point))
-         (rb (region-beginning))
-         (re (region-end))
-         (first (sp-forward-sexp (sp--signum arg)))
-         (last first)
-         (b (if first
-                (if (> arg 0) (sp-get first :beg-prf) (sp-get first :end))
-              (error "No following expressions")))
-         (e (cond
-             ;; select things up until the end of current list,
-             ;; ignoring whitespace and possible comments inside
-             ((and raw
-                   (= (abs arg) 4))
-              (let ((enc (sp-get-enclosing-sexp)))
-                (if enc
-                    (save-excursion
-                      (if (> arg 0)
-                          (progn
-                            (goto-char (sp-get enc :end-in))
-                            (sp-skip-backward-to-symbol t)
-                            (point))
-                        (goto-char (sp-get enc :beg-in))
-                        (sp-skip-forward-to-symbol t)
-                        (point)))
-                  (error "No enclosing expression"))))
-             ;; select current list
-             ((and raw
-                   (= (abs arg) 16))
-              (let ((enc (sp-get-enclosing-sexp)))
-                ;; UGLY! We override b here. (can we even do that
-                ;; safely in elisp?)
-                (if (not enc)
-                    (error "No enclosing expression")
-                  (setq b (sp-get enc :beg-prf))
-                  (sp-get enc :end))))
-             ;; regular select, just select ARG things
-             (t
-              (when (> (abs arg) 1)
-                (setq last (sp-forward-sexp (* (sp--signum arg) (1- (abs arg))))))
-              (cond
-               ;; if a region is already active and the argument is 1,
-               ;; try to select the inside of the pair. If inside is
-               ;; selected, select the whole pair again
-               ((and (= arg 1)
-                     (region-active-p)
-                     (eq rb (sp-get last :beg-prf))
-                     (eq re (sp-get last :end)))
-                (setq b (sp-get last :beg-in))
-                (sp-get last :end-in))
-               (t
-                (if (> arg 0) (sp-get last :end) (sp-get last :beg-prf))))))))
-    (push-mark nil t)
+  (let* ((selection (sp--next-thing-selection arg))
+         (p (point))
+         (b (sp-get selection :beg))
+         (e (sp-get selection :end))
+         contracted)
+    ;; if region is active and ready to use, check if this selection
+    ;; == old selection.  If so, reselect the insides
+    (when (region-active-p)
+      (let ((rb (region-beginning))
+            (re (region-end)))
+        (when (and (sp-get selection
+                     (or (= rb :beg)
+                         (= rb :beg-prf)))
+                   (= re (sp-get selection :end)))
+          (sp-get selection
+            (setq b :beg-in)
+            (setq e :end-in))
+          (setq contracted t))))
     ;; if we moved forward check if the old-point was in front of an
     ;; expression and after a prefix. If so, remove the prefix from
     ;; the selection
-    (when (and (> arg 0)
-               (= (sp-get first :beg) old-point)
-               (= (sp-get first :beg-prf) b))
-      (setq b (sp-get first :beg)))
-    (set-mark b)
+    (unless (and (> (prefix-numeric-value arg) 0)
+                 (not (sp--raw-argument-p arg))
+                 (= b p))
+      (unless contracted (setq b (sp-get selection :beg-prf))))
+    (push-mark b t t)
     (goto-char e)))
 
 (defun sp-select-previous-thing (&optional arg)
