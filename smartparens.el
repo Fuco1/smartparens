@@ -679,6 +679,29 @@ wrap on this region with current pair."
           (const :tag "Always repeat if the point is after the opening/closing delimiter of last wrapped region" 2))
   :group 'smartparens)
 
+(defcustom sp-wrap-deactivate-smart-symbol-wrapping nil
+  "If non-nil, do not wrap the entire symbol, only the part after point.
+
+If set to \"Enable globally\", smart symbol wrapping is active
+everywhere.  This is the default option.
+
+If set to \"Disable globally\", smart symbol wrapping is disabled
+everywhere.
+
+Otherwise, a list of major modes where smart symbol wrapping is
+*disabled* can be supplied.
+
+Examples:
+
+ foo-ba|r-baz -> (|foo-bar-baz) ;; if enabled
+
+ foo-ba|r-baz -> foo-ba(|r-baz) ;; if disabled"
+  :type '(choice
+          (const :tag "Enable globally" nil)
+          (const :tag "Disable globally" globally)
+          (repeat :tag "Disable in these major modes" symbol))
+  :group 'smartparens)
+
 ;; escaping custom
 (defcustom sp-autoescape-string-quote t
   "If non-nil, autoescape string quotes if typed inside string."
@@ -697,6 +720,7 @@ less annoying (that is, three times pressing \" would insert
   :type '(repeat symbol)
   :group 'smartparens)
 
+;; navigation & manip custom
 (defcustom sp-navigate-consider-sgml-tags '(
                                             html-mode
                                             )
@@ -719,7 +743,6 @@ start of list item (unary) OR emphatic text (binary)."
   :type '(repeat symbol)
   :group 'smartparens)
 
-;; navigation & manip custom
 (defcustom sp-navigate-consider-symbols t
   "If non-nil, consider symbols outside balanced expressions as such.
 
@@ -1172,7 +1195,16 @@ If ARG is positive N, wrap N following expressions.  If ARG is
 negative -N, wrap N preceeding expressions.")
                       (interactive "P")
                       (setq arg (or arg 1))
-                      (sp-select-next-thing-exchange arg)
+                      (let ((selection (sp--next-thing-selection arg))))
+                      (sp-select-next-thing-exchange
+                       arg
+                       (cond
+                        ;; point is inside symbol and smart symbol wrapping is disabled
+                        ((and (and (memq (char-syntax (following-char)) '(?w ?_))
+                                   (memq (char-syntax (preceding-char)) '(?w ?_)))
+                              (or (eq sp-wrap-deactivate-smart-symbol-wrapping 'globally)
+                                  (memq major-mode sp-wrap-deactivate-smart-symbol-wrapping)))
+                         (point))))
                       (execute-kbd-macro (kbd ,pair))))
     (define-key keymap (read-kbd-macro binding) fun-name)))
 
@@ -5103,7 +5135,7 @@ not necessarily represent a valid balanced expression!"
                     (setq cl :cl)))))))))
       (list :beg beg :end end :op op :cl cl :prefix prefix))))
 
-(defun sp-select-next-thing (&optional arg)
+(defun sp-select-next-thing (&optional arg point)
   "Set active region over next thing as recognized by `sp-get-thing'.
 
 If ARG is positive N, select N expressions forward.
@@ -5120,6 +5152,10 @@ if doing `sp-backward-up-sexp' followed by
 If ARG is number 0 (zero), select all the things inside the
 current expression.
 
+If POINT is non-nil, it is assumed it's a point inside the buffer
+from which the selection extends, either forward or backward,
+depending on the value of ARG.
+
 If the currently active region contains a balanced expression,
 following invocation of `sp-select-next-thing' will select the
 inside of this expression .  Therefore calling this function
@@ -5134,7 +5170,7 @@ the prefix, you have to move the point backwards.
 With `sp-navigate-consider-symbols' symbols and strings are also
 considered balanced expressions."
   (interactive "P")
-  (let* ((selection (sp--next-thing-selection arg))
+  (let* ((selection (sp--next-thing-selection arg point))
          (p (point))
          (b (sp-get selection :beg))
          (e (sp-get selection :end))
@@ -5162,7 +5198,7 @@ considered balanced expressions."
     (push-mark b t t)
     (goto-char e)))
 
-(defun sp-select-previous-thing (&optional arg)
+(defun sp-select-previous-thing (&optional arg point)
   "Set active region over ARG previous things as recognized by `sp-get-thing'.
 
 If ARG is negative -N, select that many expressions forward.
@@ -5170,18 +5206,18 @@ If ARG is negative -N, select that many expressions forward.
 With `sp-navigate-consider-symbols' symbols and strings are also
 considered balanced expressions."
   (interactive "P")
-  (sp-select-next-thing (sp--negate-argument arg)))
+  (sp-select-next-thing (sp--negate-argument arg) point))
 
-(defun sp-select-next-thing-exchange (&optional arg)
+(defun sp-select-next-thing-exchange (&optional arg point)
   "Just like `sp-select-next-thing' but run `exchange-point-and-mark' afterwards."
   (interactive "P")
-  (sp-select-next-thing arg)
+  (sp-select-next-thing arg point)
   (exchange-point-and-mark))
 
-(defun sp-select-previous-thing-exchange (&optional arg)
+(defun sp-select-previous-thing-exchange (&optional arg point)
   "Just like `sp-select-previous-thing' but run `exchange-point-and-mark' afterwards."
   (interactive "P")
-  (sp-select-previous-thing arg)
+  (sp-select-previous-thing arg point)
   (exchange-point-and-mark))
 
 (defun sp-delete-char (&optional arg)
