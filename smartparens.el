@@ -679,8 +679,8 @@ wrap on this region with current pair."
           (const :tag "Always repeat if the point is after the opening/closing delimiter of last wrapped region" 2))
   :group 'smartparens)
 
-(defcustom sp-wrap-deactivate-smart-symbol-wrapping nil
-  "If non-nil, do not wrap the entire symbol, only the part after point.
+(defcustom sp-wrap-entire-symbol nil
+  "If non-nil, do NOT wrap the entire symbol, only the part after point.
 
 If set to \"Enable globally\", smart symbol wrapping is active
 everywhere.  This is the default option.
@@ -707,7 +707,7 @@ Examples:
 
 However, if the point is inside a symbol/word, the entire
 symbol/word is wrapped.  To customize this behaviour, see
-variable `sp-wrap-deactivate-smart-symbol-wrapping'."
+variable `sp-wrap-entire-symbol'."
   :type 'boolean
   :group 'smartparens)
 
@@ -1220,8 +1220,8 @@ negative -N, wrap N preceeding expressions.")
                                   (cond
                                    ;; point is inside symbol and smart symbol wrapping is disabled
                                    ((and (sp-point-in-symbol)
-                                         (or (eq sp-wrap-deactivate-smart-symbol-wrapping 'globally)
-                                             (memq major-mode sp-wrap-deactivate-smart-symbol-wrapping)))
+                                         (or (eq sp-wrap-entire-symbol 'globally)
+                                             (memq major-mode sp-wrap-entire-symbol)))
                                     (point))
                                    ;; wrap from point, not the start of the next expression
                                    ((and sp-wrap-from-point
