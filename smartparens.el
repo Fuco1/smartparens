@@ -894,7 +894,7 @@ insert the modes."
   (concat (reverse (append str nil))))
 
 (defun sp-point-in-string (&optional p)
-  "Return t if point is inside string or documentation string.
+  "Return non-nil if point is inside string or documentation string.
 
 If optional argument P is present test this instead of point."
   (ignore-errors
@@ -902,7 +902,7 @@ If optional argument P is present test this instead of point."
       (nth 3 (syntax-ppss p)))))
 
 (defun sp-point-in-comment (&optional p)
-  "Return t if point is inside comment.
+  "Return non-nil if point is inside comment.
 
 If optional argument P is present test this instead off point."
   (setq p (or p (point)))
@@ -918,11 +918,22 @@ If optional argument P is present test this instead off point."
                (not (eq (char-after p) ?\n)))))))
 
 (defun sp-point-in-string-or-comment (&optional p)
-  "Return t if point is inside string, documentation string or a comment.
+  "Return non-nil if point is inside string, documentation string or a comment.
 
 If optional argument P is present, test this instead of point."
   (or (sp-point-in-string p)
       (sp-point-in-comment p)))
+
+(defun sp-point-in-symbol (&optional p)
+  "Return non-nil if point is inside symbol.
+
+Point is inside symbol if characters on both sides of the point
+are in either word or symbol class."
+  (setq p (or p (point)))
+  (save-excursion
+    (goto-char p)
+    (and (memq (char-syntax (following-char)) '(?w ?_))
+         (memq (char-syntax (preceding-char)) '(?w ?_)))))
 
 (defun sp--single-key-description (event)
   "Return a description of the last event.  Replace all the function
@@ -1208,15 +1219,13 @@ negative -N, wrap N preceeding expressions.")
                                   arg
                                   (cond
                                    ;; point is inside symbol and smart symbol wrapping is disabled
-                                   ((and (and (memq (char-syntax (following-char)) '(?w ?_))
-                                              (memq (char-syntax (preceding-char)) '(?w ?_)))
+                                   ((and (sp-point-in-symbol)
                                          (or (eq sp-wrap-deactivate-smart-symbol-wrapping 'globally)
                                              (memq major-mode sp-wrap-deactivate-smart-symbol-wrapping)))
                                     (point))
                                    ;; wrap from point, not the start of the next expression
                                    ((and sp-wrap-from-point
-                                         (not (and (memq (char-syntax (following-char)) '(?w ?_))
-                                                   (memq (char-syntax (preceding-char)) '(?w ?_)))))
+                                         (not (sp-point-in-symbol)))
                                     (point))))))
                         (execute-kbd-macro (kbd ,pair))
                         (sp-get sel (indent-region :beg :end)))))
@@ -3916,8 +3925,7 @@ Examples:
          (n (abs arg)))
     ;; if we're inside a symbol, we need to move out of it first
     (when (> arg 0)
-      (when (and (memq (char-syntax (following-char)) '(?w ?_))
-                 (memq (char-syntax (preceding-char)) '(?w ?_)))
+      (when (sp-point-inside-string)
         (sp-forward-symbol)))
     (while (> n 0)
       (when (< arg 0) (sp-backward-sexp))
