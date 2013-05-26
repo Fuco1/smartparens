@@ -702,6 +702,15 @@ Examples:
           (repeat :tag "Disable in these major modes" symbol))
   :group 'smartparens)
 
+(defcustom sp-wrap-from-point nil
+  "If non-nil, do not wrap from the beginning of next expression but from point.
+
+However, if the point is inside a symbol/word, the entire
+symbol/word is wrapped.  To customize this behaviour, see
+variable `sp-wrap-deactivate-smart-symbol-wrapping'."
+  :type 'boolean
+  :group 'smartparens)
+
 ;; escaping custom
 (defcustom sp-autoescape-string-quote t
   "If non-nil, autoescape string quotes if typed inside string."
@@ -1195,17 +1204,22 @@ If ARG is positive N, wrap N following expressions.  If ARG is
 negative -N, wrap N preceeding expressions.")
                       (interactive "P")
                       (setq arg (or arg 1))
-                      (let ((selection (sp--next-thing-selection arg))))
-                      (sp-select-next-thing-exchange
-                       arg
-                       (cond
-                        ;; point is inside symbol and smart symbol wrapping is disabled
-                        ((and (and (memq (char-syntax (following-char)) '(?w ?_))
-                                   (memq (char-syntax (preceding-char)) '(?w ?_)))
-                              (or (eq sp-wrap-deactivate-smart-symbol-wrapping 'globally)
-                                  (memq major-mode sp-wrap-deactivate-smart-symbol-wrapping)))
-                         (point))))
-                      (execute-kbd-macro (kbd ,pair))))
+                      (let ((sel (sp-select-next-thing-exchange
+                                  arg
+                                  (cond
+                                   ;; point is inside symbol and smart symbol wrapping is disabled
+                                   ((and (and (memq (char-syntax (following-char)) '(?w ?_))
+                                              (memq (char-syntax (preceding-char)) '(?w ?_)))
+                                         (or (eq sp-wrap-deactivate-smart-symbol-wrapping 'globally)
+                                             (memq major-mode sp-wrap-deactivate-smart-symbol-wrapping)))
+                                    (point))
+                                   ;; wrap from point, not the start of the next expression
+                                   ((and sp-wrap-from-point
+                                         (not (and (memq (char-syntax (following-char)) '(?w ?_))
+                                                   (memq (char-syntax (preceding-char)) '(?w ?_)))))
+                                    (point))))))
+                        (execute-kbd-macro (kbd ,pair))
+                        (sp-get sel (indent-region :beg :end)))))
     (define-key keymap (read-kbd-macro binding) fun-name)))
 
 (defun* sp-pair (open
@@ -5196,7 +5210,8 @@ considered balanced expressions."
                  (= b p))
       (unless contracted (setq b (sp-get selection :beg-prf))))
     (push-mark b t t)
-    (goto-char e)))
+    (goto-char e)
+    selection))
 
 (defun sp-select-previous-thing (&optional arg point)
   "Set active region over ARG previous things as recognized by `sp-get-thing'.
@@ -5211,14 +5226,16 @@ considered balanced expressions."
 (defun sp-select-next-thing-exchange (&optional arg point)
   "Just like `sp-select-next-thing' but run `exchange-point-and-mark' afterwards."
   (interactive "P")
-  (sp-select-next-thing arg point)
-  (exchange-point-and-mark))
+  (prog1
+      (sp-select-next-thing arg point)
+    (exchange-point-and-mark)))
 
 (defun sp-select-previous-thing-exchange (&optional arg point)
   "Just like `sp-select-previous-thing' but run `exchange-point-and-mark' afterwards."
   (interactive "P")
-  (sp-select-previous-thing arg point)
-  (exchange-point-and-mark))
+  (prog1
+      (sp-select-previous-thing arg point)
+    (exchange-point-and-mark)))
 
 (defun sp-delete-char (&optional arg)
   "Delete a character forward or move forward over a delimiter.
