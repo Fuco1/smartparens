@@ -3074,21 +3074,24 @@ returned.  Symbol is defined as a chunk of text recognized by
 The return value is a plist with the same format as the value
 returned by `sp-get-sexp'."
   (sp--maybe-init)
-  (let (b e prefix)
+  (let (b e prefix last-or-first)
     (save-excursion
       (if back
           (progn
             (sp-skip-backward-to-symbol)
+            (when (= (point) (point-min)) (setq last-or-first t))
             (sp-forward-symbol -1)
             (setq b (point))
             (sp-forward-symbol 1)
             (setq e (point)))
         (sp-skip-forward-to-symbol)
+        (when (= (point) (point-max)) (setq last-or-first t))
         (sp-forward-symbol 1)
         (setq e (point))
         (sp-forward-symbol -1)
         (setq b (point))))
-    (list :beg b :end e :op "" :cl "" :prefix (sp--get-prefix b))))
+    (unless last-or-first
+      (list :beg b :end e :op "" :cl "" :prefix (sp--get-prefix b)))))
 
 (defun sp--get-string (bounds)
   "Return the `sp-get-sexp' format info about the string.
@@ -3329,19 +3332,20 @@ expressions are considered."
              ;; sexp.  We should skip a symbol forward and check if it
              ;; is a sexp, and then maybe readjust the output.
              (t (let* ((sym (sp-get-symbol nil))
-                       (sym-string (sp-get sym (buffer-substring-no-properties :beg :end))))
-                  (goto-char (sp-get sym :end))
-                  (if (looking-at (sp--get-opening-regexp))
-                      (let* ((ms (match-string 0))
-                             (pref-re (sp-get-pair ms :prefix))
-                             (pref (sp--get-prefix (point) pref-re)))
-                        (if (and pref
-                                 (string-prefix-p
-                                  (sp--reverse-string sym-string)
-                                  (sp--reverse-string pref)))
-                            (sp-get-sexp nil)
-                          sym))
-                    sym))))))))))))
+                       (sym-string (and sym (sp-get sym (buffer-substring-no-properties :beg :end)))))
+                  (when sym-string
+                    (goto-char (sp-get sym :end))
+                    (if (looking-at (sp--get-opening-regexp))
+                        (let* ((ms (match-string 0))
+                               (pref-re (sp-get-pair ms :prefix))
+                               (pref (sp--get-prefix (point) pref-re)))
+                          (if (and pref
+                                   (string-prefix-p
+                                    (sp--reverse-string sym-string)
+                                    (sp--reverse-string pref)))
+                              (sp-get-sexp nil)
+                            sym))
+                      sym)))))))))))))
 
 (defun sp-forward-sexp (&optional arg)
   "Move forward across one balanced expression.
@@ -5451,9 +5455,10 @@ See `sp-forward-symbol' for what constitutes a symbol."
   (if (> arg 0)
       (while (> arg 0)
         (let ((s (sp-get-symbol)))
-          (sp-get s
-            (goto-char :beg-prf)
-            (sp-kill-sexp)))
+          (when s
+            (sp-get s
+              (goto-char :beg-prf)
+              (sp-kill-sexp))))
         (setq arg (1- arg)))
     (sp-backward-kill-symbol (sp--negate-argument arg))))
 
@@ -5470,9 +5475,10 @@ See `sp-backward-symbol' for what constitutes a symbol."
   (if (> arg 0)
       (while (> arg 0)
         (let ((s (sp-get-symbol t)))
-          (sp-get s
-            (goto-char :end)
-            (sp-kill-sexp -1)))
+          (when s
+            (sp-get s
+              (goto-char :end)
+              (sp-kill-sexp -1))))
         (setq arg (1- arg)))
     (sp-kill-symbol (sp--negate-argument arg))))
 
