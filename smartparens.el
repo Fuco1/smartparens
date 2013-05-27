@@ -284,6 +284,10 @@ See `sp-base-key-bindings'."
   "Character used to escape quotes inside strings.")
 (make-variable-buffer-local 'sp-escape-char)
 
+(defvar sp-comment-char nil
+  "Character used to start comments.")
+(make-variable-buffer-local 'sp-comment-char)
+
 (defvar sp-pair-list nil
   "List of pairs for autoinsertion or wrapping.
 
@@ -426,7 +430,10 @@ local variables that depend on the active `major-mode'."
   (dotimes (char 256)
     (unless sp-escape-char
       (when (= ?\\ (char-syntax char))
-        (setq sp-escape-char (string char))))))
+        (setq sp-escape-char (string char))))
+    (unless sp-comment-char
+      (when (= ?< (char-syntax char))
+        (setq sp-comment-char (string char))))))
 
 (defun sp--maybe-init ()
   "Initialize the buffer if it is not already initialized. See `sp--init'."
@@ -761,6 +768,14 @@ where it make sense.
 
 Also, special handling of strings is enabled, where the whole
 string delimited with \"\" is considered as one token."
+  :type 'boolean
+  :group 'smartparens)
+
+(defcustom sp-navigate-comments-as-sexps t
+  "If non-nil, consider comments as sexps in `sp-get-enclosing-sexp'.
+
+If this option is enabled, unbalanced expressions in comments are
+never automatically closed (see `sp-navigate-close-if-unbalanced')."
   :type 'boolean
   :group 'smartparens)
 
@@ -3001,7 +3016,20 @@ argument."
             (setq ok okr)
             (goto-char (sp-get ok :end))))
         (setq n (1- n)))
-      ok)))
+      (if (not (and (not ok)
+                    sp-navigate-comments-as-sexps))
+          ok
+        (when (sp-point-in-comment)
+          (let* ((cb (sp-get-comment-bounds))
+                 (b (save-excursion
+                      (goto-char (car cb))
+                      (sp-skip-backward-to-symbol t)
+                      (point)))
+                 (e (save-excursion
+                      (goto-char (cdr cb))
+                      (sp-skip-forward-to-symbol t)
+                      (point))))
+            (list :beg b :end e :op "" :cl "" :prefix sp-comment-char)))))))
 
 (defun sp-get-list-items (&optional lst)
   "Return the information about expressions inside LST.
@@ -3675,6 +3703,7 @@ Examples:
               (goto-char (sp-get ok :end))
             (goto-char (sp-get ok :beg)))
           (when (and (= (abs arg) 1)
+                     (not (equal (sp-get ok :prefix) sp-comment-char))
                      (or (memq major-mode (assq 'always sp-navigate-reindent-after-up))
                          (and (memq major-mode (assq 'interactive sp-navigate-reindent-after-up))
                               interactive)))
@@ -3699,38 +3728,18 @@ Examples:
       ;; Therefore, jump sexps backwards until we hit the error, then
       ;; extract the opening pair and insert it at point.  Only works
       ;; for pairs defined in `sp-pair-list'.
-      (if (and (> arg 0)
-               sp-navigate-close-if-unbalanced)
-          (let ((in-c (sp-point-in-comment))
-                active-pair)
-            (save-excursion
-              (while (and (sp-backward-sexp) (if in-c (sp-point-in-comment) t)))
-              (sp-skip-backward-to-symbol t)
-              (when (or (and in-c (sp-point-in-comment))
-                        (and (not in-c) (not (sp-point-in-comment))))
-                (when (sp--looking-back (sp--get-opening-regexp))
-                  (let ((op (match-string 0)))
-                    (setq active-pair (assoc op sp-pair-list))))))
-            (if active-pair
-                (progn (sp-previous-sexp)
-                       (insert (cdr active-pair)))
-              ;; we get here if the point was in comment, no enclosing
-              ;; sexp was found and no unbalanced expression was found.
-              ;; In this case, we should jump out of the comment as if
-              ;; it were a balanced expression.
-              (let ((cb (sp-get-comment-bounds)))
-                (when cb
-                  (goto-char (cdr cb))
-                  (sp-skip-forward-to-symbol t)))))
-        ;; situation when `sp-navigate-close-if-unbalanced' is nil
-        (let ((cb (sp-get-comment-bounds)))
-          (when cb
-            (if (> arg 0)
-                (progn
-                  (goto-char (cdr cb))
-                  (sp-skip-forward-to-symbol t))
-              (goto-char (car cb))
-              (sp-skip-backward-to-symbol t))))))
+      (when (and (> arg 0)
+                 sp-navigate-close-if-unbalanced)
+        (let (active-pair)
+          (save-excursion
+            (while (sp-backward-sexp))
+            (sp-skip-backward-to-symbol t)
+            (when (sp--looking-back (sp--get-opening-regexp))
+              (let* ((op (match-string 0)))
+                (setq active-pair (assoc op sp-pair-list)))))
+          (when active-pair
+            (sp-previous-sexp)
+            (insert (cdr active-pair))))))
     ok))
 
 (defun sp-backward-up-sexp (&optional arg interactive)
