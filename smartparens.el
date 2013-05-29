@@ -3289,7 +3289,7 @@ expressions are considered."
              ((sp-point-in-empty-string)
               (sp-get-string t))
              (t
-              (sp-skip-backward-to-symbol t)
+              (sp-skip-backward-to-symbol t nil t)
               (cond
                ;; this is an optimization, we do not need to look up
                ;; the "pair" expression first. If this fails, follow
@@ -3314,7 +3314,7 @@ expressions are considered."
            ((sp-point-in-empty-string)
             (sp-get-string nil))
            (t
-            (sp-skip-forward-to-symbol t)
+            (sp-skip-forward-to-symbol t nil t)
             (cond
              ((and (memq major-mode sp-navigate-consider-sgml-tags)
                    (looking-at "<")
@@ -4327,6 +4327,9 @@ Examples:
                             (and stop-at-string
                                  (not (sp-point-in-string))
                                  (sp-point-in-string (,inc (point))))
+                            (and stop-inside-string
+                                 (sp-point-in-string)
+                                 (not (sp-point-in-string (,inc (point)))))
                             (,looking allowed-pairs)
                             (and (memq major-mode sp-navigate-consider-stringlike-sexp)
                                  (,looking allowed-strings))))
@@ -4334,11 +4337,15 @@ Examples:
                        (unless in-comment (sp-point-in-comment))))
          (,forward-fn 1)))))
 
-(defun sp-skip-forward-to-symbol (&optional stop-at-string stop-after-string)
+(defun sp-skip-forward-to-symbol (&optional stop-at-string stop-after-string stop-inside-string)
   "Skip whitespace and comments moving forward.
+
 If STOP-AT-STRING is non-nil, stop before entering a string (if
-not already in a string).  If STOP-AFTER-STRING is non-nil, stop
-after exiting a string.
+not already in a string).
+
+If STOP-AFTER-STRING is non-nil, stop after exiting a string.
+
+If STOP-INSIDE-STRING is non-nil, stop before exiting a string.
 
 Examples:
 
@@ -4348,11 +4355,14 @@ Examples:
   (interactive)
   (sp--skip-to-symbol-1 t))
 
-(defun sp-skip-backward-to-symbol (&optional stop-at-string stop-after-string)
+(defun sp-skip-backward-to-symbol (&optional stop-at-string stop-after-string stop-inside-string)
   "Skip whitespace and comments moving backward.
 If STOP-AT-STRING is non-nil, stop before entering a string (if
-not already in a string).  If STOP-AFTER-STRING is non-nil, stop
-after exiting a string.
+not already in a string).
+
+If STOP-AFTER-STRING is non-nil, stop after exiting a string.
+
+If STOP-INSIDE-STRING is non-nil, stop before exiting a string.
 
 Examples:
 
