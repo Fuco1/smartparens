@@ -2202,13 +2202,12 @@ priority from the regular wrap."
           (when (> p m)
             (delete-char (- 1))
             (goto-char ostart)
-            (insert sp-last-inserted-characters)
-            (setq oend (1+ oend)))
+            (insert sp-last-inserted-characters))
+          (when (> m p) (setq oend (1- oend)))
           (if (= 1 (length (plist-get active-tag :trigger)))
               ;; the tag is only 1 character long, we can enter
               ;; insertion mode right away
-              ;; I don't know why it needs 1- here, but it does :D
-              (sp--wrap-tag-create-overlays active-tag ostart (1- oend))
+              (sp--wrap-tag-create-overlays active-tag ostart oend)
             ;; we don't have a wrap, but we can maybe start a tag
             ;; wrap.  So just init the wrapping overlays as usual, and
             ;; let `sp-wrap-region' handle it
