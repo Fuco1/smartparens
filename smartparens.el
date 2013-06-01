@@ -3957,7 +3957,7 @@ Examples:
          (n (abs arg)))
     ;; if we're inside a symbol, we need to move out of it first
     (when (> arg 0)
-      (when (sp-point-inside-string)
+      (when (sp-point-in-string)
         (sp-forward-symbol)))
     (while (> n 0)
       (when (< arg 0) (sp-backward-sexp))
