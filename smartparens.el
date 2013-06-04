@@ -331,6 +331,10 @@ If wrapping is cancelled, these characters are re-inserted to the
 location of point before the wrapping.")
 (make-variable-buffer-local 'sp-last-inserted-characters)
 
+(defvar sp-last-inserted-pair nil
+  "Last inserted pair.")
+(make-variable-buffer-local 'sp-last-inserted-pair)
+
 (defvar sp-last-wrapped-region nil
   "Information about the last wrapped region.
 The format is the same as returned by `sp-get-sexp'.")
@@ -1117,7 +1121,8 @@ The list OLD-PAIR must not be nil."
           (cond
            ;; this means we have ((:add ...) (:rem ...)) argument
            ((and new-val
-                 (listp (car new-val)))
+                 (listp (car new-val))
+                 (memq (caar new-val) '(:add :rem)))
             (let ((a (assq :add new-val))
                   (r (assq :rem new-val)))
               (plist-put old-pair prop (-union (plist-get old-pair prop) (cdr a)))
@@ -1173,7 +1178,14 @@ values from PAIR."
 
 If PROP is non-nil, return the value of that property instead."
   (let ((pair (sp--get-pair open list)))
-    (if prop (plist-get pair prop) pair)))
+    (if prop
+        (cond
+         ((eq prop :post-handlers)
+          (--filter (not (listp it)) (plist-get pair prop)))
+         ((eq prop :post-handlers-cond)
+          (--filter (listp it) (plist-get pair :post-handlers)))
+         (t (plist-get pair prop)))
+      pair)))
 
 (defun sp-get-pair-definition (open mode &optional prop)
   "Get the definition of pair identified by OPEN (opening
@@ -1318,6 +1330,24 @@ the wrapped region, depending on the original direction.  You can
 use the variable `sp-last-wrapped-region' to retrieve information
 about the wrapped region and position the point to suit your
 needs.
+
+A special syntax for conditional execution of hooks is also
+supported.  If the added item is a list (function command1
+command2...), where funciton is a 3 argument function described
+above and command(s) can be either name of a command or a string
+representing an event.  If the last command the event as
+described by `single-key-description' matches any on the list,
+the hook will be executed.  This means these hooks are run not
+after the insertion, but after the *next* command is executed.
+
+Example:
+  ((lambda (id act con)
+     (save-excursion
+       (newline))) \"RET\" newline)
+
+This function will move the closing pair on its own line only if
+the next command is `newline' or is triggered by RET.  Otherwise
+the pairs stay on the same line.
 
 BIND is a key binding to which a \"wrapping\" action will be
 bound.  This function will be generated on the fly by
@@ -1778,6 +1808,20 @@ If USE-INSIDE-STRING is non-nil, use value of
             (sp-wrap-cancel))))
       (when sp-wrap-overlays
         (setq sp-previous-point (point)))
+
+      ;; Here we run the delayed hooks. See issue #80
+      (when (and (not (eq sp-last-operation 'sp-insert-pair))
+                 sp-last-inserted-pair)
+        (let ((hooks (sp-get-pair sp-last-inserted-pair :post-handlers-cond)))
+          (when hooks
+            (--each hooks
+              (let ((fun (car it))
+                    (conds (cdr it)))
+                (when (or (--any? (eq this-command it) conds)
+                          (--any? (equal (single-key-description last-command-event) it) conds))
+                  (funcall fun sp-last-inserted-pair 'insert
+                           (sp--get-context :post-handlers)))))))
+        (setq sp-last-inserted-pair nil))
 
       (unless (sp--this-command-self-insert-p)
         ;; unless the last command was a self-insert, remove the
@@ -2476,6 +2520,7 @@ followed by word.  It is disabled by default.  See
 
         (sp--run-hook-with-args open-pair :post-handlers 'insert)
         (setq sp-recent-keys nil)
+        (setq sp-last-inserted-pair open-pair)
         (setq sp-last-operation 'sp-insert-pair)))))
 
 (defun sp--wrap-repeat-last (active-pair)
