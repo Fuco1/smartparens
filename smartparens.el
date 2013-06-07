@@ -662,6 +662,21 @@ moved backwards.  See `sp-skip-closing-pair' for more info."
   :type 'boolean
   :group 'smartparens)
 
+(defcustom sp-undo-pairs-separately nil
+  "If non-nil, put an `undo-boundary' before each inserted pair.
+
+Calling undo after smartparens complete a pair will remove only
+the pair before undoing any previous insertion.
+
+WARNING: This option is implemented by hacking the
+`buffer-undo-list'.  Turning this option on might have
+irreversible consequences on the buffer's undo information and in
+some cases might remove important information.  Usage of package
+`undo-tree' is recommended if you ever need to revert to a state
+unreachable by undo."
+  :type 'boolean
+  :group 'smartparens)
+
 ;; wrap custom
 (defcustom sp-autowrap-region t
   "If non-nil, wrap the active region with pair.
@@ -2410,6 +2425,45 @@ wrapping."
               (sp--get-last-wraped-region b e "\"" "\""))
         (if was-beg (goto-char (1+ b)) (goto-char e)))))))
 
+(defun sp--is-number-cons (c)
+  (and (consp c) (numberp (car c)) (numberp (cdr c))))
+
+;; TODO: more research is needed
+(defun sp--undo-pop-to-last-insertion-node ()
+  "Pop all undo info until an insertion node (beg . end) is found.
+
+This can potentially remove some undo important information."
+  (while (and buffer-undo-list
+              (or (null (car buffer-undo-list)) ;; is nil
+                  ;; is not undo action we're interested in
+                  (not (sp--is-number-cons (car buffer-undo-list)))))
+    (pop buffer-undo-list)))
+
+;; modified from: https://github.com/Fuco1/smartparens/issues/90#issuecomment-18800369
+(defun sp--split-last-insertion-undo (len)
+  "Split the last insertion node in the `buffer-undo-list' to
+include separate pair node."
+  (sp--undo-pop-to-last-insertion-node)
+  (when buffer-undo-list
+    (let* ((previous-undo-actions (cdr buffer-undo-list))
+           (beg (caar buffer-undo-list))
+           (end (cdar buffer-undo-list))
+           first-action second-action)
+      (unless (< beg (- end len))
+        ;; We need to go back more than one action.  Given the pairs
+        ;; are limited to 10 chars now and the chunks seem to be 20
+        ;; chars, we probably wouldn't need more.
+        (pop buffer-undo-list)
+        (sp--undo-pop-to-last-insertion-node)
+        (when buffer-undo-list
+          (setq beg (caar buffer-undo-list))
+          (setq previous-undo-actions (cdr buffer-undo-list))))
+      (setq first-action (cons beg (- end len)))
+      (setq second-action (cons (- end len) end))
+      (setq buffer-undo-list
+            (append (list nil second-action nil first-action)
+                    previous-undo-actions)))))
+
 (defun sp-insert-pair ()
   "Automatically insert the closing pair if it is allowed in current context.
 
@@ -2517,6 +2571,15 @@ followed by word.  It is disabled by default.  See
             (forward-char 1)
             (insert sp-escape-char))
           (overlay-put (sp--get-active-overlay 'pair) 'pair-id "\\\""))
+
+        (when sp-undo-pairs-separately
+          (sp--split-last-insertion-undo (+ (length open-pair) (length close-pair)))
+          ;; TODO: abc\{abc\} undo undo \{asd\} . next undo removes the
+          ;; entire \{asd\} if we do not insert two nils here.
+          ;; Normally, repeated nils are ignored so it shouldn't
+          ;; matter.  It would still be useful to inspect further.
+          (push nil buffer-undo-list)
+          (push nil buffer-undo-list))
 
         (sp--run-hook-with-args open-pair :post-handlers 'insert)
         (setq sp-recent-keys nil)
