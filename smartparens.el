@@ -2967,7 +2967,7 @@ opening and closing delimiter, such as *...*, \"...\", `...` etc."
         (while (and (not hit)
                     (funcall search-fn-f needle nil t))
           (setq m (match-string-no-properties 0))
-          (unless (or (and (= (length m) 1)
+          (unless (or (and (= (length m) 1) ;; this is probably not needed
                            (eq (char-syntax (string-to-char m)) 34))
                       (save-excursion
                         (goto-char (match-beginning 0))
@@ -3234,9 +3234,7 @@ returned by `sp-get-sexp'."
         (let ((r (sp-get-quoted-string-bounds)))
           (sp--get-string r))
       (save-excursion
-        (if back
-            (sp-skip-backward-to-symbol)
-          (sp-skip-forward-to-symbol))
+        (sp-skip-into-string back)
         (let ((r (sp-get-quoted-string-bounds)))
           (when r (sp--get-string r)))))))
 
@@ -4484,6 +4482,16 @@ Examples:
   [bar baz]   |foo -> [bar baz]|   foo"
   (interactive)
   (sp--skip-to-symbol-1 nil))
+
+(defun sp-skip-into-string (&optional back)
+  "Move the point into the next string.
+
+With BACK non-nil, move backwards."
+  (if back
+      (while (not (sp-point-in-string))
+        (backward-char))
+    (while (not (sp-point-in-string))
+      (forward-char))))
 
 (defmacro sp--forward-symbol-1 (fw-1)
   "Generate forward/backward symbol functions."
