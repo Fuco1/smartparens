@@ -41,12 +41,24 @@
 (declare-function cua--pre-command-handler "cua-base")
 (declare-function delete-selection-pre-hook "delsel")
 
+(defun sp-keymap-show ()
+  "Show the current `smartparens' keymap.
+
+Smartparens can use legacy paredit keys or new smartparens keys,
+see `sp-base-key-bindings'.
+
+\\{sp-keymap}"
+  (interactive)
+  (describe-function 'sp-keymap-show))
+
 (defun sp-cheat-sheet (&optional arg)
   "Generate a cheat sheet of all the smartparens interactive functions.
 
 Without a prefix argument, print only the short documentation and examples.
 
 With non-nil prefix argument, show the full documentation for each function.
+
+An even simpler summary is available from `sp-keymap-show'.
 
 You can follow the links to the function or variable help page.
 To get back to the full list, use \\[help-go-back].
