@@ -412,7 +412,13 @@ Symbol is defined as a chunk of text recognized by
 
 ;;;###autoload
 (define-minor-mode smartparens-mode
-  "Toggle smartparens mode."
+  "Toggle smartparens mode.
+
+You can enable pre-set bindings by customizing
+`sp-base-key-bindings' variable.  The current content of
+`sp-keymap' is:
+
+ \\{sp-keymap}"
   :init-value nil
   :lighter " SP"
   :group 'smartparens
