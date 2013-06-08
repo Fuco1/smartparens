@@ -2967,15 +2967,12 @@ opening and closing delimiter, such as *...*, \"...\", `...` etc."
         (while (and (not hit)
                     (funcall search-fn-f needle nil t))
           (setq m (match-string-no-properties 0))
-          (unless (or (and (= (length m) 1) ;; this is probably not needed
-                           (eq (char-syntax (string-to-char m)) 34))
-                      (save-excursion
-                        (goto-char (match-beginning 0))
-                        (sp-point-in-string))
-                      (save-excursion
-                        (goto-char (match-beginning 0))
-                        ;; assumes \ is always the escape... bad?
-                        (looking-back "\\\\")))
+          (unless (save-excursion
+                    (goto-char (match-beginning 0))
+                    (or (looking-back "\\\\") ;; assumes \ is always the escape... bad?
+                        (and (not (sp-point-in-string))
+                             (eq major-mode 'emacs-lisp-m)
+                             (looking-back "?"))))
             (setq hit t)))
         (when hit
           (setq needle (regexp-quote m))
