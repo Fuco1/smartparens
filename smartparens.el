@@ -598,7 +598,10 @@ instead."
   "If non-nil, autoinsert the whole pair even if point is followed by word.
 
 For example |word followed by ( would produce (|)word.  If nil,
-it would produce (|word."
+it would produce (|word.
+
+This option is deprecated.  You should instead use the :when
+and :unless properties of `sp-pair'."
   :type 'boolean
   :group 'smartparens)
 
@@ -5570,7 +5573,7 @@ string delimiter enclosing this string."
       (let ((c (char-to-string (nth 3 (syntax-ppss pos)))))
         (cons c c)))))
 
-(defun sp-kill-symbol (&optional arg)
+(defun sp-kill-symbol (&optional arg word)
   "Kill a symbol forward, skipping over any intervening delimiters.
 
 With ARG being positive number N, repeat that many times.
@@ -5586,11 +5589,21 @@ See `sp-forward-symbol' for what constitutes a symbol."
           (when s
             (sp-get s
               (goto-char :beg-prf)
-              (sp-kill-sexp))))
+              (if word (kill-word 1) (sp-kill-sexp)))))
         (setq arg (1- arg)))
-    (sp-backward-kill-symbol (sp--negate-argument arg))))
+    (sp-backward-kill-symbol (sp--negate-argument arg) word)))
 
-(defun sp-backward-kill-symbol (&optional arg)
+(defun sp-kill-word (&optional arg)
+  "Kill a word forward, skipping over intervening delimiters.
+
+With ARG being positive number N, repeat that many times.
+
+With ARG being Negative number -N, repeat that many times in
+backward direction."
+  (interactive "p")
+  (sp-kill-symbol arg t))
+
+(defun sp-backward-kill-symbol (&optional arg word)
   "Kill a symbol backward, skipping over any intervening delimiters.
 
 With ARG being positive number N, repeat that many times.
@@ -5606,9 +5619,19 @@ See `sp-backward-symbol' for what constitutes a symbol."
           (when s
             (sp-get s
               (goto-char :end)
-              (sp-kill-sexp -1))))
+              (if word (kill-word -1) (sp-kill-sexp -1)))))
         (setq arg (1- arg)))
-    (sp-kill-symbol (sp--negate-argument arg))))
+    (sp-kill-symbol (sp--negate-argument arg) word)))
+
+(defun sp-backward-kill-word (&optional arg)
+  "Kill a word backward, skipping over intervening delimiters.
+
+With ARG being positive number N, repeat that many times.
+
+With ARG being Negative number -N, repeat that many times in
+backward direction."
+  (interactive "p")
+  (sp-backward-kill-symbol arg t))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
