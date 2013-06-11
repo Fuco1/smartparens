@@ -5585,11 +5585,14 @@ See `sp-forward-symbol' for what constitutes a symbol."
   (interactive "p")
   (if (> arg 0)
       (while (> arg 0)
-        (let ((s (sp-get-symbol)))
-          (when s
-            (sp-get s
-              (goto-char :beg-prf)
-              (if word (kill-word 1) (sp-kill-sexp)))))
+        (if (and word
+                 (sp-point-in-symbol))
+            (kill-word 1)
+          (let ((s (sp-get-symbol)))
+            (when s
+              (sp-get s
+                (goto-char :beg-prf)
+                (if word (kill-word 1) (sp-kill-sexp))))))
         (setq arg (1- arg)))
     (sp-backward-kill-symbol (sp--negate-argument arg) word)))
 
@@ -5615,11 +5618,14 @@ See `sp-backward-symbol' for what constitutes a symbol."
   (interactive "p")
   (if (> arg 0)
       (while (> arg 0)
-        (let ((s (sp-get-symbol t)))
-          (when s
-            (sp-get s
-              (goto-char :end)
-              (if word (kill-word -1) (sp-kill-sexp -1)))))
+        (if (and word
+                 (sp-point-in-symbol))
+            (kill-word -1)
+          (let ((s (sp-get-symbol t)))
+            (when s
+              (sp-get s
+                (goto-char :end)
+                (if word (kill-word -1) (sp-kill-sexp -1))))))
         (setq arg (1- arg)))
     (sp-kill-symbol (sp--negate-argument arg) word)))
 
