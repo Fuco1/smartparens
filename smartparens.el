@@ -1277,8 +1277,14 @@ negative -N, wrap N preceeding expressions.")
                                    ;; wrap from point, not the start of the next expression
                                    ((and sp-wrap-from-point
                                          (not (sp-point-in-symbol)))
-                                    (point))))))
-                        (execute-kbd-macro (kbd ,pair))
+                                    (point)))))
+                            (active-pair (--first (equal (car it) ,pair) sp-pair-list))
+                            (rb (region-beginning))
+                            (re (region-end)))
+                        (goto-char re)
+                        (insert (cdr active-pair))
+                        (goto-char rb)
+                        (insert (car active-pair))
                         (sp-get sel (indent-region :beg :end)))))
     (define-key keymap (read-kbd-macro binding) fun-name)))
 
@@ -4666,12 +4672,9 @@ Examples:
 Warning: this function remove possible empty lines and reindents
 the unwrapped sexp, so the SEXP structure will no longer
 represent a valid object in a buffer!"
-  (delete-region
-   (sp-get sexp :end-in)
-   (sp-get sexp :end))
-  (delete-region
-   (sp-get sexp :beg-prf)
-   (sp-get sexp :beg-in))
+  (sp-get sexp
+    (delete-region :end-in :end)
+    (delete-region :beg-prf :beg-in))
   ;; if the delimiters were the only thing on the line, we should also
   ;; get rid of the (possible) empty line that will be the result of
   ;; their removal.  This is especially nice in HTML mode or
