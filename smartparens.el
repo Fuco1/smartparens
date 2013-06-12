@@ -1329,7 +1329,10 @@ context.  The context argument can have values:
 - code    - if point is inside code.  This context is only
   recognized in programming modes that define string semantics.
 
-If *any* filter returns t, the action WILL be performed.
+If *any* filter returns t, the action WILL be performed. A number
+of filters are predefined: `sp-point-after-word-p',
+`sp-point-before-word-p', `sp-in-string-p',
+`sp-point-before-eol-p' etc.
 
 UNLESS is a list of predicates.  The conventions are the same as
 for the WHEN list.  If *any* filter on this list returns t, the
@@ -1743,7 +1746,7 @@ are of zero length, or if point moved backwards."
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Pair insertion/deletion/skipping
+;; Action predicates
 
 (defun sp-in-string-p (id action context)
   "Return t if point is inside string or comment, nil otherwise."
@@ -1758,14 +1761,56 @@ are of zero length, or if point moved backwards."
   (when (functionp 'texmathp)
     (texmathp)))
 
-(defun sp-point-after-word-p (id action context)
-  "Return t if point is after a word, nil otherwise.
-
+(defun sp-point-before-eol-p (id action context)
+  "Return t if point is followed by optional white spaces and end of line, nil otherwise.
 This predicate is only tested on \"insert\" action."
   (when (eq action 'insert)
-    (save-excursion
-      (backward-char 1)
-      (looking-back "\\sw\\|\\s_"))))
+    (looking-at "\\s-*$")))
+
+(defun sp-point-after-bol-p (id action context)
+  "Return t if point follows beginning of line and possibly white spaces, nil otherwise.
+This predicate is only tested on \"insert\" action."
+  (when (eq action 'insert)
+    (looking-back (concat "^\\s-*" (regexp-quote id)))))
+
+(defun sp-point-at-bol-p (id action context)
+  "Return t if point is at the beginning of line, nil otherwise.
+This predicate is only tested on \"insert\" action."
+  (when (eq action 'insert)
+    (looking-back (concat "^" (regexp-quote id)))))
+
+(defun sp-point-before-symbol-p (id action context)
+  "Return t if point is followed by a symbol, nil otherwise.
+This predicate is only tested on \"insert\" action."
+  (when (eq action 'insert)
+    (looking-at "\\s_")))
+
+(defun sp-point-before-word-p (id action context)
+  "Return t if point is followed by a word, nil otherwise.
+This predicate is only tested on \"insert\" action."
+  (when (eq action 'insert)
+    (looking-at "\\sw\\|\\s_")))
+
+(defun sp-point-after-word-p (id action context)
+  "Return t if point is after a word, nil otherwise.
+This predicate is only tested on \"insert\" action."
+  (when (eq action 'insert)
+    (looking-back (concat "\\(\\sw\\|\\s_\\)" (regexp-quote id)))))
+
+(defun sp-point-before-same-p (id action context)
+  "Return t if point is followed by ID, nil otherwise.
+This predicate is only tested on \"insert\" action."
+  (when (eq action 'insert)
+    (looking-at (regexp-quote id))))
+
+(defun sp-point-in-empty-line-p (id action context)
+  "Return t if point is on an empty line, nil otherwise"
+  (and (looking-at "\\s-*$")
+       (looking-back (concat "^\\s-*" (regexp-quote id)))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Pair insertion/deletion/skipping
 
 (defun sp--do-action-p (id action &optional use-inside-string)
   "Return t if action ACTION can be performed with pair ID.
