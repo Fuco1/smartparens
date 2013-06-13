@@ -548,7 +548,8 @@ MODES."
   "Turn on `smartparens-mode'."
   (interactive)
   (unless (or (member major-mode sp-ignore-modes-list)
-              (eq (get major-mode 'mode-class) 'special))
+              (and (not (derived-mode-p 'comint-mode))
+                   (eq (get major-mode 'mode-class) 'special)))
     (smartparens-mode t)))
 
 ;;;###autoload
@@ -5730,7 +5731,8 @@ support custom pairs."
   "Turn on `show-smartparens-mode'."
   (interactive)
   (unless (or (member major-mode sp-ignore-modes-list)
-              (eq (get major-mode 'mode-class) 'special))
+              (and (not (derived-mode-p 'comint-mode))
+                   (eq (get major-mode 'mode-class) 'special)))
     (show-smartparens-mode t)))
 
 ;;;###autoload
