@@ -2075,6 +2075,36 @@ are allowed in the current context."
   "Return the list of all pairs that can be used for wrapping."
   (--filter (sp--do-action-p (car it) 'wrap) sp-pair-list))
 
+(defun sp--wrap-regexp (string start end)
+  "Wraps regexp with start and end boundary conditions to avoid
+matching symbols in symbols."
+  (concat "\\(?:" (when start "\\_<") string (when end "\\_>") "\\)"))
+
+(defun sp--regexp-for-group (parens &rest strings)
+  "Generates an optimized regexp matching all string, but with
+extra boundary conditions depending on parens."
+  (let* ((start (car parens))
+         (end (cadr parens)))
+    (sp--wrap-regexp (regexp-opt strings) start end)))
+
+(defun sp--strict-regexp-opt (strings &optional ignored)
+  "Like regexp-opt, but with extra boundary conditions to ensure
+that the strings are not matched in-symbol."
+  (--> strings
+    (-group-by (lambda (string)
+                 (list (and (string-match-p "\\`\\_<" string) t)
+                       (and (string-match-p "\\_>\\'" string) t)))
+               it)
+    (mapconcat (lambda (g) (apply 'sp--regexp-for-group g)) it "\\|")
+    (concat "\\(?:" it "\\)")))
+
+(defun sp--strict-regexp-quote (string)
+  "Like regexp-quote, but make sure that the string is not
+matched in-symbol."
+  (sp--wrap-regexp (regexp-quote string)
+                   (string-match-p "\\`\\_<" string)
+                   (string-match-p "\\_>\\'" string)))
+
 (defun* sp--get-opening-regexp (&optional (pair-list (sp--get-pair-list)))
   "Return regexp matching any opening pair."
   (regexp-opt (--map (car it) pair-list)))
