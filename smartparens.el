@@ -4847,10 +4847,13 @@ See `sp-kill-sexp' for more information."
   (while (> arg 0)
     (let ((ok (sp-get-enclosing-sexp 1)))
       (if ok
-          (sp--splice-sexp-do-killing
-           (sp-get (sp-get-thing) :beg-prf)
-           (sp-get ok :end-in)
-           ok)
+          (let ((next (sp-get-thing)))
+            (if (sp--compare-sexps next ok)
+                (sp-kill-sexp '(16))
+              (sp--splice-sexp-do-killing
+               (sp-get next :beg-prf)
+               (sp-get ok :end-in)
+               ok)))
         (setq arg -1)))
     (setq arg (1- arg))))
 
@@ -4874,10 +4877,13 @@ See `sp-kill-sexp' for more information."
   (while (> arg 0)
     (let ((ok (sp-get-enclosing-sexp 1)))
       (if ok
-          (sp--splice-sexp-do-killing
-           (sp-get (sp-get-thing t) :end) ;search backward
-           (sp-get ok :beg-in)
-           ok 'end)
+          (let ((next (sp-get-thing t)))
+            (if (sp--compare-sexps next ok)
+                (sp-kill-sexp '(16))
+              (sp--splice-sexp-do-killing
+               (sp-get next :end) ;search backward
+               (sp-get ok :beg-in)
+               ok 'end)))
         (setq arg -1)))
     (setq arg (1- arg))))
 
