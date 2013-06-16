@@ -4184,10 +4184,12 @@ Examples:
                   (setq next-thing (sp-get-enclosing-sexp))
                   (when next-thing
                     (goto-char (sp-get next-thing :end-in))
+                    (sp--run-hook-with-args (sp-get enc :op) :pre-handlers 'slurp-forward)
                     (insert (sp-get enc :cl))
                     (goto-char (sp-get enc :end))
                     (delete-char (sp-get enc (- :cl-l)))
-                    (indent-region (sp-get enc :beg-prf) (sp-get next-thing :end))))
+                    (indent-region (sp-get enc :beg-prf) (sp-get next-thing :end))
+                    (sp--run-hook-with-args (sp-get enc :op) :post-handlers 'slurp-forward)))
               (while (> n 0)
                 (goto-char (sp-get enc :end))
                 (setq ok enc)
@@ -4209,10 +4211,12 @@ Examples:
                           (insert " ")
                           (setq ins-space -1))
                         (goto-char (- (sp-get next-thing :end) (sp-get ok :cl-l) ins-space))
+                        (sp--run-hook-with-args (sp-get enc :op) :pre-handlers 'slurp-forward)
                         (insert (sp-get ok :cl))
                         (indent-region (sp-get ok :beg-prf) (point))
                         ;; HACK: update the "enc" data structure if ok==enc
-                        (when (= (sp-get enc :beg) (sp-get ok :beg)) (plist-put enc :end (point))))
+                        (when (= (sp-get enc :beg) (sp-get ok :beg)) (plist-put enc :end (point)))
+                        (sp--run-hook-with-args (sp-get enc :op) :post-handlers 'slurp-forward))
                       (setq n (1- n)))
                   (message "We can't slurp without breaking strictly balanced expression. Ignored.")
                   (setq n -1)))))))
@@ -4260,6 +4264,7 @@ Examples:
                   (when next-thing
                     (delete-char (sp-get enc (+ :op-l :prefix-l)))
                     (goto-char (sp-get next-thing :beg-in))
+                    (sp--run-hook-with-args (sp-get enc :op) :pre-handlers 'slurp-backward)
                     (insert (sp-get enc :prefix) (sp-get enc :op))
                     (indent-region (sp-get next-thing :beg-in) (sp-get enc :end))))
               (while (> n 0)
@@ -4282,6 +4287,7 @@ Examples:
                         (when (= (sp-get ok :beg-prf) (sp-get next-thing :end))
                           (insert " "))
                         (goto-char (sp-get next-thing :beg-prf))
+                        (sp--run-hook-with-args (sp-get enc :op) :pre-handlers 'slurp-backward)
                         (insert (sp-get ok :prefix) (sp-get ok :op))
                         (indent-region (point) (sp-get ok :end))
                         ;; HACK: update the "enc" data structure if ok==enc
@@ -4390,10 +4396,16 @@ Examples:
                         '(progn
                            (sp-skip-forward-to-symbol t)
                            (skip-syntax-backward "'")))
+                     ,(if fw-1
+                          '(sp--run-hook-with-args (sp-get ok :op) :pre-handlers 'barf-forward)
+                        '(sp--run-hook-with-args (sp-get ok :op) :pre-handlers 'barf-backward))
                      (insert ,(if fw-1 '(sp-get ok :cl)
                                 '(sp-get ok (concat :prefix :op))))
                      ;; reindent the "barfed region"
                      (indent-region (sp-get ok :beg-prf) (sp-get ok :end))
+                     ,(if fw-1
+                          '(sp--run-hook-with-args (sp-get ok :op) :post-handlers 'barf-forward)
+                        '(sp--run-hook-with-args (sp-get ok :op) :post-handlers 'barf-backward))
                      (setq n (1- n)))
                  (message "The expression is empty.")
                  (setq n -1)))
