@@ -2955,10 +2955,8 @@ The expressions considered are those delimited by pairs on
          (string-bounds (and in-string-or-comment (sp--get-string-or-comment-bounds)))
          (fw-bound (if in-string-or-comment (cdr string-bounds) (point-max)))
          (bw-bound (if in-string-or-comment (car string-bounds) (point-min)))
-         (s nil) (e nil) (active-pair nil) (forward nil) (failure nil)
-         (mb nil) (me nil) (ms nil) (r nil) (done nil)
-         (possible-pairs nil) (possible-interfering-pairs nil)
-         (possible-ops nil) (possible-cls nil))
+         s e active-pair forward mb me ms r done
+         possible-pairs possible-interfering-pairs possible-ops possible-cls)
     (save-excursion
       (while (not done)
         ;; search for the first opening pair.  Here, only consider tags
@@ -3013,7 +3011,8 @@ The expressions considered are those delimited by pairs on
                (eof (if forward 'eobp 'bobp))
                (b (if forward fw-bound bw-bound))
                (open nil)
-               (close nil))
+               (close nil)
+               (failure (funcall eof)))
           (while (and (> depth 0) (not (funcall eof)))
             (sp--search-and-save-match search-fn needle b r mb me ms)
             (if r
