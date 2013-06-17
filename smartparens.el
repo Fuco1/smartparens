@@ -2107,16 +2107,16 @@ matched in-symbol."
 
 (defun* sp--get-opening-regexp (&optional (pair-list (sp--get-pair-list)))
   "Return regexp matching any opening pair."
-  (regexp-opt (--map (car it) pair-list)))
+  (sp--strict-regexp-opt (--map (car it) pair-list)))
 
 (defun* sp--get-closing-regexp (&optional (pair-list (sp--get-pair-list)))
   "Return regexp matching any closing pair."
-  (regexp-opt (--map (cdr it) pair-list)))
+  (sp--strict-regexp-opt (--map (cdr it) pair-list)))
 
 (defun* sp--get-allowed-regexp (&optional (pair-list (sp--get-allowed-pair-list)))
   "Return regexp matching any opening or closing
 delimiter for any pair allowed in current context."
-  (regexp-opt (--mapcat (list (car it) (cdr it)) pair-list)))
+  (sp--strict-regexp-opt (--mapcat (list (car it) (cdr it)) pair-list)))
 
 (defun* sp--get-stringlike-regexp (&optional (pair-list (sp--get-allowed-stringlike-list)))
   (regexp-opt (--map (car it) pair-list)))
@@ -2612,22 +2612,22 @@ followed by word.  It is disabled by default.  See
                  (cond
                   ((eq sp-autoinsert-if-followed-by-same 0) t)
                   ((eq sp-autoinsert-if-followed-by-same 1)
-                   (not (looking-at (regexp-quote open-pair))))
+                   (not (looking-at (sp--strict-regexp-quote open-pair))))
                   ((eq sp-autoinsert-if-followed-by-same 2)
-                   (or (not (looking-at (regexp-quote open-pair)))
+                   (or (not (looking-at (sp--strict-regexp-quote open-pair)))
                        (and (equal open-pair close-pair)
                             (eq sp-last-operation 'sp-insert-pair)
                             (save-excursion
                               (backward-char 1)
-                              (sp--looking-back (regexp-quote open-pair))))))
+                              (sp--looking-back (sp--strict-regexp-quote open-pair))))))
                   ((eq sp-autoinsert-if-followed-by-same 3)
                    (or (not (sp--get-active-overlay 'pair))
-                       (not (looking-at (regexp-quote open-pair)))
+                       (not (looking-at (sp--strict-regexp-quote open-pair)))
                        (and (equal open-pair close-pair)
                             (eq sp-last-operation 'sp-insert-pair)
                             (save-excursion
                               (backward-char (length open-pair))
-                              (sp--looking-back (regexp-quote open-pair))))
+                              (sp--looking-back (sp--strict-regexp-quote open-pair))))
                        (not (equal open-pair close-pair)))))
                  (not (run-hook-with-args-until-success
                        'sp-autoinsert-inhibit-functions
