@@ -2078,7 +2078,7 @@ are allowed in the current context."
 (defun sp--wrap-regexp (string start end)
   "Wraps regexp with start and end boundary conditions to avoid
 matching symbols in symbols."
-  (concat "\\(?:" (when start "\\_<") string (when end "\\_>") "\\)"))
+  (concat "\\(?:" (when start "\\<") string (when end "\\>") "\\)"))
 
 (defun sp--regexp-for-group (parens &rest strings)
   "Generates an optimized regexp matching all string, but with
@@ -2092,8 +2092,8 @@ extra boundary conditions depending on parens."
 that the strings are not matched in-symbol."
   (--> strings
     (-group-by (lambda (string)
-                 (list (and (string-match-p "\\`\\_<" string) t)
-                       (and (string-match-p "\\_>\\'" string) t)))
+                 (list (and (string-match-p "\\`\\<" string) t)
+                       (and (string-match-p "\\>\\'" string) t)))
                it)
     (mapconcat (lambda (g) (apply 'sp--regexp-for-group g)) it "\\|")
     (concat "\\(?:" it "\\)")))
@@ -2102,8 +2102,8 @@ that the strings are not matched in-symbol."
   "Like regexp-quote, but make sure that the string is not
 matched in-symbol."
   (sp--wrap-regexp (regexp-quote string)
-                   (string-match-p "\\`\\_<" string)
-                   (string-match-p "\\_>\\'" string)))
+                   (string-match-p "\\`\\<" string)
+                   (string-match-p "\\>\\'" string)))
 
 (defun* sp--get-opening-regexp (&optional (pair-list (sp--get-pair-list)))
   "Return regexp matching any opening pair."
