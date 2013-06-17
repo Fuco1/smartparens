@@ -47,8 +47,8 @@
 
 (require 'smartparens)
 
-;; helpers
 (defun sp-ruby-block-post-handler (id action context)
+  "Handler for ruby block-like inserts"
   (when (equal action 'insert)
     (save-excursion
       (newline)
@@ -56,6 +56,7 @@
     (indent-according-to-mode)))
 
 (defun sp-ruby-def-post-handler (id action context)
+  "Handler for ruby def-like inserts"
   (when (equal action 'insert)
     (save-excursion
       (insert " _")
@@ -64,39 +65,59 @@
     (kill-forward-chars 2)
     (indent-according-to-mode)))
 
+(defun sp-ruby-delete-indentation (&optional arg)
+  "Better way of joining ruby lines"
+  (delete-indentation arg)
+  (when (looking-at " [.([,]")
+    (delete-char 1))
+  (save-excursion
+    (backward-char)
+    (when (looking-at "\\. ")
+      (forward-char)
+      (delete-char 1))))
+
 (defun sp-ruby-pre-handler (id action context)
+  "Handler for ruby slurp and barf"
   (when (equal action 'slurp-backward)
     (save-excursion
       (sp-forward-sexp)
-      (delete-indentation -1))
+      (sp-ruby-delete-indentation -1))
     (save-excursion
-      (newline)))
+      (newline))
+    (when (not (looking-back " "))
+      (insert " ")))
 
   (when (equal action 'barf-backward)
     (save-excursion
       (sp-backward-sexp)
-      (delete-indentation))
+      (sp-ruby-delete-indentation))
     (save-excursion
-      (newline)))
+      (newline))
+    (when (not (looking-back " "))
+      (insert " ")))
 
   (when (equal action 'slurp-forward)
     (save-excursion
       (sp-backward-sexp)
-      (delete-indentation))
+      (sp-ruby-delete-indentation))
     (newline))
 
   (when (equal action 'barf-forward)
     (save-excursion
       (sp-forward-sexp)
-      (delete-indentation -1))
+      (sp-ruby-delete-indentation -1))
     (newline)))
 
+
 (defun sp-ruby-in-string-or-word-p (id action context)
+  "Check if the tag is in a string or in a word"
   (or (sp-in-string-p id action context)
       (and (looking-back id)
            (not (looking-back (sp--strict-regexp-quote id))))))
 
 (defun sp-ruby-no-do-block-p (id action context)
+  "Check if the tag is in a string or in a word, or doesn't look
+like a do block"
   (or (sp-ruby-in-string-or-symbol-p id action context)
       (and (looking-back (sp--strict-regexp-quote id))
            (not (looking-back (concat "[^ ] " id))))))
