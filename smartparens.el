@@ -3025,7 +3025,13 @@ The expressions considered are those delimited by pairs on
                             ;; prefix
                             (and (> mb 1)
                                  (member major-mode sp--lisp-modes)
-                                 (member (buffer-substring (1- mb) mb) '("\\" "?"))))
+                                 (save-excursion
+                                   (goto-char mb)
+                                   (save-match-data
+                                     (or (looking-back "\\\\")
+                                         (and (looking-back "\\?") ;;TODO surely we can do better
+                                              (not (looking-back "\\s_\\?"))
+                                              (not (looking-back "\\sw\\?"))))))))
                   (when (--any? (equal ms it) opens)
                     (setq depth (1+ depth)))
                   (when (--any? (equal ms it) closes)
