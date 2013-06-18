@@ -335,6 +335,12 @@ location of point before the wrapping.")
   "Last inserted pair.")
 (make-variable-buffer-local 'sp-last-inserted-pair)
 
+(defvar sp-delayed-pair nil
+  "A pair whose insertion is delayed to be carried out in
+`sp--post-command-hook-handler'. The format is (opening delim
+. beg of the opening delim)")
+(make-variable-buffer-local 'sp-delayed-pair)
+
 (defvar sp-last-wrapped-region nil
   "Information about the last wrapped region.
 The format is the same as returned by `sp-get-sexp'.")
@@ -1209,6 +1215,10 @@ If PROP is non-nil, return the value of that property instead."
           (--filter (not (listp it)) (plist-get pair prop)))
          ((eq prop :post-handlers-cond)
           (--filter (listp it) (plist-get pair :post-handlers)))
+         ((eq prop :when)
+          (--filter (not (listp it)) (plist-get pair :when)))
+         ((eq prop :when-cond)
+          (-flatten (-concat (--filter (listp it) (plist-get pair :when)))))
          (t (plist-get pair prop)))
       pair)))
 
@@ -1334,6 +1344,16 @@ If *any* filter returns t, the action WILL be performed. A number
 of filters are predefined: `sp-point-after-word-p',
 `sp-point-before-word-p', `sp-in-string-p',
 `sp-point-before-eol-p' etc.
+
+When clause also supports a special format for delayed insertion.
+The condition is a list with commands, predicates (with three
+arguments as regular when form) or strings specifying the last
+event.  All three types can be combined in one list.  The pair
+will be inserted *after* the next command if it matches the any
+command on the list, if the last event matches any string on the
+list or if any predicate returns true.  If the pair's :when
+clause contains this special form, it will never be immediately
+inserted and will always test for delayed insertion.
 
 UNLESS is a list of predicates.  The conventions are the same as
 for the WHEN list.  If *any* filter on this list returns t, the
@@ -1823,10 +1843,9 @@ If USE-INSIDE-STRING is non-nil, use value of
 `sp-point-inside-string' instead of testing with
 `sp-point-in-string-or-comment'."
   (setq action (-flatten (list action)))
-  (let* ((pair (sp-get-pair id))
-         (actions (plist-get pair :actions))
-         (when-l (plist-get pair :when))
-         (unless-l (plist-get pair :unless))
+  (let* ((actions (sp-get-pair id :actions))
+         (when-l (sp-get-pair id :when))
+         (unless-l (sp-get-pair id :unless))
          (in-string (if use-inside-string
                         ;; if we're not inside a string, we can still
                         ;; be inside a comment!
@@ -1898,6 +1917,40 @@ If USE-INSIDE-STRING is non-nil, use value of
                   (funcall fun sp-last-inserted-pair 'insert
                            (sp--get-context :post-handlers)))))))
         (setq sp-last-inserted-pair nil))
+
+      ;; Here we run the delayed insertion. Some details in issue #113
+      (when (and (not (eq sp-last-operation 'sp-insert-pair-delayed))
+                 sp-delayed-pair)
+        (let* ((pair (car sp-delayed-pair))
+               (beg (cdr sp-delayed-pair))
+               (conds (sp-get-pair pair :when-cond))
+               (open-pair pair)
+               (close-pair (sp-get-pair pair :close)))
+          (when (and conds
+                     (--any? (cond
+                              ((and (commandp it)
+                                    (not (stringp it)))
+                               (eq this-command it))
+                              ((stringp it)
+                               (equal (single-key-description last-command-event) it))
+                              ((funcall it pair 'insert (sp--get-context :post-handlers)))) conds))
+            ;; TODO: refactor this and the same code in
+            ;; `sp-insert-pair' to a separate function
+            (sp--run-hook-with-args open-pair :pre-handlers 'insert)
+            (insert close-pair)
+            (backward-char (length close-pair))
+            (sp--pair-overlay-create beg
+                                     (+ (point) (length close-pair))
+                                     open-pair)
+            ;; no auto-escape here? Should be fairly safe
+            (sp--run-hook-with-args open-pair :post-handlers 'insert)
+            (setq sp-last-inserted-pair open-pair)
+            (setq sp-recent-keys nil)
+            (setq sp-last-operation 'sp-insert-pair)))
+        (setq sp-delayed-pair nil))
+
+      (when (eq sp-last-operation 'sp-insert-pair-delayed)
+        (setq sp-last-operation nil))
 
       (unless (sp--this-command-self-insert-p)
         ;; unless the last command was a self-insert, remove the
@@ -2634,48 +2687,50 @@ followed by word.  It is disabled by default.  See
                        open-pair
                        (or sp-point-inside-string (sp-point-in-comment)))))
 
-        (sp--run-hook-with-args open-pair :pre-handlers 'insert)
+        ;; setup the delayed insertion here.
+        (if (sp-get-pair open-pair :when-cond)
+            (progn
+              (setq sp-delayed-pair (cons open-pair (- (point) (length open-pair))))
+              (setq sp-last-operation 'sp-insert-pair-delayed))
+          (sp--run-hook-with-args open-pair :pre-handlers 'insert)
+          (insert close-pair)
+          (backward-char (length close-pair))
+          (sp--pair-overlay-create (- (point) (length open-pair))
+                                   (+ (point) (length close-pair))
+                                   open-pair)
 
-        (insert close-pair)
-        (backward-char (length close-pair))
-        (sp--pair-overlay-create (- (point) (length open-pair))
+          ;; we only autoescape if the pair is a single character string
+          ;; delimiter.  More elaborate pairs are probably already
+          ;; escaped.  We leave the responsibility to the user, since
+          ;; it's not that common and the usecases might vary -> there's
+          ;; no good "default" case.
+          (when (and sp-autoescape-string-quote
+                     sp-point-inside-string
+                     (equal open-pair "\"")
+                     (equal close-pair "\"")
+                     (or (not (memq major-mode sp-autoescape-string-quote-if-empty))
+                         ;; test if the string is empty here
+                         (not (and (equal (char-after (1+ (point))) ?\")
+                                   (equal (char-after (- (point) 2)) ?\")))))
+            (save-excursion
+              (backward-char 1)
+              (insert sp-escape-char)
+              (forward-char 1)
+              (insert sp-escape-char))
+            (overlay-put (sp--get-active-overlay 'pair) 'pair-id "\\\""))
 
-                                 (+ (point) (length close-pair))
-                                 open-pair)
-
-        ;; we only autoescape if the pair is a single character string
-        ;; delimiter.  More elaborate pairs are probably already
-        ;; escaped.  We leave the responsibility to the user, since
-        ;; it's not that common and the usecases might vary -> there's
-        ;; no good "default" case.
-        (when (and sp-autoescape-string-quote
-                   sp-point-inside-string
-                   (equal open-pair "\"")
-                   (equal close-pair "\"")
-                   (or (not (memq major-mode sp-autoescape-string-quote-if-empty))
-                       ;; test if the string is empty here
-                       (not (and (equal (char-after (1+ (point))) ?\")
-                                 (equal (char-after (- (point) 2)) ?\")))))
-          (save-excursion
-            (backward-char 1)
-            (insert sp-escape-char)
-            (forward-char 1)
-            (insert sp-escape-char))
-          (overlay-put (sp--get-active-overlay 'pair) 'pair-id "\\\""))
-
-        (when sp-undo-pairs-separately
-          (sp--split-last-insertion-undo (+ (length open-pair) (length close-pair)))
-          ;; TODO: abc\{abc\} undo undo \{asd\} . next undo removes the
-          ;; entire \{asd\} if we do not insert two nils here.
-          ;; Normally, repeated nils are ignored so it shouldn't
-          ;; matter.  It would still be useful to inspect further.
-          (push nil buffer-undo-list)
-          (push nil buffer-undo-list))
-
-        (sp--run-hook-with-args open-pair :post-handlers 'insert)
-        (setq sp-recent-keys nil)
-        (setq sp-last-inserted-pair open-pair)
-        (setq sp-last-operation 'sp-insert-pair)))))
+          (when sp-undo-pairs-separately
+            (sp--split-last-insertion-undo (+ (length open-pair) (length close-pair)))
+            ;; TODO: abc\{abc\} undo undo \{asd\} . next undo removes the
+            ;; entire \{asd\} if we do not insert two nils here.
+            ;; Normally, repeated nils are ignored so it shouldn't
+            ;; matter.  It would still be useful to inspect further.
+            (push nil buffer-undo-list)
+            (push nil buffer-undo-list))
+          (sp--run-hook-with-args open-pair :post-handlers 'insert)
+          (setq sp-last-inserted-pair open-pair)
+          (setq sp-recent-keys nil)
+          (setq sp-last-operation 'sp-insert-pair))))))
 
 (defun sp--wrap-repeat-last (active-pair)
   "If the last operation was a wrap and `sp-wrap-repeat-last' is
