@@ -1144,6 +1144,7 @@ The list OLD-PAIR must not be nil."
     (case prop
       (:close (plist-put old-pair :close new-val))
       (:prefix (plist-put old-pair :prefix new-val))
+      (:skip-match (plist-put old-pair :skip-match new-val))
       ((:actions :when :unless :pre-handlers :post-handlers)
        (case (car new-val)
          (:add (plist-put old-pair prop (-union (plist-get old-pair prop) (cdr new-val))))
@@ -1448,7 +1449,8 @@ wrap ARG (default 1) expressions with this pair (like
                        (pre-handlers '(:add))
                        (post-handlers '(:add))
                        bind
-                       prefix)
+                       prefix
+                       skip-match)
   "Add a local pair definition or override a global definition.
 
 MODES can be a single mode or a list of modes where these settings
@@ -1509,6 +1511,7 @@ clashes between different modes."
         (setq pair (plist-put pair :open open))
         (when close (plist-put pair :close close))
         (when prefix (plist-put pair :prefix prefix))
+        (when skip-match (plist-put pair :skip-match skip-match))
         (when (and (not (sp-get-pair-definition open t))
                    (equal actions '(:add)))
           (setq actions '(wrap insert)))
