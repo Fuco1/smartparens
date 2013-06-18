@@ -1936,7 +1936,7 @@ If USE-INSIDE-STRING is non-nil, use value of
                                (eq this-command it))
                               ((stringp it)
                                (equal (single-key-description last-command-event) it))
-                              ((funcall it pair 'insert (sp--get-context :post-handlers)))) conds))
+                              ((ignore-errors (funcall it pair 'insert (sp--get-context :post-handlers))))) conds))
             ;; TODO: refactor this and the same code in
             ;; `sp-insert-pair' to a separate function
             (sp--run-hook-with-args open-pair :pre-handlers 'insert)
