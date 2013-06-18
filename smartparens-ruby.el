@@ -111,6 +111,10 @@
                  :actions '()
                  :pre-handlers '(sp-ruby-pre-handler))
 
+  (sp-local-pair "{" "}"
+                 :actions '(insert wrap)
+                 :pre-handlers '(sp-ruby-pre-handler))
+
   (sp-local-pair "begin" "end"
                  :actions '()
                  :pre-handlers '(sp-ruby-pre-handler))
