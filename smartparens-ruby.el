@@ -35,7 +35,22 @@
 ;; (require 'smartparens-ruby)
 ;;
 ;; into your configuration.  You can use this in conjunction with the
-;; default config or your own configuration.
+;; default config or your own configuration.  For now, the automatic
+;; insertion of the closing `end` tags relies on ruby-end-mode
+;; (<https://github.com/rejeep/ruby-end>), so remember to add:
+;;
+;; (add-hook 'ruby-mode-hook (lambda () (require 'ruby-end-mode)))
+;;
+;; In order to get slurp and barf to work properly, you should
+;; consider adding the following:
+;;
+;; (modify-syntax-entry ?@ "w" ruby-mode-syntax-table)
+;; (modify-syntax-entry ?_ "w" ruby-mode-syntax-table)
+;; (modify-syntax-entry ?! "w" ruby-mode-syntax-table)
+;; (modify-syntax-entry ?? "w" ruby-mode-syntax-table)
+;;
+;; This will change the word boundaries, so that instance variables
+;; and methods are treated as words.
 
 ;; If you have good ideas about what should be added please file an
 ;; issue on the github tracker.
@@ -47,106 +62,94 @@
 
 (require 'smartparens)
 
-;; helpers
-(defun sp-ruby-block-post-handler (id action context)
-  (when (equal action 'insert)
-    (save-excursion
-      (newline)
-      (indent-according-to-mode))
-    (indent-according-to-mode)))
-
-(defun sp-ruby-def-post-handler (id action context)
-  (when (equal action 'insert)
-    (save-excursion
-      (insert " _")
-      (newline)
-      (indent-according-to-mode))
-    (kill-forward-chars 2)
-    (indent-according-to-mode)))
+(defun sp-ruby-delete-indentation (&optional arg)
+  "Better way of joining ruby lines"
+  (delete-indentation arg)
+  (when (looking-at " [.([,]")
+    (delete-char 1))
+  (save-excursion
+    (backward-char)
+    (when (looking-at "\\. ")
+      (forward-char)
+      (delete-char 1))))
 
 (defun sp-ruby-pre-handler (id action context)
+  "Handler for ruby slurp and barf"
   (when (equal action 'slurp-backward)
     (save-excursion
       (sp-forward-sexp)
-      (delete-indentation -1))
+      (sp-ruby-delete-indentation -1))
     (save-excursion
-      (newline)))
+      (newline))
+    (when (not (looking-back " "))
+      (insert " ")))
 
   (when (equal action 'barf-backward)
     (save-excursion
       (sp-backward-sexp)
-      (delete-indentation))
+      (sp-ruby-delete-indentation))
     (save-excursion
-      (newline)))
+      (newline))
+    (when (not (looking-back " "))
+      (insert " ")))
 
   (when (equal action 'slurp-forward)
     (save-excursion
       (sp-backward-sexp)
-      (delete-indentation))
+      (sp-ruby-delete-indentation))
     (newline))
 
   (when (equal action 'barf-forward)
     (save-excursion
       (sp-forward-sexp)
-      (delete-indentation -1))
+      (sp-ruby-delete-indentation -1))
     (newline)))
 
-(defun sp-ruby-in-string-or-word-p (id action context)
-  (or (sp-in-string-p id action context)
-      (and (looking-back id)
-           (not (looking-back (sp--strict-regexp-quote id))))))
-
-(defun sp-ruby-no-do-block-p (id action context)
-  (or (sp-ruby-in-string-or-symbol-p id action context)
-      (and (looking-back (sp--strict-regexp-quote id))
-           (not (looking-back (concat "[^ ] " id))))))
+(defun sp-ruby-post-handler (id action context)
+  "Temporary hack to disable inserting end tags"
+  (when (equal action 'insert)
+    (delete-forward-char 3)))
 
 (sp-with-modes '(ruby-mode)
 
-  ;; Blocks
   (sp-local-pair "do" "end"
-                 :unless '(sp-ruby-no-do-block-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-block-post-handler))
+                 :post-handlers '(sp-ruby-post-handler))
+
+  (sp-local-pair "{" "}"
+                 :actions '(insert wrap)
+                 :pre-handlers '(sp-ruby-pre-handler))
 
   (sp-local-pair "begin" "end"
-                 :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-block-post-handler))
-
-  ;; Defs
+                 :post-handlers '(sp-ruby-post-handler))
 
   (sp-local-pair "def" "end"
-                 :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-def-post-handler))
+                 :post-handlers '(sp-ruby-post-handler))
 
   (sp-local-pair "class" "end"
-                 :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-def-post-handler))
+                 :post-handlers '(sp-ruby-post-handler))
 
   (sp-local-pair "module" "end"
-                 :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-def-post-handler))
+                 :post-handlers '(sp-ruby-post-handler))
 
   (sp-local-pair "if" "end"
-                 :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-def-post-handler))
+                 :post-handlers '(sp-ruby-post-handler))
 
   (sp-local-pair "unless" "end"
-                 :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-def-post-handler))
+                 :post-handlers '(sp-ruby-post-handler))
   )
 
 (provide 'smartparens-ruby)
