@@ -2874,10 +2874,11 @@ is remove the just added wrapping."
             (setq sp-last-operation 'sp-delete-pair-wrap)))
       (let ((p (point))
             (inside-pair (--first (and (sp--looking-back (regexp-quote (car it)))
-                                       (looking-at (regexp-quote (cdr it))))
+                                       (looking-at (concat "[ \n]*" (regexp-quote (cdr it)))))
                                   sp-pair-list))
             (behind-pair (--first (sp--looking-back (regexp-quote (cdr it))) sp-pair-list))
             (opening-pair (--first (sp--looking-back (regexp-quote (car it))) sp-pair-list)))
+
         (cond
          ;; we're just before the closing quote of a string.  If there
          ;; is an opening or closing pair behind the point, remove
@@ -2898,7 +2899,8 @@ is remove the just added wrapping."
             (setq sp-last-operation 'sp-delete-pair-opening))))
          ;; we're inside a pair
          ((and inside-pair sp-autodelete-pair)
-          (delete-char (length (cdr inside-pair)))
+          (zap-to-char 1 (string-to-char (cdr inside-pair)))
+          (delete-char (1- (length (cdr inside-pair))))
           (delete-char (- (1- (length (car inside-pair)))))
           (setq sp-last-operation 'sp-delete-pair))
          ;; we're behind a closing pair
