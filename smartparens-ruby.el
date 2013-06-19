@@ -35,11 +35,7 @@
 ;; (require 'smartparens-ruby)
 ;;
 ;; into your configuration.  You can use this in conjunction with the
-;; default config or your own configuration.  For now, the automatic
-;; insertion of the closing `end` tags relies on ruby-end-mode
-;; (<https://github.com/rejeep/ruby-end>), so remember to add:
-;;
-;; (add-hook 'ruby-mode-hook (lambda () (require 'ruby-end-mode)))
+;; default config or your own configuration.
 ;;
 ;; In order to get slurp and barf to work properly, you should
 ;; consider adding the following:
@@ -61,6 +57,23 @@
 ;;; Code:
 
 (require 'smartparens)
+
+(defun sp-ruby-block-post-handler (id action context)
+  "Handler for ruby block-like inserts"
+  (when (equal action 'insert)
+    (save-excursion
+      (newline)
+      (indent-according-to-mode))
+    (indent-according-to-mode)))
+
+(defun sp-ruby-def-post-handler (id action context)
+  "Handler for ruby def-like inserts"
+  (when (equal action 'insert)
+    (save-excursion
+      (insert "x")
+      (newline)
+      (indent-according-to-mode))
+    (kill-forward-chars 1)))
 
 (defun sp-ruby-delete-indentation (&optional arg)
   "Better way of joining ruby lines"
@@ -105,51 +118,65 @@
       (sp-ruby-delete-indentation -1))
     (newline)))
 
-(defun sp-ruby-post-handler (id action context)
-  "Temporary hack to disable inserting end tags"
-  (when (equal action 'insert)
-    (delete-forward-char 3)))
+(defun sp-ruby-in-string-or-word-p (id action context)
+  (or (sp-in-string-p id action context)
+      (and (looking-back id)
+           (not (looking-back (sp--strict-regexp-quote id))))))
 
 (sp-with-modes '(ruby-mode)
 
   (sp-local-pair "do" "end"
+                 :when '(("SPC" "RET" "<evil-ret>"))
+                 :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-post-handler))
+                 :post-handlers '(sp-ruby-block-post-handler))
 
   (sp-local-pair "{" "}"
                  :actions '(insert wrap)
                  :pre-handlers '(sp-ruby-pre-handler))
 
   (sp-local-pair "begin" "end"
+                 :when '(("SPC" "RET" "<evil-ret>"))
+                 :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-post-handler))
+                 :post-handlers '(sp-ruby-block-post-handler))
 
   (sp-local-pair "def" "end"
+                 :when '(("SPC" "RET" "<evil-ret>"))
+                 :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-post-handler))
+                 :post-handlers '(sp-ruby-def-post-handler))
 
   (sp-local-pair "class" "end"
+                 :when '(("SPC" "RET" "<evil-ret>"))
+                 :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-post-handler))
+                 :post-handlers '(sp-ruby-def-post-handler))
 
   (sp-local-pair "module" "end"
+                 :when '(("SPC" "RET" "<evil-ret>"))
+                 :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-post-handler))
+                 :post-handlers '(sp-ruby-def-post-handler))
 
   (sp-local-pair "if" "end"
+                 :when '(("SPC" "RET" "<evil-ret>"))
+                 :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-post-handler))
+                 :post-handlers '(sp-ruby-def-post-handler))
 
   (sp-local-pair "unless" "end"
+                 :when '(("SPC" "RET" "<evil-ret>"))
+                 :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-post-handler))
+                 :post-handlers '(sp-ruby-def-post-handler))
   )
 
 (provide 'smartparens-ruby)
