@@ -6045,6 +6045,12 @@ support custom pairs."
 (sp--set-base-key-bindings)
 (sp--update-override-key-bindings)
 
+(defadvice ac-complete (after sp-auto-complete-advice activate)
+  (when smartparens-mode
+    (setq sp-recent-keys (reverse (split-string ad-return-value "")))
+    (sp-insert-pair))
+  ad-return-value)
+
 (defvar sp--mc/cursor-specific-vars
   '(
     sp-wrap-point
