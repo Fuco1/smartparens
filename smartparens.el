@@ -2873,11 +2873,11 @@ is remove the just added wrapping."
               (delete-char o))
             (setq sp-last-operation 'sp-delete-pair-wrap)))
       (let ((p (point))
-            (inside-pair (--first (and (sp--looking-back (regexp-quote (car it)))
-                                       (looking-at (concat "[ \n]*" (regexp-quote (cdr it)))))
+            (inside-pair (--first (and (sp--looking-back (sp--strict-regexp-quote (car it)))
+                                       (looking-at (concat "[ \n]*" (sp--strict-regexp-quote (cdr it)))))
                                   sp-pair-list))
-            (behind-pair (--first (sp--looking-back (regexp-quote (cdr it))) sp-pair-list))
-            (opening-pair (--first (sp--looking-back (regexp-quote (car it))) sp-pair-list)))
+            (behind-pair (--first (sp--looking-back (sp--strict-regexp-quote (cdr it))) sp-pair-list))
+            (opening-pair (--first (sp--looking-back (sp--strict-regexp-quote (car it))) sp-pair-list)))
 
         (cond
          ;; we're just before the closing quote of a string.  If there
