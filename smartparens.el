@@ -4155,23 +4155,26 @@ Note: prefix argument is shown after the example in
           ;; kill useless junk whitespace, but only if we're actually
           ;; killing the region
           (when (not dont-kill)
-            (let ((bdel (save-excursion
-                          (when (looking-back " ")
-                            (skip-chars-backward " \t")
-                            (when (not (looking-back (sp--get-opening-regexp)))
-                              (forward-char)))
-                          (point)))
-                  (edel (save-excursion
-                          (when (looking-at " ")
-                            (skip-chars-forward " \t")
-                            (when (not (looking-at (sp--get-closing-regexp)))
-                              (backward-char)))
-                          (point))))
-              (delete-region bdel edel))
-            (indent-according-to-mode)
+            (sp--cleanup-after-kill)
             ;; kill useless newlines
             (when (string-match-p "\n" (buffer-substring-no-properties bm (point)))
               (delete-region bm (point))))))))))
+
+(defun sp--cleanup-after-kill ()
+  (let ((bdel (save-excursion
+                (when (looking-back " ")
+                  (skip-chars-backward " \t")
+                  (when (not (looking-back (sp--get-opening-regexp)))
+                    (forward-char)))
+                (point)))
+        (edel (save-excursion
+                (when (looking-at " ")
+                  (skip-chars-forward " \t")
+                  (when (not (looking-at (sp--get-closing-regexp)))
+                    (backward-char)))
+                (point))))
+    (delete-region bdel edel))
+  (indent-according-to-mode))
 
 (defun sp-backward-kill-sexp (&optional arg dont-kill)
   "Kill the balanced expression preceding point.
@@ -5773,12 +5776,18 @@ See `sp-forward-symbol' for what constitutes a symbol."
       (while (> arg 0)
         (if (and word
                  (sp-point-in-symbol))
-            (kill-word 1)
+            (progn
+              (kill-word 1)
+              (sp--cleanup-after-kill))
           (let ((s (sp-get-symbol)))
             (when s
               (sp-get s
                 (goto-char :beg-prf)
-                (if word (kill-word 1) (sp-kill-sexp))))))
+                (if word
+                    (progn
+                      (kill-word 1)
+                      (sp--cleanup-after-kill))
+                  (sp-kill-sexp))))))
         (setq arg (1- arg)))
     (sp-backward-kill-symbol (sp--negate-argument arg) word)))
 
@@ -5806,12 +5815,18 @@ See `sp-backward-symbol' for what constitutes a symbol."
       (while (> arg 0)
         (if (and word
                  (sp-point-in-symbol))
-            (kill-word -1)
+            (progn
+              (kill-word -1)
+              (sp--cleanup-after-kill))
           (let ((s (sp-get-symbol t)))
             (when s
               (sp-get s
                 (goto-char :end)
-                (if word (kill-word -1) (sp-kill-sexp -1))))))
+                (if word
+                    (progn
+                      (kill-word -1)
+                      (sp--cleanup-after-kill))
+                  (sp-kill-sexp -1))))))
         (setq arg (1- arg)))
     (sp-kill-symbol (sp--negate-argument arg) word)))
 
