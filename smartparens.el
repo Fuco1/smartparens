@@ -3088,10 +3088,10 @@ The expressions considered are those delimited by pairs on
                                  (save-excursion
                                    (goto-char mb)
                                    (save-match-data
-                                     (or (looking-back "\\\\")
-                                         (and (looking-back "\\?") ;;TODO surely we can do better
-                                              (not (looking-back "\\s_\\?"))
-                                              (not (looking-back "\\sw\\?"))))))))
+                                     (or (sp--looking-back "\\\\" 1 t)
+                                         (and (sp--looking-back "\\?" 1 t) ;;TODO surely we can do better
+                                              (not (sp--looking-back "\\s_\\?" 2 t))
+                                              (not (sp--looking-back "\\sw\\?" 2 t))))))))
                   (when (--any? (equal ms it) opens)
                     (setq depth (1+ depth)))
                   (when (--any? (equal ms it) closes)
