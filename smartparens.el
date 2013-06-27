@@ -3104,7 +3104,12 @@ The expressions considered are those delimited by pairs on
           (if forward
               (setq e me)
             (setq s mb))
-          (unless failure
+          (if (or failure
+                  (/= depth 0))
+              (progn
+                (unless (minibufferp)
+                  (message "Search failed.  This means there is unmatched expression somewhere or we are at the beginning/end of file."))
+                nil)
             (cond
              ((or (and (sp-point-in-string-or-comment s) (not (sp-point-in-string-or-comment e)))
                   (and (not (sp-point-in-string-or-comment s)) (sp-point-in-string-or-comment e)))
