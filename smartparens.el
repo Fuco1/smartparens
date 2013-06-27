@@ -814,6 +814,25 @@ never automatically closed (see `sp-navigate-close-if-unbalanced')."
   :type 'boolean
   :group 'smartparens)
 
+(defcustom sp-navigate-skip-match `(
+                                    (,sp--lisp-modes . sp--elisp-skip-match)
+                                    )
+  "Alist of list of major-modes and a function used to skip over matches in
+`sp-get-paired-expression'.  This function takes three arguments:
+the currently matched delimiter, beginning of match and end of
+match.  If this function returns true, the current match will be
+skipped.
+
+You can use this to skip over expressions that serve multiple
+functions, such as if/end pair or unary if in Ruby or * in
+markdown when it signifies list item instead of emphasis.  If the
+exception is only relevant to one pair, you should rather
+use :skip-match option in `sp-local-pair'."
+  :type '(alist
+          :key-type (repeat symbol)
+          :value-type symbol)
+  :group 'smartparens)
+
 (defcustom sp-navigate-reindent-after-up '(
                                            (interactive
                                             emacs-lisp-mode
@@ -1494,7 +1513,17 @@ If BIND is non-nil, the bindings are added into major mode keymap
 called \"foo-mode-map\".  If the mode does not follow this
 convention, you will need to bind the function manually.  The
 bindings are not added into `smartparens-mode-map' to prevent
-clashes between different modes."
+clashes between different modes.
+
+You can provide a function SKIP-MATCH, that will take three
+arguments: the currently matched delimiter, beginning of match
+and end of match.  If this function returns true, the
+`sp-get-paired-expression' matcher will ignore this match.  You
+can use this to skip over expressions that serve multiple
+functions, such as if/end pair or unary if in Ruby or * in
+markdown when it signifies list item instead of emphasis.  In
+addition, there is a global per major-mode option, see
+`sp-navigate-skip-match'."
   (if (eq actions :rem)
       (let ((remove ""))
         (dolist (m (-flatten (list modes)))
@@ -3000,6 +3029,33 @@ object bounded by TEST."
        (setq ,end (match-end 0))
        (setq ,str (match-string 0)))))
 
+(defun sp--skip-match-p (ms mb me)
+  "Return non-nil if this match should be skipped.  The function
+that tests this is obtained from the pair definition :skip-match
+property."
+  (let ((skip-fn (sp-get-pair ms :skip-match)))
+    (when skip-fn (funcall skip-fn ms mb me))))
+
+(defmacro sp--valid-initial-delimiter-p (form)
+  "Test the last match using `sp--skip-match-p'.  The form should
+be a function call that sets the match data."
+  `(and ,form
+        (not (sp--skip-match-p
+              (match-string 0)
+              (match-beginning 0)
+              (match-end 0)))))
+
+(defun sp--elisp-skip-match (ms mb me)
+  "Function used to test for escapes in lisp modes."
+  (and (> mb 1)
+       (save-excursion
+         (goto-char mb)
+         (save-match-data
+           (or (sp--looking-back "\\\\" 1 t)
+               (and (sp--looking-back "\\?" 1 t) ;;TODO surely we can do better
+                    (not (sp--looking-back "\\s_\\?" 2 t))
+                    (not (sp--looking-back "\\sw\\?" 2 t))))))))
+
 ;; TODO: since this function is used for all the navigation, we should
 ;; optimaze it a lot! Get some elisp profiler! Also, we should split
 ;; this into smaller functions (esp. the "first expression search"
@@ -3025,18 +3081,19 @@ The expressions considered are those delimited by pairs on
                                    (sp--get-allowed-regexp)
                                    (if back bw-bound fw-bound)
                                    r mb me ms)
-        (when (not (sp-point-in-string-or-comment))
-          (setq in-string-or-comment nil))
-        ;; if the point originally wasn't inside of a string or comment
-        ;; but now is, jump out of the string/comment and only search
-        ;; the code.  This ensures that the comments and strings are
-        ;; skipped if we search inside code.
-        (if (and (not in-string-or-comment)
-                 (sp-point-in-string-or-comment))
-            (let* ((bounds (sp--get-string-or-comment-bounds))
-                   (jump-to (if back (1- (car bounds)) (1+ (cdr bounds)))))
-              (goto-char jump-to))
-          (setq done t)))
+        (unless (sp--skip-match-p ms mb me)
+          (when (not (sp-point-in-string-or-comment))
+            (setq in-string-or-comment nil))
+          ;; if the point originally wasn't inside of a string or comment
+          ;; but now is, jump out of the string/comment and only search
+          ;; the code.  This ensures that the comments and strings are
+          ;; skipped if we search inside code.
+          (if (and (not in-string-or-comment)
+                   (sp-point-in-string-or-comment))
+              (let* ((bounds (sp--get-string-or-comment-bounds))
+                     (jump-to (if back (1- (car bounds)) (1+ (cdr bounds)))))
+                (goto-char jump-to))
+            (setq done t))))
       (when r
         (setq possible-pairs (--filter (or (equal ms (car it))
                                            (equal ms (cdr it)))
@@ -3072,26 +3129,26 @@ The expressions considered are those delimited by pairs on
                (b (if forward fw-bound bw-bound))
                (open (substring-no-properties ms))
                (close (substring-no-properties ms))
-               (failure (funcall eof)))
+               (failure (funcall eof))
+               (skip-match-fn (cdr (--first (memq major-mode (car it)) sp-navigate-skip-match)))
+               (skip-match-pair-fns (->> possible-ops
+                                      (--map (let ((smf (sp-get-pair it :skip-match)))
+                                               (when smf (cons it smf))))
+                                      (--remove (not it)))))
           (while (and (> depth 0) (not (funcall eof)))
             (sp--search-and-save-match search-fn needle b r mb me ms)
             (if r
                 (unless (or (and (not in-string-or-comment)
                                  (sp-point-in-string-or-comment))
-                            ;; we need to check if the match isn't
-                            ;; preceded by escape sequence.  This is a
-                            ;; bit tricky to do right, so for now we
-                            ;; just handle emacs-lisp \ or ? escape
-                            ;; prefix
-                            (and (> mb 1)
-                                 (member major-mode sp--lisp-modes)
-                                 (save-excursion
-                                   (goto-char mb)
-                                   (save-match-data
-                                     (or (sp--looking-back "\\\\" 1 t)
-                                         (and (sp--looking-back "\\?" 1 t) ;;TODO surely we can do better
-                                              (not (sp--looking-back "\\s_\\?" 2 t))
-                                              (not (sp--looking-back "\\sw\\?" 2 t))))))))
+                            ;; check the per major-mode skipper
+                            (when skip-match-fn (funcall skip-match-fn ms mb me))
+                            ;; check the individual pair skipper.  We
+                            ;; need to test all the possible-ops,
+                            ;; which makes it a bit ugly :/
+                            (let ((skip-match-pair-fn
+                                   (cdr (--first (equal (car it) ms) skip-match-pair-fns))))
+                              (when skip-match-pair-fn
+                                (funcall skip-match-pair-fn ms mb me))))
                   (when (--any? (equal ms it) opens) (setq depth (1+ depth)))
                   (when (--any? (equal ms it) closes) (setq depth (1- depth))))
               (unless (minibufferp)
@@ -3135,25 +3192,32 @@ opening and closing delimiter, such as *...*, \"...\", `...` etc."
           (hit nil)
           (count 0)
           (m nil)
-          b e)
+          b e skip-match-fn)
       (when (not (equal needle ""))
         (while (and (not hit)
                     (funcall search-fn-f needle nil t))
           (setq m (match-string-no-properties 0))
-          (unless (save-excursion
-                    (goto-char (match-beginning 0))
-                    (or (looking-back "\\\\") ;; assumes \ is always the escape... bad?
-                        (and (not (sp-point-in-string))
-                             (eq major-mode 'emacs-lisp-m)
-                             (looking-back "?"))))
+          (unless (or (save-excursion
+                        (goto-char (match-beginning 0))
+                        (or (looking-back "\\\\") ;; assumes \ is always the escape... bad?
+                            (and (not (sp-point-in-string))
+                                 (eq major-mode 'emacs-lisp-m)
+                                 (looking-back "?"))))
+                      (sp--skip-match-p m (match-beginning 0) (match-end 0)))
             (setq hit t)))
         (when hit
           (setq needle (regexp-quote m))
+          (setq skip-match-fn (sp-get-pair m :skip-match))
           (save-excursion
             ;; assumes \ is always the escape... bad?
             (while (re-search-backward (concat "[^\\]" needle) nil t)
               (forward-char 1)
-              (setq count (1+ count))))
+              (unless (and skip-match-fn
+                           (funcall skip-match-fn
+                                    (match-string 0)
+                                    (1+ (match-beginning 0))
+                                    (match-end 0)))
+                (setq count (1+ count)))))
           (if (= (mod count 2) 0)
               ;; outside
               (progn
@@ -3578,14 +3642,14 @@ expressions are considered."
                ((and (memq major-mode sp-navigate-consider-sgml-tags)
                      (sp--looking-back ">")
                      (sp-get-sgml-tag t)))
-               ((sp--looking-back (sp--get-closing-regexp) nil t)
+               ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-closing-regexp) nil t))
                 (sp-get-sexp t))
-               ((sp--looking-back (sp--get-opening-regexp) nil t)
+               ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-opening-regexp) nil t))
                 (sp-get-sexp t))
                ((eq (char-syntax (preceding-char)) 34)
                 (sp-get-string t))
                ((and (memq major-mode sp-navigate-consider-stringlike-sexp)
-                     (sp--looking-back (sp--get-stringlike-regexp) nil t)
+                     (sp--valid-initial-delimiter-p (sp--looking-back (sp--get-stringlike-regexp) nil t))
                      (sp-get-stringlike-expression t)))
                (t (sp-get-symbol t)))))))
       (if (not sp-navigate-consider-symbols)
@@ -3600,14 +3664,14 @@ expressions are considered."
              ((and (memq major-mode sp-navigate-consider-sgml-tags)
                    (looking-at "<")
                    (sp-get-sgml-tag)))
-             ((looking-at (sp--get-opening-regexp))
+             ((sp--valid-initial-delimiter-p (looking-at (sp--get-opening-regexp)))
               (sp-get-sexp nil))
-             ((looking-at (sp--get-closing-regexp))
+             ((sp--valid-initial-delimiter-p (looking-at (sp--get-closing-regexp)))
               (sp-get-sexp nil))
              ((eq (char-syntax (following-char)) 34)
               (sp-get-string nil))
              ((and (memq major-mode sp-navigate-consider-stringlike-sexp)
-                   (looking-at (sp--get-stringlike-regexp))
+                   (sp--valid-initial-delimiter-p (looking-at (sp--get-stringlike-regexp)))
                    (sp-get-stringlike-expression nil)))
              ;; it can still be that we are looking at a /prefix/ of a
              ;; sexp.  We should skip a symbol forward and check if it
@@ -4680,6 +4744,8 @@ With BACK non-nil, move backwards."
     (while (not (sp-point-in-string))
       (forward-char))))
 
+;; TODO: if we are in ruby mode "|if foo" returns "foo" as next
+;; symbol, when it probably should be "if".
 (defmacro sp--forward-symbol-1 (fw-1)
   "Generate forward/backward symbol functions."
   (let ((goto-where (if fw-1 '(match-end 0) '(match-beginning 0)))
