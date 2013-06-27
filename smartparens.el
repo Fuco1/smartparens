@@ -3092,11 +3092,8 @@ The expressions considered are those delimited by pairs on
                                          (and (sp--looking-back "\\?" 1 t) ;;TODO surely we can do better
                                               (not (sp--looking-back "\\s_\\?" 2 t))
                                               (not (sp--looking-back "\\sw\\?" 2 t))))))))
-                  (when (--any? (equal ms it) opens)
-                    (setq depth (1+ depth)))
-                  (when (--any? (equal ms it) closes)
-                    (setq close (substring-no-properties ms))
-                    (setq depth (1- depth))))
+                  (when (--any? (equal ms it) opens) (setq depth (1+ depth)))
+                  (when (--any? (equal ms it) closes) (setq depth (1- depth))))
               (unless (minibufferp)
                 (message "Search failed.  This means there is unmatched expression somewhere or we are at the beginning/end of file."))
               (setq depth -1)
@@ -3104,6 +3101,7 @@ The expressions considered are those delimited by pairs on
           (if forward
               (setq e me)
             (setq s mb))
+          (setq close (substring-no-properties ms))
           (if (or failure
                   (/= depth 0))
               (progn
@@ -3117,9 +3115,7 @@ The expressions considered are those delimited by pairs on
                 (message "Opening or closing pair is inside a string or comment and matching pair is outside (or vice versa).  Ignored."))
               nil)
              (t
-              (let* ((open (or open (car opens)))
-                     (close (or close (car closes)))
-                     (op (if forward open close))
+              (let* ((op (if forward open close))
                      (pref (sp-get-pair op :prefix)))
                 (list :beg s
                       :end e
