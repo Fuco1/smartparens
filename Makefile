@@ -5,7 +5,8 @@ ECUKES ?= $(shell find elpa/ecukes-*/ecukes | tail -1)
 test: unit-tests ecukes-features
 
 unit-tests: elpa
-	@echo "Stub for unit tests using ERT"
+	${CARTON} exec ${EMACS} -Q -batch -L . -L tests \
+		-l tests/smartparens-test.el -f ert-run-tests-batch-and-exit
 
 ecukes-features: elpa
 	${CARTON} exec ${ECUKES} features

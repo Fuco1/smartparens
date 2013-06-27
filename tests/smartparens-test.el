@@ -1,6 +1,7 @@
 (require 'ert)
 (require 'dash)
 
+(require 'smartparens)
 (require 'smartparens-test-env)
 (require 'smartparens-test-get-paired-expression)
 
