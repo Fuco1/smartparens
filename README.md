@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/Fuco1/smartparens.png?branch=master)](https://travis-ci.org/Fuco1/smartparens)
+
 # News
 
 #### Experimental support for pairs with same opening and closing delimiter
