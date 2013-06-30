@@ -33,10 +33,11 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'dash)
 (require 'thingatpt)
-(eval-when-compile (require 'cl)
-                   (defvar cua--region-keymap))
+
+(eval-when-compile (defvar cua--region-keymap))
 (declare-function cua-replace-region "cua-base")
 (declare-function cua--pre-command-handler "cua-base")
 (declare-function delete-selection-pre-hook "delsel")
@@ -81,7 +82,7 @@ better orientation."
                                    sp-use-paredit-bindings
                                    sp-use-smartparens-bindings
                                    ))
-        (commands (loop for i in (cdr (assoc-string (locate-library "smartparens") load-history))
+        (commands (cl-loop for i in (cdr (assoc-string (locate-library "smartparens") load-history))
                         if (and (consp i) (eq (car i) 'defun) (commandp (cdr i)))
                         collect (cdr i))))
     (with-current-buffer (get-buffer-create "*Smartparens cheat sheet*")
@@ -1039,7 +1040,7 @@ beginning."
   "Return 1 if X is positive, -1 if negative, 0 if zero."
   (cond ((> x 0) 1) ((< x 0) -1) (t 0)))
 
-(eval-when (compile eval load)
+(cl-eval-when (compile eval load)
   (defun sp--get-substitute (keyword-list struct list)
     "Only ever call this from sp-get!  This function do the
 replacement of all the keywords with actual calls to sp-get."
@@ -1108,7 +1109,7 @@ a list and not a single keyword."
      ((listp attr)
       (sp--get-substitute keyword-list struct (cons 'progn (cons attr forms))))
      (t
-      (case attr
+      (cl-case attr
         ;; point in buffer before the opening delimiter
         (:beg         `(plist-get ,struct :beg))
         ;; point in the buffer after the closing delimiter
@@ -1161,12 +1162,12 @@ which to do the comparsion."
   "Merge a property PROP from NEW-PAIR into OLD-PAIR.
 The list OLD-PAIR must not be nil."
   (let ((new-val (plist-get new-pair prop)))
-    (case prop
+    (cl-case prop
       (:close (plist-put old-pair :close new-val))
       (:prefix (plist-put old-pair :prefix new-val))
       (:skip-match (plist-put old-pair :skip-match new-val))
       ((:actions :when :unless :pre-handlers :post-handlers)
-       (case (car new-val)
+       (cl-case (car new-val)
          (:add (plist-put old-pair prop (-union (plist-get old-pair prop) (cdr new-val))))
          (:rem (plist-put old-pair prop (-difference (plist-get old-pair prop) (cdr new-val))))
          (t
@@ -1320,15 +1321,15 @@ negative -N, wrap N preceeding expressions.")
                         (sp-get sel (indent-region :beg :end)))))
     (define-key keymap (read-kbd-macro binding) fun-name)))
 
-(defun* sp-pair (open
-                 close
-                 &key
-                 (actions '(wrap insert))
-                 when
-                 unless
-                 pre-handlers
-                 post-handlers
-                 bind)
+(cl-defun sp-pair (open
+                   close
+                   &key
+                   (actions '(wrap insert))
+                   when
+                   unless
+                   pre-handlers
+                   post-handlers
+                   bind)
   "Add a pair definition.
 
 OPEN is the opening delimiter.  Every pair is uniquely determined
@@ -1459,18 +1460,18 @@ wrap ARG (default 1) expressions with this pair (like
   (sp--update-local-pairs-everywhere)
   sp-pairs)
 
-(defun* sp-local-pair (modes
-                       open
-                       close
-                       &key
-                       (actions '(:add))
-                       (when '(:add))
-                       (unless '(:add))
-                       (pre-handlers '(:add))
-                       (post-handlers '(:add))
-                       bind
-                       prefix
-                       skip-match)
+(cl-defun sp-local-pair (modes
+                         open
+                         close
+                         &key
+                         (actions '(:add))
+                         (when '(:add))
+                         (unless '(:add))
+                         (pre-handlers '(:add))
+                         (post-handlers '(:add))
+                         bind
+                         prefix
+                         skip-match)
   "Add a local pair definition or override a global definition.
 
 MODES can be a single mode or a list of modes where these settings
@@ -1559,10 +1560,10 @@ addition, there is a global per major-mode option, see
   (sp--update-local-pairs-everywhere (-flatten (list modes)))
   sp-pairs)
 
-(defun* sp-local-tag (modes trig open close &key
-                            (transform 'identity)
-                            (actions '(wrap insert))
-                            post-handlers)
+(cl-defun sp-local-tag (modes trig open close &key
+                              (transform 'identity)
+                              (actions '(wrap insert))
+                              post-handlers)
   "Add a tag definition.
 
 MODES is a mode or a list of modes where this tag should
@@ -1901,7 +1902,7 @@ If USE-INSIDE-STRING is non-nil, use value of
 
 (defun sp--get-context (type)
   "Return the context constant.  TYPE is type of the handler."
-  (let ((in-string (case type
+  (let ((in-string (cl-case type
                      (:pre-handlers
                       (save-excursion
                         (backward-char 1)
@@ -2191,20 +2192,20 @@ matched in-symbol."
                    (string-match-p "\\`\\<" string)
                    (string-match-p "\\>\\'" string)))
 
-(defun* sp--get-opening-regexp (&optional (pair-list (sp--get-pair-list)))
+(cl-defun sp--get-opening-regexp (&optional (pair-list (sp--get-pair-list)))
   "Return regexp matching any opening pair."
   (sp--strict-regexp-opt (--map (car it) pair-list)))
 
-(defun* sp--get-closing-regexp (&optional (pair-list (sp--get-pair-list)))
+(cl-defun sp--get-closing-regexp (&optional (pair-list (sp--get-pair-list)))
   "Return regexp matching any closing pair."
   (sp--strict-regexp-opt (--map (cdr it) pair-list)))
 
-(defun* sp--get-allowed-regexp (&optional (pair-list (sp--get-allowed-pair-list)))
+(cl-defun sp--get-allowed-regexp (&optional (pair-list (sp--get-allowed-pair-list)))
   "Return regexp matching any opening or closing
 delimiter for any pair allowed in current context."
   (sp--strict-regexp-opt (--mapcat (list (car it) (cdr it)) pair-list)))
 
-(defun* sp--get-stringlike-regexp (&optional (pair-list (sp--get-allowed-stringlike-list)))
+(cl-defun sp--get-stringlike-regexp (&optional (pair-list (sp--get-allowed-stringlike-list)))
   (regexp-opt (--map (car it) pair-list)))
 
 (defun sp--get-last-wraped-region (beg end open close)
@@ -3401,7 +3402,7 @@ following point after `sp-backward-up-sexp' is called)."
           (!cons (sp-forward-sexp) r))
         (cons lst (nreverse (cdr r)))))))
 
-(defun* sp--get-prefix (&optional (p (point)) use-mode-regexp)
+(cl-defun sp--get-prefix (&optional (p (point)) use-mode-regexp)
   "Get the prefix of EXPR. Prefix is any continuous sequence of
 characters in \"expression prefix\" syntax class."
   (save-excursion
