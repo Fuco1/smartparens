@@ -170,14 +170,18 @@ better orientation."
   "Alist containing the default paredit bindings to corresponding
 smartparens functions.")
 
+(defun sp--populate-keymap (bindings)
+  "Populates the `sp-keymap' from the BINDINGS alist."
+  (--each bindings
+    (define-key sp-keymap (read-kbd-macro (car it)) (cdr it))))
+
 ;;;###autoload
 (defun sp-use-paredit-bindings ()
   "Initiate `sp-keymap' with paredit-compatible bindings for
 corresponding functions provided by smartparens.  See variable
 `sp-paredit-bindings'."
   (interactive)
-  (--each sp-paredit-bindings
-    (define-key sp-keymap (read-kbd-macro (car it)) (cdr it))))
+  (sp--populate-keymap sp-paredit-bindings))
 
 (defvar sp-smartparens-bindings '(
                                   ("C-M-f" . sp-forward-sexp)
@@ -214,8 +218,7 @@ corresponding functions provided by smartparens.  See variable
   "Initiate `sp-keymap' with smartparens bindings for navigation functions.
 See variable `sp-smartparens-bindings'."
   (interactive)
-  (--each sp-smartparens-bindings
-    (define-key sp-keymap (read-kbd-macro (car it)) (cdr it))))
+  (sp--populate-keymap sp-smartparens-bindings))
 
 (defun sp--set-base-key-bindings (&optional symbol value)
   "Set up the default keymap based on `sp-base-key-bindings'.
@@ -235,8 +238,7 @@ This function is also used as a setter for this customize value."
   (when symbol (set-default symbol value))
   ;; this also needs to reload the base set, if any is present.
   (sp--set-base-key-bindings)
-  (--each sp-override-key-bindings
-    (define-key sp-keymap (read-kbd-macro (car it)) (cdr it))))
+  (sp--populate-keymap sp-override-key-bindings))
 
 (defcustom sp-base-key-bindings nil
   "A default set of key bindings for commands provided by smartparens.
