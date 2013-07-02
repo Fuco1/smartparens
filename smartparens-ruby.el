@@ -127,7 +127,7 @@
   (save-excursion
     (when (looking-back (concat ms " *"))
       (backward-word))
-    (when (not (looking-back "\\`"))
+    (when (not (looking-back "^ *"))
       (sp-backward-sexp)
       (sp-forward-sexp)
       (looking-at-p (concat " *" ms)))))
