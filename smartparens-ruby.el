@@ -125,11 +125,12 @@
 
 (defun sp-ruby-skip-inline (ms mb me)
   (save-excursion
-    (when (looking-back ms)
-      (sp-backward-symbol))
-    (sp-backward-sexp)
-    (sp-forward-sexp)
-    (looking-at-p (concat " *" ms))))
+    (when (looking-back (concat ms " *"))
+      (backward-word))
+    (when (not (looking-back "\\`"))
+      (sp-backward-sexp)
+      (sp-forward-sexp)
+      (looking-at-p (concat " *" ms)))))
 
 (sp-with-modes '(ruby-mode)
 
