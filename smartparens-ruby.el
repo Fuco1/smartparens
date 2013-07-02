@@ -123,6 +123,12 @@
       (and (looking-back id)
            (not (looking-back (sp--strict-regexp-quote id))))))
 
+(defun sp-ruby-skip-inline (ms mb me)
+  (save-excursion
+    (sp-backward-sexp)
+    (sp-forward-sexp)
+    (looking-at-p (concat "\\s-*" ms))))
+
 (sp-with-modes '(ruby-mode)
 
   (sp-local-pair "do" "end"
@@ -169,14 +175,24 @@
                  :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-def-post-handler))
+                 :post-handlers '(sp-ruby-def-post-handler)
+                 :skip-match 'sp-ruby-skip-inline)
 
   (sp-local-pair "unless" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-def-post-handler))
+                 :post-handlers '(sp-ruby-def-post-handler)
+                 :skip-match 'sp-ruby-skip-inline)
+
+  (sp-local-pair "while" "end"
+                 :when '(("SPC" "RET" "<evil-ret>"))
+                 :unless '(sp-ruby-in-string-or-word-p)
+                 :actions '(insert)
+                 :pre-handlers '(sp-ruby-pre-handler)
+                 :post-handlers '(sp-ruby-def-post-handler)
+                 :skip-match 'sp-ruby-skip-inline)
   )
 
 (provide 'smartparens-ruby)
