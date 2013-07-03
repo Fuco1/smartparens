@@ -123,14 +123,22 @@
       (and (looking-back id)
            (not (looking-back (sp--strict-regexp-quote id))))))
 
-(defun sp-ruby-skip-inline (ms mb me)
+(defun sp-ruby-inline-p (id)
   (save-excursion
-    (when (looking-back (concat ms " *"))
+    (when (looking-back (concat id " *"))
       (backward-word))
     (when (not (looking-back "^ *"))
       (sp-backward-sexp)
       (sp-forward-sexp)
-      (looking-at-p (concat " *" ms)))))
+      (looking-at-p (concat " *" id)))))
+
+(defun sp-ruby-skip-inline-match-p (ms mb me)
+  (sp-ruby-inline-p ms))
+
+(defun sp-ruby-in-string-word-or-inline-p (id action context)
+  (or (sp-ruby-in-string-or-word-p id action context)
+      (and (looking-back id)
+           (sp-ruby-inline-p id))))
 
 (sp-with-modes '(ruby-mode)
 
@@ -175,27 +183,27 @@
 
   (sp-local-pair "if" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
-                 :unless '(sp-ruby-in-string-or-word-p)
+                 :unless '(sp-ruby-in-string-word-or-inline-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
                  :post-handlers '(sp-ruby-def-post-handler)
-                 :skip-match 'sp-ruby-skip-inline)
+                 :skip-match 'sp-ruby-skip-inline-match-p)
 
   (sp-local-pair "unless" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
-                 :unless '(sp-ruby-in-string-or-word-p)
+                 :unless '(sp-ruby-in-string-word-or-inline-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
                  :post-handlers '(sp-ruby-def-post-handler)
-                 :skip-match 'sp-ruby-skip-inline)
+                 :skip-match 'sp-ruby-skip-inline-match-p)
 
   (sp-local-pair "while" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
-                 :unless '(sp-ruby-in-string-or-word-p)
+                 :unless '(sp-ruby-in-string-word-or-inline-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
                  :post-handlers '(sp-ruby-def-post-handler)
-                 :skip-match 'sp-ruby-skip-inline)
+                 :skip-match 'sp-ruby-skip-inline-match-p)
   )
 
 (provide 'smartparens-ruby)
