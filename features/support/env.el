@@ -24,6 +24,7 @@
 (Setup
  ;; Before anything has run
  (setq my-counter 1)
+ (global-set-key (kbd "C-c s") 'sp-split-sexp)
  )
 
 (Before

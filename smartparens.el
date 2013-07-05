@@ -5366,8 +5366,12 @@ expressions up until the start of enclosing list."
   (interactive)
   (skip-chars-backward " \t\n"))
 
-(defun sp-split-sexp ()
+(defun sp-split-sexp (arg)
   "Split the list or string the point is on into two.
+
+If ARG is a raw prefix \\[universal-argument] split all the sexps in current expression
+in separate lists enclosed with delimiters of the current
+expression.
 
 Examples:
 
@@ -5376,11 +5380,34 @@ Examples:
   \"foo bar |baz quux\"   -> \"foo bar\" |\"baz quux\"
 
   ([foo |bar baz] quux) -> ([foo] |[bar baz] quux)"
-  (interactive)
-  (let ((ok (sp-get-enclosing-sexp 1)))
-    (when ok
-      (forward-char (- (prog1 (sp-backward-whitespace) (insert (sp-get ok :cl)))))
-      (save-excursion (sp-forward-whitespace) (insert (sp-get ok :op))))))
+  (interactive "P")
+  (cond
+   ((equal arg '(4))
+    (let ((items (sp-get-list-items)))
+      (when items
+        (let ((op (sp-get (car items) :op))
+              (cl (sp-get (car items) :cl))
+              (beg (sp-get (car items) :beg))
+              (end (sp-get (car items) :end)))
+          (!cdr items)
+          (setq items (nreverse items))
+          (save-excursion
+            (goto-char end)
+            (delete-backward-char (length cl))
+            (while items
+              (sp-get (car items)
+                (goto-char :end)
+                (insert cl)
+                (goto-char :beg)
+                (insert op))
+              (!cdr items))
+            (goto-char beg)
+            (delete-char (length op)))))))
+   (t
+    (let ((ok (sp-get-enclosing-sexp 1)))
+      (when ok
+        (forward-char (- (prog1 (sp-backward-whitespace) (insert (sp-get ok :cl)))))
+        (save-excursion (sp-forward-whitespace) (insert (sp-get ok :op))))))))
 
 (defun sp--join-sexp (prev next)
   "Join the expressions PREV and NEXT if they are of the same type.
