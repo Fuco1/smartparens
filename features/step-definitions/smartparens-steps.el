@@ -63,3 +63,28 @@
                     (edmacro-parse-keys "RET")))
           (cl-assert (equal result type) nil
                      "Typed %S but got %S" type result))))
+
+(When "^I press \"\\(.+\\)\"$"
+      (lambda (keybinding)
+        (let ((macro (edmacro-parse-keys keybinding)))
+          (if espuds-chain-active
+              (setq espuds-action-chain (vconcat espuds-action-chain macro))
+            (if (and (equal keybinding "C-g")
+                     (eq (key-binding (kbd "C-g")) 'keyboard-quit))
+                (espuds-quit)
+              (execute-kbd-macro macro))))))
+
+(When "^I go to character \"\\(.+\\)\"$"
+      (lambda (char)
+        (goto-char (point-min))
+        (let ((search (re-search-forward (format "%s" char) nil t))
+              (message "Can not go to character '%s' since it does not exist in the current buffer: %s"))
+          (assert search nil message char (espuds-buffer-contents)))))
+
+(When "^I go to the \\(front\\|end\\) of the word \"\\(.+\\)\"$"
+      (lambda (pos word)
+        (goto-char (point-min))
+        (let ((search (re-search-forward (format "%s" word) nil t))
+              (message "Can not go to character '%s' since it does not exist in the current buffer: %s"))
+          (assert search nil message word (espuds-buffer-contents))
+          (if (string-equal "front" pos) (backward-word)))))
