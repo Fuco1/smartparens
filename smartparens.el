@@ -5833,6 +5833,16 @@ string delimiter enclosing this string."
       (let ((c (char-to-string (nth 3 (syntax-ppss pos)))))
         (cons c c)))))
 
+(defun sp-zap-syntax (syntax &optional back)
+  "Delete characters forward until they match syntax class SYNTAX.
+
+If BACK is non-nil, delete backward."
+  (let ((p (point)))
+    (if back
+        (skip-syntax-backward syntax)
+      (skip-syntax-forward syntax))
+    (delete-region p (point))))
+
 (defun sp-kill-symbol (&optional arg word)
   "Kill a symbol forward, skipping over any intervening delimiters.
 
@@ -5889,13 +5899,15 @@ See `sp-backward-symbol' for what constitutes a symbol."
             (progn
               (kill-word -1)
               (sp--cleanup-after-kill))
-          (let ((s (sp-get-symbol t)))
+          (let ((s (sp-get-symbol t))
+                (p (point)))
             (when s
               (sp-get s
                 (goto-char :end)
                 (if word
                     (progn
                       (kill-word -1)
+                      (when (< :end p) (sp-zap-syntax "."))
                       (sp--cleanup-after-kill))
                   (sp-kill-sexp -1))))))
         (setq arg (1- arg)))
