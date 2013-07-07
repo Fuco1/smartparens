@@ -37,6 +37,12 @@
 ;; into your configuration.  You can use this in conjunction with the
 ;; default config or your own configuration.
 
+;; It is advised that you add `latex-mode' to the list
+;; `sp-navigate-consider-stringlike-sexp'.  This will tell
+;; smartparens to treat the $$ math blocks as sexps, and enable you
+;; to use all the sexp-based commands on them (such as
+;; `sp-down-sexp', `sp-up-sexp' etc.)
+
 ;; If you have good ideas about what should be added please file an
 ;; issue on the github tracker.
 
@@ -46,6 +52,11 @@
 ;;; Code:
 
 (require 'smartparens)
+
+(defun sp-latex-insert-spaces-inside-pair (id action context)
+  (when (eq action 'insert)
+    (insert "  ")
+    (backward-char 1)))
 
 (sp-with-modes '(
                  tex-mode
@@ -64,16 +75,17 @@
 
   ;; pairs for big brackets.  Needs more research on what pairs are
   ;; useful to add here.  Post suggestions if you know some.
-  (sp-local-pair "\\left(" "\\right)")
-  (sp-local-pair "\\left{" "\\right}")
-  (sp-local-pair "\\big(" "\\big)")
-  (sp-local-pair "\\bigg(" "\\bigg)")
-  (sp-local-pair "\\Big(" "\\Big)")
-  (sp-local-pair "\\Bigg(" "\\Bigg)")
-  (sp-local-pair "\\big{" "\\big}")
-  (sp-local-pair "\\bigg{" "\\bigg}")
-  (sp-local-pair "\\Big{" "\\Big}")
-  (sp-local-pair "\\Bigg{" "\\Bigg}")
+  (sp-local-pair "\\left(" "\\right)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\left{" "\\right}" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\big(" "\\big)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\bigg(" "\\bigg)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\Big(" "\\Big)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\Bigg(" "\\Bigg)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\big{" "\\big}" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\bigg{" "\\bigg}" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\Big{" "\\Big}" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\Bigg{" "\\Bigg}" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\langle" "\\rangle" :post-handlers '(sp-latex-insert-spaces-inside-pair))
 
   ;; some common wrappings
   (sp-local-tag "bi" "\\begin{itemize}" "\\end{itemize}")
