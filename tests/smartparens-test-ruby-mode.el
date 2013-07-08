@@ -13,6 +13,7 @@
     (goto-char (search-forward (regexp-quote "X")))
     (delete-char -1)
     (sp-forward-slurp-sexp n)
+    (delete-trailing-whitespace)
     (should (equal (buffer-string) expected))))
 
 (ert-deftest sp-test-ruby-slurp ()
@@ -59,6 +60,30 @@ if test
   foo.bar
 end
 ")
+
+  (sp-ruby-test-slurp-assert -2 "
+foo.bar
+begin X
+end
+" :=> "
+begin
+  foo.bar
+end
+")
+
+  (sp-ruby-test-slurp-assert -1 "
+if test
+ foo.bar
+end
+begin X
+end
+" :=> "
+begin
+  if test
+    foo.bar
+  end
+end
+")
   )
 
 (defun sp-ruby-test-splice-assert (n in _ expected)
@@ -70,6 +95,7 @@ end
     (goto-char (search-forward (regexp-quote "X")))
     (delete-char -1)
     (sp-splice-sexp n)
+    (delete-trailing-whitespace)
     (should (equal (buffer-string) expected))))
 
 (ert-deftest sp-test-ruby-splice ()
