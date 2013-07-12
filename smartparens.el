@@ -3214,8 +3214,8 @@ opening and closing delimiter, such as *...*, \"...\", `...` etc."
           (setq skip-match-fn (sp-get-pair m :skip-match))
           (save-excursion
             ;; assumes \ is always the escape... bad?
-            (while (re-search-backward (concat "[^\\]" needle) nil t)
-              (forward-char 1)
+            (while (re-search-backward (concat "\\(\\`\\|[^\\]\\)" needle) nil t)
+              (when (/= (point) (point-min)) (forward-char 1))
               (unless (and skip-match-fn
                            (funcall skip-match-fn
                                     (match-string 0)
@@ -3247,8 +3247,8 @@ See also: `sp-navigate-consider-stringlike-sexp'."
       (let ((pre (sp--get-allowed-regexp))
             (sre (sp--get-stringlike-regexp))
             (search-fn (if (not back) 'search-forward-regexp 'sp--search-backward-regexp))
-            (ps (if back (point-min) (point-max)))
-            (ss (if back (point-min) (point-max))))
+            (ps (if back (1- (point-min)) (1+ (point-max))))
+            (ss (if back (1- (point-min)) (1+ (point-max)))))
         (setq ps (or (save-excursion (funcall search-fn pre nil t)) ps))
         (setq ss (or (save-excursion (funcall search-fn sre nil t)) ss))
         (if (or (and (not back) (< ps ss))
@@ -3263,10 +3263,11 @@ See also: `sp-navigate-consider-stringlike-sexp'."
 Search backward if BACK is non-nil.  This also means, if the
 point is inside an expression, this expression is returned.
 
-For the moment, this function (ignores) pairs where the opening and
-closing pair is the same, as it is impossible to correctly
-determine the opening/closing relation without keeping track of
-the content of the entire buffer.
+If `major-mode' is member of `sp-navigate-consider-sgml-tags',
+sgml tags will also be considered as sexps in current buffer.  If
+`major-mode' is member of `sp-navigate-consider-stringlike-sexp',
+expressions where the opening and closing delimiters are the same
+will also be considered as sexps.
 
 If the search starts outside a comment, all subsequent comments
 are skipped.
