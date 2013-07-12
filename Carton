@@ -7,5 +7,6 @@
 (depends-on "dash")
 
 (development
+  (depends-on "ruby-mode")
   (depends-on "ecukes")
   (depends-on "espuds"))
