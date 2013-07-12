@@ -84,6 +84,16 @@ begin
   end
 end
 ")
+
+  (sp-ruby-test-slurp-assert 5 "
+beginX
+end
+test(1).test[2].test
+" :=> "
+begin
+  test(1).test[2].test
+end
+")
   )
 
 (defun sp-ruby-test-splice-assert (n in _ expected)

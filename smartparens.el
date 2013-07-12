@@ -4386,6 +4386,7 @@ Examples:
                 (goto-char (sp-get enc :end))
                 (setq ok enc)
                 (setq next-thing (sp-get-thing nil))
+                (setq ins-space 0)
                 (while (< (sp-get next-thing :beg) (sp-get ok :beg))
                   (goto-char (sp-get next-thing :end))
                   (setq ok next-thing)
