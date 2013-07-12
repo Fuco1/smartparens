@@ -16,7 +16,7 @@
     (delete-trailing-whitespace)
     (should (equal (buffer-string) expected))))
 
-(ert-deftest sp-test-ruby-slurp ()
+(ert-deftest sp-test-ruby-slurp-forward ()
   (sp-ruby-test-slurp-assert 1 "
 if teXst
 end
@@ -61,6 +61,38 @@ if test
 end
 ")
 
+  (sp-ruby-test-slurp-assert 5 "
+beginX
+end
+test(1).test[2].test
+" :=> "
+begin
+  test(1).test[2].test
+end
+")
+
+  (sp-ruby-test-slurp-assert 5 "
+beginX
+end
+test ? a : b
+" :=> "
+begin
+  test ? a : b
+end
+")
+
+  (sp-ruby-test-slurp-assert 1 "
+beginX
+end
+Module::Class
+" :=> "
+begin
+  Module::Class
+end
+")
+  )
+
+(ert-deftest sp-test-ruby-slurp-backward ()
   (sp-ruby-test-slurp-assert -2 "
 foo.bar
 begin X
@@ -85,13 +117,70 @@ begin
 end
 ")
 
-  (sp-ruby-test-slurp-assert 5 "
+  (sp-ruby-test-slurp-assert -5 "
+test(1).test[2].test
 beginX
 end
-test(1).test[2].test
 " :=> "
 begin
   test(1).test[2].test
+end
+")
+
+  (sp-ruby-test-slurp-assert -5 "
+test ? a : b
+beginX
+end
+" :=> "
+begin
+  test ? a : b
+end
+")
+
+  (sp-ruby-test-slurp-assert -1 "
+Module::Class
+beginX
+end
+" :=> "
+begin
+  Module::Class
+end
+")
+
+  )
+
+(ert-deftest sp-test-ruby-slurp-with-inline-blocks ()
+  (sp-ruby-test-slurp-assert 1 "
+if teXst
+end
+foo if true
+" :=> "
+if test
+  foo
+end if true
+")
+
+  (sp-ruby-test-slurp-assert 2 "
+if teXst
+end
+foo if true
+" :=> "
+if test
+  foo if true
+end
+")
+
+  (sp-ruby-test-slurp-assert 2 "
+if teXst
+end
+foo = if true
+        bar
+      end
+" :=> "
+if test
+  foo = if true
+          bar
+        end
 end
 ")
   )
