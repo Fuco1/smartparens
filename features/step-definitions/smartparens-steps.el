@@ -64,15 +64,10 @@
           (cl-assert (equal result type) nil
                      "Typed %S but got %S" type result))))
 
-(When "^I press \"\\(.+\\)\"$"
-      (lambda (keybinding)
-        (let ((macro (edmacro-parse-keys keybinding)))
-          (if espuds-chain-active
-              (setq espuds-action-chain (vconcat espuds-action-chain macro))
-            (if (and (equal keybinding "C-g")
-                     (eq (key-binding (kbd "C-g")) 'keyboard-quit))
-                (espuds-quit)
-              (execute-kbd-macro macro))))))
+(When "^I enable string sexps in \"\\(.+\\)\"$"
+      (lambda (mode)
+	(add-to-list 'sp-navigate-consider-stringlike-sexp (intern mode))
+	))
 
 (When "^I go to character \"\\(.+\\)\"$"
       (lambda (char)
