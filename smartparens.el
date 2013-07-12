@@ -1858,7 +1858,7 @@ This predicate is only tested on \"insert\" action."
   "Return t if point is followed by ID, nil otherwise.
 This predicate is only tested on \"insert\" action."
   (when (eq action 'insert)
-    (looking-at (regexp-quote id))))
+    (sp--looking-at (regexp-quote id))))
 
 (defun sp-point-in-empty-line-p (id action context)
   "Return t if point is on an empty line, nil otherwise"
@@ -2599,7 +2599,7 @@ wrapping."
        (t
         (setq was-beg (< (point) e))
         (goto-char b)
-        (while (search-forward-regexp "\\([^\\]\\)\"" (1- e) t)
+        (while (sp--search-forward-regexp "\\([^\\]\\)\"" (1- e) t)
           (replace-match "\\1\\\\\"" t))
         (setq sp-last-wrapped-region
               (sp--get-last-wraped-region b e "\"" "\""))
@@ -2694,16 +2694,16 @@ followed by word.  It is disabled by default.  See
                          ;; need to set `sp-last-operation'
                          ;; accordingly to be checked in
                          ;; `self-insert-command' advice.
-                         (if (looking-at pattern)
+                         (if (sp--looking-at pattern)
                              (progn (setq sp-last-operation 'sp-self-insert-no-escape) nil)
                            t))
                      t))
                  (cond
                   ((eq sp-autoinsert-if-followed-by-same 0) t)
                   ((eq sp-autoinsert-if-followed-by-same 1)
-                   (not (looking-at (sp--strict-regexp-quote open-pair))))
+                   (not (sp--looking-at (sp--strict-regexp-quote open-pair))))
                   ((eq sp-autoinsert-if-followed-by-same 2)
-                   (or (not (looking-at (sp--strict-regexp-quote open-pair)))
+                   (or (not (sp--looking-at (sp--strict-regexp-quote open-pair)))
                        (and (equal open-pair close-pair)
                             (eq sp-last-operation 'sp-insert-pair)
                             (save-excursion
@@ -2711,7 +2711,7 @@ followed by word.  It is disabled by default.  See
                               (sp--looking-back (sp--strict-regexp-quote open-pair))))))
                   ((eq sp-autoinsert-if-followed-by-same 3)
                    (or (not (sp--get-active-overlay 'pair))
-                       (not (looking-at (sp--strict-regexp-quote open-pair)))
+                       (not (sp--looking-at (sp--strict-regexp-quote open-pair)))
                        (and (equal open-pair close-pair)
                             (eq sp-last-operation 'sp-insert-pair)
                             (save-excursion
@@ -2843,7 +2843,7 @@ This behaviour can be globally disabled by setting
         ;; rest of yet-untyped close-pair
         (let ((close-pair-rest (substring close-pair already-skipped))
               (last last-command-event))
-          (when (and (looking-at (regexp-quote close-pair-rest))
+          (when (and (sp--looking-at (regexp-quote close-pair-rest))
                      ;; start deletion only if point is not right
                      ;; after the opening pair *after* the potential
                      ;; closing character was inserted (if opening
@@ -2907,7 +2907,7 @@ is remove the just added wrapping."
             (setq sp-last-operation 'sp-delete-pair-wrap)))
       (let ((p (point))
             (inside-pair (--first (and (sp--looking-back (sp--strict-regexp-quote (car it)))
-                                       (looking-at (concat "[ \n]*" (sp--strict-regexp-quote (cdr it)))))
+                                       (sp--looking-at (concat "[ \n]*" (sp--strict-regexp-quote (cdr it)))))
                                   sp-pair-list))
             (behind-pair (--first (sp--looking-back (sp--strict-regexp-quote (cdr it))) sp-pair-list))
             (opening-pair (--first (sp--looking-back (sp--strict-regexp-quote (car it))) sp-pair-list)))
@@ -2949,6 +2949,16 @@ is remove the just added wrapping."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Navigation
 
+(defun sp--looking-at (regexp)
+  "Like `looking-at', but always case sensitive."
+  (let ((case-fold-search nil))
+    (looking-at regexp)))
+
+(defun sp--looking-at-p (regexp)
+  "Like `looking-at-p', but always case sensitive."
+  (let ((case-fold-search nil))
+    (looking-at-p regexp)))
+
 (defun sp--looking-back (regexp &optional limit not-greedy)
   "Return non-nil if text before point matches regular expression REGEXP.
 
@@ -2958,7 +2968,8 @@ backward.  If LIMIT is nil, default to `sp-max-pair-length-c'.
 If optional argument NON-GREEDY is t search for any matching
 sequence, not necessarily the longest possible."
   (setq limit (or limit sp-max-pair-length-c))
-  (let ((from (max 1 (- (point) limit)))
+  (let ((case-fold-search nil)
+        (from (max 1 (- (point) limit)))
         (to (point))
         (greedy (not not-greedy))
         has-match)
@@ -2967,7 +2978,7 @@ sequence, not necessarily the longest possible."
         (save-excursion
           (goto-char from)
           (while (and (not has-match) (< (point) to))
-            (looking-at regexp)
+            (sp--looking-at regexp)
             (if (= (match-end 0) to)
                 (setq has-match t)
               (forward-char 1)))
@@ -2989,7 +3000,7 @@ longest possible match.  That means that searching for
 This is an internal function.  Only use this for searching for
 pairs!"
   (setq count (or count 1))
-  (let (r)
+  (let ((case-fold-search nil) r)
     (while (> count 0)
       (when (search-backward-regexp regexp bound noerror)
         (goto-char (match-end 0))
@@ -2997,6 +3008,11 @@ pairs!"
         (setq r (goto-char (match-beginning 0))))
       (setq count (1- count)))
     r))
+
+(defun sp--search-forward-regexp (regexp &optional bound noerror count)
+  "Just like `search-forward-regexp', but always case sensitive."
+  (let ((case-fold-search nil))
+    (search-forward-regexp regexp bound noerror count)))
 
 (defmacro sp--get-bounds (name docstring test)
   "Generate a function called NAME that return the bounds of
@@ -3074,7 +3090,7 @@ be a function call that sets the match data."
 
 The expressions considered are those delimited by pairs on
 `sp-pair-list'."
-  (let* ((search-fn (if (not back) 'search-forward-regexp 'sp--search-backward-regexp))
+  (let* ((search-fn (if (not back) 'sp--search-forward-regexp 'sp--search-backward-regexp))
          (pair-list (sp--get-pair-list))
          (in-string-or-comment (sp-point-in-string-or-comment))
          (string-bounds (and in-string-or-comment (sp--get-string-or-comment-bounds)))
@@ -3132,7 +3148,7 @@ The expressions considered are those delimited by pairs on
         (let* ((opens (if forward possible-ops possible-cls))
                (closes (if forward possible-cls possible-ops))
                (needle (sp--strict-regexp-opt (append possible-ops possible-cls)))
-               (search-fn (if forward 'search-forward-regexp 'search-backward-regexp))
+               (search-fn (if forward 'sp--search-forward-regexp 'sp--search-backward-regexp))
                (depth 1)
                (eof (if forward 'eobp 'bobp))
                (b (if forward fw-bound bw-bound))
@@ -3215,8 +3231,8 @@ String-like expression is expression enclosed with the same
 opening and closing delimiter, such as *...*, \"...\", `...` etc."
   (save-excursion
     (let ((needle (sp--get-stringlike-regexp))
-          (search-fn-f (if (not back) 'search-forward-regexp 'sp--search-backward-regexp))
-          (search-fn-b (if back 'search-forward-regexp 'sp--search-backward-regexp))
+          (search-fn-f (if (not back) 'sp--search-forward-regexp 'sp--search-backward-regexp))
+          (search-fn-b (if back 'sp--search-forward-regexp 'sp--search-backward-regexp))
           (count 0)
           m b e skip-match-fn limit ok)
       (when (not (equal needle ""))
@@ -3252,7 +3268,7 @@ See also: `sp-navigate-consider-stringlike-sexp'."
   (if (memq major-mode sp-navigate-consider-stringlike-sexp)
       (let ((pre (sp--get-allowed-regexp))
             (sre (sp--get-stringlike-regexp))
-            (search-fn (if (not back) 'search-forward-regexp 'sp--search-backward-regexp))
+            (search-fn (if (not back) 'sp--search-forward-regexp 'sp--search-backward-regexp))
             (ps (if back (1- (point-min)) (1+ (point-max))))
             (ss (if back (1- (point-min)) (1+ (point-max)))))
         (setq ps (or (save-excursion (funcall search-fn pre nil t)) ps))
@@ -3506,7 +3522,7 @@ and newline."
 (defun sp-get-sgml-tag (&optional back)
   (sp--maybe-init)
   (save-excursion
-    (let ((search-fn (if (not back) 'search-forward-regexp 'search-backward-regexp))
+    (let ((search-fn (if (not back) 'sp--search-forward-regexp 'sp--search-backward-regexp))
           tag tag-name needle
           open-start open-end
           close-start close-end)
@@ -3515,7 +3531,7 @@ and newline."
         (setq tag-name (sp--sgml-get-tag-name tag))
         (setq needle (concat "</?" tag-name))
         (let* ((forward (sp--sgml-opening-p tag))
-               (search-fn (if forward 'search-forward-regexp 'search-backward-regexp))
+               (search-fn (if forward 'sp--search-forward-regexp 'sp--search-backward-regexp))
                (depth 1))
           (save-excursion
             (if (not back)
@@ -3675,14 +3691,14 @@ expressions are considered."
              ((and (memq major-mode sp-navigate-consider-sgml-tags)
                    (looking-at "<")
                    (sp-get-sgml-tag)))
-             ((sp--valid-initial-delimiter-p (looking-at (sp--get-opening-regexp)))
+             ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-opening-regexp)))
               (sp-get-sexp nil))
-             ((sp--valid-initial-delimiter-p (looking-at (sp--get-closing-regexp)))
+             ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-closing-regexp)))
               (sp-get-sexp nil))
              ((eq (char-syntax (following-char)) 34)
               (sp-get-string nil))
              ((and (memq major-mode sp-navigate-consider-stringlike-sexp)
-                   (sp--valid-initial-delimiter-p (looking-at (sp--get-stringlike-regexp)))
+                   (sp--valid-initial-delimiter-p (sp--looking-at (sp--get-stringlike-regexp)))
                    (sp-get-stringlike-expression nil)))
              ;; it can still be that we are looking at a /prefix/ of a
              ;; sexp.  We should skip a symbol forward and check if it
@@ -3691,7 +3707,7 @@ expressions are considered."
                        (sym-string (and sym (sp-get sym (buffer-substring-no-properties :beg :end)))))
                   (when sym-string
                     (goto-char (sp-get sym :end))
-                    (if (looking-at (sp--get-opening-regexp))
+                    (if (sp--looking-at (sp--get-opening-regexp))
                         (let* ((ms (match-string 0))
                                (pref-re (sp-get-pair ms :prefix))
                                (pref (sp--get-prefix (point) pref-re)))
@@ -4246,7 +4262,7 @@ Note: prefix argument is shown after the example in
         (edel (save-excursion
                 (when (looking-at " ")
                   (skip-chars-forward " \t")
-                  (when (not (looking-at (sp--get-closing-regexp)))
+                  (when (not (sp--looking-at (sp--get-closing-regexp)))
                     (backward-char)))
                 (point))))
     (delete-region bdel edel))
@@ -4687,7 +4703,7 @@ Examples:
         (dec (if forward '1- '1+))
         (forward-fn (if forward 'forward-char 'backward-char))
         (next-char-fn (if forward 'following-char 'preceding-char))
-        (looking (if forward 'looking-at 'sp--looking-back)))
+        (looking (if forward 'sp--looking-at 'sp--looking-back)))
     `(let ((in-comment (sp-point-in-comment))
            ;; HACK: if we run out of current context this might skip a
            ;; pair that was not allowed before.  However, such a call is
@@ -4761,8 +4777,8 @@ With BACK non-nil, move backwards."
 (defmacro sp--forward-symbol-1 (fw-1)
   "Generate forward/backward symbol functions."
   (let ((goto-where (if fw-1 '(match-end 0) '(match-beginning 0)))
-        (look-at-open (if fw-1 '(looking-at open) '(sp--looking-back open)))
-        (look-at-close (if fw-1 '(looking-at close) '(sp--looking-back close))))
+        (look-at-open (if fw-1 '(sp--looking-at open) '(sp--looking-back open)))
+        (look-at-close (if fw-1 '(sp--looking-at close) '(sp--looking-back close))))
     `(let ((n (abs arg))
            (fw (> arg 0))
            (open (sp--get-opening-regexp))
@@ -5752,7 +5768,7 @@ Examples:
          ((and (sp-point-in-string)
                (save-excursion (forward-char) (not (sp-point-in-string))))
           (setq n 0))
-         ((looking-at (sp--get-opening-regexp (sp--get-pair-list-context)))
+         ((sp--looking-at (sp--get-opening-regexp (sp--get-pair-list-context)))
           (goto-char (match-end 0))
           ;; make this customizable
           (setq n (1- n)))
@@ -5761,7 +5777,7 @@ Examples:
           (forward-char)
           ;; make this customizable
           (setq n (1- n)))
-         ((looking-at (sp--get-closing-regexp (sp--get-pair-list-context)))
+         ((sp--looking-at (sp--get-closing-regexp (sp--get-pair-list-context)))
           ;; make this customizable -- maybe we want to skip and
           ;; continue deleting
           (setq n 0))
@@ -5852,7 +5868,7 @@ delimiter enclosing this sexp."
      ((sp--looking-back (sp--get-opening-regexp (sp--get-pair-list-context)))
       (setq op (match-string 0))
       (setq act (--first (equal (car it) op) sp-pair-list))
-      (when (looking-at (regexp-quote (cdr act))) act))
+      (when (sp--looking-at (regexp-quote (cdr act))) act))
      ((sp-point-in-empty-string pos)))))
 
 (defun sp-point-in-empty-string (&optional pos)
@@ -6080,7 +6096,7 @@ support custom pairs."
            (allowed (and sp-show-pair-from-inside (sp--get-allowed-regexp)))
            ok match)
       (cond
-       ((or (looking-at (if sp-show-pair-from-inside allowed opening))
+       ((or (sp--looking-at (if sp-show-pair-from-inside allowed opening))
             (and (memq major-mode sp-navigate-consider-stringlike-sexp)
                  (looking-at (sp--get-stringlike-regexp)))
             (and (memq major-mode sp-navigate-consider-sgml-tags)
