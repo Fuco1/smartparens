@@ -7,7 +7,9 @@
      ((:open "\\{" :close "\\}" :actions (insert wrap))
       (:open "("   :close ")"   :actions (insert wrap))
       (:open "["   :close "]"   :actions (insert wrap))
-      (:open "{"   :close "}"   :actions (insert wrap))))))
+      (:open "{"   :close "}"   :actions (insert wrap))
+      (:open "\""  :close "\""  :actions (insert wrap))
+      (:open "\\\""  :close "\\\""  :actions (insert wrap))))))
 
 (defmacro sp-test-setup-paired-expression-env (pairs mode mode-hook &rest forms)
   (declare (indent 0))
@@ -25,6 +27,15 @@
         (insert string)
         (if back (goto-char (point-max)) (goto-char (point-min)))
         (let ((pair (sp-get-paired-expression back)))
+          (should (equal pair expected))))
+    (erase-buffer)))
+
+(defun sp-test-stringlike-sexp (string expected start back fail)
+  (unwind-protect
+      (progn
+        (insert string)
+        (goto-char start)
+        (let ((pair (sp-get-stringlike-expression back)))
           (should (equal pair expected))))
     (erase-buffer)))
 

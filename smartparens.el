@@ -2975,6 +2975,11 @@ sequence, not necessarily the longest possible."
       (save-excursion
         (not (null (search-backward-regexp (concat "\\(?:" regexp "\\)\\=") from t)))))))
 
+(defun sp--looking-back-p (regexp &optional limit not-greedy)
+  "Same as `sp--looking-back' but do not change the match data."
+  (save-match-data
+    (sp--looking-back regexp limit not-greedy)))
+
 (defun sp--search-backward-regexp (regexp &optional bound noerror count)
   "Works just like `search-backward-regexp', but returns the
 longest possible match.  That means that searching for
@@ -3012,7 +3017,7 @@ object bounded by TEST."
 
 (sp--get-bounds sp-get-quoted-string-bounds
   "If the point is inside a quoted string, return its bounds."
-  (nth 3 (syntax-ppss)))
+  (and (nth 3 (syntax-ppss)) (not (eobp)) (not (bobp))))
 
 (sp--get-bounds sp-get-comment-bounds
   "If the point is inside a comment, return its bounds."
@@ -3033,11 +3038,11 @@ object bounded by TEST."
        (setq ,end (match-end 0))
        (setq ,str (match-string 0)))))
 
-(defun sp--skip-match-p (ms mb me)
+(defun sp--skip-match-p (ms mb me &optional skip-fn)
   "Return non-nil if this match should be skipped.  The function
 that tests this is obtained from the pair definition :skip-match
 property."
-  (let ((skip-fn (sp-get-pair ms :skip-match)))
+  (let ((skip-fn (or skip-fn (sp-get-pair ms :skip-match))))
     (when skip-fn (funcall skip-fn ms mb me))))
 
 (defmacro sp--valid-initial-delimiter-p (form)
@@ -3184,6 +3189,25 @@ The expressions considered are those delimited by pairs on
                       :cl (if forward close open)
                       :prefix (sp--get-prefix s pref)))))))))))
 
+(defun sp--find-next-stringlike-delimiter (needle search-fn-f &optional limit skip-fn)
+  "Find the next string-like delimiter, considering the escapes
+and the skip-match predicate."
+  (let (hit match)
+    (while (and (not hit)
+                (funcall search-fn-f needle limit t))
+      (save-match-data
+        (setq match (match-string-no-properties 0))
+        (unless (or (save-match-data
+                      (save-excursion
+                        (goto-char (match-beginning 0))
+                        (or (looking-back "\\\\") ;; assumes \ is always the escape... bad?
+                            (and (eq major-mode 'emacs-lisp-mode)
+                                 (not (sp-point-in-string))
+                                 (looking-back "?")))))
+                    (sp--skip-match-p match (match-beginning 0) (match-end 0) skip-fn))
+          (setq hit t))))
+    hit))
+
 (defun sp-get-stringlike-expression (&optional back)
   "Find the nearest string-like expression after point.
 
@@ -3193,51 +3217,33 @@ opening and closing delimiter, such as *...*, \"...\", `...` etc."
     (let ((needle (sp--get-stringlike-regexp))
           (search-fn-f (if (not back) 'search-forward-regexp 'sp--search-backward-regexp))
           (search-fn-b (if back 'search-forward-regexp 'sp--search-backward-regexp))
-          (hit nil)
           (count 0)
-          (m nil)
-          b e skip-match-fn)
+          m b e skip-match-fn limit ok)
       (when (not (equal needle ""))
-        (while (and (not hit)
-                    (funcall search-fn-f needle nil t))
+        (when (sp--find-next-stringlike-delimiter needle search-fn-f)
+          ;; assumes \ is always the escape... bad?
           (setq m (match-string-no-properties 0))
-          (unless (or (save-excursion
-                        (goto-char (match-beginning 0))
-                        (or (looking-back "\\\\") ;; assumes \ is always the escape... bad?
-                            (and (not (sp-point-in-string))
-                                 (eq major-mode 'emacs-lisp-m)
-                                 (looking-back "?"))))
-                      (sp--skip-match-p m (match-beginning 0) (match-end 0)))
-            (setq hit t)))
-        (when hit
           (setq needle (regexp-quote m))
           (setq skip-match-fn (sp-get-pair m :skip-match))
+          (when (sp-point-in-string)
+            (let ((r (sp-get-quoted-string-bounds)))
+              (setq limit (cons (1- (car r)) (1+ (cdr r))))))
           (save-excursion
-            ;; assumes \ is always the escape... bad?
-            (while (re-search-backward (concat "\\(\\`\\|[^\\]\\)" needle) nil t)
-              (when (/= (point) (point-min)) (forward-char 1))
-              (unless (and skip-match-fn
-                           (funcall skip-match-fn
-                                    (match-string 0)
-                                    (1+ (match-beginning 0))
-                                    (match-end 0)))
-                (setq count (1+ count)))))
-          (if (= (mod count 2) 0)
-              ;; outside
-              (progn
-                (setq e (point))
-                (funcall search-fn-b needle nil t 2)
-                (setq b (point)))
-            ;;inside
-            (funcall search-fn-b needle nil t)
-            (setq b (point))
-            (funcall search-fn-f needle nil t 2)
-            (setq e (point)))
-          (let ((mb b) (me e))
-            (setq b (min mb me))
-            (setq e (max mb me)))
-          (let ((pref (sp-get-pair m :prefix)))
-            (list :beg b :end e :op m :cl m :prefix (sp--get-prefix b pref))))))))
+            (while (sp--find-next-stringlike-delimiter needle 'search-backward-regexp (car limit) skip-match-fn)
+              (setq count (1+ count))))
+          (when (= (mod count 2) 0)
+            (sp--find-next-stringlike-delimiter needle search-fn-b nil))
+          (save-excursion
+            (setq ok (sp--find-next-stringlike-delimiter needle 'sp--search-backward-regexp (car limit)))
+            (setq e (match-beginning 0)))
+          (setq ok (and ok (sp--find-next-stringlike-delimiter needle 'search-forward-regexp (cdr limit))))
+          (setq b (match-end 0))
+          (when ok
+            (let ((mb b) (me e))
+              (setq b (min mb me))
+              (setq e (max mb me)))
+            (let ((pref (sp-get-pair m :prefix)))
+              (list :beg b :end e :op m :cl m :prefix (sp--get-prefix b pref)))))))))
 
 (defun sp-get-expression (&optional back)
   "Find the nearest balanced expression of any kind.
