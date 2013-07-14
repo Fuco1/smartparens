@@ -2907,7 +2907,7 @@ is remove the just added wrapping."
             (setq sp-last-operation 'sp-delete-pair-wrap)))
       (let ((p (point))
             (inside-pair (--first (and (sp--looking-back (sp--strict-regexp-quote (car it)))
-                                       (sp--looking-at (concat "[ \n]*" (sp--strict-regexp-quote (cdr it)))))
+                                       (sp--looking-at (concat "[ \n\t]*" (sp--strict-regexp-quote (cdr it)))))
                                   sp-pair-list))
             (behind-pair (--first (sp--looking-back (sp--strict-regexp-quote (cdr it))) sp-pair-list))
             (opening-pair (--first (sp--looking-back (sp--strict-regexp-quote (car it))) sp-pair-list)))
