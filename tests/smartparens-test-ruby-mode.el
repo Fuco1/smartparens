@@ -185,6 +185,187 @@ end
 ")
   )
 
+(defun sp-ruby-test-barf-assert (n in _ expected)
+  (with-temp-buffer
+    (ruby-mode)
+    (smartparens-mode +1)
+    (save-excursion
+      (insert in))
+    (goto-char (search-forward (regexp-quote "X")))
+    (delete-char -1)
+    (sp-forward-barf-sexp n)
+    (delete-trailing-whitespace)
+    (should (equal (buffer-string) expected))))
+
+(ert-deftest sp-test-ruby-barf-forward ()
+  (sp-ruby-test-barf-assert 1 "
+if teXst
+  foo
+end
+" :=> "
+if test
+end
+foo
+")
+
+  (sp-ruby-test-barf-assert 1 "
+if teXst
+  if test2
+    foo
+  end
+end
+" :=> "
+if test
+end
+if test2
+  foo
+end
+")
+
+  (sp-ruby-test-barf-assert 1 "
+if teXst
+  foo.bar
+end
+" :=> "
+if test
+  foo
+end.bar
+")
+
+  (sp-ruby-test-barf-assert 2 "
+if teXst
+  foo.bar
+end
+" :=> "
+if test
+end
+foo.bar
+")
+
+  (sp-ruby-test-barf-assert 5 "
+beginX
+  test(1).test[2].test
+end
+" :=> "
+begin
+end
+test(1).test[2].test
+")
+
+  (sp-ruby-test-barf-assert 5 "
+beginX
+  test ? a : b
+end
+" :=> "
+begin
+end
+test ? a : b
+")
+
+  (sp-ruby-test-barf-assert 1 "
+beginX
+  Module::Class
+end
+" :=> "
+begin
+end
+Module::Class
+")
+  )
+
+(ert-deftest sp-test-ruby-barf-backward ()
+  (sp-ruby-test-barf-assert -1 "
+begin
+  foo.barX
+end
+" :=> "
+foo. begin
+       bar
+     end
+")
+
+  (sp-ruby-test-barf-assert -2 "
+begin
+  foo.barX
+end
+" :=> "
+foo.bar
+begin
+end
+")
+
+  (sp-ruby-test-barf-assert -1 "
+begin
+  if test
+    foo.bar
+  endX
+end
+" :=> "
+if test
+  foo.bar
+end
+begin
+end
+")
+
+  (sp-ruby-test-barf-assert -5 "
+begin
+  test(1).test[2].testX
+end
+" :=> "
+test(1).test[2].test
+begin
+end
+")
+
+  (sp-ruby-test-barf-assert -5 "
+begin
+  test ? a : bX
+end
+" :=> "
+test ? a : b
+begin
+end
+")
+
+  (sp-ruby-test-barf-assert -1 "
+begin
+  Module::ClassX
+end
+" :=> "
+Module::Class
+begin
+end
+")
+
+  )
+
+(ert-deftest sp-test-ruby-barf-with-inline-blocks ()
+  (sp-ruby-test-barf-assert 2 "
+if teXst
+  foo if true
+end
+" :=> "
+if test
+end
+foo if true
+")
+
+  (sp-ruby-test-barf-assert 2 "
+if teXst
+  foo = if true
+          bar
+        end
+end
+" :=> "
+if test
+end
+foo = if true
+        bar
+      end
+")
+  )
+
 (defun sp-ruby-test-splice-assert (n in _ expected)
   (with-temp-buffer
     (ruby-mode)

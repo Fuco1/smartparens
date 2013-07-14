@@ -78,12 +78,13 @@
 (defun sp-ruby-delete-indentation (&optional arg)
   "Better way of joining ruby lines"
   (delete-indentation arg)
-  (when (save-excursion
-          (backward-char 2)
-          (or (looking-at-p ".[^:] [.([,]")
-              (looking-at-p ".. ::")
-              (looking-at-p ".[.@$] ")
-              (looking-at-p ":: ")))
+  (when (and (not (looking-back "^.?"))
+             (save-excursion
+               (backward-char 2)
+               (or (looking-at-p ".[^:] [.([,]")
+                   (looking-at-p ".. ::")
+                   (looking-at-p ".[.@$] ")
+                   (looking-at-p ":: "))))
     (delete-char 1)))
 
 (defun sp-ruby-pre-handler (id action context)
@@ -94,17 +95,15 @@
       (sp-ruby-delete-indentation -1))
     (save-excursion
       (newline))
-    (when (not (looking-back " "))
-      (insert " ")))
+    (just-one-space))
 
   (when (equal action 'barf-backward)
     (save-excursion
+      (newline))
+    (save-excursion
       (sp-backward-sexp)
       (sp-ruby-delete-indentation))
-    (save-excursion
-      (newline))
-    (when (not (looking-back " "))
-      (insert " ")))
+    (just-one-space))
 
   (when (equal action 'slurp-forward)
     (save-excursion
