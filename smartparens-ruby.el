@@ -216,9 +216,6 @@
                  :post-handlers '(sp-ruby-def-post-handler)
                  :skip-match 'sp-ruby-skip-inline-match-p)
 
-  (sp-local-pair "/" "/"
-                 :unless '(sp-ruby-in-string-or-word-p))
-
   (sp-local-pair "|" "|"
                  :when '(sp-ruby-should-insert-pipe-close)
                  :actions '(insert)
