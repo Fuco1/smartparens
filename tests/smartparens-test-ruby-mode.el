@@ -387,6 +387,14 @@ test
 ")
 
   (sp-ruby-test-splice-assert 1 "
+begin
+  bool = a | bX
+end
+" :=> "
+bool = a | b
+")
+
+  (sp-ruby-test-splice-assert 1 "
 if foo
   if baXr
   end
