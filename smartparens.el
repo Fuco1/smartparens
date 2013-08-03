@@ -6200,6 +6200,11 @@ support custom pairs."
     (sp-insert-pair))
   ad-return-value)
 
+(defadvice hippie-expand (after sp-auto-complete-advice activate)
+  (when smartparens-mode
+    (setq sp-recent-keys (reverse (split-string (buffer-substring-no-properties he-string-beg he-string-end) "")))
+    (sp-insert-pair)))
+
 (defvar sp--mc/cursor-specific-vars
   '(
     sp-wrap-point
