@@ -653,10 +653,20 @@ and :unless properties of `sp-pair'."
   :group 'smartparens)
 
 (defcustom sp-autoskip-closing-pair t
-  "If non-nil, skip the following closing pair.
+  "If t, skip the following closing pair if the expression is
+active (that is right after insertion).
+
+If set to \"always\", skip the closing pair even if the
+expression is not active.  This only works for expressions with
+single-character delimiters.  If the expression is a string-like
+expression, these must be enabled in current major-mode to work
+with this setting, see `sp-navigate-consider-stringlike-sexp'.
 
 See `sp-skip-closing-pair' for more info."
-  :type 'boolean
+  :type '(radio
+          (const :tag "Never skip closing delimiter" nil)
+          (const :tag "Skip closing delimiter in active expressions" t)
+          (const :tag "Always skip closing delimiter" always))
   :group 'smartparens)
 
 (defcustom sp-cancel-autoskip-on-backward-movement t
@@ -2677,6 +2687,10 @@ followed by word.  It is disabled by default.  See
                  active-pair
                  (not (and (eq sp-last-operation 'sp-skip-closing-pair)
                            (sp--get-active-overlay 'pair)))
+                 (if (eq sp-autoskip-closing-pair 'always)
+                     (or (not (equal open-pair close-pair))
+                         (not (looking-at close-pair)))
+                   t)
                  (sp--do-action-p open-pair 'insert t)
                  (if sp-autoinsert-if-followed-by-word t
                    (or (= (point) (point-max))
@@ -2830,16 +2844,23 @@ nil.
 
 This behaviour can be globally disabled by setting
 `sp-autoskip-closing-pair' to nil."
-  (when (and sp-autoskip-closing-pair
-             sp-pair-overlay-list
-             (sp--get-active-overlay 'pair))
+  (when (or (and (eq sp-autoskip-closing-pair t)
+                 sp-pair-overlay-list
+                 (sp--get-active-overlay 'pair))
+            (eq sp-autoskip-closing-pair 'always))
+    ;; TODO: this let is so ugly :/
     (let* ((overlay (sp--get-active-overlay 'pair))
-           (open-pair (overlay-get overlay 'pair-id))
+           (enc (and (looking-at (sp--get-closing-regexp sp-pair-list)) (save-excursion (backward-char 1) (sp-get-enclosing-sexp))))
+           (expr-start (if overlay (overlay-start overlay) (sp-get enc :beg)))
+           ;; +1 since the overlay automatically extends, we need to
+           ;; handle that if we're inside inactive sexp
+           (expr-end (if overlay (overlay-end overlay) (and enc (1+ (sp-get enc :end)))))
+           (open-pair (if overlay (overlay-get overlay 'pair-id) (sp-get enc :op)))
            (close-pair (cdr (assoc open-pair sp-pair-list)))
            ;; how many chars have we already typed
-           (already-skipped (- (length close-pair) (- (overlay-end overlay) (point)))))
+           (already-skipped (and close-pair (- (length close-pair) (- expr-end (point))))))
       ;; only if we're at the closing pair or inside it
-      (when (>= already-skipped 0)
+      (when (and close-pair (>= already-skipped 0))
         ;; rest of yet-untyped close-pair
         (let ((close-pair-rest (substring close-pair already-skipped))
               (last last-command-event))
@@ -2849,7 +2870,7 @@ This behaviour can be globally disabled by setting
                      ;; closing character was inserted (if opening
                      ;; pair and closing pair are the same, it would
                      ;; delete it right after the insertion otherwise)
-                     (> (- (point) (overlay-start overlay)) (length open-pair)))
+                     (> (- (point) expr-start) (length open-pair)))
             (if (equal (sp--single-key-description last) (substring close-pair-rest 0 1))
                 (progn
                   (forward-char 1)
@@ -2858,9 +2879,10 @@ This behaviour can be globally disabled by setting
               ;; Charactar that is not part of the closing pair was
               ;; typed.  Only remove overlays if we're inside the
               ;; closing pair.  If we are at the beginning, we are
-              ;; allowed to type other characters
-              (when (> already-skipped 0)
-                (dolist (o sp-pair-overlay-list) (sp--remove-overlay o))))))))))
+              ;; allowed to type other characters.  Note: what does
+              ;; this do exactly???
+              (when (and (> already-skipped 0) overlay)
+                (mapc 'sp--remove-overlay sp-pair-overlay-list)))))))))
 
 (defun sp-delete-pair (&optional arg)
   "Automatically delete opening or closing pair, or both, depending on
