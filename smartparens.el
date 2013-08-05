@@ -42,6 +42,7 @@
 (declare-function cua--pre-command-handler "cua-base")
 (declare-function delete-selection-pre-hook "delsel")
 
+;;;###autoload
 (defun sp-cheat-sheet (&optional arg)
   "Generate a cheat sheet of all the smartparens interactive functions.
 
