@@ -3228,6 +3228,7 @@ The expressions considered are those delimited by pairs on
                       :cl (if forward close open)
                       :prefix (sp--get-prefix s pref)))))))))))
 
+;; TODO: this does not consider unbalanced quotes in comments!!!
 (defun sp--find-next-stringlike-delimiter (needle search-fn-f &optional limit skip-fn)
   "Find the next string-like delimiter, considering the escapes
 and the skip-match predicate."
@@ -3299,7 +3300,13 @@ See also: `sp-navigate-consider-stringlike-sexp'."
         (if (or (and (not back) (< ps ss))
                 (and back (> ps ss)))
             (sp-get-paired-expression back)
-          (sp-get-stringlike-expression back)))
+          ;; performance hack. If the delimiter is a character in
+          ;; syntax class 34, grab the string-like expression using
+          ;; `sp-get-string'
+          (if (and (= (length (match-string 0)) 1)
+                   (eq (char-syntax (string-to-char (match-string 0))) 34))
+              (sp-get-string back)
+            (sp-get-stringlike-expression back))))
     (sp-get-paired-expression back)))
 
 (defun sp-get-sexp (&optional back)
