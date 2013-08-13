@@ -2851,7 +2851,7 @@ This behaviour can be globally disabled by setting
             (eq sp-autoskip-closing-pair 'always))
     ;; TODO: this let is so ugly :/
     (let* ((overlay (sp--get-active-overlay 'pair))
-           (enc (and (looking-at (sp--get-closing-regexp sp-pair-list)) (save-excursion (backward-char 1) (sp-get-enclosing-sexp))))
+           (enc (and (not overlay) (looking-at (sp--get-closing-regexp sp-pair-list)) (save-excursion (backward-char 1) (sp-get-enclosing-sexp))))
            (expr-start (if overlay (overlay-start overlay) (sp-get enc :beg)))
            ;; +1 since the overlay automatically extends, we need to
            ;; handle that if we're inside inactive sexp
