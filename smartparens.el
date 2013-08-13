@@ -6256,6 +6256,9 @@ support custom pairs."
 (defadvice delete-backward-char (before sp-delete-pair-advice activate)
   (save-match-data
     (sp-delete-pair (ad-get-arg 0))))
+(defadvice haskell-indentation-delete-backward-char (before sp-delete-pair-advice activate)
+  (save-match-data
+    (sp-delete-pair (ad-get-arg 0))))
 (add-hook 'post-command-hook 'sp--post-command-hook-handler)
 (add-hook 'pre-command-hook 'sp--pre-command-hook-handler)
 (sp--set-base-key-bindings)
