@@ -83,7 +83,7 @@ better orientation."
                                    sp-use-paredit-bindings
                                    sp-use-smartparens-bindings
                                    ))
-        (commands (cl-loop for i in (cdr (assoc-string (locate-library "smartparens") load-history))
+        (commands (cl-loop for i in (cdr (assoc-string (file-truename (locate-library "smartparens")) load-history))
                         if (and (consp i) (eq (car i) 'defun) (commandp (cdr i)))
                         collect (cdr i))))
     (with-current-buffer (get-buffer-create "*Smartparens cheat sheet*")
