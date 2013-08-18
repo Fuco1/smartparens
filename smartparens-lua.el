@@ -49,17 +49,19 @@
 
 (defun sp-lua-post-keyword-insert (id action _context)
   (cond
-   ((member id '("while" "for"))
-    (insert " do")
-    (save-excursion (newline-and-indent))
-    (backward-char 3))
-   ((equal id "if")
-    (insert " then")
-    (save-excursion (newline-and-indent))
-    (backward-char 5))
-   ((equal id "function")
-    (save-excursion (newline-and-indent))
-    (insert " "))))
+   ((eq action 'insert)
+    (cond
+     ((member id '("while" "for"))
+      (insert " do")
+      (save-excursion (newline-and-indent))
+      (backward-char 3))
+     ((equal id "if")
+      (insert " then")
+      (save-excursion (newline-and-indent))
+      (backward-char 5))
+     ((equal id "function")
+      (save-excursion (newline-and-indent))
+      (insert " "))))))
 
 ;; all the pairs are expanded only if followed by "SPC" event.  This
 ;; will reduce false positives like 'dIFficult' to trigger.
