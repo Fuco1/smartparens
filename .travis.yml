@@ -3,14 +3,7 @@ env:
   matrix:
     - EMACS=emacs24
     - EMACS=emacs-snapshot
-  global:
-    - CASK=$HOME/.cask/bin/cask
 before_install:
-  - curl -fsSkL
-        --max-time 10
-        --retry 10
-        --retry-delay 10
-        https://raw.github.com/rejeep/cask.el/master/go | sh
   - if [ "$EMACS" = "emacs24" ]; then
         sudo add-apt-repository -y ppa:cassou/emacs &&
         sudo apt-get update -qq &&
@@ -22,5 +15,12 @@ before_install:
       sudo apt-get install -qq
           emacs-snapshot-el emacs-snapshot-gtk emacs-snapshot;
     fi
+  - curl -fsSkL
+        --max-time 10
+        --retry 10
+        --retry-delay 10
+        https://raw.github.com/rejeep/cask.el/master/go | sh
+  - export PATH="/home/travis/.cask/bin:$PATH"
+  - cask
 script:
   make travis-ci
