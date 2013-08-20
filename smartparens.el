@@ -6041,6 +6041,40 @@ of the point."
                (:else column))))
         (goto-char (+ (line-beginning-position) offset))))))
 
+(defun sp-region-ok-p (start end)
+  (save-excursion
+    (save-restriction
+      (narrow-to-region start end)
+      (goto-char (point-min))
+      (let ((r t))
+        (while (and r (not (eobp)))
+          (setq r (sp-forward-sexp)))
+        r))))
+
+(defun sp-newline ()
+  "Insert a newline and indent it.
+
+This is like `newline-and-indent', but it not only indents the
+line that the point is on but also the S-expression following the
+point, if there is one.
+
+If in a string, just insert a literal newline.
+
+If in a comment and if followed by invalid structure, call
+`indent-new-comment-line' to keep the invalid structure in a
+comment."
+  (interactive)
+  (cond
+   ((sp-point-in-string)
+    (newline))
+   ((sp-point-in-comment)
+    (if (sp-region-ok-p (point) (point-at-eol))
+        (progn (newline-and-indent) (ignore-errors (indent-sexp)))
+      (indent-new-comment-line)))
+   (t
+    (newline-and-indent)
+    (ignore-errors (indent-sexp)))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; show-smartparens-mode
