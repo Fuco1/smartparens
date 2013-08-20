@@ -5758,6 +5758,9 @@ If on an opening delimiter, move forward into balanced expression.
 If on a closing delimiter, refuse to delete unless the balanced
 expression is empty, in which case delete the entire expression.
 
+If the delimiter does not form a balanced expression, it will be
+deleted normally.
+
 With a numeric prefix argument N > 0, delete N characters forward.
 
 With a numeric prefix argument N < 0, delete N characters backward.
@@ -5799,7 +5802,9 @@ Examples:
                (save-excursion (forward-char) (not (sp-point-in-string))))
           (setq n 0))
          ((sp--looking-at (sp--get-opening-regexp (sp--get-pair-list-context)))
-          (goto-char (match-end 0))
+          (if (save-match-data (sp-get-thing))
+              (goto-char (match-end 0))
+            (delete-char (length (match-string 0))))
           ;; make this customizable
           (setq n (1- n)))
          ((and (not (sp-point-in-string))
@@ -5808,9 +5813,12 @@ Examples:
           ;; make this customizable
           (setq n (1- n)))
          ((sp--looking-at (sp--get-closing-regexp (sp--get-pair-list-context)))
-          ;; make this customizable -- maybe we want to skip and
-          ;; continue deleting
-          (setq n 0))
+          (if (save-match-data (sp-get-thing))
+              ;; make this customizable -- maybe we want to skip and
+              ;; continue deleting
+              (setq n 0)
+            (delete-char (length (match-string 0)))
+            (setq n (1- n))))
          (t
           (delete-char 1)
           (setq n (1- n))))))
@@ -5824,6 +5832,9 @@ If on a closing delimiter, move backward into balanced expression.
 
 If on a opening delimiter, refuse to delete unless the balanced
 expression is empty, in which case delete the entire expression.
+
+If the delimiter does not form a balanced expression, it will be
+deleted normally.
 
 With a numeric prefix argument N > 0, delete N characters backward.
 
@@ -5866,7 +5877,9 @@ Examples:
                (save-excursion (backward-char) (not (sp-point-in-string))))
           (setq n 0))
          ((sp--looking-back (sp--get-closing-regexp (sp--get-pair-list-context)))
-          (goto-char (match-beginning 0))
+          (if (save-match-data (sp-get-thing t))
+              (goto-char (match-beginning 0))
+            (delete-char (- (length (match-string 0)))))
           ;; make this customizable
           (setq n (1- n)))
          ((and (not (sp-point-in-string))
@@ -5875,9 +5888,12 @@ Examples:
           ;; make this customizable
           (setq n (1- n)))
          ((sp--looking-back (sp--get-opening-regexp (sp--get-pair-list-context)))
-          ;; make this customizable -- maybe we want to skip and
-          ;; continue deleting
-          (setq n 0))
+          (if (save-match-data (sp-get-thing t))
+              ;; make this customizable -- maybe we want to skip and
+              ;; continue deleting
+              (setq n 0)
+            (delete-char (- (length (match-string 0))))
+            (setq n (1- n))))
          (t
           (delete-char -1)
           (setq n (1- n))))))
