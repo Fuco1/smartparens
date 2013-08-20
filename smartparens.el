@@ -431,7 +431,7 @@ You can enable pre-set bindings by customizing
 
  \\{sp-keymap}"
   :init-value nil
-  :lighter " SP"
+  :lighter (" SP" (:eval (if smartparens-strict-mode "/s" "")))
   :group 'smartparens
   :keymap sp-keymap
   (if smartparens-mode
@@ -441,6 +441,37 @@ You can enable pre-set bindings by customizing
           (sp--init-delete-selection-mode-emulation))
         (run-hooks 'smartparens-enabled-hook))
     (run-hooks 'smartparens-disabled-hook)))
+
+(define-minor-mode smartparens-strict-mode
+  "Toggle the strict smartparens mode.
+
+When strict mode is active, `delete-char', `kill-word' and their
+backward variants will skip over the pair delimiters in order to
+keep the structure always valid (the same way as `paredit-mode'
+does).  This is accomplished by remapping them to
+`sp-delete-char' and `sp-kill-word'.  There is also function
+`sp-kill-symbol' that deletes symbols instead of words, otherwise
+working exactly the same (it is not bound to any key by default).
+
+When strict mode is active, this is indicated with \"/s\"
+after the smartparens indicator in the mode list."
+  :init-value nil
+  :group 'smartparens
+  :global t
+  (if smartparens-strict-mode
+      (progn
+        (define-key sp-keymap [remap delete-char] 'sp-delete-char)
+        (define-key sp-keymap [remap backward-delete-char-untabify] 'sp-backward-delete-char)
+        (define-key sp-keymap [remap backward-delete-char] 'sp-backward-delete-char)
+        (define-key sp-keymap [remap delete-backward-char] 'sp-backward-delete-char)
+        (define-key sp-keymap [remap kill-word] 'sp-kill-word)
+        (define-key sp-keymap [remap backward-kill-word] 'sp-backward-kill-word))
+    (define-key sp-keymap [remap delete-char] nil)
+    (define-key sp-keymap [remap backward-delete-char-untabify] nil)
+    (define-key sp-keymap [remap backward-delete-char] nil)
+    (define-key sp-keymap [remap delete-backward-char] nil)
+    (define-key sp-keymap [remap kill-word] nil)
+    (define-key sp-keymap [remap backward-kill-word] nil)))
 
 (defun sp--init ()
   "Initialize the buffer local pair bindings and other buffer
