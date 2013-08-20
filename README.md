@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/Fuco1/smartparens.png?branch=master)](https://travis-ci.org/Fuco1/smartparens)
+# Smartparens [![Build Status](https://travis-ci.org/Fuco1/smartparens.png?branch=master)](https://travis-ci.org/Fuco1/smartparens) [![Paypal logo](https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CEYP5YVHDRX8C)
 
 # News
 
