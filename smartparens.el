@@ -3045,18 +3045,18 @@ object bounded by TEST."
      ,docstring
      (when ,test
        (let ((open (save-excursion
-                     (while ,test
+                     (while (and ,test (not (bobp)))
                        (forward-char -1))
-                     (1+ (point))))
+                     (if (bobp) (point) (1+ (point)))))
              (close (save-excursion
-                      (while ,test
+                      (while (and ,test (not (eobp)))
                         (forward-char 1))
-                      (1- (point)))))
+                      (if (eobp) (point) (1- (point))))))
          (cons open close)))))
 
 (sp--get-bounds sp-get-quoted-string-bounds
   "If the point is inside a quoted string, return its bounds."
-  (and (nth 3 (syntax-ppss)) (not (eobp)) (not (bobp))))
+  (nth 3 (syntax-ppss)))
 
 (sp--get-bounds sp-get-comment-bounds
   "If the point is inside a comment, return its bounds."
