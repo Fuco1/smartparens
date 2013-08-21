@@ -442,6 +442,18 @@ You can enable pre-set bindings by customizing
         (run-hooks 'smartparens-enabled-hook))
     (run-hooks 'smartparens-disabled-hook)))
 
+(defvar smartparens-strict-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [remap delete-char] 'sp-delete-char)
+    (define-key map [remap backward-delete-char-untabify] 'sp-backward-delete-char)
+    (define-key map [remap backward-delete-char] 'sp-backward-delete-char)
+    (define-key map [remap delete-backward-char] 'sp-backward-delete-char)
+    (define-key map [remap kill-word] 'sp-kill-word)
+    (define-key map [remap backward-kill-word] 'sp-backward-kill-word)
+    map)
+  "Keymap used for `smartparens-strict-mode'.")
+
+;;;###autoload
 (define-minor-mode smartparens-strict-mode
   "Toggle the strict smartparens mode.
 
@@ -457,21 +469,29 @@ When strict mode is active, this is indicated with \"/s\"
 after the smartparens indicator in the mode list."
   :init-value nil
   :group 'smartparens
-  :global t
   (if smartparens-strict-mode
       (progn
-        (define-key sp-keymap [remap delete-char] 'sp-delete-char)
-        (define-key sp-keymap [remap backward-delete-char-untabify] 'sp-backward-delete-char)
-        (define-key sp-keymap [remap backward-delete-char] 'sp-backward-delete-char)
-        (define-key sp-keymap [remap delete-backward-char] 'sp-backward-delete-char)
-        (define-key sp-keymap [remap kill-word] 'sp-kill-word)
-        (define-key sp-keymap [remap backward-kill-word] 'sp-backward-kill-word))
-    (define-key sp-keymap [remap delete-char] nil)
-    (define-key sp-keymap [remap backward-delete-char-untabify] nil)
-    (define-key sp-keymap [remap backward-delete-char] nil)
-    (define-key sp-keymap [remap delete-backward-char] nil)
-    (define-key sp-keymap [remap kill-word] nil)
-    (define-key sp-keymap [remap backward-kill-word] nil)))
+        (unless smartparens-mode
+          (smartparens-mode 1))
+        (unless (--find-indices (eq (car it) 'smartparens-strict-mode) minor-mode-overriding-map-alist)
+          (setq minor-mode-overriding-map-alist
+                (cons `(smartparens-strict-mode . ,smartparens-strict-mode-map) minor-mode-overriding-map-alist))))
+    (setq minor-mode-overriding-map-alist
+          (--remove (eq (car it) 'smartparens-strict-mode) minor-mode-overriding-map-alist))))
+
+;;;###autoload
+(define-globalized-minor-mode smartparens-global-strict-mode
+  smartparens-strict-mode
+  turn-on-smartparens-strict-mode)
+
+;;;###autoload
+(defun turn-on-smartparens-strict-mode ()
+  "Turn on `smartparens-mode'."
+  (interactive)
+  (unless (or (member major-mode sp-ignore-modes-list)
+              (and (not (derived-mode-p 'comint-mode))
+                   (eq (get major-mode 'mode-class) 'special)))
+    (smartparens-strict-mode 1)))
 
 (defun sp--init ()
   "Initialize the buffer local pair bindings and other buffer
