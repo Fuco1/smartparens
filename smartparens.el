@@ -4347,7 +4347,10 @@ Note: prefix argument is shown after the example in
                     (backward-char)))
                 (point))))
     (delete-region bdel edel))
-  (save-excursion (indent-according-to-mode)))
+  (if (memq major-mode sp--lisp-modes)
+      (indent-according-to-mode)
+    (when (looking-back "^ *")
+      (back-to-indentation))))
 
 (defun sp-backward-kill-sexp (&optional arg dont-kill)
   "Kill the balanced expression preceding point.
