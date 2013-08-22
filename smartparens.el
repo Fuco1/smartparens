@@ -6006,20 +6006,22 @@ See `sp-forward-symbol' for what constitutes a symbol."
   (interactive "p")
   (if (> arg 0)
       (while (> arg 0)
-        (if (and word
-                 (sp-point-in-symbol))
-            (progn
-              (kill-word 1)
-              (sp--cleanup-after-kill))
-          (let ((s (sp-get-symbol)))
+        (if (and word (sp-point-in-symbol))
+            (kill-word 1)
+          (let ((s (sp-get-symbol))
+                (p (point)))
             (when s
               (sp-get s
-                (goto-char :beg-prf)
-                (if word
-                    (progn
-                      (kill-word 1)
-                      (sp--cleanup-after-kill))
-                  (sp-kill-sexp))))))
+                (let ((delims (buffer-substring :beg-prf p)))
+                  (if (string-match-p "\\`\\(\\s.\\|\\s-\\)*\\'" delims)
+                      (if word
+                          (kill-region p (save-excursion (forward-word) (point)))
+                        (kill-region p :end))
+                    (goto-char :beg-prf)
+                    (if word
+                        (kill-region :beg-prf (save-excursion (forward-word) (point)))
+                      (kill-region :beg-prf :end))))))))
+        (sp--cleanup-after-kill)
         (setq arg (1- arg)))
     (sp-backward-kill-symbol (sp--negate-argument arg) word)))
 
@@ -6045,22 +6047,22 @@ See `sp-backward-symbol' for what constitutes a symbol."
   (interactive "p")
   (if (> arg 0)
       (while (> arg 0)
-        (if (and word
-                 (sp-point-in-symbol))
-            (progn
-              (kill-word -1)
-              (sp--cleanup-after-kill))
+        (if (and word (sp-point-in-symbol))
+            (kill-word -1)
           (let ((s (sp-get-symbol t))
                 (p (point)))
             (when s
               (sp-get s
-                (goto-char :end)
-                (if word
-                    (progn
-                      (kill-word -1)
-                      (when (< :end p) (sp-zap-syntax "."))
-                      (sp--cleanup-after-kill))
-                  (sp-kill-sexp -1))))))
+                (let ((delims (buffer-substring :end p)))
+                  (if (string-match-p "\\`\\(\\s.\\|\\s-\\)*\\'" delims)
+                      (if word
+                          (kill-region (save-excursion (backward-word) (point)) p)
+                        (kill-region :beg-prf p))
+                    (goto-char :end)
+                    (if word
+                        (kill-region (save-excursion (backward-word) (point)) :end)
+                      (kill-region :beg-prf :end))))))))
+        (sp--cleanup-after-kill)
         (setq arg (1- arg)))
     (sp-kill-symbol (sp--negate-argument arg) word)))
 
