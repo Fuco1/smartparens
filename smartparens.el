@@ -5487,7 +5487,9 @@ Examples:
 
   \"foo bar |baz quux\"   -> \"foo bar\" |\"baz quux\"
 
-  ([foo |bar baz] quux) -> ([foo] |[bar baz] quux)"
+  ([foo |bar baz] quux) -> ([foo] |[bar baz] quux)
+
+  (foo bar| baz quux) -> (foo) (bar|) (baz) (quux) ;; \\[universal-argument]"
   (interactive "P")
   (cond
    ((equal arg '(4))
