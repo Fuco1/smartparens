@@ -84,7 +84,7 @@ better orientation."
                                    sp-use-smartparens-bindings
                                    ))
         (commands (cl-loop for i in (cdr (assoc-string (file-truename (locate-library "smartparens")) load-history))
-                        if (and (consp i) (eq (car i) 'defun) (commandp (cdr i)))
+                           if (and (consp i) (eq (car i) 'defun) (commandp (cdr i)))
                         collect (cdr i))))
     (with-current-buffer (get-buffer-create "*Smartparens cheat sheet*")
       (let ((standard-output (current-buffer))
@@ -926,6 +926,13 @@ command was called programatically."
 
 The closing delimiter is inserted after the symbol at
 point (using `sp-previous-sexp')."
+  :type 'boolean
+  :group 'smartparens)
+
+(defcustom sp-close-at-point nil
+  "If non-nil, insert the closing pair of the un-matched pair on `sp-up-sexp' at the current point, instead of using `sp-previous-sexp'.
+
+See `sp-up-sexp' and `sp-navigate-close-if-unbalanced'"
   :type 'boolean
   :group 'smartparens)
 
@@ -4139,7 +4146,9 @@ enabled for current major-mode, remove the whitespace between end
 of the expression and the last \"thing\" inside the expression.
 
 If `sp-navigate-close-if-unbalanced' is non-nil, close the
-unbalanced expressions automatically.
+unbalanced expressions automatically. If `sp-close-at-point' is
+non-nil close the unbalanced expression at the point without
+calling `sp-previous-sexp'.
 
 Examples:
 
@@ -4195,7 +4204,8 @@ Examples:
               (let* ((op (match-string 0)))
                 (setq active-pair (assoc op sp-pair-list)))))
           (when active-pair
-            (sp-previous-sexp)
+            (unless sp-close-at-point
+              (sp-previous-sexp))
             (insert (cdr active-pair))))))
     ok))
 
