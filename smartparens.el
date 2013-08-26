@@ -4189,13 +4189,15 @@ Examples:
                  sp-navigate-close-if-unbalanced)
         (let (active-pair)
           (save-excursion
+            ;; add support for SGML tags here
             (while (sp-backward-sexp))
             (sp-skip-backward-to-symbol t)
             (when (sp--looking-back (sp--get-opening-regexp))
               (let* ((op (match-string 0)))
                 (setq active-pair (assoc op sp-pair-list)))))
           (when active-pair
-            (sp-previous-sexp)
+            (sp-backward-sexp)
+            (sp-forward-sexp)
             (insert (cdr active-pair))))))
     ok))
 
