@@ -1006,7 +1006,8 @@ handler."
 
 This can be used with `sp-local-pair' calls to automatically
 insert the modes."
-  (declare (indent 1))
+  (declare (indent 1)
+           (debug (form body)))
   `(progn
      ,@(mapcar (lambda (form) (append (list (car form) arg) (cdr form))) forms)))
 
@@ -1163,7 +1164,8 @@ expression prefix and the opening delimiter.
 
 This replacement is considered any time when the ATTR argument is
 a list and not a single keyword."
-  (declare (indent 1))
+  (declare (indent 1)
+           (debug (form form body)))
   (let ((keyword-list '(:beg :end :beg-in :end-in :beg-prf
                              :op :cl :op-l :cl-l :len :len-out :len-in
                              :prefix :prefix-l)))
