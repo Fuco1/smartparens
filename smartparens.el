@@ -1365,18 +1365,19 @@ If ARG is positive N, wrap N following expressions.  If ARG is
 negative -N, wrap N preceeding expressions.")
                       (interactive "P")
                       (setq arg (or arg 1))
-                      (let ((sel (sp-select-next-thing-exchange
-                                  arg
-                                  (cond
-                                   ;; point is inside symbol and smart symbol wrapping is disabled
-                                   ((and (sp-point-in-symbol)
-                                         (or (eq sp-wrap-entire-symbol 'globally)
-                                             (memq major-mode sp-wrap-entire-symbol)))
-                                    (point))
-                                   ;; wrap from point, not the start of the next expression
-                                   ((and sp-wrap-from-point
-                                         (not (sp-point-in-symbol)))
-                                    (point)))))
+                      (let ((sel (and (not (use-region-p))
+                                      (sp-select-next-thing-exchange
+                                       arg
+                                       (cond
+                                        ;; point is inside symbol and smart symbol wrapping is disabled
+                                        ((and (sp-point-in-symbol)
+                                              (or (eq sp-wrap-entire-symbol 'globally)
+                                                  (memq major-mode sp-wrap-entire-symbol)))
+                                         (point))
+                                        ;; wrap from point, not the start of the next expression
+                                        ((and sp-wrap-from-point
+                                              (not (sp-point-in-symbol)))
+                                         (point))))))
                             (active-pair (--first (equal (car it) ,pair) sp-pair-list))
                             (rb (region-beginning))
                             (re (region-end)))
@@ -1384,7 +1385,9 @@ negative -N, wrap N preceeding expressions.")
                         (insert (cdr active-pair))
                         (goto-char rb)
                         (insert (car active-pair))
-                        (sp-get sel (indent-region :beg :end)))))
+                        (if (use-region-p)
+                            (indent-region rb re)
+                          (sp-get sel (indent-region :beg :end))))))
     (define-key keymap (read-kbd-macro binding) fun-name)))
 
 (cl-defun sp-pair (open
