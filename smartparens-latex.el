@@ -58,6 +58,11 @@
     (insert "  ")
     (backward-char 1)))
 
+(defun sp-latex-insert-quotes (_i action _c)
+  (when (eq action 'insert)
+    (delete-char -1)
+    (insert "``")))
+
 (sp-with-modes '(
                  tex-mode
                  plain-tex-mode
@@ -67,8 +72,11 @@
   (sp-local-pair "/*" nil :actions nil)
   (sp-local-pair "\\\\(" nil :actions nil)
   (sp-local-pair "'" nil :actions nil)
-  (sp-local-pair "\"" nil :actions nil)
   (sp-local-pair "\\\"" nil :actions nil)
+
+  ;; quote should insert ``'' instead of double quotes.  If we ever
+  ;; need to insert ", C-q is our friend.
+  (sp-local-pair "\"" "''" :actions '(insert) :post-handlers '(sp-latex-insert-quotes))
 
   ;; add the prefix funciton sticking to {} pair
   (sp-local-pair "{" nil :prefix "\\\\\\(\\sw\\|\\s_\\)*")
@@ -88,6 +96,7 @@
   (sp-local-pair "\\langle" "\\rangle" :post-handlers '(sp-latex-insert-spaces-inside-pair))
 
   ;; some common wrappings
+  (sp-local-tag "\"" "``" "''" :actions '(wrap))
   (sp-local-tag "bi" "\\begin{itemize}" "\\end{itemize}")
   (sp-local-tag "be" "\\begin{enumerate}" "\\end{enumerate}"))
 
