@@ -83,3 +83,9 @@
               (message "Can not go to character '%s' since it does not exist in the current buffer: %s"))
           (cl-assert search nil message word (espuds-buffer-contents))
           (if (string-equal "front" pos) (backward-word)))))
+
+(When "^I slurp \\(forward\\|backward\\)$"
+      (lambda (dir)
+	(if (string-equal dir "forward")
+	    (sp-forward-slurp-sexp)
+	  (sp-backward-slurp-sexp))))

@@ -1,4 +1,5 @@
-(source "melpa" "http://melpa.milkbox.net/packages/")
+(source melpa)
+(source gnu)
 
 (package "smartparens" "0"
          "Autoinsert pairs of defined brackets and wrap regions")
