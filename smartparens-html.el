@@ -1,0 +1,100 @@
+;;; smartparens-html.el --- Additional configuration for HTML based modes.
+
+;; Copyright (C) 2013 Matus Goljer
+
+;; Author: Matus Goljer <matus.goljer@gmail.com>
+;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
+;; Created: 14 Sep 2013
+;; Keywords: abbrev convenience editing
+;; URL: https://github.com/Fuco1/smartparens
+
+;; This file is not part of GNU Emacs.
+
+;;; License:
+
+;; This file is part of Smartparens.
+
+;; Smartparens is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; Smartparens is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with Smartparens.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; This file provides some additional configuration for HTML based
+;; modes.  To use it, simply add:
+;;
+;; (require 'smartparens-html)
+;;
+;; into your configuration.  You can use this in conjunction with the
+;; default config or your own configuration.
+
+;; It is advised that you add `html-mode' to the list
+;; `sp-navigate-consider-stringlike-sexp'.  This will tell smartparens
+;; to treat the "" delimited strings as sexps, and enable you to use
+;; all the sexp-based commands on them (such as `sp-down-sexp',
+;; `sp-up-sexp' etc.)
+
+;; This file provides these interactive functions:
+
+;; `sp-html-next-tag'     - Recommended binding: C-c C-f
+;; `sp-html-previous-tag' - Recommended binding: C-c C-b
+;;
+;; (These two bindings are used for navigation by tags forward or
+;;  backward, but `sp-forward-sexp' already does that.)
+
+;; If you have good ideas about what should be added please file an
+;; issue on the github tracker.
+
+;; For more info, see github readme at
+;; https://github.com/Fuco1/smartparens
+
+;;; Code:
+
+(require 'smartparens)
+
+(defun sp-html-next-tag (arg)
+  "Move point to the beginning of next SGML tag.
+
+With ARG positive N > 1, move N tags forward.
+
+With ARG raw prefix argument \\[universal-argument] move out of
+the current tag and to the beginning of enclosing tag.
+
+Note: this function is based on `sp-beginning-of-sexp' but
+specialized to only work with SGML tags and to always move
+forward."
+  (interactive "P")
+  (let ((sp-prefix-tag-object t))
+    (if (sp--raw-argument-p arg)
+        (sp-beginning-of-sexp arg)
+      (sp-beginning-of-sexp (1+ (prefix-numeric-value arg))))))
+
+(defun sp-html-previous-tag (arg)
+  "Move point to the beginning of previous SGML tag.
+
+With ARG positive N > 1, move N tags backward.
+
+With ARG raw prefix argument \\[universal-argument] move out of
+the current tag and to the beginning of enclosing tag.
+
+Note: this function is based on `sp-beginning-of-sexp' but
+specialized to only work with SGML tags and to always move
+backward."
+  (interactive "P")
+  (let ((sp-prefix-tag-object t))
+    (if (sp--raw-argument-p arg)
+        (sp-beginning-of-sexp arg)
+      (sp-beginning-of-sexp (1- (- (prefix-numeric-value arg)))))))
+
+(provide 'smartparens-html)
+
+;;; smartparens-html.el ends here
