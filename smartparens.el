@@ -448,6 +448,7 @@ You can enable pre-set bindings by customizing
     (define-key map [remap backward-delete-char] 'sp-backward-delete-char)
     (define-key map [remap delete-backward-char] 'sp-backward-delete-char)
     (define-key map [remap kill-word] 'sp-kill-word)
+    (define-key map [remap kill-line] 'sp-kill-hybrid-sexp)
     (define-key map [remap backward-kill-word] 'sp-backward-kill-word)
     map)
   "Keymap used for `smartparens-strict-mode'.")
