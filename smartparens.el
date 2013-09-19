@@ -4469,6 +4469,16 @@ Examples:
           (kill-region (point) (sp-get hl :end))))
       (sp--cleanup-after-kill)))))
 
+(defun sp--transpose-objects (first second)
+  "Transpose FIRST and SECOND object while preserving the
+whitespace between them."
+  (save-excursion
+    (goto-char (sp-get second :beg-prf))
+    (setq ins (sp-get second (delete-and-extract-region :beg-prf :end)))
+    (setq between (delete-and-extract-region (sp-get first :end) (point)))
+    (goto-char (sp-get first :beg-prf))
+    (insert ins between)))
+
 (defun sp-transpose-sexp (&optional arg)
   "Transpose the expressions around point.
 
@@ -4508,15 +4518,63 @@ Examples:
       (let* ((next (save-excursion (sp-forward-sexp)))
              (prev (save-excursion (goto-char (sp-get next :beg-prf)) (sp-backward-sexp)))
              ins between)
-        (save-excursion
-          (goto-char (sp-get next :beg-prf))
-          (setq ins (sp-get next (delete-and-extract-region :beg-prf :end)))
-          (setq between (delete-and-extract-region (sp-get prev :end) (point)))
-          (goto-char (sp-get prev :beg-prf))
-          (insert ins between))
+        (sp--transpose-objects prev next)
         (when (< arg 0)
           (goto-char (+ (sp-get prev :beg-prf) (sp-get next :len))))
         (setq n (1- n))))))
+
+(defun sp-transpose-hybrid-sexp ()
+  "Transpose the hybrid sexps around point.
+
+`sp-backward-sexp' is used to enter the previous hybrid sexp.
+
+The operation will move the point after the transposed block.
+
+Examples:
+
+  foo bar            baz (quux
+  |baz (quux   ->         quack)
+        quack)       foo bar|
+
+
+  [(foo) (bar) -> [(baz)
+  |(baz)]          (foo) (bar)|]
+
+  foo bar baz  -> quux flux
+  |quux flux      foo bar baz|"
+  (interactive)
+  (let* ((next (sp-get-hybrid-sexp))
+         (prev (save-excursion
+                 (goto-char (sp-get next :beg))
+                 (sp-backward-sexp)
+                 (sp-get-hybrid-sexp)))
+         ins between)
+    (if (> (sp-get prev :end) (sp-get next :end))
+        (message "Invalid context: previous h-sexp ends after the next one.")
+      (sp--transpose-objects prev next))))
+
+(defun sp-push-hybrid-sexp ()
+  "Push the hybrid sexp after point over the following one.
+
+`sp-forward-sexp' is used to enter the following hybrid sexp.
+
+Examples:
+
+  |x = big_function_call(a,    |(a,
+                         b)      b) = read_user_input()
+                           ->
+  (a,                          x = big_function_call(a,
+   b) = read_user_input()                            b)"
+  (interactive)
+  (let* ((cur (sp-get-hybrid-sexp))
+         (next (save-excursion
+                 (goto-char (sp-get cur :end))
+                 (sp-forward-sexp)
+                 (sp-get-hybrid-sexp)))
+         ins between)
+    (if (> (sp-get cur :beg) (sp-get next :beg))
+        (message "Invalid context: current h-sexp starts after the next one.")
+      (sp--transpose-objects cur next))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
