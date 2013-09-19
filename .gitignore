@@ -1,2 +1,6 @@
 elpa
 *.elc
+hybridline.el
+loading.el
+presentation2.org
+talk.org

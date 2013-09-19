@@ -3437,6 +3437,40 @@ of opening/closing delimiter or prefix)."
          (t paired)))))
    (t (sp-get-expression back))))
 
+(defun sp-get-hybrid-sexp ()
+  "Return the hybrid sexp around point.
+
+A hybrid sexp is defined as the smallest balanced region containing
+the point while not expanding further than the current line.  That is,
+any hanging sexps will be included, but the expansion stops at the
+enclosing list boundaries or line boundaries."
+  (save-excursion
+    (let* ((lb (line-beginning-position))
+           (le (line-end-position))
+           (p (progn (when (sp-point-in-symbol) (sp-backward-sexp)) (point)))
+           sp ep begs ends cur)
+      (save-excursion
+        (setq cur (sp-forward-sexp))
+        (setq begs cur)
+        (while (and cur
+                    (sp-get cur (and (< :beg le)
+                                     (>= :beg p))))
+          (setq ends cur)
+          (setq cur (sp-forward-sexp))))
+      (save-excursion
+        (setq cur (sp-backward-sexp))
+        (unless ends (setq ends cur))
+        (while (and cur
+                    (sp-get cur (and (> :end lb)
+                                     (<= :end p))))
+          (setq begs cur)
+          (setq cur (sp-backward-sexp))))
+      (list :beg (if begs (sp-get begs :beg) (sp-get ends :beg))
+            :end (if ends (sp-get ends :end) (sp-get begs :end))
+            :op (if begs (sp-get begs :op) "")
+            :cl (if ends (sp-get ends :cl) "")
+            :prefix (if begs (sp-get begs :prefix) "")))))
+
 (defun sp-get-enclosing-sexp (&optional arg)
   "Return the balanced expression that wraps point at the same level.
 
@@ -4394,6 +4428,46 @@ t.  All the special prefix arguments work the same way."
   (interactive "P")
   (save-excursion
     (sp-kill-sexp (sp--negate-argument arg) t)))
+
+(defun sp-kill-hybrid-sexp (arg)
+  "Kill a line as if with `kill-line', but respecting delimiters.
+
+With ARG being raw prefix \\[universal-argument] \\[universal-argument], kill the hybrid sexp
+the point is in (see `sp-get-hybrid-sexp').
+
+With ARG numeric prefix 0 (zero) just call `kill-line'.
+
+Examples:
+
+  foo | bar baz               -> foo |               ;; nil
+
+  foo (bar | baz) quux        -> foo (bar |) quux    ;; nil
+
+  foo | bar (baz              -> foo |               ;; nil
+             quux)
+
+  foo \"bar |baz quux\" quack   -> foo \"bar |\" quack   ;; nil
+
+  foo (bar
+       baz) qu|ux (quack      ->   foo | hoo         ;; \\[universal-argument] \\[universal-argument]
+                   zaq) hoo
+
+  foo | (bar                  -> foo |               ;; C-0
+         baz)                          baz)"
+  (interactive "P")
+  (let* ((raw (sp--raw-argument-p arg))
+         (arg (prefix-numeric-value arg)))
+    (cond
+     ((= arg 0) (kill-line))
+     ((and raw (= arg 16))
+      (let ((hl (sp-get-hybrid-sexp)))
+        (sp-get hl (kill-region :beg-prf :end))))
+     (t
+      (let ((hl (sp-get-hybrid-sexp)))
+        (save-excursion
+          (when (sp-point-in-symbol) (sp-backward-sexp))
+          (kill-region (point) (sp-get hl :end))))
+      (sp--cleanup-after-kill)))))
 
 (defun sp-transpose-sexp (&optional arg)
   "Transpose the expressions around point.
