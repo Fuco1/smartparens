@@ -4530,35 +4530,47 @@ Examples:
           (goto-char (+ (sp-get prev :beg-prf) (sp-get next :len))))
         (setq n (1- n))))))
 
-(defun sp-transpose-hybrid-sexp ()
+(defun sp-transpose-hybrid-sexp (&optional arg)
   "Transpose the hybrid sexps around point.
 
 `sp-backward-sexp' is used to enter the previous hybrid sexp.
 
-The operation will move the point after the transposed block.
+With ARG numeric prefix call `transpose-lines' with this
+argument.
+
+The operation will move the point at the next line after the
+transposed block if it is at the end of line already.
 
 Examples:
 
   foo bar            baz (quux
   |baz (quux   ->         quack)
-        quack)       foo bar|
+        quack)       foo bar\\n|
 
 
   [(foo) (bar) -> [(baz)
   |(baz)]          (foo) (bar)|]
 
   foo bar baz  -> quux flux
-  |quux flux      foo bar baz|"
-  (interactive)
-  (let* ((next (sp-get-hybrid-sexp))
-         (prev (save-excursion
-                 (goto-char (sp-get next :beg))
-                 (sp-backward-sexp)
-                 (sp-get-hybrid-sexp)))
-         ins between)
-    (if (> (sp-get prev :end) (sp-get next :end))
-        (message "Invalid context: previous h-sexp ends after the next one.")
-      (sp--transpose-objects prev next))))
+  |quux flux      foo bar baz\\n|"
+  (interactive "P")
+  (if (numberp arg)
+      (transpose-lines arg)
+    (let* ((next (save-excursion
+                   (sp-forward-sexp)
+                   (sp-backward-sexp)
+                   (sp-get-hybrid-sexp)))
+           (prev (save-excursion
+                   (goto-char (sp-get next :beg))
+                   (sp-backward-sexp)
+                   (sp-get-hybrid-sexp)))
+           ins between)
+      (if (> (sp-get prev :end) (sp-get next :end))
+          (message "Invalid context: previous h-sexp ends after the next one.")
+        (sp--transpose-objects prev next))
+      (when (looking-at "[\n\t ]+")
+        (forward-line)
+        (back-to-indentation)))))
 
 (defun sp-push-hybrid-sexp ()
   "Push the hybrid sexp after point over the following one.
