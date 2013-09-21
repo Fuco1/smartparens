@@ -1317,6 +1317,12 @@ If PROP is non-nil, return the value of that property instead."
   (let ((pair (sp--get-pair open list)))
     (if prop
         (cond
+         ((eq prop :op-l)
+          (length (plist-get pair :open)))
+         ((eq prop :cl-l)
+          (length (plist-get pair :close)))
+         ((eq prop :len)
+          (+ (length (plist-get pair :open)) (length (plist-get pair :close))))
          ((eq prop :post-handlers)
           (--filter (not (listp it)) (plist-get pair prop)))
          ((eq prop :post-handlers-cond)
