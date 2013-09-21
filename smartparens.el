@@ -929,6 +929,19 @@ point (using `sp-previous-sexp')."
   :type 'boolean
   :group 'smartparens)
 
+;; hybrid lines
+(defcustom sp-hybrid-kill-excessive-whitespace nil
+  "If non-nil, `sp-kill-hybrid-sexp' will kill all whitespace up
+until next hybrid sexp if the point is at the end of line or on a
+blank line.
+
+Warning: comments are also considered whitespace if the point is
+on a blank line, since they are skipped when looking for sexps.
+You can use `delete-blank-lines' (bound on C-x C-o by default) to
+kill only truly blank lines."
+  :type 'boolean
+  :group 'smartparens)
+
 ;; ui custom
 (defcustom sp-highlight-pair-overlay t
   "If non-nil, autoinserted pairs are highlighted until point is inside the pair."
@@ -1030,6 +1043,12 @@ insert the modes."
 (defun sp--reverse-string (str)
   "Reverse the string STR."
   (concat (reverse (append str nil))))
+
+(defun sp--blank-line-p ()
+  "Return non-nil if line at point is blank (whitespace only)."
+  (save-excursion
+    (beginning-of-line)
+    (looking-at "[ \t]*$")))
 
 (defun sp-point-in-string (&optional p)
   "Return non-nil if point is inside string or documentation string.
@@ -4437,9 +4456,8 @@ the point is in (see `sp-get-hybrid-sexp').
 
 With ARG numeric prefix 0 (zero) just call `kill-line'.
 
-If the point is at the end of non-empty line, call
-`delete-blank-lines'.  If the point is on blank line followed by
-blank lines, kill all the blank lines after point.
+You can customize the behaviour of this command by toggling
+`sp-hybrid-kill-excessive-whitespace'.
 
 Examples:
 
@@ -4471,9 +4489,18 @@ Examples:
         (save-excursion
           (when (sp-point-in-symbol) (sp-backward-sexp))
           (sp-get hl
-            (if (/= (point) :end)
-                (kill-region (point) :end)
-              (delete-blank-lines)))))
+            (if (= (point) :end)
+                (if sp-hybrid-kill-excessive-whitespace
+                    (let ((buf-len (buffer-size)))
+                      (delete-blank-lines)
+                      (when (= buf-len (buffer-size))
+                        (kill-line)))
+                  (kill-line))
+              (if sp-hybrid-kill-excessive-whitespace
+                  (kill-region (point) :end)
+                (if (sp--blank-line-p)
+                    (kill-line)
+                  (kill-region (point) :end)))))))
       (sp--cleanup-after-kill)))))
 
 (defun sp--transpose-objects (first second)
