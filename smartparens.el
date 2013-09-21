@@ -5731,7 +5731,7 @@ Examples:
             (setq n (1- n)))))
       prev)))
 
-(defun sp--next-thing-selection (arg &optional point)
+(defun sp--next-thing-selection (&optional arg point)
   "Return the bounds of selection over next thing.
 
 See `sp-select-next-thing' for the meaning of ARG.
