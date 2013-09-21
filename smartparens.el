@@ -3446,7 +3446,7 @@ enclosing list boundaries or line boundaries."
     (let* ((lb (line-beginning-position))
            (le (line-end-position))
            (p (progn (when (sp-point-in-symbol) (sp-backward-sexp)) (point)))
-           sp ep begs ends cur)
+           begs ends cur)
       (save-excursion
         (setq cur (sp-forward-sexp))
         (setq begs cur)
@@ -3463,11 +3463,13 @@ enclosing list boundaries or line boundaries."
                                      (<= :end p))))
           (setq begs cur)
           (setq cur (sp-backward-sexp))))
-      (list :beg (if begs (sp-get begs :beg) (sp-get ends :beg))
-            :end (if ends (sp-get ends :end) (sp-get begs :end))
-            :op (if begs (sp-get begs :op) "")
-            :cl (if ends (sp-get ends :cl) "")
-            :prefix (if begs (sp-get begs :prefix) "")))))
+      (let ((beg (if begs (sp-get begs :beg) (sp-get ends :beg)))
+            (end (if ends (sp-get ends :end) (sp-get begs :end))))
+        (list :beg (min beg end)
+              :end (max beg end)
+              :op (if begs (sp-get begs :op) "")
+              :cl (if ends (sp-get ends :cl) "")
+              :prefix (if begs (sp-get begs :prefix) ""))))))
 
 (defun sp-get-enclosing-sexp (&optional arg)
   "Return the balanced expression that wraps point at the same level.
@@ -4435,6 +4437,10 @@ the point is in (see `sp-get-hybrid-sexp').
 
 With ARG numeric prefix 0 (zero) just call `kill-line'.
 
+If the point is at the end of non-empty line, call
+`delete-blank-lines'.  If the point is on blank line followed by
+blank lines, kill all the blank lines after point.
+
 Examples:
 
   foo | bar baz               -> foo |               ;; nil
@@ -4464,7 +4470,10 @@ Examples:
       (let ((hl (sp-get-hybrid-sexp)))
         (save-excursion
           (when (sp-point-in-symbol) (sp-backward-sexp))
-          (kill-region (point) (sp-get hl :end))))
+          (sp-get hl
+            (if (/= (point) :end)
+                (kill-region (point) :end)
+              (delete-blank-lines)))))
       (sp--cleanup-after-kill)))))
 
 (defun sp--transpose-objects (first second)
