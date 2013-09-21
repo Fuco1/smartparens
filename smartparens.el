@@ -657,7 +657,7 @@ instead."
           (const :tag "Insert the pair if opening and closing pair is the same and the containing expression is empty and always insert other pairs normally." 3))
   :group 'smartparens)
 
-(defcustom sp-autoinsert-if-followed-by-word nil
+(defcustom sp-autoinsert-if-followed-by-word t
   "If non-nil, autoinsert the whole pair even if point is followed by word.
 
 For example |word followed by ( would produce (|)word.  If nil,
