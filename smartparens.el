@@ -5001,7 +5001,7 @@ Examples:
                             (,looking allowed-pairs)
                             (and (memq major-mode sp-navigate-consider-stringlike-sexp)
                                  (,looking allowed-strings))))
-                   (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\" ?' ?.))
+                   (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\\ ?\" ?' ?.))
                        (unless in-comment (sp-point-in-comment))))
          (,forward-fn 1)))))
 
