@@ -3484,6 +3484,52 @@ of opening/closing delimiter or prefix)."
          (t paired)))))
    (t (sp-get-expression back))))
 
+(defun sp--get-hybrid-sexp-beg ()
+  "Get the beginning of hybrid sexp.
+See `sp-get-hybrid-sexp' for definition."
+  (save-excursion
+    (let ((p (progn (when (sp-point-in-symbol) (sp-backward-sexp)) (point)))
+          (lb (line-beginning-position))
+          (cur (--if-let (save-excursion (sp-backward-sexp)) it (list :end 0))) ;hack
+          last)
+      (if (< (sp-get cur :end) lb)
+          lb
+        (while (sp-get cur
+                 (and cur
+                      (> :end lb)
+                      (<= :end p)))
+          (setq last cur)
+          (setq cur (sp-backward-sexp)))
+        (if last
+            (sp-get last :beg-prf)
+          ;; happens when there is no sexp before the opening delim of
+          ;; the enclosing sexp.  In case it is on line above, we take
+          ;; the maximum wrt lb.
+          (sp-get cur (max :beg-in lb)))))))
+
+(defun sp--get-hybrid-sexp-end ()
+  "Get the end of hybrid sexp.
+See `sp-get-hybrid-sexp' for definition."
+  (save-excursion
+    (let ((p (progn (when (sp-point-in-symbol) (sp-backward-sexp)) (point)))
+          (le (line-end-position))
+          (cur (--if-let (save-excursion (sp-forward-sexp)) it (list :beg (1+ (point-max))))) ;hack
+          last)
+      (if (> (sp-get cur :beg) le)
+          le
+        (while (sp-get cur
+                 (and cur
+                      (< :beg le)
+                      (>= :beg p)))
+          (setq last cur)
+          (setq cur (sp-forward-sexp)))
+        (if last
+            (sp-get last :end)
+          ;; happens when there is no sexp before the closing delim of
+          ;; the enclosing sexp.  In case it is on line below, we take
+          ;; the minimum wrt le.
+          (sp-get cur (min :end-in le)))))))
+
 (defun sp-get-hybrid-sexp ()
   "Return the hybrid sexp around point.
 
@@ -3491,34 +3537,11 @@ A hybrid sexp is defined as the smallest balanced region containing
 the point while not expanding further than the current line.  That is,
 any hanging sexps will be included, but the expansion stops at the
 enclosing list boundaries or line boundaries."
-  (save-excursion
-    (let* ((lb (line-beginning-position))
-           (le (line-end-position))
-           (p (progn (when (sp-point-in-symbol) (sp-backward-sexp)) (point)))
-           begs ends cur)
-      (save-excursion
-        (setq cur (sp-forward-sexp))
-        (setq begs cur)
-        (while (and cur
-                    (sp-get cur (and (< :beg le)
-                                     (>= :beg p))))
-          (setq ends cur)
-          (setq cur (sp-forward-sexp))))
-      (save-excursion
-        (setq cur (sp-backward-sexp))
-        (unless ends (setq ends cur))
-        (while (and cur
-                    (sp-get cur (and (> :end lb)
-                                     (<= :end p))))
-          (setq begs cur)
-          (setq cur (sp-backward-sexp))))
-      (let ((beg (if begs (sp-get begs :beg) (sp-get ends :beg)))
-            (end (if ends (sp-get ends :end) (sp-get begs :end))))
-        (list :beg (min beg end)
-              :end (max beg end)
-              :op (if begs (sp-get begs :op) "")
-              :cl (if ends (sp-get ends :cl) "")
-              :prefix (if begs (sp-get begs :prefix) ""))))))
+  (list :beg (sp--get-hybrid-sexp-beg)
+        :end (sp--get-hybrid-sexp-end)
+        :op ""
+        :cl ""
+        :prefix ""))
 
 (defun sp-get-enclosing-sexp (&optional arg)
   "Return the balanced expression that wraps point at the same level.
@@ -4519,18 +4542,15 @@ Examples:
         (save-excursion
           (when (sp-point-in-symbol) (sp-backward-sexp))
           (sp-get hl
-            (if (= (point) :end)
-                (if sp-hybrid-kill-excessive-whitespace
-                    (let ((buf-len (buffer-size)))
-                      (delete-blank-lines)
-                      (when (= buf-len (buffer-size))
-                        (kill-line)))
-                  (kill-line))
-              (if sp-hybrid-kill-excessive-whitespace
-                  (kill-region (point) :end)
-                (if (sp--blank-line-p)
-                    (kill-line)
-                  (kill-region (point) :end)))))))
+            (kill-region (point) (min (point-max) (if (looking-at "[ \t]*$") (1+ :end) :end)))
+            (when sp-hybrid-kill-excessive-whitespace
+              (cond
+               ((sp--blank-line-p)
+                (while (and (not (eobp))
+                            (sp--blank-line-p))
+                  (delete-region (line-beginning-position) (min (point-max) (1+ (line-end-position))))))
+               ((looking-at "[ \t]*$")
+                (delete-blank-lines)))))))
       (sp--cleanup-after-kill)))))
 
 (defun sp--transpose-objects (first second)
