@@ -364,16 +364,16 @@ can be of any length.")
 
 (defvar sp-pairs '((t
                     .
-                    ((:open "\\\\(" :close "\\\\)" :actions (insert wrap))
-                     (:open "\\{"   :close "\\}"   :actions (insert wrap))
-                     (:open "\\("   :close "\\)"   :actions (insert wrap))
-                     (:open "\\\""  :close "\\\""  :actions (insert wrap))
-                     (:open "\""    :close "\""    :actions (insert wrap))
-                     (:open "'"     :close "'"     :actions (insert wrap))
-                     (:open "("     :close ")"     :actions (insert wrap))
-                     (:open "["     :close "]"     :actions (insert wrap))
-                     (:open "{"     :close "}"     :actions (insert wrap))
-                     (:open "`"     :close "`"     :actions (insert wrap)))))
+                    ((:open "\\\\(" :close "\\\\)" :actions (insert wrap autoskip))
+                     (:open "\\{"   :close "\\}"   :actions (insert wrap autoskip))
+                     (:open "\\("   :close "\\)"   :actions (insert wrap autoskip))
+                     (:open "\\\""  :close "\\\""  :actions (insert wrap autoskip))
+                     (:open "\""    :close "\""    :actions (insert wrap autoskip))
+                     (:open "'"     :close "'"     :actions (insert wrap autoskip))
+                     (:open "("     :close ")"     :actions (insert wrap autoskip))
+                     (:open "["     :close "]"     :actions (insert wrap autoskip))
+                     (:open "{"     :close "}"     :actions (insert wrap autoskip))
+                     (:open "`"     :close "`"     :actions (insert wrap autoskip)))))
   "List of pair definitions.
 
 Maximum length of opening or closing pair is
@@ -1417,7 +1417,7 @@ negative -N, wrap N preceeding expressions.")
 (cl-defun sp-pair (open
                    close
                    &key
-                   (actions '(wrap insert))
+                   (actions '(wrap insert autoskip))
                    when
                    unless
                    pre-handlers
@@ -1439,6 +1439,9 @@ this pair.  Possible values are:
   typed.
 - wrap    - wrap an active region with the pair defined by opening
   delimiter if this is typed while region is active.
+- autoskip - if the sexp is active or `sp-autoskip-closing-pair' is
+  set to 'always, skip over the closing delimiter if user types its
+  characters in order.
 
 If the ACTIONS argument has value :rem, the pair is removed.
 This can be used to remove default pairs you don't want to use.
@@ -1638,7 +1641,7 @@ addition, there is a global per major-mode option, see
         (when skip-match (plist-put pair :skip-match skip-match))
         (when (and (not (sp-get-pair-definition open t))
                    (equal actions '(:add)))
-          (setq actions '(wrap insert)))
+          (setq actions '(wrap insert autoskip)))
         (plist-put pair :actions actions)
         (plist-put pair :when when)
         (plist-put pair :unless unless)
@@ -2910,38 +2913,59 @@ active region."
           sp-last-operation)))))
 
 (defun sp-skip-closing-pair ()
-  "If point is inside an inserted pair, and the user only moved forward
-with point (that is, only inserted text), if the closing pair is
-typed, we shouldn't insert it again but skip forward.
+  "If point is inside an inserted pair, and the user only moved
+forward with point (that is, only inserted text), if the closing
+pair is typed, we shouldn't insert it again but skip forward.  We
+call this state \"active sexp\".
 
 For example, pressing ( is followed by inserting the pair (|).  If
 we then type 'word' and follow by ), the result should be (word)|
 instead of (word)|).
 
 If the user moved backwards or outside the
-pair, this behaviour is cancelled.  This behaviour can be globally
+pair, this behaviour is canceled.  This behaviour can be globally
 disabled by setting `sp-cancel-autoskip-on-backward-movement' to
 nil.
 
 This behaviour can be globally disabled by setting
-`sp-autoskip-closing-pair' to nil."
+`sp-autoskip-closing-pair' to nil.  You can also enable it for
+all sexps, not only active ones by setting it to 'always.
+
+Additionally, this behaviour can be selectively disabled for
+specific pairs by removing their \"autoskip\" action.  You can
+achieve this by using `sp-pair' or `sp-local-pair' with
+\":actions '(:rem autoskip)\"."
   (when (or (and (eq sp-autoskip-closing-pair t)
                  sp-pair-overlay-list
                  (sp--get-active-overlay 'pair))
             (eq sp-autoskip-closing-pair 'always))
     ;; TODO: this let is so ugly :/
     (let* ((overlay (sp--get-active-overlay 'pair))
-           (enc (and (not overlay) (looking-at (sp--get-closing-regexp sp-pair-list)) (save-excursion (backward-char 1) (sp-get-enclosing-sexp))))
+           ;; FIXME: this is broken when we are inside an inactive
+           ;; sexp... only works for length 1.  We actually need to go
+           ;; back more than one char to search if we are inside a
+           ;; closing delimiter.
+           (enc (and (not overlay)
+                     (looking-at (sp--get-closing-regexp sp-pair-list))
+                     (save-excursion (backward-char 1) (sp-get-enclosing-sexp))))
            (expr-start (if overlay (overlay-start overlay) (sp-get enc :beg)))
            ;; +1 since the overlay automatically extends, we need to
-           ;; handle that if we're inside inactive sexp
+           ;; handle that if we're inside inactive sexp.
+
+           ;; This is only an issue when the character will complete
+           ;; the delimiter, since before then it is just skipped over
+           ;; during search.  In that case, we need to add "cl-l" to
+           ;; the `expr-end'.  Also, this fix only works for
+           ;; single-char delimiters.  This entire approach fails for
+           ;; multi-char.
            (expr-end (if overlay (overlay-end overlay) (and enc (1+ (sp-get enc :end)))))
            (open-pair (if overlay (overlay-get overlay 'pair-id) (sp-get enc :op)))
            (close-pair (cdr (assoc open-pair sp-pair-list)))
            ;; how many chars have we already typed
            (already-skipped (and close-pair (- (length close-pair) (- expr-end (point))))))
       ;; only if we're at the closing pair or inside it
-      (when (and close-pair (>= already-skipped 0))
+      (when (and (sp--do-action-p open-pair 'autoskip)
+                 close-pair (>= already-skipped 0))
         ;; rest of yet-untyped close-pair
         (let ((close-pair-rest (substring close-pair already-skipped))
               (last last-command-event))
