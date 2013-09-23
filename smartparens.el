@@ -4844,7 +4844,8 @@ Examples:
       (sp-forward-slurp-sexp))
      (t
       (sp-backward-down-sexp)
-      (sp-forward-slurp-sexp arg)))))
+      (sp-forward-slurp-sexp arg))))
+  (indent-according-to-mode))
 
 (defun sp-add-to-next-sexp (&optional arg)
   "Add the expressions preceding point to the list following point.
