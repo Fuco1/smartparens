@@ -933,12 +933,7 @@ point (using `sp-previous-sexp')."
 (defcustom sp-hybrid-kill-excessive-whitespace nil
   "If non-nil, `sp-kill-hybrid-sexp' will kill all whitespace up
 until next hybrid sexp if the point is at the end of line or on a
-blank line.
-
-Warning: comments are also considered whitespace if the point is
-on a blank line, since they are skipped when looking for sexps.
-You can use `delete-blank-lines' (bound on C-x C-o by default) to
-kill only truly blank lines."
+blank line."
   :type 'boolean
   :group 'smartparens)
 
