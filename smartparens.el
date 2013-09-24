@@ -1033,10 +1033,10 @@ insert the modes."
   `(progn
      ,@(mapcar (lambda (form) (append (list (car form) arg) (cdr form))) forms)))
 
-(font-lock-add-keywords 'emacs-lisp-mode `((,(concat "\\<"
-                                                     (regexp-opt '("sp-with-modes" "sp-get"))
-                                                     "\\>") . font-lock-keyword-face)) 'append)
-
+(font-lock-add-keywords 'emacs-lisp-mode `((,(concat "("
+                                                     (regexp-opt '("sp-with-modes" "sp-get") t)
+                                                     "\\>")
+                                            (1 font-lock-keyword-face))))
 (defmacro --last (form list)
   "Anaphoric form of `-last'."
   (let ((n (make-symbol "needle")))
