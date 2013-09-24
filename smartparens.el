@@ -1139,7 +1139,8 @@ beginning."
   (defun sp--get-substitute (keyword-list struct list)
     "Only ever call this from sp-get!  This function do the
 replacement of all the keywords with actual calls to sp-get."
-    (if (listp list)
+    (if (and (listp list)
+             (not (eq (car list) 'sp-get)))
         (mapcar (lambda (x) (sp--get-substitute keyword-list struct x)) list)
       (if (memq list keyword-list)
           (sp--get-replace-keyword struct list)
