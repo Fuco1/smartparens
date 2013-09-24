@@ -1053,11 +1053,28 @@ insert the modes."
   "Reverse the string STR."
   (concat (reverse (append str nil))))
 
-(defun sp--blank-line-p ()
-  "Return non-nil if line at point is blank (whitespace only)."
+(defun sp-point-in-blank-line (&optional p)
+  "Return non-nil if line at point is blank (whitespace only).
+
+If optional argument P is present test this instead of point."
   (save-excursion
+    (when p (goto-char p))
     (beginning-of-line)
     (looking-at "[ \t]*$")))
+
+(defun sp-point-in-blank-sexp (&optional p)
+  "Return non-nil if point is inside blank (whitespace only) sexp.
+
+If optional argument P is present test this instead of point.
+
+Warning: it is only safe to call this when point is inside a
+sexp, otherwise the call may be very slow."
+  (save-excursion
+    (when p (goto-char p))
+    (-when-let (enc (sp-get-enclosing-sexp))
+      (sp-get enc (string-match-p
+                   "\\`[ \t\n]*\\'"
+                   (buffer-substring-no-properties :beg-in :end-in))))))
 
 (defun sp-point-in-string (&optional p)
   "Return non-nil if point is inside string or documentation string.
@@ -4559,9 +4576,9 @@ Examples:
             (kill-region (point) (min (point-max) (if (looking-at "[ \t]*$") (1+ :end) :end)))
             (when sp-hybrid-kill-excessive-whitespace
               (cond
-               ((sp--blank-line-p)
+               ((sp-point-in-blank-line)
                 (while (and (not (eobp))
-                            (sp--blank-line-p))
+                            (sp-point-in-blank-line))
                   (delete-region (line-beginning-position) (min (point-max) (1+ (line-end-position))))))
                ((looking-at "[ \t]*$")
                 (delete-blank-lines)))))))
