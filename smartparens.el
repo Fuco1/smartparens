@@ -937,6 +937,20 @@ blank line."
   :type 'boolean
   :group 'smartparens)
 
+(defcustom sp-hybrid-kill-entire-symbol t
+  "If t, always kill the symbol under point when invoking `sp-kill-hybrid-sexp'.
+
+If nil, never kill the entire symbol and only kill the part after point.
+
+If a function, this should be a zero-arg predicate. When it
+returns non-nil value, we should kill from point."
+  :type '(radio
+          (const :tag "Always kill entire symbol" t)
+          (const :tag "Always kill from point" nil)
+          (const :tag "Kill from point only inside strings" sp-point-in-string)
+          (function :tag "Custom predicate"))
+  :group 'smartparens)
+
 ;; ui custom
 (defcustom sp-highlight-pair-overlay t
   "If non-nil, autoinserted pairs are highlighted until point is inside the pair."
@@ -4535,7 +4549,11 @@ Examples:
      (t
       (let ((hl (sp-get-hybrid-sexp)))
         (save-excursion
-          (when (sp-point-in-symbol) (sp-backward-sexp))
+          (when (and (or (eq sp-hybrid-kill-entire-symbol t)
+                         (and (functionp sp-hybrid-kill-entire-symbol)
+                              (not (funcall sp-hybrid-kill-entire-symbol))))
+                     (sp-point-in-symbol))
+            (sp-backward-sexp))
           (sp-get hl
             (kill-region (point) (min (point-max) (if (looking-at "[ \t]*$") (1+ :end) :end)))
             (when sp-hybrid-kill-excessive-whitespace
