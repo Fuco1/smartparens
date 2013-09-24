@@ -4317,12 +4317,12 @@ Examples:
                     (let ((prev (sp-get-thing t)))
                       ;; if the expression is empty remove everything inside
                       (if (sp-compare-sexps ok prev)
-                          (delete-region (sp-get ok :beg-in) (sp-get ok :end-in))
+                          (sp-get ok (delete-region :beg-in :end-in))
                         (delete-region (sp-get prev :end) (point)))))
                 (goto-char (sp-get ok :beg-in))
                 (let ((next (sp-get-thing)))
                   (if (sp-compare-sexps ok next)
-                      (delete-region (sp-get ok :beg-in) (sp-get ok :end-in))
+                      (sp-get ok (delete-region :beg-in :end-in))
                     (delete-region (point) (sp-get next :beg))))))))
       ;; on forward up, we can detect that the pair was not closed.
       ;; Therefore, jump sexps backwards until we hit the error, then
@@ -4453,7 +4453,7 @@ Note: prefix argument is shown after the example in
      ((and raw
            (= n 16))
       (let ((lst (sp-backward-up-sexp)))
-        (funcall kill-fn (sp-get lst :beg-prf) (sp-get lst :end))))
+        (sp-get lst (funcall kill-fn :beg-prf :end))))
      ;; kill inside of sexp
      ((= n 0)
       (let ((e (sp-get-enclosing-sexp)))
@@ -4464,8 +4464,9 @@ Note: prefix argument is shown after the example in
       (save-excursion
         (while (and (> n 0) ok)
           (setq ok (sp-forward-sexp (sp--signum arg)))
-          (when (< (sp-get ok :beg-prf) b) (setq b (sp-get ok :beg-prf)))
-          (when (> (sp-get ok :end) e) (setq e (sp-get ok :end)))
+          (sp-get ok
+            (when (< :beg-prf b) (setq b :beg-prf))
+            (when (> :end e) (setq e :end)))
           (setq n (1- n))))
       (when ok
         (let ((bm (set-marker (make-marker) b)))
@@ -5078,7 +5079,7 @@ Examples: (prefix arg in comment)
               (setq arg (length lst))
               (when (/= arg 0)
                 (sp--barf-sexp t)
-                (when (> (point) (sp-get last :end)) (goto-char (sp-get last :end)))))
+                (sp-get last (when (> (point) :end) (goto-char :end)))))
           (sp--barf-sexp t))
       (sp-backward-barf-sexp (sp--negate-argument old-arg)))))
 
@@ -5108,7 +5109,7 @@ Examples:
               (setq arg n)
               (when (/= arg 0)
                 (sp--barf-sexp nil)
-                (when (< (point) (sp-get (car lst) :beg-prf)) (goto-char (sp-get (car lst) :beg-prf)))))
+                (sp-get (car lst) (when (< (point) :beg-prf) (goto-char :beg-prf)))))
           (sp--barf-sexp nil))
       (sp-forward-barf-sexp (sp--negate-argument old-arg)))))
 
@@ -5868,8 +5869,8 @@ Return the information about resulting expression."
             (let ((tmp prev))
               (setq prev next)
               (setq next tmp)))
-        (delete-region (sp-get next :beg-prf) (sp-get next :beg-in))
-        (delete-region (sp-get prev :end-in) (sp-get prev :end))
+        (sp-get next (delete-region :beg-prf :beg-in))
+        (sp-get prev (delete-region :end-in :end))
         (list :beg (sp-get prev :beg)
               :end (- (sp-get next (- :end :op-l :prefix-l)) (sp-get prev :cl-l))
               :op (sp-get prev :op)
