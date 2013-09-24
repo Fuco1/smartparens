@@ -93,7 +93,7 @@ end
   )
 
 (ert-deftest sp-test-ruby-slurp-backward ()
-  (sp-ruby-test-slurp-assert -2 "
+  (sp-ruby-test-slurp-assert -1 "
 foo.bar
 begin X
 end
@@ -101,6 +101,31 @@ end
 begin
   foo.bar
 end
+")
+
+  (sp-ruby-test-slurp-assert -1 "
+foo.class
+begin X
+end
+" :=> "
+begin
+  foo.class
+end
+")
+
+  ;; Indentation is a bit off here, but it works great in Enhanced Ruby Mode.
+  (sp-ruby-test-slurp-assert -1 "
+foo.
+  class.
+  bar
+begin X
+end
+" :=> "
+begin
+  foo.
+    class.
+        bar
+    end
 ")
 
   (sp-ruby-test-slurp-assert -1 "
@@ -117,7 +142,7 @@ begin
 end
 ")
 
-  (sp-ruby-test-slurp-assert -5 "
+  (sp-ruby-test-slurp-assert -3 "
 test(1).test[2].test
 beginX
 end
@@ -276,15 +301,15 @@ Module::Class
 (ert-deftest sp-test-ruby-barf-backward ()
   (sp-ruby-test-barf-assert -1 "
 begin
-  foo.barX
+  fooX
 end
 " :=> "
-foo. begin
-       bar
-     end
+foo
+begin
+end
 ")
 
-  (sp-ruby-test-barf-assert -2 "
+  (sp-ruby-test-barf-assert -1 "
 begin
   foo.barX
 end
@@ -308,7 +333,7 @@ begin
 end
 ")
 
-  (sp-ruby-test-barf-assert -5 "
+  (sp-ruby-test-barf-assert -3 "
 begin
   test(1).test[2].testX
 end
@@ -444,6 +469,24 @@ end
 foo(ifX test; bar; end)
 " :=> "
 foo( test; bar; )
+")
+
+  (sp-ruby-test-splice-assert 1 "
+begin
+  object.classX
+end
+" :=> "
+object.class
+")
+
+  (sp-ruby-test-splice-assert 1 "
+begin
+  object.
+    classX
+end
+" :=> "
+object.
+  class
 ")
 
   )

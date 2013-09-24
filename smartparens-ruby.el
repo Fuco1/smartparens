@@ -93,16 +93,21 @@
     (save-excursion
       (sp-forward-sexp)
       (sp-ruby-delete-indentation -1))
+    (while (thing-at-point-looking-at "\\.[ \n]*")
+      (sp-backward-sexp))
     (save-excursion
       (newline))
     (just-one-space))
 
   (when (equal action 'barf-backward)
     (save-excursion
-      (newline))
-    (save-excursion
       (sp-backward-sexp)
       (sp-ruby-delete-indentation))
+    (while (thing-at-point-looking-at "\\.[ \n]*")
+      (forward-symbol 1))
+    (if (looking-at " *$")
+        (newline)
+      (save-excursion (newline)))
     (just-one-space))
 
   (when (equal action 'slurp-forward)
@@ -134,6 +139,16 @@
 (defun sp-ruby-skip-inline-match-p (ms mb me)
   (sp-ruby-inline-p ms))
 
+(defun sp-ruby-method-p (id)
+  (save-excursion
+    (when (looking-back (concat id " *"))
+      (backward-word))
+    (and (looking-at id)
+         (looking-back "\\.[ \n]*"))))
+
+(defun sp-ruby-skip-method-p (ms mb me)
+  (sp-ruby-method-p ms))
+
 (defun sp-ruby-in-string-word-or-inline-p (id action context)
   (or (sp-ruby-in-string-or-word-p id action context)
       (and (looking-back id)
@@ -158,7 +173,8 @@
                  :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-block-post-handler))
+                 :post-handlers '(sp-ruby-block-post-handler)
+                 :skip-match 'sp-ruby-skip-method-p)
 
   (sp-local-pair "{" "}"
                  :actions '(insert wrap)
@@ -169,28 +185,32 @@
                  :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-block-post-handler))
+                 :post-handlers '(sp-ruby-block-post-handler)
+                 :skip-match 'sp-ruby-skip-method-p)
 
   (sp-local-pair "def" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-def-post-handler))
+                 :post-handlers '(sp-ruby-def-post-handler)
+                 :skip-match 'sp-ruby-skip-method-p)
 
   (sp-local-pair "class" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-def-post-handler))
+                 :post-handlers '(sp-ruby-def-post-handler)
+                 :skip-match 'sp-ruby-skip-method-p)
 
   (sp-local-pair "module" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :unless '(sp-ruby-in-string-or-word-p)
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-def-post-handler))
+                 :post-handlers '(sp-ruby-def-post-handler)
+                 :skip-match 'sp-ruby-skip-method-p)
 
   (sp-local-pair "if" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
