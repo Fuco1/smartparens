@@ -4686,6 +4686,64 @@ Examples:
         (message "Invalid context: current h-sexp starts after the next one.")
       (sp--transpose-objects cur next))))
 
+;; The following two functions are inspired by "adjust-parens.el"
+;; package available at
+;; http://elpa.gnu.org/packages/adjust-parens-1.0.el
+(defun sp-indent-adjust-sexp ()
+  "Add the hybrid sexp at line into previous sexp.  All forms
+between the two are also inserted.  Specifically, if the point is
+on empty line, move the closing delimiter there, so the next
+typed text will become the last item of the previous sexp.
+
+This acts similarly to `sp-add-to-previous-sexp' but with special
+handling of empty lines."
+  (interactive)
+  (let* ((hsexp (sp-get-hybrid-sexp))
+         (prev-sexp (save-excursion
+                      (goto-char (sp-get hsexp :beg))
+                      (sp-get-sexp t))))
+    (if (not (and prev-sexp hsexp
+                  (< (sp-get prev-sexp :end) (sp-get hsexp :beg))))
+        (message "Previous sexp starts after current hsexp or no structure was found.")
+      (save-excursion
+        (sp-get prev-sexp
+          (goto-char (sp-get hsexp :end))
+          (insert :cl)
+          (goto-char :end-in)
+          (delete-char :cl-l)))
+      (sp-get (sp-get-enclosing-sexp) (indent-region :beg :end))
+      (indent-according-to-mode)
+      (sp--run-hook-with-args (sp-get prev-sexp :op) :post-handlers 'indent-adjust-sexp))))
+
+(defun sp-dedent-adjust-sexp ()
+  "Remove the hybrid sexp at line from previous sexp.  All
+sibling forms after it are also removed (not deleted, just placed
+outside of the enclosing list).  Specifically, if the point is on
+empty line followed by closing delimiter of enclosing list, move
+the closing delimiter after the last item in the list.
+
+This acts similarly to `sp-forward-barf-sexp' but with special
+handling of empty lines."
+  (interactive)
+  (-when-let (enc (sp-get-enclosing-sexp))
+    (save-excursion
+      ;; if we're looking at whitespace and end of sexp, move the
+      ;; closing paren over the whitespace but *after* the last item
+      ;; in the list (barf would also go *before* the last item)
+      (sp-skip-forward-to-symbol t)
+      (if (= (point) (sp-get enc :end-in))
+          (let ((prev-sexp (sp-get-thing t)))
+            (sp-get enc
+              (delete-char :cl-l)
+              (goto-char (sp-get prev-sexp :end))
+              (insert :cl)))
+        ;; otherwise just C-u barf
+        (sp-skip-backward-to-symbol t)
+        (sp-forward-barf-sexp '(4))
+        (sp-get enc (indent-region :beg :end))))
+    (indent-according-to-mode)
+    (sp--run-hook-with-args (sp-get enc :op) :post-handlers 'dedent-adjust-sexp)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; "paredit" operations
