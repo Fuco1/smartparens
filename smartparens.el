@@ -1034,7 +1034,9 @@ insert the modes."
      ,@(mapcar (lambda (form) (append (list (car form) arg) (cdr form))) forms)))
 
 (font-lock-add-keywords 'emacs-lisp-mode `((,(concat "("
-                                                     (regexp-opt '("sp-with-modes" "sp-get") t)
+                                                     (regexp-opt '("sp-with-modes"
+                                                                   "sp-get"
+                                                                   "sp-compare-sexps") t)
                                                      "\\>")
                                             (1 font-lock-keyword-face))))
 (defmacro --last (form list)
@@ -1255,15 +1257,17 @@ Special care is taken to only evaluate the STRUCT argument once."
         (st (make-symbol "struct")))
     (sp--get-substitute keyword-list st `(let ((,st ,struct)) ,@forms))))
 
-(defmacro sp--compare-sexps (a b &optional what)
+(defmacro sp-compare-sexps (a b &optional fun what-a what-b)
   "Return non-nil if the expressions A and B are equal.
 
 Two expressions are equal if their :beg property is the same.
 
 If optional argument WHAT is non-nil, use it as a keyword on
 which to do the comparsion."
-  (setq what (or what :beg))
-  `(equal (sp-get ,a ,what) (sp-get ,b ,what)))
+  (setq fun (or fun 'equal))
+  (setq what-a (or what-a :beg))
+  (setq what-b (or what-b what-a))
+  `(,fun (sp-get ,a ,what-a) (sp-get ,b ,what-b)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3605,8 +3609,8 @@ argument."
         ;; string expression
         (when okr
           (unless (and ok
-                       (> (sp-get ok :beg) (sp-get okr :beg))
-                       (< (sp-get ok :end) (sp-get okr :end)))
+                       (sp-compare-sexps ok okr >)
+                       (sp-compare-sexps ok okr < :end))
             (setq ok okr)
             (goto-char (sp-get ok :end))))
         (setq n (1- n)))
@@ -4312,12 +4316,12 @@ Examples:
                     (goto-char (sp-get ok :end-in))
                     (let ((prev (sp-get-thing t)))
                       ;; if the expression is empty remove everything inside
-                      (if (sp--compare-sexps ok prev)
+                      (if (sp-compare-sexps ok prev)
                           (delete-region (sp-get ok :beg-in) (sp-get ok :end-in))
                         (delete-region (sp-get prev :end) (point)))))
                 (goto-char (sp-get ok :beg-in))
                 (let ((next (sp-get-thing)))
-                  (if (sp--compare-sexps ok next)
+                  (if (sp-compare-sexps ok next)
                       (delete-region (sp-get ok :beg-in) (sp-get ok :end-in))
                     (delete-region (point) (sp-get next :beg))))))))
       ;; on forward up, we can detect that the pair was not closed.
@@ -4435,7 +4439,7 @@ Note: prefix argument is shown after the example in
            (= n 4))
       (let ((next (sp-get-thing (< arg 0)))
             (enc (sp-get-enclosing-sexp)))
-        (if (sp--compare-sexps next enc)
+        (if (sp-compare-sexps next enc)
             (when (not dont-kill)
               (let ((del (sp-get-whitespace)))
                 (sp-get del (delete-region :beg :end))))
@@ -4673,7 +4677,7 @@ Examples:
                    (sp-backward-sexp)
                    (sp-get-hybrid-sexp)))
            ins between)
-      (if (> (sp-get prev :end) (sp-get next :end))
+      (if (sp-compare-sexps prev next > :end)
           (message "Invalid context: previous h-sexp ends after the next one.")
         (sp--transpose-objects prev next))
       (when (looking-at "[\n\t ]+")
@@ -4699,7 +4703,7 @@ Examples:
                  (sp-forward-sexp)
                  (sp-get-hybrid-sexp)))
          ins between)
-    (if (> (sp-get cur :beg) (sp-get next :beg))
+    (if (sp-compare-sexps cur next >)
         (message "Invalid context: current h-sexp starts after the next one.")
       (sp--transpose-objects cur next))))
 
@@ -4720,7 +4724,7 @@ handling of empty lines."
                       (goto-char (sp-get hsexp :beg))
                       (sp-get-sexp t))))
     (if (not (and prev-sexp hsexp
-                  (< (sp-get prev-sexp :end) (sp-get hsexp :beg))))
+                  (sp-compare-sexps prev-sexp hsexp < :end :beg)))
         (message "Previous sexp starts after current hsexp or no structure was found.")
       (save-excursion
         (sp-get prev-sexp
@@ -4818,7 +4822,7 @@ Examples:
                 (setq ok enc)
                 (setq next-thing (sp-get-thing nil))
                 (setq ins-space 0)
-                (while (< (sp-get next-thing :beg) (sp-get ok :beg))
+                (while (sp-compare-sexps next-thing ok <)
                   (goto-char (sp-get next-thing :end))
                   (setq ok next-thing)
                   (setq next-thing (sp-get-thing nil)))
@@ -4896,7 +4900,7 @@ Examples:
                 (goto-char (sp-get enc :beg-prf))
                 (setq ok enc)
                 (setq next-thing (sp-get-thing t))
-                (while (> (sp-get next-thing :end) (sp-get ok :end))
+                (while (sp-compare-sexps next-thing ok > :end)
                   (goto-char (sp-get next-thing :beg-prf))
                   (setq ok next-thing)
                   (setq next-thing (sp-get-thing t)))
@@ -4917,7 +4921,7 @@ Examples:
                         (insert (sp-get ok :prefix) (sp-get ok :op))
                         (indent-region (point) (sp-get ok :end))
                         ;; HACK: update the "enc" data structure if ok==enc
-                        (when (sp--compare-sexps enc ok) (plist-put enc :beg (- (point) (sp-get ok :op-l)))))
+                        (when (sp-compare-sexps enc ok) (plist-put enc :beg (- (point) (sp-get ok :op-l)))))
                       (setq n (1- n)))
                   (message "We can't slurp without breaking strictly balanced expression. Ignored.")
                   (setq n -1)))))))
@@ -5489,7 +5493,7 @@ See `sp-kill-sexp' for more information."
     (let ((ok (sp-get-enclosing-sexp 1)))
       (if ok
           (let ((next (sp-get-thing)))
-            (if (sp--compare-sexps next ok)
+            (if (sp-compare-sexps next ok)
                 (sp-kill-sexp '(16))
               (sp--splice-sexp-do-killing
                (sp-get next :beg-prf)
@@ -5519,7 +5523,7 @@ See `sp-kill-sexp' for more information."
     (let ((ok (sp-get-enclosing-sexp 1)))
       (if ok
           (let ((next (sp-get-thing t)))
-            (if (sp--compare-sexps next ok)
+            (if (sp-compare-sexps next ok)
                 (sp-kill-sexp '(16))
               (sp--splice-sexp-do-killing
                (sp-get next :end) ;search backward
@@ -5854,13 +5858,13 @@ The expression with smaller :beg is considered the previous one,
 so the input order does not actually matter.
 
 Return the information about resulting expression."
-  (if (and (equal (sp-get prev :op) (sp-get next :op))
-           (equal (sp-get prev :cl) (sp-get next :cl)))
+  (if (and (sp-compare-sexps prev next equal :op)
+           (sp-compare-sexps prev next equal :cl))
       ;; if there's some prefix on the second expression, remove it.
       ;; We do not move it to the first expression, it is assumed
       ;; there's one already
       (progn
-        (if (> (sp-get prev :beg) (sp-get next :beg))
+        (if (sp-compare-sexps prev next >)
             (let ((tmp prev))
               (setq prev next)
               (setq next tmp)))
@@ -5908,9 +5912,9 @@ Examples:
         (setq next (sp-forward-sexp (sp--signum arg)))
         (while (cond
                 ((> arg 0)
-                 (> (sp-get next :beg) (sp-get prev :end)))
+                 (sp-compare-sexps next prev > :beg :end))
                 ((< arg 0)
-                 (< (sp-get next :end) (sp-get prev :beg))))
+                 (sp-compare-sexps next prev < :end :beg)))
           (setq prev (sp--join-sexp prev next))
           (setq next (sp-forward-sexp (sp--signum arg)))))
        (t (while (> n 0)
