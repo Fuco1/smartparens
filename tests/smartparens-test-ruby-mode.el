@@ -61,6 +61,20 @@ if test
 end
 ")
 
+  (sp-ruby-test-slurp-assert 3 "
+if teXst
+end
+foo.
+  bar.
+  bar
+" :=> "
+if test
+  foo.
+    bar.
+    bar
+end
+")
+
   (sp-ruby-test-slurp-assert 5 "
 beginX
 end
@@ -265,6 +279,20 @@ end
 if test
 end
 foo.bar
+")
+
+  (sp-ruby-test-barf-assert 3 "
+if teXst
+  foo.
+    bar.
+    bar
+end
+" :=> "
+if test
+end
+foo.
+  bar.
+  bar
 ")
 
   (sp-ruby-test-barf-assert 5 "

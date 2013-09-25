@@ -105,15 +105,17 @@
       (sp-ruby-delete-indentation))
     (while (thing-at-point-looking-at "\\.[ \n]*")
       (forward-symbol 1))
-    (if (looking-at " *$")
-        (newline)
-      (save-excursion (newline)))
+    (if (looking-at-p " *$") (newline) (save-excursion (newline)))
     (just-one-space))
 
   (when (equal action 'slurp-forward)
     (save-excursion
       (sp-backward-sexp)
-      (sp-ruby-delete-indentation))
+      (if (thing-at-point-looking-at "\\.[ \n]*")
+          (progn
+            (forward-symbol -1)
+            (sp-ruby-delete-indentation -1))
+        (sp-ruby-delete-indentation)))
     (newline))
 
   (when (equal action 'barf-forward)
