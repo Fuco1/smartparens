@@ -1017,11 +1017,8 @@ handler."
 
 (defmacro !delete (elm list)
   "Destructive: Set LIST to (delete ELM LIST)."
+  (declare (debug (form form)))
   `(setq ,list (delete ,elm ,list)))
-
-(defmacro !cddr (list)
-  "Destructive: Set LIST to the cdr of LIST."
-  `(setq ,list (cddr ,list)))
 
 (defmacro sp-with-modes (arg &rest forms)
   "Add ARG as first argument to each form in FORMS.
@@ -1039,17 +1036,6 @@ insert the modes."
                                                                    "sp-compare-sexps") t)
                                                      "\\>")
                                             (1 font-lock-keyword-face))))
-(defmacro --last (form list)
-  "Anaphoric form of `-last'."
-  (let ((n (make-symbol "needle")))
-    `(let (,n)
-       (--each ,list
-         (when ,form (setq ,n it)))
-       ,n)))
-
-(defun -last (pred list)
-  "Return the last x in LIST where (PRED x) is non-nil, else nil."
-  (--last (funcall pred it) list))
 
 (defun sp--reverse-string (str)
   "Reverse the string STR."
@@ -1264,6 +1250,7 @@ Two expressions are equal if their :beg property is the same.
 
 If optional argument WHAT is non-nil, use it as a keyword on
 which to do the comparsion."
+  (declare (debug (form form &optional functionp keywordp keywordp)))
   (setq fun (or fun 'equal))
   (setq what-a (or what-a :beg))
   (setq what-b (or what-b what-a))
@@ -2131,6 +2118,7 @@ If USE-INSIDE-STRING is non-nil, use value of
             (sp-show--pair-delete-enc-overlays)))))))
 
 (defmacro sp--setaction (action &rest forms)
+  (declare (debug (form body)))
   `(if (not action)
        (setq action (progn ,@forms))
      (progn ,@forms)))
@@ -3175,7 +3163,8 @@ pairs!"
 (defmacro sp--get-bounds (name docstring test)
   "Generate a function called NAME that return the bounds of
 object bounded by TEST."
-  (declare (indent 1))
+  (declare (indent 1)
+           (debug (&define name stringp def-form)))
   `(defun ,name ()
      ,docstring
      (when ,test
@@ -3222,6 +3211,7 @@ property."
 (defmacro sp--valid-initial-delimiter-p (form)
   "Test the last match using `sp--skip-match-p'.  The form should
 be a function call that sets the match data."
+  (declare (debug (form)))
   `(and ,form
         (not (sp--skip-match-p
               (match-string 0)
