@@ -2030,7 +2030,15 @@ If USE-INSIDE-STRING is non-nil, use value of
   (ignore-errors
     (let ((hook (sp-get-pair id type))
           (context (sp--get-context type)))
-      (run-hook-with-args 'hook id action context))))
+      (if hook
+          (run-hook-with-args 'hook id action context)
+        (let ((tag-hook (plist-get
+                         (--first (string-match-p
+                                   (replace-regexp-in-string "_" ".*?" (plist-get it :open))
+                                   id)
+                                  (cdr (assq 'html-mode sp-tags)))
+                         type)))
+          (run-hook-with-args 'tag-hook id action context))))))
 
 ;; TODO: add a test for a symbol property that would tell this handler
 ;; not to re=set `sp-last-operation'. Useful for example in "macro
