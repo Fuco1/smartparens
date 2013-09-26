@@ -1013,7 +1013,7 @@ handler."
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Misc functions
+;; Misc/Utility functions
 
 (defmacro !delete (elm list)
   "Destructive: Set LIST to (delete ELM LIST)."
@@ -3932,6 +3932,15 @@ expressions are considered."
                               (sp-get-sexp nil)
                             sym))
                       sym)))))))))))))
+
+(defun sp-narrow-to-sexp (arg)
+  "Make text outside current balanced expression invisible.
+A numeric arg specifies to move up by that many enclosing expressions.
+
+See also `narrow-to-region' and `narrow-to-defun'."
+  (interactive "p")
+  (-when-let (enc (sp-get-enclosing-sexp arg))
+    (sp-get enc (narrow-to-region :beg-prf :end))))
 
 (defun sp-forward-sexp (&optional arg)
   "Move forward across one balanced expression.
