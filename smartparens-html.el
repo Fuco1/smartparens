@@ -95,6 +95,72 @@ backward."
         (sp-beginning-of-sexp arg)
       (sp-beginning-of-sexp (1- (- (prefix-numeric-value arg)))))))
 
+(defun sp-html-post-handler (id action context)
+  (cl-case action
+    (slurp-forward
+     (save-excursion
+       (let ((sp-prefix-pair-object t))
+         (sp-backward-sexp))
+       (-when-let (enc (sp-get-enclosing-sexp))
+         (sp-get enc
+           (goto-char :beg-in)
+           (when (looking-at-p "[ \t]*$")
+             (goto-char :end-in)
+             (save-excursion
+               (sp-backward-sexp)
+               (forward-line -1)
+               (when (sp-point-in-blank-line)
+                 (delete-region (line-beginning-position) (1+ (line-end-position)))))
+             (newline-and-indent))))))
+    (slurp-backward
+     (save-excursion
+       (-when-let (enc (sp-get-enclosing-sexp))
+         (sp-get enc
+           (goto-char :end-in)
+           (when (sp--looking-back-p "^[ \t]*")
+             (save-excursion
+               (goto-char :beg-in)
+               (newline-and-indent)
+               (sp-forward-sexp)
+               (forward-line)
+               (when (sp-point-in-blank-line)
+                 (delete-region (line-beginning-position) (1+ (line-end-position))))))))))
+    (barf-forward
+     (save-excursion
+       (let ((sp-prefix-pair-object t))
+         (sp-backward-sexp))
+       (-when-let (enc (sp-get-enclosing-sexp))
+         (sp-get enc
+           (goto-char :beg-in)
+           (when (looking-at-p "[ \t]*$")
+             (goto-char :end-in)
+             (newline-and-indent)))))
+     (save-excursion
+       (sp-forward-sexp)
+       (forward-line)
+       (when (sp-point-in-blank-line)
+         (delete-region (line-beginning-position) (1+ (line-end-position))))))
+    (barf-backward
+     (save-excursion
+       (-when-let (enc (sp-get-enclosing-sexp))
+         (sp-get enc
+           (goto-char :end-in)
+           (when (sp--looking-back-p "^[ \t]*")
+             (goto-char :beg-in)
+             (newline-and-indent)
+             (sp-backward-up-sexp)
+             (sp-backward-sexp)
+             (forward-line -1)
+             (when (sp-point-in-blank-line)
+               (delete-region (line-beginning-position) (1+ (line-end-position)))))))))))
+
+(sp-with-modes '(
+                 sgml-mode
+                 html-mode
+                 )
+  (sp-local-pair "<" ">")
+  (sp-local-tag  "<" "<_>" "</_>" :transform 'sp-match-sgml-tags :post-handlers '(sp-html-post-handler)))
+
 (provide 'smartparens-html)
 
 ;;; smartparens-html.el ends here

@@ -78,14 +78,6 @@
   (sp-local-pair "`" "'")
   (sp-local-tag "\\b" "\\begin{_}" "\\end{_}"))
 
-;; html modes
-(sp-with-modes '(
-                 sgml-mode
-                 html-mode
-                 )
-  (sp-local-pair "<" ">")
-  (sp-local-tag  "<" "<_>" "</_>" :transform 'sp-match-sgml-tags))
-
 (provide 'smartparens-config)
 
 ;;; smartparens-config.el ends here
