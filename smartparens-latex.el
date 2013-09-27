@@ -63,11 +63,22 @@
     (delete-char -1)
     (insert "``")))
 
+(defun sp-latex-skip-match-apostrophe (ms mb me)
+  (when (equal ms "'")
+    (save-excursion
+      (goto-char me)
+      (looking-at-p "\\sw"))))
+
 (sp-with-modes '(
                  tex-mode
                  plain-tex-mode
                  latex-mode
                  )
+  (sp-local-pair "`" "'" :skip-match 'sp-latex-skip-match-apostrophe)
+  ;; math modes, yay.  The :actions are provided automatically if
+  ;; these pairs do not have global definition.
+  (sp-local-pair "$" "$")
+  (sp-local-pair "\\[" "\\]")
   ;; disable useless pairs.  Maybe also remove " ' and \"?
   (sp-local-pair "/*" nil :actions nil)
   (sp-local-pair "\\\\(" nil :actions nil)
@@ -97,6 +108,7 @@
 
   ;; some common wrappings
   (sp-local-tag "\"" "``" "''" :actions '(wrap))
+  (sp-local-tag "\\b" "\\begin{_}" "\\end{_}")
   (sp-local-tag "bi" "\\begin{itemize}" "\\end{itemize}")
   (sp-local-tag "be" "\\begin{enumerate}" "\\end{enumerate}"))
 

@@ -65,19 +65,6 @@
 ;; automatically.  If you want to call sp-local-pair outside this
 ;; macro, you MUST supply the major mode argument.
 
-;; LaTeX modes
-(sp-with-modes '(
-                 tex-mode
-                 plain-tex-mode
-                 latex-mode
-                 )
-  ;; math modes, yay.  The :actions are provided automatically if
-  ;; these pairs do not have global definition.
-  (sp-local-pair "$" "$")
-  (sp-local-pair "\\[" "\\]")
-  (sp-local-pair "`" "'")
-  (sp-local-tag "\\b" "\\begin{_}" "\\end{_}"))
-
 (provide 'smartparens-config)
 
 ;;; smartparens-config.el ends here
