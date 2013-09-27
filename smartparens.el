@@ -560,17 +560,17 @@ string.  After the removal, all the pairs are re-checked."
 
 (defun sp--update-local-pairs ()
   "Update local pairs after removal or at mode initialization."
-  (setq sp-local-pairs (sp--merge-with-local major-mode))
-  (setq sp-local-pairs (--filter (plist-get it :actions) sp-local-pairs))
+  (setq sp-local-pairs
+        (->> (sp--merge-with-local major-mode)
+          (--filter (plist-get it :actions))))
   ;; update the `sp-pair-list'.  This is a list only containing
   ;; (open.close) cons pairs for easier querying.  We also must order
   ;; it by length of opening delimiter in descending order (first
   ;; value is the longest)
-  (let ((l))
-    (--each sp-local-pairs
-      (!cons (cons (plist-get it :open) (plist-get it :close)) l))
-    (setq l (sort l #'(lambda (x y) (> (length (car x)) (length (car y))))))
-    (setq sp-pair-list l)))
+  (setq sp-pair-list
+        (->> sp-local-pairs
+          (--map (cons (plist-get it :open) (plist-get it :close)))
+          (-sort (lambda (x y) (> (length (car x)) (length (car y))))))))
 
 (defun sp--update-local-pairs-everywhere (&rest modes)
   "Run `sp--update-local-pairs' in all buffers.
@@ -1268,6 +1268,7 @@ The list OLD-PAIR must not be nil."
       (:close (plist-put old-pair :close new-val))
       (:prefix (plist-put old-pair :prefix new-val))
       (:skip-match (plist-put old-pair :skip-match new-val))
+      (:trigger (plist-put old-pair :trigger new-val))
       ((:actions :when :unless :pre-handlers :post-handlers)
        (cl-case (car new-val)
          (:add (plist-put old-pair prop (-union (plist-get old-pair prop) (cdr new-val))))
@@ -1435,6 +1436,7 @@ negative -N, wrap N preceeding expressions.")
 (cl-defun sp-pair (open
                    close
                    &key
+                   trigger
                    (actions '(wrap insert autoskip))
                    when
                    unless
@@ -1449,6 +1451,11 @@ by this string.
 CLOSE is the closing delimiter.  You can use nil for this
 argument if you are updating an existing definition.  In this
 case, the old value is retained.
+
+TRIGGER is an optional trigger for the pair.  The pair will be
+inserted if either OPEN or TRIGGER is typed.  This is usually
+used as a shortcut for longer pairs or for pairs that can't be
+typed easily.
 
 ACTIONS is a list of actions that smartparens will perform with
 this pair.  Possible values are:
@@ -1556,6 +1563,7 @@ wrap ARG (default 1) expressions with this pair (like
     (let ((pair nil))
       (setq pair (plist-put pair :open open))
       (when close (plist-put pair :close close))
+      (when trigger (plist-put pair :trigger trigger))
       (dolist (arg '((:actions . actions)
                      (:when . when)
                      (:unless . unless)
@@ -1578,6 +1586,7 @@ wrap ARG (default 1) expressions with this pair (like
                          open
                          close
                          &key
+                         trigger
                          (actions '(:add))
                          (when '(:add))
                          (unless '(:add))
@@ -1655,6 +1664,7 @@ addition, there is a global per major-mode option, see
       (let* ((pair nil))
         (setq pair (plist-put pair :open open))
         (when close (plist-put pair :close close))
+        (when trigger (plist-put pair :trigger trigger))
         (when prefix (plist-put pair :prefix prefix))
         (when skip-match (plist-put pair :skip-match skip-match))
         (when (and (not (sp-get-pair-definition open t))
@@ -2782,14 +2792,20 @@ followed by word.  It is disabled by default.  See
          ;; (last-keys "\"\"\"\"\"\"\"\"\"\"\"\"")
          ;; we go through all the opening pairs and compare them to
          ;; last-keys.  If the opair is a prefix of last-keys, insert
-         ;; the closing pair
-         (active-pair (--first (string-prefix-p (sp--reverse-string (car it)) last-keys) sp-pair-list))
+         ;; the closing pair.  We also check the :trigger pair
+         ;; properties here.
+         (trig (--first (and (plist-get it :trigger)
+                             (string-prefix-p (sp--reverse-string (plist-get it :trigger)) last-keys))
+                        sp-local-pairs))
+         (active-pair (or (when trig (cons (plist-get trig :open) (plist-get trig :close)))
+                          (--first (string-prefix-p (sp--reverse-string (car it)) last-keys) sp-pair-list)))
          (open-pair (car active-pair))
          (close-pair (cdr active-pair)))
     ;; Test "repeat last wrap" here.  If we wrap a region and then
     ;; type in a pair, wrap again around the last active region.  This
     ;; should probably be tested in the `self-insert-command'
     ;; advice... but we're lazy :D
+    (setq trig (or (and trig (plist-get trig :trigger)) open-pair))
     (if (and sp-autowrap-region
              active-pair
              (sp--wrap-repeat-last active-pair))
@@ -2840,7 +2856,7 @@ followed by word.  It is disabled by default.  See
                        (and (equal open-pair close-pair)
                             (eq sp-last-operation 'sp-insert-pair)
                             (save-excursion
-                              (backward-char (length open-pair))
+                              (backward-char (length trig))
                               (sp--looking-back (sp--strict-regexp-quote open-pair))))
                        (not (equal open-pair close-pair)))))
                  (not (run-hook-with-args-until-success
@@ -2853,6 +2869,8 @@ followed by word.  It is disabled by default.  See
             (progn
               (setq sp-delayed-pair (cons open-pair (- (point) (length open-pair))))
               (setq sp-last-operation 'sp-insert-pair-delayed))
+          (delete-char (- (length trig)))
+          (insert open-pair)
           (sp--run-hook-with-args open-pair :pre-handlers 'insert)
           (insert close-pair)
           (backward-char (length close-pair))
