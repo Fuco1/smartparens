@@ -3313,9 +3313,8 @@ The expressions considered are those delimited by pairs on
                (failure (funcall eof))
                (skip-match-fn (cdr (--first (memq major-mode (car it)) sp-navigate-skip-match)))
                (skip-match-pair-fns (->> possible-ops
-                                      (--map (let ((smf (sp-get-pair it :skip-match)))
-                                               (when smf (cons it smf))))
-                                      (--remove (not it)))))
+                                      (--mapcat (let ((smf (sp-get-pair it :skip-match)))
+                                                  (when smf (list (cons it smf) (cons (sp-get-pair it :close) smf))))))))
           (while (and (> depth 0) (not (funcall eof)))
             (sp--search-and-save-match search-fn needle b r mb me ms)
             (if r
