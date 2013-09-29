@@ -104,6 +104,127 @@ begin
   Module::Class
 end
 ")
+
+  (sp-ruby-test-slurp-assert 1 "
+beginX
+end
+foo_bar
+" :=> "
+begin
+  foo_bar
+end
+")
+
+  (sp-ruby-test-slurp-assert 1 "
+beginX
+end
+foo?
+" :=> "
+begin
+  foo?
+end
+")
+
+  (sp-ruby-test-slurp-assert 1 "
+beginX
+end
+foo!
+" :=> "
+begin
+  foo!
+end
+")
+
+  (sp-ruby-test-slurp-assert 1 "
+beginX
+end
+@foo
+" :=> "
+begin
+  @foo
+end
+")
+
+  (sp-ruby-test-slurp-assert 1 "
+beginX
+end
+@@foo
+" :=> "
+begin
+  @@foo
+end
+")
+
+  (sp-ruby-test-slurp-assert 1 "
+beginX
+end
+$foo
+" :=> "
+begin
+  $foo
+end
+")
+
+  (sp-ruby-test-slurp-assert 1 "
+beginX
+end
+&foo
+" :=> "
+begin
+  &foo
+end
+")
+
+  (sp-ruby-test-slurp-assert 1 "
+beginX
+end
+&:foo
+" :=> "
+begin
+  &:foo
+end
+")
+
+  (sp-ruby-test-slurp-assert 1 "
+beginX
+end
+?x
+" :=> "
+begin
+  ?x
+end
+")
+
+  (sp-ruby-test-slurp-assert 1 "
+beginX
+end
+!x
+" :=> "
+begin
+  !x
+end
+")
+
+  (sp-ruby-test-slurp-assert 1 "
+beginX
+end
+class_name
+" :=> "
+begin
+  class_name
+end
+")
+
+  (sp-ruby-test-slurp-assert 1 "
+beginX
+end
+:foo
+" :=> "
+begin
+  :foo
+end
+")
+
   )
 
 (ert-deftest sp-test-ruby-slurp-backward ()
@@ -124,6 +245,96 @@ end
 " :=> "
 begin
   foo.class
+end
+")
+
+  (sp-ruby-test-slurp-assert -1 "
+@foo
+begin X
+end
+" :=> "
+begin
+  @foo
+end
+")
+
+  (sp-ruby-test-slurp-assert -1 "
+foo?
+begin X
+end
+" :=> "
+begin
+  foo?
+end
+")
+
+  (sp-ruby-test-slurp-assert -1 "
+foo!
+begin X
+end
+" :=> "
+begin
+  foo!
+end
+")
+
+  (sp-ruby-test-slurp-assert -1 "
+!foo
+begin X
+end
+" :=> "
+begin
+  !foo
+end
+")
+
+  (sp-ruby-test-slurp-assert -1 "
+?f
+begin X
+end
+" :=> "
+begin
+  ?f
+end
+")
+
+  (sp-ruby-test-slurp-assert -1 "
+:foo
+begin X
+end
+" :=> "
+begin
+  :foo
+end
+")
+
+  (sp-ruby-test-slurp-assert -1 "
+@@foo
+begin X
+end
+" :=> "
+begin
+  @@foo
+end
+")
+
+  (sp-ruby-test-slurp-assert -1 "
+&:foo
+begin X
+end
+" :=> "
+begin
+  &:foo
+end
+")
+
+  (sp-ruby-test-slurp-assert -1 "
+::Class
+begin X
+end
+" :=> "
+begin
+  ::Class
 end
 ")
 

@@ -95,6 +95,10 @@
       (sp-ruby-delete-indentation -1))
     (while (thing-at-point-looking-at "\\.[ \n]*")
       (sp-backward-sexp))
+    (when (looking-back "[@$:&?!]")
+        (backward-char)
+        (when (looking-back "[@&:]")
+          (backward-char)))
     (save-excursion
       (newline))
     (just-one-space))
@@ -116,6 +120,7 @@
             (forward-symbol -1)
             (sp-ruby-delete-indentation -1))
         (sp-ruby-delete-indentation)))
+    (when (looking-at-p "[?!]") (forward-char))
     (newline))
 
   (when (equal action 'barf-forward)
@@ -145,8 +150,10 @@
   (save-excursion
     (when (looking-back (concat id " *"))
       (backward-word))
-    (and (looking-at id)
-         (looking-back "\\.[ \n]*"))))
+    (and (looking-at-p id)
+         (or (looking-at-p (concat id "[_?!]"))
+             (looking-back "[_:@.]")
+             (looking-back "\\.[ \n]*")))))
 
 (defun sp-ruby-skip-method-p (ms mb me)
   (sp-ruby-method-p ms))

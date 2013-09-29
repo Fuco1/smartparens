@@ -20,7 +20,7 @@ clean-elpa:
 	rm -rf elpa
 
 clean-elc:
-	rm -f *.elc
+	rm -f *.elc tests/*.elc
 
 clean: clean-elpa clean-elc
 
