@@ -30,6 +30,7 @@
 (Before
  ;; Load the default config
  (load-file "smartparens-config.el")
+ (load-file "smartparens-latex.el")
 
  ;; Before each scenario is run
  (switch-to-buffer
