@@ -152,7 +152,13 @@ backward."
              (sp-backward-sexp)
              (forward-line -1)
              (when (sp-point-in-blank-line)
-               (delete-region (line-beginning-position) (1+ (line-end-position)))))))))))
+               (delete-region (line-beginning-position) (1+ (line-end-position)))))))))
+    (beginning-of-sexp
+     (when (looking-at-p "[ \t]*$")
+       (sp-next-sexp)))
+    (end-of-sexp
+     (when (sp--looking-back-p "^[ \t]*" nil t)
+       (sp-previous-sexp)))))
 
 (sp-with-modes '(
                  sgml-mode
