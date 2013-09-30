@@ -87,7 +87,7 @@
 
   ;; quote should insert ``'' instead of double quotes.  If we ever
   ;; need to insert ", C-q is our friend.
-  (sp-local-pair "\"" "''" :actions '(insert) :post-handlers '(sp-latex-insert-quotes))
+  (sp-local-pair "``" "''" :trigger "\"")
 
   ;; add the prefix funciton sticking to {} pair
   (sp-local-pair "{" nil :prefix "\\\\\\(\\sw\\|\\s_\\)*")
