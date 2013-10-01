@@ -5628,40 +5628,44 @@ Examples:
 
 We want to move the `while' before the `let'.
 
-​  (let ((stuff 1)            |(while (we-are-good)
+​  (let ((stuff 1)             (while (we-are-good)
 ​        (other 2))              (let ((stuff 1)
 ​    (while (we-are-good)  ->          (other 2))
-​     |(do-thing 1)                (do-thing 1)
+​     |(do-thing 1)               |(do-thing 1)
 ​      (do-thing 2)                (do-thing 2)
 ​      (do-thing 3)))              (do-thing 3)))
 
-  (forward-char (sp-get env |:op-l)) -> |(sp-get env (forward-char :op-l))"
+  (forward-char (sp-get env |:op-l)) -> (sp-get env (forward-char |:op-l))"
   (interactive "p")
-  (sp-forward-whitespace)
-  (let* ((old (point))
-         (bot (sp-beginning-of-sexp))
-         raise cl-own-line)
-    ;; we need to check if the :cl was on its own line
-    (save-excursion
-      (goto-char (sp-get bot :end))
-      (when (string-match-p (concat "^[\n\t ]*"
-                                    (regexp-quote (sp-get bot (concat :cl)))
-                                    "[\n\t ]*\\'")
-                            (thing-at-point 'line))
-        (setq cl-own-line t)))
-    (setq raise (buffer-substring (point) old))
-    (delete-region (point) old)
-    (sp-unwrap-sexp -1)
-    (let ((enc (sp-backward-up-sexp arg)))
-      (goto-char (sp-get enc :end))
-      (insert (if cl-own-line "\n" "") (sp-get bot :cl))
-      (goto-char (sp-get enc :beg-prf))
-      (save-excursion
-        (sp-get bot (insert :prefix :op))
-        (insert raise))
-      (indent-region
-       (sp-get enc :beg-prf)
-       (+ (sp-get enc :end) (length raise) (sp-get bot (+ :op-l :cl-l :prefix-l)))))))
+  (save-excursion
+    (let* ((old-buffer-size (buffer-size))
+           (enc (sp-get-enclosing-sexp))
+           (inner-close (sp-get enc (delete-and-extract-region
+                                     (save-excursion
+                                       (goto-char :end-in)
+                                       (sp-backward-whitespace))
+                                     :end)))
+           (inner-raise (sp-get enc (delete-and-extract-region
+                                     :beg-prf
+                                     (save-excursion
+                                       (sp-forward-whitespace)))))
+           (whitespace (sp-get enc
+                         ;; this happens when the entire inside sexp was removed.
+                         (when (= old-buffer-size (+ (buffer-size) :len))
+                           (delete-and-extract-region
+                            (save-excursion
+                              (goto-char :beg-prf)
+                              (max (line-beginning-position) (sp-backward-whitespace)))
+                            :beg-prf))))
+           (encp (sp-get-enclosing-sexp arg)))
+      (sp-get encp
+        (goto-char :end)
+        (insert inner-close)
+        (goto-char :beg-prf)
+        (insert inner-raise (if whitespace whitespace ""))
+        (sp-get (sp-get-enclosing-sexp)
+          (indent-region :beg :end)))))
+  (indent-according-to-mode))
 
 (defun sp-absorb-sexp (&optional arg)
   "Absorb previous expression.
