@@ -5830,12 +5830,14 @@ expressions up until the start of enclosing list."
 (defun sp-forward-whitespace ()
   "Skip forward past the whitespace characters."
   (interactive)
-  (skip-chars-forward " \t\n"))
+  (skip-chars-forward " \t\n")
+  (point))
 
 (defun sp-backward-whitespace ()
   "Skip backward past the whitespace characters."
   (interactive)
-  (skip-chars-backward " \t\n"))
+  (skip-chars-backward " \t\n")
+  (point))
 
 (defun sp-split-sexp (arg)
   "Split the list or string the point is on into two.
