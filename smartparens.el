@@ -5827,17 +5827,19 @@ expressions up until the start of enclosing list."
           (setq dws (- :end :beg)))))
     (goto-char (- e dws))))
 
-(defun sp-forward-whitespace ()
-  "Skip forward past the whitespace characters."
-  (interactive)
-  (skip-chars-forward " \t\n")
-  (point))
+(defun sp-forward-whitespace (&optional arg)
+  "Skip forward past the whitespace characters.
+With non-nil ARG return number of characters skipped."
+  (interactive "P")
+  (let ((rel-move (skip-chars-forward " \t\n")))
+    (if arg rel-move (point))))
 
-(defun sp-backward-whitespace ()
-  "Skip backward past the whitespace characters."
-  (interactive)
-  (skip-chars-backward " \t\n")
-  (point))
+(defun sp-backward-whitespace (&optional arg)
+  "Skip backward past the whitespace characters.
+With non-nil ARG return number of characters skipped."
+  (interactive "P")
+  (let ((rel-move (skip-chars-backward " \t\n")))
+    (if arg rel-move (point))))
 
 (defun sp-split-sexp (arg)
   "Split the list or string the point is on into two.
@@ -5881,7 +5883,7 @@ Examples:
    (t
     (let ((ok (sp-get-enclosing-sexp 1)))
       (when ok
-        (forward-char (- (prog1 (sp-backward-whitespace) (insert (sp-get ok :cl)))))
+        (forward-char (- (prog1 (sp-backward-whitespace t) (insert (sp-get ok :cl)))))
         (save-excursion (sp-forward-whitespace) (insert (sp-get ok :op))))))))
 
 (defun sp--join-sexp (prev next)
