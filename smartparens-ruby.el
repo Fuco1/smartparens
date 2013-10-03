@@ -221,6 +221,14 @@
                  :post-handlers '(sp-ruby-def-post-handler)
                  :skip-match 'sp-ruby-skip-method-p)
 
+  (sp-local-pair "case" "end"
+                 :when '(("SPC" "RET" "<evil-ret>"))
+                 :unless '(sp-ruby-in-string-or-word-p)
+                 :actions '(insert)
+                 :pre-handlers '(sp-ruby-pre-handler)
+                 :post-handlers '(sp-ruby-def-post-handler)
+                 :skip-match 'sp-ruby-skip-method-p)
+
   (sp-local-pair "if" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :unless '(sp-ruby-in-string-word-or-inline-p)
