@@ -37,16 +37,6 @@
 ;; into your configuration.  You can use this in conjunction with the
 ;; default config or your own configuration.
 ;;
-;; In order to get slurp and barf to work properly, you should
-;; consider adding the following:
-;;
-;; (modify-syntax-entry ?@ "w" ruby-mode-syntax-table)
-;; (modify-syntax-entry ?_ "w" ruby-mode-syntax-table)
-;; (modify-syntax-entry ?! "w" ruby-mode-syntax-table)
-;; (modify-syntax-entry ?? "w" ruby-mode-syntax-table)
-;;
-;; This will change the word boundaries, so that instance variables
-;; and methods are treated as words.
 
 ;; If you have good ideas about what should be added please file an
 ;; issue on the github tracker.
