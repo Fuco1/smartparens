@@ -4819,6 +4819,61 @@ handling of empty lines."
     (indent-according-to-mode)
     (sp--run-hook-with-args (sp-get enc :op) :post-handlers 'dedent-adjust-sexp)))
 
+;;  "When the hook is called point is *after* the just moved closing delimiter."
+;; TODO: add hook
+(defun sp-slurp-hybrid-sexp ()
+  "Add hybrid sexp following the current list in it by moving the
+closing delimiter.
+
+This is philosophically similar to `sp-forward-slurp-sexp' but
+works better in \"line-based\" languages like C or Java.
+
+Because the structure is much looser in these languages, this
+command currently does not support all the prefix argument
+triggers that `sp-forward-slurp-sexp' does."
+  (interactive)
+  (-if-let* ((enc (sp-get-enclosing-sexp))
+             (bsexp (save-excursion
+                      (sp-get enc (goto-char :end))
+                      (when (sp-compare-sexps (sp-forward-sexp) enc >)
+                        (sp-get-hybrid-sexp)))))
+      (save-excursion
+        (sp-get enc
+          (goto-char :end)
+          (delete-char (- :cl-l))
+          ;; TODO: move to hook
+          (when (sp-point-in-blank-line)
+            (delete-region (line-beginning-position) (1+ (line-end-position))))
+          (sp-forward-sexp)
+          (sp-get (sp-get-hybrid-sexp) (goto-char :end))
+          (insert :cl))
+        ;; TODO: move to hook
+        (sp-get (sp--next-thing-selection -1)
+          (save-excursion
+            (if (save-excursion
+                  (goto-char :beg-in)
+                  (looking-at "[ \t]*$"))
+                (progn
+                  (goto-char :end-in)
+                  (newline))
+              ;; copy the whitespace after opening delim and put it in
+              ;; front of the closing. This will ensure pretty { foo }
+              ;; or {foo}
+              (goto-char :end-in)
+              (insert (buffer-substring-no-properties
+                       :beg-in
+                       (+ :beg-in (save-excursion
+                                    (goto-char :beg-in)
+                                    (skip-syntax-forward " ")))))))
+          (when (not (looking-at "[ \t]*$"))
+            (newline)))
+        (sp-get (sp--next-thing-selection -1) (indent-region :beg :end))
+        ;; we need to call this again to get the new structure after
+        ;; indent.
+        (sp--next-thing-selection -1))
+    (message "This operation would result in invalid structure. Ignored.")
+    nil))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; "paredit" operations
