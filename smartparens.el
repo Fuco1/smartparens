@@ -4884,14 +4884,14 @@ triggers that `sp-forward-slurp-sexp' does."
                         (sp-get-hybrid-sexp)))))
       (save-excursion
         (sp-get enc
-          (goto-char :end)
-          (delete-char (- :cl-l))
+          (goto-char :end-suf)
+          (delete-char (- (+ :cl-l :suffix-l)))
           ;; TODO: move to hook
           (when (sp-point-in-blank-line)
             (delete-region (line-beginning-position) (1+ (line-end-position))))
           (sp-forward-sexp)
           (sp-get (sp-get-hybrid-sexp) (goto-char :end-suf))
-          (insert :cl))
+          (insert :cl :suffix))
         ;; TODO: move to hook
         (sp-get (sp--next-thing-selection -1)
           (save-excursion
