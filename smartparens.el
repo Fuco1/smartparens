@@ -3377,13 +3377,13 @@ The expressions considered are those delimited by pairs on
                 (message "Opening or closing pair is inside a string or comment and matching pair is outside (or vice versa).  Ignored."))
               nil)
              (t
-              (let* ((op (if forward open close))
-                     (pref (sp-get-pair op :prefix)))
+              (let* ((op (if forward open close)))
                 (list :beg s
                       :end e
                       :op op
                       :cl (if forward close open)
-                      :prefix (sp--get-prefix s pref)))))))))))
+                      :prefix (sp--get-prefix s op)
+                      :suffix (sp--get-suffix e op)))))))))))
 
 ;; TODO: this does not consider unbalanced quotes in comments!!!
 (defun sp--find-next-stringlike-delimiter (needle search-fn-f &optional limit skip-fn)
@@ -3439,8 +3439,7 @@ opening and closing delimiter, such as *...*, \"...\", `...` etc."
             (let ((mb b) (me e))
               (setq b (min mb me))
               (setq e (max mb me)))
-            (let ((pref (sp-get-pair m :prefix)))
-              (list :beg b :end e :op m :cl m :prefix (sp--get-prefix b pref)))))))))
+            (list :beg b :end e :op m :cl m :prefix (sp--get-prefix b m) :suffix (sp--get-suffix e m))))))))
 
 (defun sp-get-expression (&optional back)
   "Find the nearest balanced expression of any kind.
@@ -3702,16 +3701,36 @@ following point after `sp-backward-up-sexp' is called)."
           (!cons (sp-forward-sexp) r))
         (cons lst (nreverse (cdr r)))))))
 
-(cl-defun sp--get-prefix (&optional (p (point)) use-mode-regexp)
-  "Get the prefix of EXPR. Prefix is any continuous sequence of
-characters in \"expression prefix\" syntax class."
-  (save-excursion
-    (goto-char p)
-    (if use-mode-regexp
-        (when (sp--looking-back use-mode-regexp)
-          (substring-no-properties (match-string 0)))
-      (skip-syntax-backward "'")
-      (buffer-substring-no-properties (point) p))))
+(cl-defun sp--get-prefix (&optional (p (point)) op)
+  "Get the prefix of EXPR.  Prefix is any continuous sequence of
+characters in \"expression prefix\" syntax class.
+
+If the prefix property is defined for OP, the associated regexp
+is used to retrieve the prefix instead."
+  (let ((pref (sp-get-pair op :prefix)))
+    (save-excursion
+      (goto-char p)
+      (if pref
+          (when (sp--looking-back pref)
+            (substring-no-properties (match-string 0)))
+        (skip-syntax-backward "'")
+        (buffer-substring-no-properties (point) p)))))
+
+(cl-defun sp--get-suffix (&optional (p (point)) op)
+  "Get the suffix of EXPR.  Suffix is any continuous sequence of
+  whitespace followed by characters in \"punctuation\" syntax class.
+
+If the suffix property is defined for OP, the associated regexp
+is used to retrieve the suffix instead."
+  (let ((suff (sp-get-pair op :suffix)))
+    (save-excursion
+      (goto-char p)
+      (if suff
+          (when (sp--looking-at suff)
+            (substring-no-properties (match-string 0)))
+        (skip-syntax-forward " ")
+        (skip-syntax-forward ".")
+        (buffer-substring-no-properties p (point))))))
 
 (defun sp-get-symbol (&optional back)
   "Find the nearest symbol that is after point, or before point if BACK is non-nil.
@@ -3740,7 +3759,7 @@ returned by `sp-get-sexp'."
         (sp-forward-symbol -1)
         (setq b (point))))
     (unless last-or-first
-      (list :beg b :end e :op "" :cl "" :prefix (sp--get-prefix b)))))
+      (list :beg b :end e :op "" :cl "" :prefix (sp--get-prefix b) :suffix (sp--get-suffix e)))))
 
 (defun sp--get-string (bounds)
   "Return the `sp-get-sexp' format info about the string.
@@ -3984,8 +4003,7 @@ expressions are considered."
                     (goto-char (sp-get sym :end))
                     (if (sp--looking-at (sp--get-opening-regexp))
                         (let* ((ms (match-string 0))
-                               (pref-re (sp-get-pair ms :prefix))
-                               (pref (sp--get-prefix (point) pref-re)))
+                               (pref (sp--get-prefix (point) ms)))
                           (if (and pref
                                    (string-prefix-p
                                     (sp--reverse-string sym-string)
