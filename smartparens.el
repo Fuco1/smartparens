@@ -1141,13 +1141,13 @@ beginning."
   (cond ((> x 0) 1) ((< x 0) -1) (t 0)))
 
 (cl-eval-when (compile eval load)
-  (defun sp--get-substitute (keyword-list struct list)
+  (defun sp--get-substitute (struct list)
     "Only ever call this from sp-get!  This function do the
 replacement of all the keywords with actual calls to sp-get."
     (if (and (listp list)
              (not (eq (car list) 'sp-get)))
-        (mapcar (lambda (x) (sp--get-substitute keyword-list struct x)) list)
-      (if (memq list keyword-list)
+        (mapcar (lambda (x) (sp--get-substitute struct x)) list)
+      (if (keywordp list)
           (sp--get-replace-keyword struct list)
         list)))
 
@@ -1163,6 +1163,8 @@ replacement of all the keywords with actual calls to sp-get."
       (:end-in      `(- (plist-get ,struct :end) (length (plist-get ,struct :cl))))
       ;; point in buffer before the prefix of this expression
       (:beg-prf     `(- (plist-get ,struct :beg) (length (plist-get ,struct :prefix))))
+      ;; point in the buffer after the suffix of this expression
+      (:end-suf     `(+ (plist-get ,struct :end) (length (plist-get ,struct :suffix))))
       ;; opening delimiter
       (:op          `(plist-get ,struct :op))
       ;; closing delimiter
@@ -1171,10 +1173,12 @@ replacement of all the keywords with actual calls to sp-get."
       (:op-l        `(length (plist-get ,struct :op)))
       ;; length of the closing pair
       (:cl-l        `(length (plist-get ,struct :cl)))
-      ;; length of the entire expression, including enclosing delimiters and the prefix
+      ;; length of the entire expression, including enclosing
+      ;; delimiters and the prefix and suffix
       (:len         `(- (plist-get ,struct :end)
                         (plist-get ,struct :beg)
-                        (- (length (plist-get ,struct :prefix)))))
+                        (- (length (plist-get ,struct :prefix)))
+                        (- (length (plist-get ,struct :suffix)))))
       ;; length of the the pair ignoring the prefix, including delimiters
       (:len-out     `(- (plist-get ,struct :end) (plist-get ,struct :beg)))
       ;; length of the pair inside the delimiters
@@ -1185,7 +1189,10 @@ replacement of all the keywords with actual calls to sp-get."
       ;; expression prefix
       (:prefix      `(plist-get ,struct :prefix))
       ;; expression prefix length
-      (:prefix-l    `(length (plist-get ,struct :prefix))))))
+      (:prefix-l    `(length (plist-get ,struct :prefix)))
+      (:suffix      `(plist-get ,struct :suffix))
+      (:suffix-l    `(length (plist-get ,struct :suffix)))
+      (t keyword))))
 
 ;; The structure returned by sp-get-sexp is a plist with following properties:
 ;;
@@ -1214,17 +1221,20 @@ attributes are:
 :beg-in    - point in buffer after the opening delimiter
 :end-in    - point in buffer before the closing delimiter
 :beg-prf   - point in buffer before the prefix of this expression
+:end-suf   - point in buffer after the suffix of this expression
 :op        - opening delimiter
 :cl        - closing delimiter
 :op-l      - length of the opening pair
 :cl-l      - length of the closing pair
 :len       - length of the entire expression, including enclosing
-delimiters and the prefix
-:len-out   - length of the the pair ignoring the prefix, including
-delimiters
+             delimiters, the prefix and the suffix
+:len-out   - length of the the pair ignoring the prefix and suffix,
+             including delimiters
 :len-in    - length of the pair inside the delimiters
 :prefix    - expression prefix
 :prefix-l  - expression prefix length
+:suffix    - expression suffix
+:suffix-l  - expression suffix length
 
 In addition to simple queries, this macro understands arbitrary
 forms where any of the aforementioned attributes are used.
@@ -1237,11 +1247,8 @@ expression prefix and the opening delimiter.
 Special care is taken to only evaluate the STRUCT argument once."
   (declare (indent 1)
            (debug (form body)))
-  (let ((keyword-list '(:beg :end :beg-in :end-in :beg-prf
-                             :op :cl :op-l :cl-l :len :len-out :len-in
-                             :prefix :prefix-l))
-        (st (make-symbol "struct")))
-    (sp--get-substitute keyword-list st `(let ((,st ,struct)) ,@forms))))
+  (let ((st (make-symbol "struct")))
+    (sp--get-substitute st `(let ((,st ,struct)) ,@forms))))
 
 (defmacro sp-compare-sexps (a b &optional fun what-a what-b)
   "Return non-nil if the expressions A and B are equal.
