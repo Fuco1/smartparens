@@ -3729,8 +3729,10 @@ is used to retrieve the suffix instead."
           (when (sp--looking-at suff)
             (substring-no-properties (match-string 0)))
         (skip-syntax-forward " ")
-        (skip-syntax-forward ".")
-        (buffer-substring-no-properties p (point))))))
+        (if (not (looking-at "\\s."))
+            ""
+          (skip-syntax-forward ".")
+          (buffer-substring-no-properties p (point)))))))
 
 (defun sp-get-symbol (&optional back)
   "Find the nearest symbol that is after point, or before point if BACK is non-nil.
