@@ -141,10 +141,10 @@
     (when (looking-back (concat id " *"))
       (backward-word))
     (and (looking-at-p id)
-         (or (looking-at-p (concat id "[_?!]"))
+         (or (looking-at-p (concat id "[_?!:]"))
              (looking-back "[_:@.]")
              ;; Check if multiline method call
-             ;; But be carfull of comments!
+             ;; But beware of comments!
              (and (looking-back "\\.[ \n]*")
                   (not (save-excursion
                          (search-backward ".")
