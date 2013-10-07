@@ -3568,29 +3568,47 @@ See `sp-get-hybrid-sexp' for definition."
   "Get the end of hybrid sexp.
 See `sp-get-hybrid-sexp' for definition."
   (save-excursion
-    (let ((p (progn (when (sp-point-in-symbol) (sp-backward-sexp)) (point)))
-          (le (line-end-position))
-          (cur (--if-let (save-excursion (sp-forward-sexp)) it (list :beg (1+ (point-max))))) ;hack
-          last)
-      (if (> (sp-get cur :beg) le)
-          le
-        (while (sp-get cur
-                 (and cur
-                      (< :beg le)
-                      (>= :beg p)))
-          (setq last cur)
-          (setq cur (sp-forward-sexp)))
-        (save-excursion
-          (goto-char (if last
-                         (sp-get last :end)
-                       ;; happens when there is no sexp before the closing delim of
-                       ;; the enclosing sexp.  In case it is on line below, we take
-                       ;; the minimum wrt le.
-                       (sp-get cur (min :end-in le))))
-          (save-restriction
-            (sp--narrow-to-line)
-            (skip-syntax-forward " .")
-            (point)))))))
+    (flet ((skip-prefix-backward
+            (p)
+            (save-excursion
+              (goto-char p)
+              (save-restriction
+                (sp--narrow-to-line)
+                (skip-syntax-backward " .")
+                (point)))))
+      (let ((p (progn (when (sp-point-in-symbol) (sp-backward-sexp)) (point)))
+            (le (line-end-position))
+            (cur (--if-let (save-excursion (sp-forward-sexp)) it (list :beg (1+ (point-max))))) ;hack
+            last)
+        (if (> (sp-get cur :beg) le)
+            (skip-prefix-backward le)
+          (while (sp-get cur
+                   (and cur
+                        (< :beg le)
+                        (>= :beg p)))
+            (setq last cur)
+            (setq cur (sp-forward-sexp)))
+          (skip-prefix-backward (if last
+                                    (sp-get last :end)
+                                  ;; happens when there is no sexp before the closing delim of
+                                  ;; the enclosing sexp.  In case it is on line below, we take
+                                  ;; the minimum wrt le.
+                                  (sp-get cur (min :end-in le)))))))))
+
+(defun sp--get-hybrid-suffix (p)
+  "Get the hybrid sexp suffix, which is any punctuation after
+the end, possibly preceeded by whitespace."
+  (save-excursion
+    (goto-char p)
+    (buffer-substring-no-properties
+     p
+     (save-restriction
+       (sp--narrow-to-line)
+       (skip-syntax-forward " ")
+       (if (not (looking-at "\\s."))
+           p
+         (skip-syntax-forward ".")
+         (point))))))
 
 (defun sp-get-hybrid-sexp ()
   "Return the hybrid sexp around point.
@@ -3599,11 +3617,13 @@ A hybrid sexp is defined as the smallest balanced region containing
 the point while not expanding further than the current line.  That is,
 any hanging sexps will be included, but the expansion stops at the
 enclosing list boundaries or line boundaries."
-  (list :beg (sp--get-hybrid-sexp-beg)
-        :end (sp--get-hybrid-sexp-end)
-        :op ""
-        :cl ""
-        :prefix ""))
+  (let ((end (sp--get-hybrid-sexp-end)))
+    (list :beg (sp--get-hybrid-sexp-beg)
+          :end end
+          :op ""
+          :cl ""
+          :prefix ""
+          :suffix (sp--get-hybrid-suffix end))))
 
 (defun sp-get-enclosing-sexp (&optional arg)
   "Return the balanced expression that wraps point at the same level.
@@ -4852,7 +4872,7 @@ triggers that `sp-forward-slurp-sexp' does."
           (when (sp-point-in-blank-line)
             (delete-region (line-beginning-position) (1+ (line-end-position))))
           (sp-forward-sexp)
-          (sp-get (sp-get-hybrid-sexp) (goto-char :end))
+          (sp-get (sp-get-hybrid-sexp) (goto-char :end-suf))
           (insert :cl))
         ;; TODO: move to hook
         (sp-get (sp--next-thing-selection -1)
