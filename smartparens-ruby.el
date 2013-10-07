@@ -143,7 +143,12 @@
     (and (looking-at-p id)
          (or (looking-at-p (concat id "[_?!]"))
              (looking-back "[_:@.]")
-             (looking-back "\\.[ \n]*")))))
+             ;; Check if multiline method call
+             ;; But be carfull of comments!
+             (and (looking-back "\\.[ \n]*")
+                  (not (save-excursion
+                         (search-backward ".")
+                         (sp-point-in-comment))))))))
 
 (defun sp-ruby-skip-method-p (ms mb me)
   (sp-ruby-method-p ms))

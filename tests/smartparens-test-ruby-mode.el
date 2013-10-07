@@ -728,6 +728,28 @@ object.
   class
 ")
 
+  (sp-ruby-test-splice-assert 1 "
+begin
+  # object.
+  classX
+  end
+end
+" :=> "
+begin
+  # object.
+end
+")
+
+  (sp-ruby-test-splice-assert 1 "
+begin
+  foo.send(\"#{object}\").
+    classX
+end
+" :=> "
+foo.send(\"#{object}\").
+  class
+")
+
   )
 
 
