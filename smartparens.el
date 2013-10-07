@@ -3553,6 +3553,10 @@ See `sp-get-hybrid-sexp' for definition."
           ;; the maximum wrt lb.
           (sp-get cur (max :beg-in lb)))))))
 
+(defun sp--narrow-to-line ()
+  "Narrow to the current line."
+  (narrow-to-region (line-beginning-position) (line-end-position)))
+
 (defun sp--get-hybrid-sexp-end ()
   "Get the end of hybrid sexp.
 See `sp-get-hybrid-sexp' for definition."
@@ -3569,12 +3573,17 @@ See `sp-get-hybrid-sexp' for definition."
                       (>= :beg p)))
           (setq last cur)
           (setq cur (sp-forward-sexp)))
-        (if last
-            (sp-get last :end)
-          ;; happens when there is no sexp before the closing delim of
-          ;; the enclosing sexp.  In case it is on line below, we take
-          ;; the minimum wrt le.
-          (sp-get cur (min :end-in le)))))))
+        (save-excursion
+          (goto-char (if last
+                         (sp-get last :end)
+                       ;; happens when there is no sexp before the closing delim of
+                       ;; the enclosing sexp.  In case it is on line below, we take
+                       ;; the minimum wrt le.
+                       (sp-get cur (min :end-in le))))
+          (save-restriction
+            (sp--narrow-to-line)
+            (skip-syntax-forward " .")
+            (point)))))))
 
 (defun sp-get-hybrid-sexp ()
   "Return the hybrid sexp around point.
@@ -4786,10 +4795,26 @@ handling of empty lines."
             (sp-get enc
               (delete-char :cl-l)
               (goto-char (sp-get prev-sexp :end))
+              ;; see next TODO
+              (save-restriction
+                (sp--narrow-to-line)
+                (skip-syntax-forward " ")
+                (skip-syntax-forward "."))
               (insert :cl)))
         ;; otherwise just C-u barf
         (sp-skip-backward-to-symbol t)
         (sp-forward-barf-sexp '(4))
+        ;; we need to take special care of any hanging
+        ;; punctuation. TODO: this should be a sexp suffix? HACK until
+        ;; we fix barf to get the info.
+        (save-restriction
+          (sp-get (sp-backward-down-sexp)
+            (goto-char :end)
+            (delete-char (- :cl-l))
+            (sp--narrow-to-line)
+            (skip-syntax-forward " ")
+            (skip-syntax-forward ".")
+            (insert :cl)))
         (sp-get enc (indent-region :beg :end))))
     (indent-according-to-mode)
     (sp--run-hook-with-args (sp-get enc :op) :post-handlers 'dedent-adjust-sexp)))
