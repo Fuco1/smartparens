@@ -4,12 +4,12 @@
 ;; basic pairs
 
 (defvar sp-test-get-paired-expression
-  '(("(foo bar)" 1 10 "(" ")" "")
-    ("()" 1 3 "(" ")" "")
-    ("(foo (bar) (baz) ((quux) (quo)) qua)" 1 37 "(" ")" "")
-    ("\\{foo bar (baz) quux\\}" 1 23 "\\{" "\\}" "")
-    ("\\{foo \\{bar baz\\} quux fux \\}" 1 30 "\\{" "\\}" "")
-    ("[vector foo (bar) lolz]" 1 24 "[" "]" "")
+  '(("(foo bar)" 1 10 "(" ")" "" "")
+    ("()" 1 3 "(" ")" "" "")
+    ("(foo (bar) (baz) ((quux) (quo)) qua)" 1 37 "(" ")" "" "")
+    ("\\{foo bar (baz) quux\\}" 1 23 "\\{" "\\}" "" "")
+    ("\\{foo \\{bar baz\\} quux fux \\}" 1 30 "\\{" "\\}" "" "")
+    ("[vector foo (bar) lolz]" 1 24 "[" "]" "" "")
     ))
 
 (ert-deftest sp-test-get-paired-expression ()
@@ -59,10 +59,10 @@
 ;; emacs lisp pairs
 
 (defvar sp-test-get-paired-expression-elisp
-  '(("'(foo)" 2 7 "(" ")" "'")
-    ("`(foo)" 2 7 "(" ")" "`")
-    (",@(foo)" 3 8 "(" ")" ",@")
-    (",[vector foo (bar) lolz]" 2 25 "[" "]" ",")
+  '(("'(foo)" 2 7 "(" ")" "'" "")
+    ("`(foo)" 2 7 "(" ")" "`" "")
+    (",@(foo)" 3 8 "(" ")" ",@" "")
+    (",[vector foo (bar) lolz]" 2 25 "[" "]" "," "")
     ))
 
 (ert-deftest sp-test-get-paired-expression-elisp ()
@@ -124,8 +124,9 @@
                          (:open "begin" :close "end" :actions (insert wrap)))))
 
 (defvar sp-test-get-paired-expression-ruby
-  '(("def end" 1 8 "def" "end" "")
-    ("def foo bar if blaz end end" 1 28 "def" "end" "")
+  '(("def end" 1 8 "def" "end" "" "")
+    ("def foo bar if blaz end end" 1 28 "def" "end" "" "")
+    ("def foo end;" 1 12 "def" "end" "" ";")
     ))
 
 (ert-deftest sp-test-get-paired-expression-ruby ()

@@ -39,8 +39,8 @@
           (should (equal pair expected))))
     (erase-buffer)))
 
-(defun sp-test-make-pair (b e o c p)
-  (list :beg b :end e :op o :cl c :prefix p))
+(defun sp-test-make-pair (b e o c p s)
+  (list :beg b :end e :op o :cl c :prefix p :suffix s))
 
 (defun sp-test-merge-pairs (extra)
   (list (cons t (append (-map 'identity (cdar sp--test-basic-pairs)) extra))))
