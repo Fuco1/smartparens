@@ -1151,17 +1151,33 @@ replacement of all the keywords with actual calls to sp-get."
                   (let ((command (car list)))
                     (cond
                      ((eq command 'sp-do-move-op)
-                      `(save-excursion
-                         (goto-char :beg-prf)
-                         (delete-char (+ :op-l :prefix-l))
-                         (goto-char ,(cadr list))
-                         (insert :prefix :op)))
+                      (let ((argument (make-symbol "--sp-argument--")))
+                        `(save-excursion
+                           (let ((,argument ,(cadr list)))
+                             (if (< ,argument :beg-prf)
+                                 (progn
+                                   (goto-char :beg-prf)
+                                   (delete-char (+ :op-l :prefix-l))
+                                   (goto-char ,argument)
+                                   (insert :prefix :op))
+                               (goto-char ,argument)
+                               (insert :prefix :op)
+                               (goto-char :beg-prf)
+                               (delete-char (+ :op-l :prefix-l)))))))
                      ((eq command 'sp-do-move-cl)
-                      `(save-excursion
-                         (goto-char ,(cadr list))
-                         (insert :cl :suffix)
-                         (goto-char :end-in)
-                         (delete-char (+ :cl-l :suffix-l))))
+                      (let ((argument (make-symbol "--sp-argument--")))
+                        `(save-excursion
+                           (let ((,argument ,(cadr list)))
+                             (if (> ,argument :end-in)
+                                 (progn
+                                   (goto-char ,argument)
+                                   (insert :cl :suffix)
+                                   (goto-char :end-in)
+                                   (delete-char (+ :cl-l :suffix-l)))
+                               (goto-char :end-in)
+                               (delete-char (+ :cl-l :suffix-l))
+                               (goto-char ,argument)
+                               (insert :cl :suffix))))))
                      ((eq command 'sp-do-del-op)
                       `(save-excursion
                          (goto-char :beg-prf)
@@ -3817,7 +3833,8 @@ This function simply transforms BOUNDS, which is a cons (BEG
         :end (1+ (cdr bounds))
         :op (char-to-string (char-after (cdr bounds)))
         :cl (char-to-string (char-after (cdr bounds)))
-        :prefix ""))
+        :prefix ""
+        :suffix ""))
 
 (defun sp-get-string (&optional back)
   "Find the nearest string after point, or before if BACK is non-nil.
@@ -3849,7 +3866,8 @@ and newline."
         :end (save-excursion (skip-chars-forward " \t\n") (point))
         :op ""
         :cl ""
-        :prefix ""))
+        :prefix ""
+        :suffix ""))
 
 (defun sp--sgml-get-tag-name (match)
   (let ((sub (if (equal "/" (substring match 1 2))
@@ -3911,7 +3929,8 @@ and newline."
                     :end (if forward close-end open-end)
                     :op (if forward op cl)
                     :cl (if forward cl op)
-                    :prefix ""))))))))
+                    :prefix ""
+                    :suffix ""))))))))
 
 (defun sp-prefix-tag-object (&optional arg)
   "Read the command and invoke it on the next tag object.
