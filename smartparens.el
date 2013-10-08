@@ -1144,9 +1144,41 @@ beginning."
   (defun sp--get-substitute (struct list)
     "Only ever call this from sp-get!  This function do the
 replacement of all the keywords with actual calls to sp-get."
-    (if (and (listp list)
-             (not (eq (car list) 'sp-get)))
-        (mapcar (lambda (x) (sp--get-substitute struct x)) list)
+    (if (listp list)
+        (if (eq (car list) 'sp-get)
+            list
+          (mapcar (lambda (x) (sp--get-substitute struct x))
+                  (let ((command (car list)))
+                    (cond
+                     ((eq command 'sp-do-move-op)
+                      `(save-excursion
+                         (goto-char :beg-prf)
+                         (delete-char (+ :op-l :prefix-l))
+                         (goto-char ,(cadr list))
+                         (insert :prefix :op)))
+                     ((eq command 'sp-do-move-cl)
+                      `(save-excursion
+                         (goto-char ,(cadr list))
+                         (insert :cl :suffix)
+                         (goto-char :end-in)
+                         (delete-char (+ :cl-l :suffix-l))))
+                     ((eq command 'sp-do-del-op)
+                      `(save-excursion
+                         (goto-char :beg-prf)
+                         (delete-char (+ :op-l :prefix-l))))
+                     ((eq command 'sp-do-del-cl)
+                      `(save-excursion
+                         (goto-char :end-in)
+                         (delete-char (+ :cl-l :suffix-l))))
+                     ((eq command 'sp-do-put-op)
+                      `(save-excursion
+                         (goto-char ,(cadr list))
+                         (insert :prefix :op)))
+                     ((eq command 'sp-do-put-cl)
+                      `(save-excursion
+                         (goto-char ,(cadr list))
+                         (insert :cl :suffix)))
+                     (t list)))))
       (if (keywordp list)
           (sp--get-replace-keyword struct list)
         list)))
@@ -1236,9 +1268,22 @@ attributes are:
 :suffix    - expression suffix
 :suffix-l  - expression suffix length
 
-In addition to simple queries, this macro understands arbitrary
-forms where any of the aforementioned attributes are used.
-Therefore, you can for example query for
+These special \"functions\" are expanded to do the selected
+action in the context of currently queried pair:
+
+Nullary:
+\(sp-do-del-op) - remove prefix and opening delimiter
+\(sp-do-del-cl) - remove closing delimiter and suffix
+
+Unary:
+\(sp-do-move-op p) - move prefix and opening delimiter to point p
+\(sp-do-move-cl p) - move closing delimiter and suffix to point p
+\(sp-do-put-op p) - put prefix and opening delimiter at point p
+\(sp-do-put-cl p) - put closing delimiter and suffix at point p
+
+In addition to these simple queries and commands, this macro
+understands arbitrary forms where any of the aforementioned
+attributes are used.  Therefore, you can for example query for
 \"(+ :op-l :cl-l)\".  This query would return the sum of lengths
 of opening and closing delimiter.  A query
 \"(concat :prefix :op)\" would return the string containing
