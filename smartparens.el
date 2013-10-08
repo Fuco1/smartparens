@@ -6170,7 +6170,8 @@ not necessarily represent a valid balanced expression!"
            (dir (sp--signum arg))
            (beg point) (end point)
            (op "") (cl "")
-           (prefix ""))
+           (prefix "")
+           (suffix ""))
       (cond
        ;; select up until end of list
        ((and raw (= arg 4))
@@ -6183,7 +6184,8 @@ not necessarily represent a valid balanced expression!"
                 (when ok
                   (sp-get ok
                     (setq end :end)
-                    (setq cl :cl)))))))
+                    (setq cl :cl)
+                    (setq suffix :suffix)))))))
         (unless point
           (let ((ok (sp-get-thing)))
             (when ok
@@ -6209,7 +6211,8 @@ not necessarily represent a valid balanced expression!"
             (when ok
               (sp-get ok
                 (setq end :end)
-                (setq cl :cl))))))
+                (setq cl :cl)
+                (setq suffix :suffix))))))
        ;; select the enclosing expression
        ((and raw (= (abs arg) 16))
         (let ((enc (sp-get-enclosing-sexp)))
@@ -6217,7 +6220,8 @@ not necessarily represent a valid balanced expression!"
               (error "No enclosing expression")
             (sp-get enc (setq beg :beg) (setq end :end)
                     (setq op :op) (setq cl :cl)
-                    (setq prefix :prefix)))))
+                    (setq prefix :prefix)
+                    (setq suffix :suffix)))))
        ;; normal selection, select N expressions
        ((> arg 0)
         (let* ((first (sp-forward-sexp))
@@ -6237,7 +6241,8 @@ not necessarily represent a valid balanced expression!"
               (setq prefix :prefix)))
           (sp-get last
             (setq end :end)
-            (setq cl :cl))))
+            (setq cl :cl)
+            (setq suffix :suffix))))
        ;; normal select, select -N expressions
        ((< arg 0)
         (let* ((first (sp-backward-sexp))
@@ -6257,7 +6262,8 @@ not necessarily represent a valid balanced expression!"
           (unless (and point (= point end))
             (sp-get first
               (setq end :end)
-              (setq cl :cl)))))
+              (setq cl :cl)
+              (setq suffix :suffix)))))
        ;; N = 0, select insides
        ((= arg 0)
         (let ((enc (sp-get-enclosing-sexp)))
@@ -6277,8 +6283,9 @@ not necessarily represent a valid balanced expression!"
                 (when ok
                   (sp-get ok
                     (setq end :end)
-                    (setq cl :cl)))))))))
-      (list :beg beg :end end :op op :cl cl :prefix prefix))))
+                    (setq cl :cl)
+                    (setq suffix :suffix)))))))))
+      (list :beg beg :end end :op op :cl cl :prefix prefix :suffix suffix))))
 
 (defun sp-select-next-thing (&optional arg point)
   "Set active region over next thing as recognized by `sp-get-thing'.
