@@ -3639,7 +3639,7 @@ See `sp-get-hybrid-sexp' for definition."
             (cur (--if-let (save-excursion (sp-forward-sexp)) it (list :beg (1+ (point-max))))) ;hack
             last)
         (if (> (sp-get cur :beg) le)
-            (skip-prefix-backward le)
+            (if (sp-point-in-blank-line) le (skip-prefix-backward le))
           (while (sp-get cur
                    (and cur
                         (< :beg le)
