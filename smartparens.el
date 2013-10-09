@@ -1152,46 +1152,44 @@ replacement of all the keywords with actual calls to sp-get."
                     (cond
                      ((eq command 'sp-do-move-op)
                       (let ((argument (make-symbol "--sp-argument--")))
-                        `(save-excursion
-                           (let ((,argument ,(cadr list)))
-                             (if (< ,argument :beg-prf)
-                                 (progn
-                                   (goto-char :beg-prf)
-                                   (delete-char (+ :op-l :prefix-l))
-                                   (goto-char ,argument)
-                                   (insert :prefix :op))
-                               (goto-char ,argument)
-                               (insert :prefix :op)
-                               (goto-char :beg-prf)
-                               (delete-char (+ :op-l :prefix-l)))))))
+                        `(let ((,argument ,(cadr list)))
+                           (if (< ,argument :beg-prf)
+                               (progn
+                                 (goto-char :beg-prf)
+                                 (delete-char (+ :op-l :prefix-l))
+                                 (goto-char ,argument)
+                                 (insert :prefix :op))
+                             (goto-char ,argument)
+                             (insert :prefix :op)
+                             (goto-char :beg-prf)
+                             (delete-char (+ :op-l :prefix-l))))))
                      ((eq command 'sp-do-move-cl)
                       (let ((argument (make-symbol "--sp-argument--")))
-                        `(save-excursion
-                           (let ((,argument ,(cadr list)))
-                             (if (> ,argument :end-in)
-                                 (progn
-                                   (goto-char ,argument)
-                                   (insert :cl :suffix)
-                                   (goto-char :end-in)
-                                   (delete-char (+ :cl-l :suffix-l)))
-                               (goto-char :end-in)
-                               (delete-char (+ :cl-l :suffix-l))
-                               (goto-char ,argument)
-                               (insert :cl :suffix))))))
+                        `(let ((,argument ,(cadr list)))
+                           (if (> ,argument :end-in)
+                               (progn
+                                 (goto-char ,argument)
+                                 (insert :cl :suffix)
+                                 (goto-char :end-in)
+                                 (delete-char (+ :cl-l :suffix-l)))
+                             (goto-char :end-in)
+                             (delete-char (+ :cl-l :suffix-l))
+                             (goto-char ,argument)
+                             (insert :cl :suffix)))))
                      ((eq command 'sp-do-del-op)
-                      `(save-excursion
+                      `(progn
                          (goto-char :beg-prf)
                          (delete-char (+ :op-l :prefix-l))))
                      ((eq command 'sp-do-del-cl)
-                      `(save-excursion
+                      `(progn
                          (goto-char :end-in)
                          (delete-char (+ :cl-l :suffix-l))))
                      ((eq command 'sp-do-put-op)
-                      `(save-excursion
+                      `(progn
                          (goto-char ,(cadr list))
                          (insert :prefix :op)))
                      ((eq command 'sp-do-put-cl)
-                      `(save-excursion
+                      `(progn
                          (goto-char ,(cadr list))
                          (insert :cl :suffix)))
                      (t list)))))
