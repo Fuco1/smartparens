@@ -556,7 +556,8 @@ string.  After the removal, all the pairs are re-checked."
   "Return the fall-back command as if `smartparens-mode' were disabled."
   (let ((smartparens-mode nil)
         (keys (or key-sequence (car sp-recent-keys))))
-    (key-binding keys t)))
+    ;; HACK: why and when this happens, I can't figure it out!!!
+    (if keys (key-binding keys t) 'self-insert-command)))
 
 (defun sp--update-local-pairs ()
   "Update local pairs after removal or at mode initialization."
