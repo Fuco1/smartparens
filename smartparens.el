@@ -5246,7 +5246,6 @@ Examples: (prefix arg in comment)
           (save-excursion
             (let ((enc (sp-get-enclosing-sexp)))
               (sp-get enc
-                (sp--run-hook-with-args :op :pre-handlers 'barf-forward)
                 (cond
                  ((and raw (= arg 4))
                   (sp-get (sp-get-thing t)
@@ -5259,6 +5258,7 @@ Examples: (prefix arg in comment)
                   (if (sp-compare-sexps back enc)
                       (goto-char :beg-in)
                     (goto-char (sp-get back :end-suf))))
+                (sp--run-hook-with-args :op :pre-handlers 'barf-forward)
                 (sp-do-move-cl (point))
                 (indent-region :beg :end)
                 (sp--run-hook-with-args :op :post-handlers 'barf-forward)))))
@@ -5288,7 +5288,6 @@ Examples:
           (save-excursion
             (let ((enc (sp-get-enclosing-sexp)))
               (sp-get enc
-                (sp--run-hook-with-args :op :pre-handlers 'barf-backward)
                 (cond
                  ((and raw (= arg 4))
                   (sp-get (sp-get-thing)
@@ -5301,6 +5300,7 @@ Examples:
                   (if (sp-compare-sexps next enc)
                       (goto-char :end-in)
                     (goto-char (sp-get next :beg-prf))))
+                (sp--run-hook-with-args :op :pre-handlers 'barf-backward)
                 (sp-do-move-op (point))
                 (indent-region :beg :end)
                 (sp--run-hook-with-args :op :post-handlers 'barf-backward)))))
