@@ -171,7 +171,7 @@
   (thing-at-point-looking-at
    (rx-to-string `(and (or "do" "{") (* space) ,id))))
 
-(sp-with-modes '(ruby-mode)
+(sp-with-modes '(ruby-mode enh-ruby-mode)
   (sp-local-pair "do" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :unless '(sp-ruby-in-string-or-word-p)
