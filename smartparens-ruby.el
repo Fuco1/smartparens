@@ -81,10 +81,10 @@
 
 (defun sp-ruby-post-handler (id action context)
   (when (equal action 'barf-backward)
-    (sp-backward-sexp)
-    (sp-ruby-delete-indentation 1))
+    (sp-ruby-delete-indentation 1)
+    (indent-according-to-mode))
   (when (equal action 'barf-forward)
-    (sp-forward-sexp)
+    (sp-forward-sexp arg)
     (sp-ruby-delete-indentation -1)))
 
 (defun sp-ruby-pre-handler (id action context)
