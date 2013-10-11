@@ -5709,7 +5709,7 @@ Examples:
 
 Note that to kill only the content and not the enclosing
 delimiters you can use \\[universal-argument] \\[sp-backward-kill-sexp].
-See `sp-kill-sexp' for more information."
+See `sp-backward-kill-sexp' for more information."
   (interactive "p")
   (while (> arg 0)
     (let ((ok (sp-get-enclosing-sexp 1)))
