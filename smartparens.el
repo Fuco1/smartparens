@@ -1335,6 +1335,7 @@ The list OLD-PAIR must not be nil."
     (cl-case prop
       (:close (plist-put old-pair :close new-val))
       (:prefix (plist-put old-pair :prefix new-val))
+      (:suffix (plist-put old-pair :suffix new-val))
       (:skip-match (plist-put old-pair :skip-match new-val))
       (:trigger (plist-put old-pair :trigger new-val))
       ((:actions :when :unless :pre-handlers :post-handlers)
@@ -1662,6 +1663,7 @@ wrap ARG (default 1) expressions with this pair (like
                          (post-handlers '(:add))
                          bind
                          prefix
+                         suffix
                          skip-match)
   "Add a local pair definition or override a global definition.
 
@@ -1674,6 +1676,11 @@ characters of expression prefix syntax class are automatically
 considered instead.  This can be used to attach custom prefixes
 to pairs, such as prefix \"\\function\" in \\function{arg} in
 `LaTeX-mode'.
+
+SUFFIX is a regular expression matching an optional suffix for
+this pair in the specified major modes.  If not specified, the
+characters of punctuation syntax class are automatically
+considered instead.
 
 The rest of the arguments have same semantics as in `sp-pair'.
 
@@ -1734,6 +1741,7 @@ addition, there is a global per major-mode option, see
         (when close (plist-put pair :close close))
         (when trigger (plist-put pair :trigger trigger))
         (when prefix (plist-put pair :prefix prefix))
+        (when suffix (plist-put pair :suffix suffix))
         (when skip-match (plist-put pair :skip-match skip-match))
         (when (and (not (sp-get-pair-definition open t))
                    (equal actions '(:add)))
