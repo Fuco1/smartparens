@@ -95,12 +95,18 @@
 
   (when (equal action 'barf-backward)
     (save-excursion
-      (sp-backward-sexp)
-      (sp-ruby-delete-indentation))
-    (while (thing-at-point-looking-at "\\.[ \n]*")
-      (forward-symbol 1))
-    (if (looking-at-p " *$") (newline) (save-excursion (newline)))
-    (just-one-space))
+      (newline)
+      (sp-get enc
+        (goto-char :beg-prf)
+        (delete-char -1))))
+  ;; (when (equal action 'barf-backward)
+  ;;   (save-excursion
+  ;;     (sp-backward-sexp)
+  ;;     (sp-ruby-delete-indentation))
+  ;;   (while (thing-at-point-looking-at "\\.[ \n]*")
+  ;;     (forward-symbol 1))
+  ;;   (if (looking-at-p " *$") (newline) (save-excursion (newline)))
+  ;;   (just-one-space))
 
   (when (equal action 'slurp-forward)
     (save-excursion
@@ -114,10 +120,11 @@
     (newline))
 
   (when (equal action 'barf-forward)
-    (save-excursion
-      (sp-forward-sexp)
-      (sp-ruby-delete-indentation -1))
-    (newline)))
+    ;; (save-excursion
+    ;;   (sp-forward-sexp)
+    ;;   (sp-ruby-delete-indentation -1))
+    (newline))
+  )
 
 (defun sp-ruby-in-string-or-word-p (id action context)
   (or (sp-in-string-p id action context)

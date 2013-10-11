@@ -548,7 +548,7 @@ begin
 end
 ")
 
-  (sp-ruby-test-barf-assert -1 "
+  (sp-ruby-test-barf-assert -2 "
 begin
   foo.barX
 end
@@ -572,7 +572,7 @@ begin
 end
 ")
 
-  (sp-ruby-test-barf-assert -3 "
+  (sp-ruby-test-barf-assert -5 "
 begin
   test(1).test[2].testX
 end
