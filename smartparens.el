@@ -4730,12 +4730,15 @@ Examples:
          baz)                          baz)"
   (interactive "P")
   (let* ((raw (sp--raw-argument-p arg))
-         (arg (prefix-numeric-value arg)))
+         (arg (prefix-numeric-value arg))
+         (orig-indent (save-excursion
+                        (back-to-indentation)
+                        (current-column))))
     (cond
      ((= arg 0) (kill-line))
      ((and raw (= arg 16))
       (let ((hl (sp-get-hybrid-sexp)))
-        (sp-get hl (kill-region :beg-prf :end))))
+        (sp-get hl (kill-region :beg-prf :end-suf))))
      (t
       (let ((hl (sp-get-hybrid-sexp)))
         (save-excursion
@@ -4745,7 +4748,7 @@ Examples:
                      (sp-point-in-symbol))
             (sp-backward-sexp))
           (sp-get hl
-            (kill-region (point) (min (point-max) (if (looking-at "[ \t]*$") (1+ :end) :end)))
+            (kill-region (point) (min (point-max) (if (looking-at "[ \t]*$") (1+ :end-suf) :end-suf)))
             (when sp-hybrid-kill-excessive-whitespace
               (cond
                ((sp-point-in-blank-line)
@@ -4754,7 +4757,12 @@ Examples:
                   (delete-region (line-beginning-position) (min (point-max) (1+ (line-end-position))))))
                ((looking-at "[ \t]*$")
                 (delete-blank-lines)))))))
-      (sp--cleanup-after-kill)))))
+      (sp--cleanup-after-kill)
+      ;; if we've killed the entire line, do *not* contract the indent
+      ;; to just one space
+      (when (sp-point-in-blank-line)
+        (delete-region (line-beginning-position) (line-end-position))
+        (insert (make-string orig-indent ?\ )))))))
 
 (defun sp--transpose-objects (first second)
   "Transpose FIRST and SECOND object while preserving the
