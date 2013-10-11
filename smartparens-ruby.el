@@ -94,19 +94,16 @@
     (just-one-space))
 
   (when (equal action 'barf-backward)
+    ;; Barf whole method chains
+    (while (thing-at-point-looking-at "\\.[ \n]*")
+      (forward-symbol 1))
     (save-excursion
-      (newline)
       (sp-get enc
         (goto-char :beg-prf)
-        (delete-char -1))))
-  ;; (when (equal action 'barf-backward)
-  ;;   (save-excursion
-  ;;     (sp-backward-sexp)
-  ;;     (sp-ruby-delete-indentation))
-  ;;   (while (thing-at-point-looking-at "\\.[ \n]*")
-  ;;     (forward-symbol 1))
-  ;;   (if (looking-at-p " *$") (newline) (save-excursion (newline)))
-  ;;   (just-one-space))
+        (delete-char -1)))
+    (if (looking-at-p " *$")
+        (newline)
+      (save-excursion (newline))))
 
   (when (equal action 'slurp-forward)
     (save-excursion
