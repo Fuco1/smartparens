@@ -3609,24 +3609,31 @@ of opening/closing delimiter or prefix)."
   "Get the beginning of hybrid sexp.
 See `sp-get-hybrid-sexp' for definition."
   (save-excursion
-    (let ((p (progn (when (sp-point-in-symbol) (sp-backward-sexp)) (point)))
-          (lb (line-beginning-position))
-          (cur (--if-let (save-excursion (sp-backward-sexp)) it (list :end 0))) ;hack
-          last)
-      (if (< (sp-get cur :end) lb)
-          lb
-        (while (sp-get cur
-                 (and cur
-                      (> :end lb)
-                      (<= :end p)))
-          (setq last cur)
-          (setq cur (sp-backward-sexp)))
-        (if last
-            (sp-get last :beg-prf)
-          ;; happens when there is no sexp before the opening delim of
-          ;; the enclosing sexp.  In case it is on line above, we take
-          ;; the maximum wrt lb.
-          (sp-get cur (max :beg-in lb)))))))
+    (cl-flet ((indent-or-beg-of-line
+               (lb)
+               (if (sp-point-in-blank-line)
+                   lb
+                 (back-to-indentation)
+                 (point))))
+      (let ((p (progn (when (sp-point-in-symbol) (sp-backward-sexp)) (point)))
+            (lb (line-beginning-position))
+            (cur (--if-let (save-excursion (sp-backward-sexp)) it (list :end 0))) ;hack
+            last)
+        (if (< (sp-get cur :end) lb)
+            ;; if the line is not empty, we move the beg to the indent
+            (indent-or-beg-of-line lb)
+          (while (sp-get cur
+                   (and cur
+                        (> :end lb)
+                        (<= :end p)))
+            (setq last cur)
+            (setq cur (sp-backward-sexp)))
+          (if last
+              (sp-get last :beg-prf)
+            ;; happens when there is no sexp before the opening delim of
+            ;; the enclosing sexp.  In case it is on line above, we take
+            ;; the maximum wrt lb.
+            (sp-get cur (max :beg-in (indent-or-beg-of-line lb)))))))))
 
 (defun sp--narrow-to-line ()
   "Narrow to the current line."
