@@ -94,16 +94,23 @@
 
   ;; pairs for big brackets.  Needs more research on what pairs are
   ;; useful to add here.  Post suggestions if you know some.
-  (sp-local-pair "\\left(" "\\right)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\left{" "\\right}" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\big(" "\\big)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\bigg(" "\\bigg)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\Big(" "\\Big)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\Bigg(" "\\Bigg)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\big{" "\\big}" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\bigg{" "\\bigg}" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\Big{" "\\Big}" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\Bigg{" "\\Bigg}" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\left(" "\\right)" :trigger "\\l(" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\left[" "\\right]" :trigger "\\l[" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\left\\{" "\\right\\}" :trigger "\\l{" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\bigl(" "\\bigr)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\biggl(" "\\biggr)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\Bigl(" "\\Bigr)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\Biggl(" "\\Biggr)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\bigl[" "\\bigr]" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\biggl[" "\\biggr]" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\Bigl[" "\\Bigr]" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\Biggl[" "\\Biggr]" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\bigl\\{" "\\bigr\\}" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\biggl\\{" "\\biggr\\}" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\Bigl\\{" "\\Bigr\\}" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\Biggl\\{" "\\Biggr\\}" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\lfloor" "\\rfloor" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\lceil" "\\rceil" :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\langle" "\\rangle" :post-handlers '(sp-latex-insert-spaces-inside-pair))
 
   ;; some common wrappings
