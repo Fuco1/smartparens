@@ -175,7 +175,7 @@
   (thing-at-point-looking-at
    (rx-to-string `(and (or "do" "{") (* space) ,id))))
 
-(sp-with-modes '(ruby-mode)
+(sp-with-modes '(ruby-mode enh-ruby-mode)
   (sp-local-pair "do" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :unless '(sp-ruby-in-string-or-word-p)
@@ -253,6 +253,14 @@
                  :skip-match 'sp-ruby-skip-inline-match-p)
 
   (sp-local-pair "until" "end"
+                 :when '(("SPC" "RET" "<evil-ret>"))
+                 :unless '(sp-ruby-in-string-word-or-inline-p)
+                 :actions '(insert)
+                 :pre-handlers '(sp-ruby-pre-handler)
+                 :post-handlers '(sp-ruby-def-post-handler)
+                 :skip-match 'sp-ruby-skip-inline-match-p)
+
+  (sp-local-pair "for" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :unless '(sp-ruby-in-string-word-or-inline-p)
                  :actions '(insert)

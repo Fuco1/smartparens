@@ -404,10 +404,11 @@ Symbol is defined as a chunk of text recognized by
                          inferior-emacs-lisp-mode
                          lisp-interaction-mode
                          scheme-mode
+                         geiser-repl-mode
                          lisp-mode
                          eshell-mode
                          slime-repl-mode
-                         nrepl-mode
+                         nrepl-repl-mode
                          clojure-mode
                          common-lisp-mode)
   "List of Lisp modes.")
@@ -1334,6 +1335,7 @@ The list OLD-PAIR must not be nil."
     (cl-case prop
       (:close (plist-put old-pair :close new-val))
       (:prefix (plist-put old-pair :prefix new-val))
+      (:suffix (plist-put old-pair :suffix new-val))
       (:skip-match (plist-put old-pair :skip-match new-val))
       (:trigger (plist-put old-pair :trigger new-val))
       ((:actions :when :unless :pre-handlers :post-handlers)
@@ -1661,6 +1663,7 @@ wrap ARG (default 1) expressions with this pair (like
                          (post-handlers '(:add))
                          bind
                          prefix
+                         suffix
                          skip-match)
   "Add a local pair definition or override a global definition.
 
@@ -1673,6 +1676,11 @@ characters of expression prefix syntax class are automatically
 considered instead.  This can be used to attach custom prefixes
 to pairs, such as prefix \"\\function\" in \\function{arg} in
 `LaTeX-mode'.
+
+SUFFIX is a regular expression matching an optional suffix for
+this pair in the specified major modes.  If not specified, the
+characters of punctuation syntax class are automatically
+considered instead.
 
 The rest of the arguments have same semantics as in `sp-pair'.
 
@@ -1733,6 +1741,7 @@ addition, there is a global per major-mode option, see
         (when close (plist-put pair :close close))
         (when trigger (plist-put pair :trigger trigger))
         (when prefix (plist-put pair :prefix prefix))
+        (when suffix (plist-put pair :suffix suffix))
         (when skip-match (plist-put pair :skip-match skip-match))
         (when (and (not (sp-get-pair-definition open t))
                    (equal actions '(:add)))
@@ -3647,12 +3656,23 @@ See `sp-get-hybrid-sexp' for definition."
                         (>= :beg p)))
             (setq last cur)
             (setq cur (sp-forward-sexp)))
-          (skip-prefix-backward (if last
-                                    (sp-get last :end)
-                                  ;; happens when there is no sexp before the closing delim of
-                                  ;; the enclosing sexp.  In case it is on line below, we take
-                                  ;; the minimum wrt le.
-                                  (sp-get cur (min :end-in le)))))))))
+          (let ((r (skip-prefix-backward
+                    (if last
+                        (sp-get last :end)
+                      ;; happens when there is no sexp before the closing delim of
+                      ;; the enclosing sexp.  In case it is on line below, we take
+                      ;; the minimum wrt le.
+                      (sp-get cur (min :end-in le))))))
+            (goto-char r)
+            ;; fix the situation when point ends in comment
+            (cond
+             ((sp-point-in-comment)
+              (if (= (line-number-at-pos p)
+                     (line-number-at-pos r))
+                  (line-end-position)
+                (goto-char p)
+                (line-end-position)))
+             (t r))))))))
 
 (defun sp--get-hybrid-suffix (p)
   "Get the hybrid sexp suffix, which is any punctuation after
@@ -5317,14 +5337,15 @@ Examples:
         (dec (if forward '1- '1+))
         (forward-fn (if forward 'forward-char 'backward-char))
         (next-char-fn (if forward 'following-char 'preceding-char))
-        (looking (if forward 'sp--looking-at 'sp--looking-back)))
+        (looking (if forward 'sp--looking-at 'sp--looking-back))
+        (eob-test (if forward '(eobp) '(bobp))))
     `(let ((in-comment (sp-point-in-comment))
            ;; HACK: if we run out of current context this might skip a
            ;; pair that was not allowed before.  However, such a call is
            ;; never made in SP, so it's OK for now
            (allowed-pairs (sp--get-allowed-regexp))
            (allowed-strings (sp--get-stringlike-regexp)))
-       (while (and (not (or (eobp)
+       (while (and (not (or ,eob-test
                             (and stop-after-string
                                  (not (sp-point-in-string))
                                  (sp-point-in-string (,dec (point))))
@@ -5685,7 +5706,7 @@ Examples:
 
 Note that to kill only the content and not the enclosing
 delimiters you can use \\[universal-argument] \\[sp-backward-kill-sexp].
-See `sp-kill-sexp' for more information."
+See `sp-backward-kill-sexp' for more information."
   (interactive "p")
   (while (> arg 0)
     (let ((ok (sp-get-enclosing-sexp 1)))
