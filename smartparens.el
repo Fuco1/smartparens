@@ -3648,12 +3648,23 @@ See `sp-get-hybrid-sexp' for definition."
                         (>= :beg p)))
             (setq last cur)
             (setq cur (sp-forward-sexp)))
-          (skip-prefix-backward (if last
-                                    (sp-get last :end)
-                                  ;; happens when there is no sexp before the closing delim of
-                                  ;; the enclosing sexp.  In case it is on line below, we take
-                                  ;; the minimum wrt le.
-                                  (sp-get cur (min :end-in le)))))))))
+          (let ((r (skip-prefix-backward
+                    (if last
+                        (sp-get last :end)
+                      ;; happens when there is no sexp before the closing delim of
+                      ;; the enclosing sexp.  In case it is on line below, we take
+                      ;; the minimum wrt le.
+                      (sp-get cur (min :end-in le))))))
+            (goto-char r)
+            ;; fix the situation when point ends in comment
+            (cond
+             ((sp-point-in-comment)
+              (if (= (line-number-at-pos p)
+                     (line-number-at-pos r))
+                  (line-end-position)
+                (goto-char p)
+                (line-end-position)))
+             (t r))))))))
 
 (defun sp--get-hybrid-suffix (p)
   "Get the hybrid sexp suffix, which is any punctuation after
