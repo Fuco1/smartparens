@@ -5236,8 +5236,7 @@ Examples: (prefix arg in comment)
 
   (foo bar| baz)   -> foo (bar| baz)   ;; -1"
   (interactive "P")
-  (let* ((enc (sp-get-enclosing-sexp))
-         (raw (sp--raw-argument-p arg))
+  (let* ((raw (sp--raw-argument-p arg))
          (old-arg arg)
          (arg (prefix-numeric-value arg)))
     (if (> arg 0)
@@ -5252,7 +5251,9 @@ Examples: (prefix arg in comment)
                     (goto-char :end-suf)))
                  (t
                   (goto-char :end-in)
-                  (sp-backward-sexp)))
+                  (sp-backward-sexp arg)
+                  (when (<= (point) :beg)
+                    (goto-char :beg-in))))
                 ;; we know for sure there is at least one thing in the list
                 (let ((back (sp-get-thing t)))
                   (if (sp-compare-sexps back enc)
@@ -5279,8 +5280,7 @@ Examples:
 
   (1 2 3 |4 5 6) -> 1 2 3 (|4 5 6) ;; \\[universal-argument] (or 3)"
   (interactive "P")
-  (let* ((enc (sp-get-enclosing-sexp))
-         (raw (sp--raw-argument-p arg))
+  (let* ((raw (sp--raw-argument-p arg))
          (old-arg arg)
          (arg (prefix-numeric-value arg)))
     (if (> arg 0)
@@ -5295,7 +5295,9 @@ Examples:
                     (goto-char :beg-prf)))
                  (t
                   (goto-char :beg-in)
-                  (sp-forward-sexp)))
+                  (sp-forward-sexp arg)
+                  (when (>= (point) :end)
+                    (goto-char :end-in))))
                 ;; we know for sure there is at least one thing in the list
                 (let ((next (sp-get-thing)))
                   (if (sp-compare-sexps next enc)
