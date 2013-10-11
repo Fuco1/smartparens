@@ -4769,10 +4769,10 @@ Examples:
 whitespace between them."
   (save-excursion
     (goto-char (sp-get second :beg-prf))
-    (setq ins (sp-get second (delete-and-extract-region :beg-prf :end)))
-    (setq between (delete-and-extract-region (sp-get first :end) (point)))
-    (goto-char (sp-get first :beg-prf))
-    (insert ins between)))
+    (let ((ins (sp-get second (delete-and-extract-region :beg-prf :end-suf)))
+          (between (delete-and-extract-region (sp-get first :end-suf) (point))))
+      (goto-char (sp-get first :beg-prf))
+      (insert ins between))))
 
 (defun sp-transpose-sexp (&optional arg)
   "Transpose the expressions around point.
@@ -4811,8 +4811,7 @@ Examples:
     (while (> n 0)
       (when (< arg 0) (sp-backward-sexp))
       (let* ((next (save-excursion (sp-forward-sexp)))
-             (prev (save-excursion (goto-char (sp-get next :beg-prf)) (sp-backward-sexp)))
-             ins between)
+             (prev (save-excursion (goto-char (sp-get next :beg-prf)) (sp-backward-sexp))))
         (sp--transpose-objects prev next)
         (when (< arg 0)
           (goto-char (+ (sp-get prev :beg-prf) (sp-get next :len))))
@@ -4851,8 +4850,7 @@ Examples:
            (prev (save-excursion
                    (goto-char (sp-get next :beg))
                    (sp-backward-sexp)
-                   (sp-get-hybrid-sexp)))
-           ins between)
+                   (sp-get-hybrid-sexp))))
       (if (sp-compare-sexps prev next > :end)
           (message "Invalid context: previous h-sexp ends after the next one.")
         (sp--transpose-objects prev next))
@@ -4877,8 +4875,7 @@ Examples:
          (next (save-excursion
                  (goto-char (sp-get cur :end))
                  (sp-forward-sexp)
-                 (sp-get-hybrid-sexp)))
-         ins between)
+                 (sp-get-hybrid-sexp))))
     (if (sp-compare-sexps cur next >)
         (message "Invalid context: current h-sexp starts after the next one.")
       (sp--transpose-objects cur next))))
