@@ -191,6 +191,7 @@
   (sp-local-pair "{" "}"
                  :actions '(insert wrap)
                  :pre-handlers '(sp-ruby-pre-handler)
+                 :post-handlers '(sp-ruby-post-handler)
                  :suffix "")
 
   (sp-local-pair "begin" "end"
