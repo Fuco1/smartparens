@@ -5352,14 +5352,15 @@ Examples:
         (dec (if forward '1- '1+))
         (forward-fn (if forward 'forward-char 'backward-char))
         (next-char-fn (if forward 'following-char 'preceding-char))
-        (looking (if forward 'sp--looking-at 'sp--looking-back)))
+        (looking (if forward 'sp--looking-at 'sp--looking-back))
+        (eob-test (if forward '(eobp) '(bobp))))
     `(let ((in-comment (sp-point-in-comment))
            ;; HACK: if we run out of current context this might skip a
            ;; pair that was not allowed before.  However, such a call is
            ;; never made in SP, so it's OK for now
            (allowed-pairs (sp--get-allowed-regexp))
            (allowed-strings (sp--get-stringlike-regexp)))
-       (while (and (not (or (eobp)
+       (while (and (not (or ,eob-test
                             (and stop-after-string
                                  (not (sp-point-in-string))
                                  (sp-point-in-string (,dec (point))))
