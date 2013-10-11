@@ -48,23 +48,6 @@
 
 (require 'smartparens)
 
-(defun sp-ruby-block-post-handler (id action context)
-  "Handler for ruby block-like inserts"
-  (when (equal action 'insert)
-    (save-excursion
-      (newline)
-      (indent-according-to-mode))
-    (indent-according-to-mode)))
-
-(defun sp-ruby-def-post-handler (id action context)
-  "Handler for ruby def-like inserts"
-  (when (equal action 'insert)
-    (save-excursion
-      (insert "x")
-      (newline)
-      (indent-according-to-mode))
-    (kill-forward-chars 1)))
-
 (defun sp-ruby-delete-indentation (&optional arg)
   "Better way of joining ruby lines"
   (delete-indentation arg)
@@ -76,6 +59,33 @@
                    (looking-at-p ".[.@$] ")
                    (looking-at-p ":: "))))
     (delete-char 1)))
+
+(defun sp-ruby-block-post-handler (id action context)
+  "Handler for ruby block-like inserts"
+  (when (equal action 'insert)
+    (save-excursion
+      (newline)
+      (indent-according-to-mode))
+    (indent-according-to-mode))
+  (sp-ruby-post-handler id action context))
+
+(defun sp-ruby-def-post-handler (id action context)
+  "Handler for ruby def-like inserts"
+  (when (equal action 'insert)
+    (save-excursion
+      (insert "x")
+      (newline)
+      (indent-according-to-mode))
+    (delete-char 1))
+  (sp-ruby-post-handler id action context))
+
+(defun sp-ruby-post-handler (id action context)
+  (when (equal action 'barf-backward)
+    (sp-backward-sexp)
+    (sp-ruby-delete-indentation 1))
+  (when (equal action 'barf-forward)
+    (sp-forward-sexp)
+    (sp-ruby-delete-indentation -1)))
 
 (defun sp-ruby-pre-handler (id action context)
   "Handler for ruby slurp and barf"
@@ -96,11 +106,7 @@
   (when (equal action 'barf-backward)
     ;; Barf whole method chains
     (while (thing-at-point-looking-at "\\.[ \n]*")
-      (forward-symbol 1))
-    (save-excursion
-      (sp-get enc
-        (goto-char :beg-prf)
-        (delete-char -1)))
+      (sp-forward-sexp))
     (if (looking-at-p " *$")
         (newline)
       (save-excursion (newline))))
@@ -117,11 +123,8 @@
     (newline))
 
   (when (equal action 'barf-forward)
-    ;; (save-excursion
-    ;;   (sp-forward-sexp)
-    ;;   (sp-ruby-delete-indentation -1))
-    (newline))
-  )
+    (when (looking-back "\\.") (backward-char))
+    (newline)))
 
 (defun sp-ruby-in-string-or-word-p (id action context)
   (or (sp-in-string-p id action context)
@@ -182,11 +185,13 @@
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
                  :post-handlers '(sp-ruby-block-post-handler)
-                 :skip-match 'sp-ruby-skip-method-p)
+                 :skip-match 'sp-ruby-skip-method-p
+                 :suffix "")
 
   (sp-local-pair "{" "}"
                  :actions '(insert wrap)
-                 :pre-handlers '(sp-ruby-pre-handler))
+                 :pre-handlers '(sp-ruby-pre-handler)
+                 :suffix "")
 
   (sp-local-pair "begin" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
@@ -194,7 +199,8 @@
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
                  :post-handlers '(sp-ruby-block-post-handler)
-                 :skip-match 'sp-ruby-skip-method-p)
+                 :skip-match 'sp-ruby-skip-method-p
+                 :suffix "")
 
   (sp-local-pair "def" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
@@ -202,7 +208,8 @@
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
                  :post-handlers '(sp-ruby-def-post-handler)
-                 :skip-match 'sp-ruby-skip-method-p)
+                 :skip-match 'sp-ruby-skip-method-p
+                 :suffix "")
 
   (sp-local-pair "class" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
@@ -210,7 +217,8 @@
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
                  :post-handlers '(sp-ruby-def-post-handler)
-                 :skip-match 'sp-ruby-skip-method-p)
+                 :skip-match 'sp-ruby-skip-method-p
+                 :suffix "")
 
   (sp-local-pair "module" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
@@ -218,7 +226,8 @@
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
                  :post-handlers '(sp-ruby-def-post-handler)
-                 :skip-match 'sp-ruby-skip-method-p)
+                 :skip-match 'sp-ruby-skip-method-p
+                 :suffix "")
 
   (sp-local-pair "case" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
@@ -226,7 +235,8 @@
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
                  :post-handlers '(sp-ruby-def-post-handler)
-                 :skip-match 'sp-ruby-skip-method-p)
+                 :skip-match 'sp-ruby-skip-method-p
+                 :suffix "")
 
   (sp-local-pair "if" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
@@ -234,7 +244,8 @@
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
                  :post-handlers '(sp-ruby-def-post-handler)
-                 :skip-match 'sp-ruby-skip-inline-match-p)
+                 :skip-match 'sp-ruby-skip-inline-match-p
+                 :suffix "")
 
   (sp-local-pair "unless" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
@@ -242,7 +253,8 @@
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
                  :post-handlers '(sp-ruby-def-post-handler)
-                 :skip-match 'sp-ruby-skip-inline-match-p)
+                 :skip-match 'sp-ruby-skip-inline-match-p
+                 :suffix "")
 
   (sp-local-pair "while" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
@@ -250,7 +262,8 @@
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
                  :post-handlers '(sp-ruby-def-post-handler)
-                 :skip-match 'sp-ruby-skip-inline-match-p)
+                 :skip-match 'sp-ruby-skip-inline-match-p
+                 :suffix "")
 
   (sp-local-pair "until" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
@@ -258,7 +271,8 @@
                  :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-handler)
                  :post-handlers '(sp-ruby-def-post-handler)
-                 :skip-match 'sp-ruby-skip-inline-match-p)
+                 :skip-match 'sp-ruby-skip-inline-match-p
+                 :suffix "")
 
   (sp-local-pair "for" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
@@ -271,8 +285,8 @@
   (sp-local-pair "|" "|"
                  :when '(sp-ruby-should-insert-pipe-close)
                  :actions '(insert)
-                 :pre-handlers '(sp-ruby-pre-pipe-handler))
-  )
+                 :pre-handlers '(sp-ruby-pre-pipe-handler)
+                 :suffix ""))
 
 (add-to-list 'sp-navigate-consider-stringlike-sexp 'ruby-mode)
 
