@@ -5245,57 +5245,6 @@ Examples:
       (sp-down-sexp)
       (sp-backward-slurp-sexp arg)))))
 
-(defmacro sp--barf-sexp (fw-1)
-  "Generate forward/backward barf functions."
-  `(let ((n (abs arg)))
-     (while (> n 0)
-       (let* ((ok (sp-get-enclosing-sexp))
-              ,@(when (not fw-1) '((prefix nil) (prefix-len 0)))
-              next-thing)
-         (if ok
-             (save-excursion
-               (goto-char ,(if fw-1 '(sp-get ok :end-in)
-                             '(sp-get ok :beg-in)))
-               ;; NOTE: sp-get-thing is "reversed", if we barf forward
-               ;; we search from end of list backward for the thing to
-               ;; barf.
-               (setq next-thing (sp-get-thing ,fw-1))
-               (if (and next-thing
-                        (/= (sp-get next-thing :beg) (sp-get ok :beg))) ;; ok == next-thing
-                   (progn
-                     (delete-char ,(if fw-1 '(sp-get ok :cl-l)
-                                     '(sp-get ok (- (+ :op-l :prefix-l)))))
-                     (goto-char ,(if fw-1 '(sp-get next-thing :beg)
-                                   '(- (sp-get next-thing :end)
-                                       (sp-get ok (+ :op-l :prefix-l)))))
-                     ,(if fw-1
-                          '(progn
-                             (let ((next-prefix (sp-get next-thing :prefix)))
-                               (when next-prefix (backward-char (length next-prefix))))
-                             (sp-skip-backward-to-symbol t))
-                        ;; skip the prefix backward.  We don't have
-                        ;; info about this prefix, since it is the
-                        ;; "following-sexp" to the one being jumped
-                        ;; over -- next-thing
-                        '(progn
-                           (sp-skip-forward-to-symbol t)
-                           (skip-syntax-backward "'")))
-                     ,(if fw-1
-                          '(sp--run-hook-with-args (sp-get ok :op) :pre-handlers 'barf-forward)
-                        '(sp--run-hook-with-args (sp-get ok :op) :pre-handlers 'barf-backward))
-                     (insert ,(if fw-1 '(sp-get ok :cl)
-                                '(sp-get ok (concat :prefix :op))))
-                     ;; reindent the "barfed region"
-                     (indent-region (sp-get ok :beg-prf) (sp-get ok :end))
-                     ,(if fw-1
-                          '(sp--run-hook-with-args (sp-get ok :op) :post-handlers 'barf-forward)
-                        '(sp--run-hook-with-args (sp-get ok :op) :post-handlers 'barf-backward))
-                     (setq n (1- n)))
-                 (message "The expression is empty.")
-                 (setq n -1)))
-           (message "We can't barf without breaking strictly balanced expression. Ignored.")
-           (setq n -1))))))
-
 (defun sp-forward-barf-sexp (&optional arg)
   "Remove the last sexp in the current list by moving the closing delimiter.
 
@@ -5319,20 +5268,34 @@ Examples: (prefix arg in comment)
 
   (foo bar| baz)   -> foo (bar| baz)   ;; -1"
   (interactive "P")
-  (let ((raw (sp--raw-argument-p arg))
-        (old-arg arg)
-        (arg (prefix-numeric-value arg)))
+  (let* ((raw (sp--raw-argument-p arg))
+         (old-arg arg)
+         (arg (prefix-numeric-value arg)))
     (if (> arg 0)
-        (if raw
-            (let* ((lst (sp-get-list-items))
-                   (last nil))
-              (!cdr lst)
-              (while (and lst (>= (point) (sp-get (car lst) :beg))) (setq last (car lst)) (!cdr lst))
-              (setq arg (length lst))
-              (when (/= arg 0)
-                (sp--barf-sexp t)
-                (sp-get last (when (> (point) :end) (goto-char :end)))))
-          (sp--barf-sexp t))
+        (if (sp-point-in-blank-sexp)
+            (message "Point is in blank sexp, nothing to barf")
+          (save-excursion
+            (let ((enc (sp-get-enclosing-sexp)))
+              (sp-get enc
+                (cond
+                 ((and raw (= arg 4))
+                  (sp-get (sp-get-thing t)
+                    (goto-char :end-suf)))
+                 (t
+                  (goto-char :end-in)
+                  (sp-backward-sexp arg)
+                  (when (<= (point) :beg)
+                    (goto-char :beg-in))))
+                ;; we know for sure there is at least one thing in the list
+                (let ((back (sp-get-thing t)))
+                  (if (sp-compare-sexps back enc)
+                      (goto-char :beg-in)
+                    (goto-char (sp-get back :end-suf))))
+                (sp--run-hook-with-args :op :pre-handlers 'barf-forward))
+              (sp-get (sp-get-enclosing-sexp)
+                (sp-do-move-cl (point))
+                (indent-region :beg :end)
+                (sp--run-hook-with-args :op :post-handlers 'barf-forward)))))
       (sp-backward-barf-sexp (sp--negate-argument old-arg)))))
 
 (defun sp-backward-barf-sexp (&optional arg)
@@ -5349,20 +5312,34 @@ Examples:
 
   (1 2 3 |4 5 6) -> 1 2 3 (|4 5 6) ;; \\[universal-argument] (or 3)"
   (interactive "P")
-  (let ((raw (sp--raw-argument-p arg))
-        (old-arg arg)
-        (arg (prefix-numeric-value arg)))
+  (let* ((raw (sp--raw-argument-p arg))
+         (old-arg arg)
+         (arg (prefix-numeric-value arg)))
     (if (> arg 0)
-        (if raw
-            (let* ((lst (sp-get-list-items))
-                   (n 0))
-              (!cdr lst)
-              (while (and lst (> (point) (sp-get (car lst) :end))) (!cdr lst) (setq n (1+ n)))
-              (setq arg n)
-              (when (/= arg 0)
-                (sp--barf-sexp nil)
-                (sp-get (car lst) (when (< (point) :beg-prf) (goto-char :beg-prf)))))
-          (sp--barf-sexp nil))
+        (if (sp-point-in-blank-sexp)
+            (message "Point is in blank sexp, nothing to barf")
+          (save-excursion
+            (let ((enc (sp-get-enclosing-sexp)))
+              (sp-get enc
+                (cond
+                 ((and raw (= arg 4))
+                  (sp-get (sp-get-thing)
+                    (goto-char :beg-prf)))
+                 (t
+                  (goto-char :beg-in)
+                  (sp-forward-sexp arg)
+                  (when (>= (point) :end)
+                    (goto-char :end-in))))
+                ;; we know for sure there is at least one thing in the list
+                (let ((next (sp-get-thing)))
+                  (if (sp-compare-sexps next enc)
+                      (goto-char :end-in)
+                    (goto-char (sp-get next :beg-prf))))
+                (sp--run-hook-with-args :op :pre-handlers 'barf-backward))
+              (sp-get (sp-get-enclosing-sexp)
+                (sp-do-move-op (point))
+                (indent-region :beg :end)
+                (sp--run-hook-with-args :op :post-handlers 'barf-backward)))))
       (sp-forward-barf-sexp (sp--negate-argument old-arg)))))
 
 ;; TODO: get rid of the macro anyway, it's stupid!
