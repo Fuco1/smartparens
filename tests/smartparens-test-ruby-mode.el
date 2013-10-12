@@ -548,7 +548,7 @@ begin
 end
 ")
 
-  (sp-ruby-test-barf-assert -2 "
+  (sp-ruby-test-barf-assert -1 "
 begin
   foo.barX
 end
@@ -572,7 +572,7 @@ begin
 end
 ")
 
-  (sp-ruby-test-barf-assert -5 "
+  (sp-ruby-test-barf-assert -1 "
 begin
   test(1).test[2].testX
 end
@@ -601,7 +601,6 @@ Module::Class
 begin
 end
 ")
-
   )
 
 (ert-deftest sp-test-ruby-barf-with-inline-blocks ()

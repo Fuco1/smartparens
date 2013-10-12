@@ -105,7 +105,7 @@
 
   (when (equal action 'barf-backward)
     ;; Barf whole method chains
-    (while (thing-at-point-looking-at "\\.[ \n]*")
+    (while (thing-at-point-looking-at "[.([:][ \n]*")
       (sp-forward-sexp))
     (if (looking-at-p " *$")
         (newline)
