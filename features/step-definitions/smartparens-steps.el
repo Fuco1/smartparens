@@ -84,14 +84,16 @@
       (cl-assert search nil message word (espuds-buffer-contents))
       (if (string-equal "front" pos) (backward-word)))))
 
-(When "^I slurp \\(forward\\|backward\\)$"
-  (lambda (dir)
-    (if (string-equal dir "forward")
-        (sp-forward-slurp-sexp)
-      (sp-backward-slurp-sexp))))
+(When "^I slurp \\(forward\\|backward\\) ?\\(all\\|\\(?:[0-9]*\\)\\)$"
+  (lambda (dir arg)
+    (let ((arg (if (equal arg "all") '(4) (max 1 (string-to-int arg)))))
+      (if (string-equal dir "forward")
+          (sp-forward-slurp-sexp arg)
+        (sp-backward-slurp-sexp arg)))))
 
-(When "^I barf \\(forward\\|backward\\)$"
-  (lambda (dir)
-    (if (string-equal dir "forward")
-        (sp-forward-barf-sexp)
-      (sp-backward-barf-sexp))))
+(When "^I barf \\(forward\\|backward\\) ?\\(all\\|\\(?:[0-9]*\\)\\)$"
+  (lambda (dir arg)
+    (let ((arg (if (equal arg "all") '(4) (max 1 (string-to-int arg)))))
+      (if (string-equal dir "forward")
+          (sp-forward-barf-sexp arg)
+        (sp-backward-barf-sexp arg)))))

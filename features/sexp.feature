@@ -62,42 +62,42 @@ Feature: Sexp manipulation
 #    And I slurp backward
 #    Then I should see "(bar baz)"
 
-  Scenario: Barf a sexp
-    When I insert "(foo bar baz)"
-    And I go to the end of word foo
-    And I barf forward
-    Then I should see "(foo bar) baz"
-    When I barf forward
-    Then I should see "(foo) bar baz"
-
-  Scenario: Barf two sexps with prefix
-    When I insert "(foo bar baz)"
-    And I go to the end of word foo
-    And I barf forward 2
-    Then I should see "(foo) bar baz"
-
-  Scenario: Barf all sexps
-    When I insert "(foo bar baz)"
-    And I go to the end of word foo
-    And I barf forward all
-    Then I should see "(foo) bar baz"
-
-  Scenario: Barf a sexp backward
-    When I insert "(foo bar baz)"
-    And I go to the end of word baz
-    And I barf backward
-    Then I should see "foo (bar baz)"
-    When I barf backward
-    Then I should see "foo bar (baz)"
-
-  Scenario: Barf two sexps with prefix backward
-    When I insert "(foo bar baz)"
-    And I go to the end of word baz
-    And I barf backward 2
-    Then I should see "foo bar (baz)"
-
-  Scenario: Barf all sexps backward
-    When I insert "(foo bar baz)"
-    And I go to the end of word baz
-    And I barf backward all
-    Then I should see "foo bar (baz)"
+#  Scenario: Barf a sexp
+#    When I insert "(foo bar baz)"
+#    And I go to the end of the word "foo"
+#    And I barf forward
+#    Then I should see "(foo bar) baz"
+#    When I barf forward
+#    Then I should see "(foo) bar baz"
+#
+#  Scenario: Barf two sexps with prefix
+#    When I insert "(foo bar baz)"
+#    And I go to the end of the word "foo"
+#    And I barf forward 2
+#    Then I should see "(foo) bar baz"
+#
+#  Scenario: Barf all sexps
+#    When I insert "(foo bar baz)"
+#    And I go to the end of the word "foo"
+#    And I barf forward all
+#    Then I should see "(foo) bar baz"
+#
+#  Scenario: Barf a sexp backward
+#    When I insert "(foo bar baz)"
+#    And I go to the end of the word "baz"
+#    And I barf backward
+#    Then I should see "foo (bar baz)"
+#    When I barf backward
+#    Then I should see "foo bar (baz)"
+#
+#  Scenario: Barf two sexps with prefix backward
+#    When I insert "(foo bar baz)"
+#    And I go to the end of the word "baz"
+#    And I barf backward 2
+#    Then I should see "foo bar (baz)"
+#
+#  Scenario: Barf all sexps backward
+#    When I insert "(foo bar baz)"
+#    And I go to the end of the word "baz"
+#    And I barf backward all
+#    Then I should see "foo bar (baz)"
