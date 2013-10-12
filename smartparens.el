@@ -901,9 +901,9 @@ use :skip-match option in `sp-local-pair'."
           :value-type symbol)
   :group 'smartparens)
 
-(defcustom sp-navigate-reindent-after-up '(
+(defcustom sp-navigate-reindent-after-up `(
                                            (interactive
-                                            emacs-lisp-mode
+                                            ,@sp--lisp-modes
                                             )
                                            )
   "Modes where sexps should be reindented after jumping out of them with `sp-up-sexp'.
