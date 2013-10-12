@@ -604,15 +604,15 @@ end
   )
 
 (ert-deftest sp-test-ruby-barf-with-inline-blocks ()
-  (sp-ruby-test-barf-assert 2 "
-if teXst
-  foo if true
-end
-" :=> "
-if test
-end
-foo if true
-")
+;;   (sp-ruby-test-barf-assert 2 "
+;; if teXst
+;;   foo if true
+;; end
+;; " :=> "
+;; if test
+;; end
+;; foo if true
+;; ")
 
   (sp-ruby-test-barf-assert 2 "
 if teXst

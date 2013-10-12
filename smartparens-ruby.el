@@ -85,7 +85,8 @@
     (indent-according-to-mode))
   (when (equal action 'barf-forward)
     (sp-forward-sexp arg)
-    (sp-ruby-delete-indentation -1)))
+    (sp-ruby-delete-indentation -1)
+    (indent-according-to-mode)))
 
 (defun sp-ruby-pre-handler (id action context)
   "Handler for ruby slurp and barf"
@@ -119,12 +120,16 @@
             (forward-symbol -1)
             (sp-ruby-delete-indentation -1))
         (sp-ruby-delete-indentation)))
+    (while (looking-at-p "::") (sp-forward-symbol))
     (when (looking-at-p "[?!]") (forward-char))
     (newline))
 
   (when (equal action 'barf-forward)
     (when (looking-back "\\.") (backward-char))
-    (newline)))
+    (while (looking-back "::") (sp-backward-symbol))
+    (if (looking-back "^ *")
+        (save-excursion (newline))
+      (newline))))
 
 (defun sp-ruby-in-string-or-word-p (id action context)
   (or (sp-in-string-p id action context)
