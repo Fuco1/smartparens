@@ -1512,7 +1512,8 @@ negative -N, wrap N preceeding expressions.")
                    unless
                    pre-handlers
                    post-handlers
-                   bind)
+                   bind
+                   insert)
   "Add a pair definition.
 
 OPEN is the opening delimiter.  Every pair is uniquely determined
@@ -1616,13 +1617,24 @@ This function will move the closing pair on its own line only if
 the next command is `newline' or is triggered by RET.  Otherwise
 the pairs stay on the same line.
 
-BIND is a key binding to which a \"wrapping\" action will be
-bound.  This function will be generated on the fly by
-smartparens, using name
+BIND is a key binding to which a \"wrapping\" action is bound.
+The key should be in format that is accepted by `kbd'.  This
+function will be generated on the fly by smartparens, using name
 \"sp---wrap-with-<ASCII-OF-CHAR1>-<ASCII-OF-CHAR2>-...\".  The
-binding will be added to global keymap.  When executed, it will
-wrap ARG (default 1) expressions with this pair (like
-`paredit-wrap-round' and friends)."
+binding is be added to global keymap.  When executed, it wraps
+ARG (default 1) expressions with this pair (like
+`paredit-wrap-round' and friends).
+
+INSERT is a key binding to which an \"insert\" action is bound.
+The key should be in format that is accepted by `kbd'.  This is
+achieved by binding a lambda form:
+
+ (lambda () (interactive) (sp-insert-pair \"pair-id\"))
+
+to the supplied key, where pair-id is the open delimiter of the
+pair.  The binding is added to the global map.  You can also bind
+a similar lambda manually.  To only bind this in specific major
+modes, use this property on `sp-local-pair' instead."
   (if (eq actions :rem)
       (let ((remove (concat
                      (sp-get-pair-definition open t :open)
@@ -1648,7 +1660,8 @@ wrap ARG (default 1) expressions with this pair (like
           (plist-put pair (car arg) (eval (cdr arg)))))
       (sp--update-pair-list pair t))
     (sp--update-trigger-keys)
-    (when bind (sp--generate-wrapping-function open bind global-map)))
+    (when bind (sp--generate-wrapping-function open bind global-map))
+    (when insert (global-set-key (kbd insert) `(lambda () (interactive) (sp-insert-pair ,open)))))
   (sp--update-local-pairs-everywhere)
   sp-pairs)
 
@@ -1663,6 +1676,7 @@ wrap ARG (default 1) expressions with this pair (like
                          (pre-handlers '(:add))
                          (post-handlers '(:add))
                          bind
+                         insert
                          prefix
                          suffix
                          skip-match)
@@ -1710,11 +1724,15 @@ To disable a pair in a major mode, simply set its actions set to
 nil. This will ensure the pair is not even loaded when the mode is
 activated.
 
-If BIND is non-nil, the bindings are added into major mode keymap
+If BIND is non-nil, the binding is added into major mode keymap
 called \"foo-mode-map\".  If the mode does not follow this
-convention, you will need to bind the function manually.  The
-bindings are not added into `smartparens-mode-map' to prevent
+convention, you will need to bind the function manually (see
+`sp-pair' to how the function is named for each particular pair).
+The bindings are not added into `smartparens-mode-map' to prevent
 clashes between different modes.
+
+The binding for INSERT follows the same convention as BIND.  See
+`sp-pair' for more info.
 
 You can provide a function SKIP-MATCH, that will take three
 arguments: the currently matched delimiter, beginning of match
@@ -1756,7 +1774,10 @@ addition, there is a global per major-mode option, see
         (ignore-errors
           (when bind (sp--generate-wrapping-function
                       open bind
-                      (symbol-value (intern (concat (symbol-name m) "-map"))))))))
+                      (symbol-value (intern (concat (symbol-name m) "-map"))))))
+        (when insert (define-key (symbol-value (intern (concat (symbol-name m) "-map")))
+                       (kbd insert)
+                       `(lambda () (interactive) (sp-insert-pair ,open))))))
     (sp--update-trigger-keys))
   (sp--update-local-pairs-everywhere (-flatten (list modes)))
   sp-pairs)
@@ -2852,8 +2873,11 @@ include separate pair node."
             (append (list nil second-action nil first-action)
                     previous-undo-actions)))))
 
-(defun sp-insert-pair ()
+(defun sp-insert-pair (&optional pair)
   "Automatically insert the closing pair if it is allowed in current context.
+
+If PAIR is provided, use this as pair ID instead of looking
+through the recent history of pressed keys.
 
 You can disable this feature completely for all modes and all pairs by
 setting `sp-autoinsert-pair' to nil.
@@ -2865,7 +2889,7 @@ default.  See `sp-autoinsert-if-followed-by-same' for more info.
 You can globally disable insertion of closing pair if point is
 followed by word.  It is disabled by default.  See
 `sp-autoinsert-if-followed-by-word' for more info."
-  (let* ((last-keys (sp--get-recent-keys))
+  (let* ((last-keys (or (and pair (sp--reverse-string pair)) (sp--get-recent-keys)))
          ;; (last-keys "\"\"\"\"\"\"\"\"\"\"\"\"")
          ;; we go through all the opening pairs and compare them to
          ;; last-keys.  If the opair is a prefix of last-keys, insert
@@ -2946,7 +2970,7 @@ followed by word.  It is disabled by default.  See
             (progn
               (setq sp-delayed-pair (cons open-pair (- (point) (length open-pair))))
               (setq sp-last-operation 'sp-insert-pair-delayed))
-          (delete-char (- (length trig)))
+          (unless pair (delete-char (- (length trig))))
           (insert open-pair)
           (sp--run-hook-with-args open-pair :pre-handlers 'insert)
           (insert close-pair)
