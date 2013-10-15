@@ -1469,39 +1469,44 @@ If PROP is non-nil, return the value of that property instead."
            result))))
     result))
 
-(defun sp--generate-wrapping-function (pair binding keymap)
-  (let ((fun-name (intern (concat "sp---wrap-with-" (mapconcat 'int-to-string (string-to-list pair) "-")))))
-    (fset fun-name `(lambda (&optional arg)
-                      ,(concat "Wrap the following expression with pair \"\\=" pair "\".
+(defun sp-wrap-with-pair (pair)
+  "Wrap the following expression with PAIR.
 
-If ARG is positive N, wrap N following expressions.  If ARG is
-negative -N, wrap N preceeding expressions.")
-                      (interactive "P")
-                      (setq arg (or arg 1))
-                      (let ((sel (and (not (use-region-p))
-                                      (sp-select-next-thing-exchange
-                                       arg
-                                       (cond
-                                        ;; point is inside symbol and smart symbol wrapping is disabled
-                                        ((and (sp-point-in-symbol)
-                                              (or (eq sp-wrap-entire-symbol 'globally)
-                                                  (memq major-mode sp-wrap-entire-symbol)))
-                                         (point))
-                                        ;; wrap from point, not the start of the next expression
-                                        ((and sp-wrap-from-point
-                                              (not (sp-point-in-symbol)))
-                                         (point))))))
-                            (active-pair (--first (equal (car it) ,pair) sp-pair-list))
-                            (rb (region-beginning))
-                            (re (region-end)))
-                        (goto-char re)
-                        (insert (cdr active-pair))
-                        (goto-char rb)
-                        (insert (car active-pair))
-                        (if (use-region-p)
-                            (indent-region rb re)
-                          (sp-get sel (indent-region :beg :end))))))
-    (define-key keymap (read-kbd-macro binding) fun-name)))
+This function is non-interactive helper.  To use this function
+interactively, bind the following lambda to a key:
+
+ (lambda (&optional arg) (interactive \"P\") (sp-wrap-with-pair \"(\"))
+
+This lambda accepts the same prefix arguments as
+`sp-select-next-thing'.
+
+If region is active and `use-region-p' returns true, the region
+is wrapped instead.  This is useful with selection functions in
+`evil-mode' to wrap regions with pairs."
+  (setq arg (or current-prefix-arg 1))
+  (let ((sel (and (not (use-region-p))
+                  (sp-select-next-thing-exchange
+                   arg
+                   (cond
+                    ;; point is inside symbol and smart symbol wrapping is disabled
+                    ((and (sp-point-in-symbol)
+                          (or (eq sp-wrap-entire-symbol 'globally)
+                              (memq major-mode sp-wrap-entire-symbol)))
+                     (point))
+                    ;; wrap from point, not the start of the next expression
+                    ((and sp-wrap-from-point
+                          (not (sp-point-in-symbol)))
+                     (point))))))
+        (active-pair (--first (equal (car it) pair) sp-pair-list))
+        (rb (region-beginning))
+        (re (region-end)))
+    (goto-char re)
+    (insert (cdr active-pair))
+    (goto-char rb)
+    (insert (car active-pair))
+    (if (use-region-p)
+        (indent-region rb re)
+      (sp-get sel (indent-region :beg :end)))))
 
 (cl-defun sp-pair (open
                    close
@@ -1512,6 +1517,7 @@ negative -N, wrap N preceeding expressions.")
                    unless
                    pre-handlers
                    post-handlers
+                   wrap
                    bind
                    insert)
   "Add a pair definition.
@@ -1617,13 +1623,16 @@ This function will move the closing pair on its own line only if
 the next command is `newline' or is triggered by RET.  Otherwise
 the pairs stay on the same line.
 
-BIND is a key binding to which a \"wrapping\" action is bound.
+WRAP is a key binding to which a \"wrapping\" action is bound.
 The key should be in format that is accepted by `kbd'.  This
 function will be generated on the fly by smartparens, using name
 \"sp---wrap-with-<ASCII-OF-CHAR1>-<ASCII-OF-CHAR2>-...\".  The
 binding is be added to global keymap.  When executed, it wraps
 ARG (default 1) expressions with this pair (like
 `paredit-wrap-round' and friends).
+
+BIND is equivalent to WRAP.  It is a legacy setting and will be
+removed soon.
 
 INSERT is a key binding to which an \"insert\" action is bound.
 The key should be in format that is accepted by `kbd'.  This is
@@ -1660,7 +1669,10 @@ modes, use this property on `sp-local-pair' instead."
           (plist-put pair (car arg) (eval (cdr arg)))))
       (sp--update-pair-list pair t))
     (sp--update-trigger-keys)
-    (when bind (sp--generate-wrapping-function open bind global-map))
+    (when (or wrap bind) (global-set-key (kbd (or wrap bind))
+                                         `(lambda (&optional arg)
+                                            (interactive "P")
+                                            (sp-wrap-with-pair ,open))))
     (when insert (global-set-key (kbd insert) `(lambda () (interactive) (sp-insert-pair ,open)))))
   (sp--update-local-pairs-everywhere)
   sp-pairs)
@@ -1675,6 +1687,7 @@ modes, use this property on `sp-local-pair' instead."
                          (unless '(:add))
                          (pre-handlers '(:add))
                          (post-handlers '(:add))
+                         wrap
                          bind
                          insert
                          prefix
@@ -1724,12 +1737,15 @@ To disable a pair in a major mode, simply set its actions set to
 nil. This will ensure the pair is not even loaded when the mode is
 activated.
 
-If BIND is non-nil, the binding is added into major mode keymap
+If WRAP is non-nil, the binding is added into major mode keymap
 called \"foo-mode-map\".  If the mode does not follow this
 convention, you will need to bind the function manually (see
 `sp-pair' to how the function is named for each particular pair).
 The bindings are not added into `smartparens-mode-map' to prevent
 clashes between different modes.
+
+BIND is equivalent to WRAP.  It is a legacy setting and will be
+removed soon.
 
 The binding for INSERT follows the same convention as BIND.  See
 `sp-pair' for more info.
@@ -1771,13 +1787,16 @@ addition, there is a global per major-mode option, see
         (plist-put pair :pre-handlers pre-handlers)
         (plist-put pair :post-handlers post-handlers)
         (sp--update-pair-list pair m)
-        (ignore-errors
-          (when bind (sp--generate-wrapping-function
-                      open bind
-                      (symbol-value (intern (concat (symbol-name m) "-map"))))))
-        (when insert (define-key (symbol-value (intern (concat (symbol-name m) "-map")))
-                       (kbd insert)
-                       `(lambda () (interactive) (sp-insert-pair ,open))))))
+        (-when-let* ((symbol (intern (concat (symbol-name m) "-map")))
+                     (map (and (boundp symbol) (symbol-value symbol))))
+          (when (or wrap bind) (define-key map
+                                 (kbd (or wrap bind))
+                                 `(lambda (&optional arg)
+                                    (interactive "P")
+                                    (sp-wrap-with-pair ,open))))
+          (when insert (define-key map
+                         (kbd insert)
+                         `(lambda () (interactive) (sp-insert-pair ,open)))))))
     (sp--update-trigger-keys))
   (sp--update-local-pairs-everywhere (-flatten (list modes)))
   sp-pairs)
