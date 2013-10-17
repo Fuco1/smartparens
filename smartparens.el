@@ -5462,40 +5462,9 @@ With BACK non-nil, move backwards."
     (while (not (sp-point-in-string))
       (forward-char))))
 
-;; TODO: if we are in ruby mode "|if foo" returns "foo" as next
-;; symbol, when it probably should be "if".
-(defmacro sp--forward-symbol-1 (fw-1)
-  "Generate forward/backward symbol functions."
-  (let ((goto-where (if fw-1 '(match-end 0) '(match-beginning 0)))
-        (look-at-open (if fw-1 '(sp--looking-at open) '(sp--looking-back open)))
-        (look-at-close (if fw-1 '(sp--looking-at close) '(sp--looking-back close))))
-    `(let ((n (abs arg))
-           (fw (> arg 0))
-           (open (sp--get-opening-regexp))
-           (close (sp--get-closing-regexp)))
-       (if fw
-           (while (> n 0)
-             ;; First we need to get to the beginning of a symbol.  This means
-             ;; skipping all whitespace and pair delimiters until we hit
-             ;; something in \sw or \s_
-             (while (cond ((not (memq
-                                 (char-syntax (,(if fw-1 'following-char 'preceding-char)))
-                                 '(?w ?_)))
-                           (,(if fw-1 'forward-char 'backward-char)) t)
-                          (,look-at-open
-                           (goto-char ,goto-where))
-                          (,look-at-close
-                           (goto-char ,goto-where))))
-             (while (and ,(if fw-1 '(not (eobp)) '(not (bobp)))
-                         (not (or ,look-at-open
-                                  ,look-at-close))
-                         (memq (char-syntax
-                                (,(if fw-1 'following-char 'preceding-char)))
-                               '(?w ?_)))
-               (,(if fw-1 'forward-char 'backward-char)))
-             (setq n (1- n)))
-         (,(if fw-1 'sp-backward-symbol 'sp-forward-symbol) n)))))
-
+;; TODO: in ruby, "foo |if bar" now moves correctly, but there's a
+;; noticable lag before it jumps over "if".  This is probably caused
+;; by :skip-match handlers.  Investigate!
 (defun sp-forward-symbol (&optional arg)
   "Move point to the next position that is the end of a symbol.
 
@@ -5519,7 +5488,30 @@ Examples:
   |foo (bar (baz) quux) -> foo (bar (baz) quux|) ;; 4"
   (interactive "p")
   (setq arg (or arg 1))
-  (sp--forward-symbol-1 t))
+  (let ((n (abs arg))
+        (fw (> arg 0))
+        (open (sp--get-opening-regexp))
+        (close (sp--get-closing-regexp)))
+    (if fw
+        (while (> n 0)
+          ;; First we need to get to the beginning of a symbol.  This means
+          ;; skipping all whitespace and pair delimiters until we hit
+          ;; something in \sw or \s_
+          (while (cond
+                  ((not (memq (char-syntax (following-char)) '(?w ?_)))
+                   (forward-char)
+                   t)
+                  ((sp--valid-initial-delimiter-p (sp--looking-at open))
+                   (goto-char (match-end 0)))
+                  ((sp--valid-initial-delimiter-p (sp--looking-at close))
+                   (goto-char (match-end 0)))))
+          (while (and (not (eobp))
+                      (not (or (sp--valid-initial-delimiter-p (sp--looking-at open))
+                               (sp--valid-initial-delimiter-p (sp--looking-at close))))
+                      (memq (char-syntax (following-char)) '(?w ?_)))
+            (forward-char))
+          (setq n (1- n)))
+      (sp-backward-symbol n))))
 
 (defun sp-backward-symbol (&optional arg)
   "Move point to the next position that is the beginning of a symbol.
@@ -5544,7 +5536,27 @@ Examples:
   (quux ((foo) bar) baz)| -> (|quux ((foo) bar) baz) ;; 4"
   (interactive "p")
   (setq arg (or arg 1))
-  (sp--forward-symbol-1 nil))
+  (let ((n (abs arg))
+        (fw (> arg 0))
+        (open (sp--get-opening-regexp))
+        (close (sp--get-closing-regexp)))
+    (if fw
+        (while (> n 0)
+          (while (cond
+                  ((not (memq (char-syntax (preceding-char)) '(?w ?_)))
+                   (backward-char)
+                   t)
+                  ((sp--valid-initial-delimiter-p (sp--looking-back open))
+                   (goto-char (match-beginning 0)))
+                  ((sp--valid-initial-delimiter-p (sp--looking-back close))
+                   (goto-char (match-beginning 0)))))
+          (while (and (not (bobp))
+                      (not (or (sp--valid-initial-delimiter-p (sp--looking-back open))
+                               (sp--valid-initial-delimiter-p (sp--looking-back close))))
+                      (memq (char-syntax (preceding-char)) '(?w ?_)))
+            (backward-char))
+          (setq n (1- n)))
+      (sp-forward-symbol n))))
 
 (defun sp-rewrap-sexp (&optional arg)
   "Rewrap the enclosing expression with a different pair.
