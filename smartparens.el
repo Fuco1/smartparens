@@ -589,11 +589,15 @@ MODES."
                      (memq major-mode modes)))
         (sp--update-local-pairs)))))
 
-(defvar smartparens-enabled-hook nil
-  "Called after `smartparens-mode' is turned on.")
+(defcustom smartparens-enabled-hook nil
+  "Called after `smartparens-mode' is turned on."
+  :type 'hook
+  :group 'smartparens)
 
-(defvar smartparens-disabled-hook nil
-  "Called after `smartparens-mode' is turned off.")
+(defcustom smartparens-disabled-hook nil
+  "Called after `smartparens-mode' is turned off."
+  :type 'hook
+  :group 'smartparens)
 
 ;; global custom
 (defcustom sp-ignore-modes-list '(
