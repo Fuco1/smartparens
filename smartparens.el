@@ -1018,11 +1018,6 @@ handler."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Misc/Utility functions
 
-(defmacro !delete (elm list)
-  "Destructive: Set LIST to (delete ELM LIST)."
-  (declare (debug (form form)))
-  `(setq ,list (delete ,elm ,list)))
-
 (defmacro sp-with-modes (arg &rest forms)
   "Add ARG as first argument to each form in FORMS.
 
@@ -2028,7 +2023,7 @@ are of zero length, or if point moved backwards."
 (defun sp--remove-overlay (overlay)
   "Remove OVERLAY."
   ;; if it's not a pair overlay, nothing happens here anyway
-  (!delete overlay sp-pair-overlay-list)
+  (setq sp-pair-overlay-list (--remove (equal it overlay) sp-pair-overlay-list))
   ;; if we have zero pair overlays, remove the post-command hook
   (when (not sp-pair-overlay-list)
     (remove-hook 'post-command-hook 'sp--pair-overlay-post-command-handler t)
