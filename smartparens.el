@@ -1482,23 +1482,23 @@ This lambda accepts the same prefix arguments as
 If region is active and `use-region-p' returns true, the region
 is wrapped instead.  This is useful with selection functions in
 `evil-mode' to wrap regions with pairs."
-  (setq arg (or current-prefix-arg 1))
-  (let ((sel (and (not (use-region-p))
-                  (sp-select-next-thing-exchange
-                   arg
-                   (cond
-                    ;; point is inside symbol and smart symbol wrapping is disabled
-                    ((and (sp-point-in-symbol)
-                          (or (eq sp-wrap-entire-symbol 'globally)
-                              (memq major-mode sp-wrap-entire-symbol)))
-                     (point))
-                    ;; wrap from point, not the start of the next expression
-                    ((and sp-wrap-from-point
-                          (not (sp-point-in-symbol)))
-                     (point))))))
-        (active-pair (--first (equal (car it) pair) sp-pair-list))
-        (rb (region-beginning))
-        (re (region-end)))
+  (let* ((arg (or current-prefix-arg 1))
+         (sel (and (not (use-region-p))
+                   (sp-select-next-thing-exchange
+                    arg
+                    (cond
+                     ;; point is inside symbol and smart symbol wrapping is disabled
+                     ((and (sp-point-in-symbol)
+                           (or (eq sp-wrap-entire-symbol 'globally)
+                               (memq major-mode sp-wrap-entire-symbol)))
+                      (point))
+                     ;; wrap from point, not the start of the next expression
+                     ((and sp-wrap-from-point
+                           (not (sp-point-in-symbol)))
+                      (point))))))
+         (active-pair (--first (equal (car it) pair) sp-pair-list))
+         (rb (region-beginning))
+         (re (region-end)))
     (goto-char re)
     (insert (cdr active-pair))
     (goto-char rb)
