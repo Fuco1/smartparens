@@ -399,6 +399,33 @@ end
 
   )
 
+(ert-deftest sp-test-ruby-slurp-on-single-line ()
+  (sp-ruby-test-slurp-assert 1 "
+test {X} test
+" :=> "
+test { test }
+")
+
+  (sp-ruby-test-slurp-assert 2 "
+test {X} test; test
+" :=> "
+test { test; test }
+")
+
+  (sp-ruby-test-slurp-assert -1 "
+test test {X}
+" :=> "
+test { test }
+")
+
+  (sp-ruby-test-slurp-assert -2 "
+test test; test {X}
+" :=> "
+test { test; test }
+")
+
+)
+
 (ert-deftest sp-test-ruby-slurp-with-inline-blocks ()
   (sp-ruby-test-slurp-assert 1 "
 if teXst
@@ -410,7 +437,7 @@ if test
 end if true
 ")
 
-  (sp-ruby-test-slurp-assert 2 "
+  (sp-ruby-test-slurp-assert 3 "
 if teXst
 end
 foo if true
@@ -603,6 +630,32 @@ end
 ")
   )
 
+(ert-deftest sp-test-ruby-slurp-on-single-line ()
+  (sp-ruby-test-barf-assert 1 "
+test { Xtest }
+" :=> "
+test { } test
+")
+
+  (sp-ruby-test-barf-assert 2 "
+test { Xtest; test }
+" :=> "
+test { } test; test
+")
+
+  (sp-ruby-test-barf-assert -1 "
+test { Xtest }
+" :=> "
+test test { }
+")
+
+  (sp-ruby-test-barf-assert -2 "
+test { test; testX }
+" :=> "
+test test; test { }
+")
+
+)
 (ert-deftest sp-test-ruby-barf-with-inline-blocks ()
 ;;   (sp-ruby-test-barf-assert 2 "
 ;; if teXst
