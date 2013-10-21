@@ -5056,8 +5056,8 @@ triggers that `sp-forward-slurp-sexp' does."
         ;; we need to call this again to get the new structure after
         ;; indent.
         (sp--next-thing-selection -1))
-    (message "This operation would result in invalid structure. Ignored.")
-    nil))
+    (message "This operation would result in invalid structure. Ignored."))
+  nil)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
