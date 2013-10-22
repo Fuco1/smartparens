@@ -95,7 +95,7 @@ backward."
         (sp-beginning-of-sexp arg)
       (sp-beginning-of-sexp (1- (- (prefix-numeric-value arg)))))))
 
-(defun sp-html-post-handler (id action context)
+(defun sp-html-post-handler (&optional id action context)
   (cl-case action
     (slurp-forward
      (save-excursion
