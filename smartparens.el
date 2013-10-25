@@ -1372,7 +1372,10 @@ The list OLD-PAIR must not be nil."
   (let ((ind 0))
     (--each new-pair
       (when (= 0 (% ind 2))
-        (plist-put old-pair it (plist-get new-pair it)))
+        (when (or (not (plist-get old-pair it))
+                  (and (not (equal '(:add) (plist-get new-pair it)))
+                       (equal '(:add) (plist-get old-pair it))))
+          (plist-put old-pair it (plist-get new-pair it))))
       (setq ind (1+ ind))))
   old-pair)
 
