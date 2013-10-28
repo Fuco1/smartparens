@@ -3904,17 +3904,22 @@ returned by `sp-get-sexp'."
     (unless last-or-first
       (list :beg b :end e :op "" :cl "" :prefix (sp--get-prefix b) :suffix (sp--get-suffix e)))))
 
+;; this +/- 1 nonsense comes from sp-get-quoted-string-bounds. That
+;; should go to hell after the parser rewrite
 (defun sp--get-string (bounds)
   "Return the `sp-get-sexp' format info about the string.
 
 This function simply transforms BOUNDS, which is a cons (BEG
 . END) into format compatible with `sp-get-sexp'."
-  (list :beg (1- (car bounds))
-        :end (1+ (cdr bounds))
-        :op (char-to-string (char-after (cdr bounds)))
-        :cl (char-to-string (char-after (cdr bounds)))
-        :prefix ""
-        :suffix ""))
+  (let* ((bob (= (point-min) (car bounds)))
+         (eob (= (point-max) (cdr bounds)))
+         (cl (char-to-string (char-after (if eob (1- (cdr bounds)) (cdr bounds))))))
+    (list :beg (if bob (car bounds) (1- (car bounds)))
+          :end (if eob (cdr bounds) (1+ (cdr bounds)))
+          :op cl
+          :cl cl
+          :prefix ""
+          :suffix "")))
 
 (defun sp-get-string (&optional back)
   "Find the nearest string after point, or before if BACK is non-nil.
