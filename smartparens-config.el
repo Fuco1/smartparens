@@ -65,11 +65,8 @@
 ;; automatically.  If you want to call sp-local-pair outside this
 ;; macro, you MUST supply the major mode argument.
 
-(eval-after-load "sgml-mode"     '(require 'smartparens-html))
-(eval-after-load "rhtml-mode"    '(require 'smartparens-html))
-(eval-after-load "nxhtml-mode"   '(require 'smartparens-html))
-(eval-after-load "nxml-mode"     '(require 'smartparens-html))
-(eval-after-load "web-mode"      '(require 'smartparens-html))
+(--each sp--html-modes
+  (eval-after-load (symbol-name it) '(require 'smartparens-html)))
 (eval-after-load "latex"         '(require 'smartparens-latex))
 (eval-after-load "lua-mode"      '(require 'smartparens-lua))
 (eval-after-load "ruby-mode"     '(require 'smartparens-ruby))

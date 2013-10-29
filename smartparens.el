@@ -415,6 +415,16 @@ Symbol is defined as a chunk of text recognized by
                          common-lisp-mode)
   "List of Lisp modes.")
 
+(defvar sp--html-modes '(
+                         sgml-mode
+                         html-mode
+                         rhtml-mode
+                         nxhtml-mode
+                         nxml-mode
+                         web-mode
+                         )
+  "List of HTML modes.")
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Customize & Mode definitions
