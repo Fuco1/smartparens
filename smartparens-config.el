@@ -69,6 +69,7 @@
 (eval-after-load "rhtml-mode"    '(require 'smartparens-html))
 (eval-after-load "nxhtml-mode"   '(require 'smartparens-html))
 (eval-after-load "nxml-mode"     '(require 'smartparens-html))
+(eval-after-load "web-mode"      '(require 'smartparens-html))
 (eval-after-load "latex"         '(require 'smartparens-latex))
 (eval-after-load "lua-mode"      '(require 'smartparens-lua))
 (eval-after-load "ruby-mode"     '(require 'smartparens-ruby))
