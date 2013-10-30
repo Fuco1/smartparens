@@ -422,6 +422,7 @@ Symbol is defined as a chunk of text recognized by
                          nxhtml-mode
                          nxml-mode
                          web-mode
+                         jinja2-mode
                          )
   "List of HTML modes.")
 
