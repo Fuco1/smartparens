@@ -69,18 +69,22 @@
       (goto-char me)
       (looking-at-p "\\sw"))))
 
+(defun sp-latex-point-after-backslash (id action context)
+  "Return t if point follows two backslashes, nil otherwise.
+This predicate is only tested on \"insert\" action."
+  (when (eq action 'insert)
+    (looking-back (concat "\\\\" (regexp-quote id)))))
+
 (sp-with-modes '(
                  tex-mode
                  plain-tex-mode
                  latex-mode
                  )
   (sp-local-pair "`" "'" :skip-match 'sp-latex-skip-match-apostrophe)
-  ;; end of line with additional vertical space (\\[])
-  (sp-local-pair "\\\\[" "]")
   ;; math modes, yay.  The :actions are provided automatically if
   ;; these pairs do not have global definitions.
   (sp-local-pair "$" "$")
-  (sp-local-pair "\\[" "\\]")
+  (sp-local-pair "\\[" "\\]" :unless '(sp-latex-point-after-backslash))
   ;; disable useless pairs.  Maybe also remove " ' and \"?
   (sp-local-pair "/*" nil :actions nil)
   (sp-local-pair "\\\\(" nil :actions nil)
