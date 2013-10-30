@@ -160,10 +160,7 @@ backward."
      (when (sp--looking-back-p "^[ \t]*" nil t)
        (sp-previous-sexp)))))
 
-(sp-with-modes '(
-                 sgml-mode
-                 html-mode
-                 )
+(sp-with-modes sp--html-modes
   (sp-local-pair "<" ">")
   (sp-local-tag  "<" "<_>" "</_>" :transform 'sp-match-sgml-tags :post-handlers '(sp-html-post-handler)))
 

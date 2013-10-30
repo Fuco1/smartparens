@@ -409,10 +409,21 @@ Symbol is defined as a chunk of text recognized by
                          lisp-mode
                          eshell-mode
                          slime-repl-mode
+                         cider-repl-mode
                          nrepl-repl-mode
                          clojure-mode
                          common-lisp-mode)
   "List of Lisp modes.")
+
+(defvar sp--html-modes '(
+                         sgml-mode
+                         html-mode
+                         rhtml-mode
+                         nxhtml-mode
+                         nxml-mode
+                         web-mode
+                         )
+  "List of HTML modes.")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1371,7 +1382,10 @@ The list OLD-PAIR must not be nil."
   (let ((ind 0))
     (--each new-pair
       (when (= 0 (% ind 2))
-        (plist-put old-pair it (plist-get new-pair it)))
+        (when (or (not (plist-get old-pair it))
+                  (and (not (equal '(:add) (plist-get new-pair it)))
+                       (equal '(:add) (plist-get old-pair it))))
+          (plist-put old-pair it (plist-get new-pair it))))
       (setq ind (1+ ind))))
   old-pair)
 
@@ -2929,60 +2943,67 @@ followed by word.  It is disabled by default.  See
              active-pair
              (sp--wrap-repeat-last active-pair))
         sp-last-operation
-      (when (and sp-autoinsert-pair
-                 active-pair
-                 (not (and (eq sp-last-operation 'sp-skip-closing-pair)
-                           (sp--get-active-overlay 'pair)))
-                 (if (eq sp-autoskip-closing-pair 'always)
-                     (or (not (equal open-pair close-pair))
-                         (not (looking-at close-pair)))
-                   t)
-                 (sp--do-action-p open-pair 'insert t)
-                 (if sp-autoinsert-if-followed-by-word t
-                   (or (= (point) (point-max))
-                       (not (and (eq (char-syntax (following-char)) ?w)
-                                 (not (eq (following-char) ?\'))))))
-                 (if sp-autoinsert-quote-if-followed-by-closing-pair t
-                   (if (and (eq (char-syntax (preceding-char)) ?\")
-                            ;; this is called *after* the character is
-                            ;; inserted.  Therefore, if we are not in string, it
-                            ;; must have been closed just now
-                            (not (sp-point-in-string)))
-                       (let ((pattern (sp--get-closing-regexp)))
-                         ;; If we simply insert closing ", we also
-                         ;; don't want to escape it.  Therefore, we
-                         ;; need to set `sp-last-operation'
-                         ;; accordingly to be checked in
-                         ;; `self-insert-command' advice.
-                         (if (sp--looking-at pattern)
-                             (progn (setq sp-last-operation 'sp-self-insert-no-escape) nil)
-                           t))
-                     t))
-                 (cond
-                  ((eq sp-autoinsert-if-followed-by-same 0) t)
-                  ((eq sp-autoinsert-if-followed-by-same 1)
-                   (not (sp--looking-at (sp--strict-regexp-quote open-pair))))
-                  ((eq sp-autoinsert-if-followed-by-same 2)
-                   (or (not (sp--looking-at (sp--strict-regexp-quote open-pair)))
-                       (and (equal open-pair close-pair)
-                            (eq sp-last-operation 'sp-insert-pair)
-                            (save-excursion
-                              (backward-char 1)
-                              (sp--looking-back (sp--strict-regexp-quote open-pair))))))
-                  ((eq sp-autoinsert-if-followed-by-same 3)
-                   (or (not (sp--get-active-overlay 'pair))
-                       (not (sp--looking-at (sp--strict-regexp-quote open-pair)))
-                       (and (equal open-pair close-pair)
-                            (eq sp-last-operation 'sp-insert-pair)
-                            (save-excursion
-                              (backward-char (length trig))
-                              (sp--looking-back (sp--strict-regexp-quote open-pair))))
-                       (not (equal open-pair close-pair)))))
-                 (not (run-hook-with-args-until-success
-                       'sp-autoinsert-inhibit-functions
-                       open-pair
-                       (or sp-point-inside-string (sp-point-in-comment)))))
-
+      (if (not (and sp-autoinsert-pair
+                    active-pair
+                    (not (and (eq sp-last-operation 'sp-skip-closing-pair)
+                              (sp--get-active-overlay 'pair)))
+                    (if (eq sp-autoskip-closing-pair 'always)
+                        (or (not (equal open-pair close-pair))
+                            (not (looking-at close-pair)))
+                      t)
+                    (sp--do-action-p open-pair 'insert t)
+                    (if sp-autoinsert-if-followed-by-word t
+                      (or (= (point) (point-max))
+                          (not (and (eq (char-syntax (following-char)) ?w)
+                                    (not (eq (following-char) ?\'))))))
+                    (if sp-autoinsert-quote-if-followed-by-closing-pair t
+                      (if (and (eq (char-syntax (preceding-char)) ?\")
+                               ;; this is called *after* the character is
+                               ;; inserted.  Therefore, if we are not in string, it
+                               ;; must have been closed just now
+                               (not (sp-point-in-string)))
+                          (let ((pattern (sp--get-closing-regexp)))
+                            ;; If we simply insert closing ", we also
+                            ;; don't want to escape it.  Therefore, we
+                            ;; need to set `sp-last-operation'
+                            ;; accordingly to be checked in
+                            ;; `self-insert-command' advice.
+                            (if (sp--looking-at pattern)
+                                (progn (setq sp-last-operation 'sp-self-insert-no-escape) nil)
+                              t))
+                        t))
+                    (cond
+                     ((eq sp-autoinsert-if-followed-by-same 0) t)
+                     ((eq sp-autoinsert-if-followed-by-same 1)
+                      (not (sp--looking-at (sp--strict-regexp-quote open-pair))))
+                     ((eq sp-autoinsert-if-followed-by-same 2)
+                      (or (not (sp--looking-at (sp--strict-regexp-quote open-pair)))
+                          (and (equal open-pair close-pair)
+                               (eq sp-last-operation 'sp-insert-pair)
+                               (save-excursion
+                                 (backward-char 1)
+                                 (sp--looking-back (sp--strict-regexp-quote open-pair))))))
+                     ((eq sp-autoinsert-if-followed-by-same 3)
+                      (or (not (sp--get-active-overlay 'pair))
+                          (not (sp--looking-at (sp--strict-regexp-quote open-pair)))
+                          (and (equal open-pair close-pair)
+                               (eq sp-last-operation 'sp-insert-pair)
+                               (save-excursion
+                                 (backward-char (length trig))
+                                 (sp--looking-back (sp--strict-regexp-quote open-pair))))
+                          (not (equal open-pair close-pair)))))
+                    (not (run-hook-with-args-until-success
+                          'sp-autoinsert-inhibit-functions
+                          open-pair
+                          (or sp-point-inside-string (sp-point-in-comment))))))
+          ;; if this pair could not be inserted, we try the procedure
+          ;; again with this pair removed from sp-pair-list to give
+          ;; chance to other pairs sharing a common suffix (for
+          ;; example \[ and [)
+          (let ((new-sp-pair-list (--remove (equal (car it) open-pair) sp-pair-list)))
+            (when (> (length sp-pair-list) (length new-sp-pair-list))
+              (let ((sp-pair-list new-sp-pair-list))
+                (sp-insert-pair))))
         ;; setup the delayed insertion here.
         (if (sp-get-pair open-pair :when-cond)
             (progn
@@ -3893,17 +3914,22 @@ returned by `sp-get-sexp'."
     (unless last-or-first
       (list :beg b :end e :op "" :cl "" :prefix (sp--get-prefix b) :suffix (sp--get-suffix e)))))
 
+;; this +/- 1 nonsense comes from sp-get-quoted-string-bounds. That
+;; should go to hell after the parser rewrite
 (defun sp--get-string (bounds)
   "Return the `sp-get-sexp' format info about the string.
 
 This function simply transforms BOUNDS, which is a cons (BEG
 . END) into format compatible with `sp-get-sexp'."
-  (list :beg (1- (car bounds))
-        :end (1+ (cdr bounds))
-        :op (char-to-string (char-after (cdr bounds)))
-        :cl (char-to-string (char-after (cdr bounds)))
-        :prefix ""
-        :suffix ""))
+  (let* ((bob (= (point-min) (car bounds)))
+         (eob (= (point-max) (cdr bounds)))
+         (cl (char-to-string (char-after (if eob (1- (cdr bounds)) (cdr bounds))))))
+    (list :beg (if bob (car bounds) (1- (car bounds)))
+          :end (if eob (cdr bounds) (1+ (cdr bounds)))
+          :op cl
+          :cl cl
+          :prefix ""
+          :suffix "")))
 
 (defun sp-get-string (&optional back)
   "Find the nearest string after point, or before if BACK is non-nil.
