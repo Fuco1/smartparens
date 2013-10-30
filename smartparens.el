@@ -1384,8 +1384,10 @@ The list OLD-PAIR must not be nil."
     (--each new-pair
       (when (= 0 (% ind 2))
         (when (or (not (plist-get old-pair it))
-                  (and (not (equal '(:add) (plist-get new-pair it)))
-                       (equal '(:add) (plist-get old-pair it))))
+                  ;; HACK: we don't want to overwrite list properties
+                  ;; that aren't just :add with :add because this
+                  ;; would break the "idempotency".
+                  (not (equal '(:add) (plist-get new-pair it))))
           (plist-put old-pair it (plist-get new-pair it))))
       (setq ind (1+ ind))))
   old-pair)
