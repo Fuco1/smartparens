@@ -69,6 +69,12 @@
       (goto-char me)
       (looking-at-p "\\sw"))))
 
+(defun sp-latex-point-after-backslash (id action context)
+  "Return t if point follows two backslashes, nil otherwise.
+This predicate is only tested on \"insert\" action."
+  (when (eq action 'insert)
+    (looking-back (concat "\\\\" (regexp-quote id)))))
+
 (sp-with-modes '(
                  tex-mode
                  plain-tex-mode
@@ -76,9 +82,9 @@
                  )
   (sp-local-pair "`" "'" :skip-match 'sp-latex-skip-match-apostrophe)
   ;; math modes, yay.  The :actions are provided automatically if
-  ;; these pairs do not have global definition.
+  ;; these pairs do not have global definitions.
   (sp-local-pair "$" "$")
-  (sp-local-pair "\\[" "\\]")
+  (sp-local-pair "\\[" "\\]" :unless '(sp-latex-point-after-backslash))
   ;; disable useless pairs.  Maybe also remove " ' and \"?
   (sp-local-pair "/*" nil :actions nil)
   (sp-local-pair "\\\\(" nil :actions nil)
@@ -89,14 +95,23 @@
   ;; need to insert ", C-q is our friend.
   (sp-local-pair "``" "''" :trigger "\"")
 
-  ;; add the prefix funciton sticking to {} pair
+  ;; add the prefix function sticking to {} pair
   (sp-local-pair "{" nil :prefix "\\\\\\(\\sw\\|\\s_\\)*")
 
   ;; pairs for big brackets.  Needs more research on what pairs are
   ;; useful to add here.  Post suggestions if you know some.
-  (sp-local-pair "\\left(" "\\right)" :trigger "\\l(" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\left[" "\\right]" :trigger "\\l[" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\left\\{" "\\right\\}" :trigger "\\l{" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\left(" "\\right)"
+		 :trigger "\\l("
+		 :when '(sp-in-math-p)
+		 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\left[" "\\right]"
+		 :trigger "\\l["
+		 :when '(sp-in-math-p)
+		 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\left\\{" "\\right\\}"
+		 :trigger "\\l{"
+		 :when '(sp-in-math-p)
+		 :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\bigl(" "\\bigr)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\biggl(" "\\biggr)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\Bigl(" "\\Bigr)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
