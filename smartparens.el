@@ -2952,7 +2952,7 @@ followed by word.  It is disabled by default.  See
                               (sp--get-active-overlay 'pair)))
                     (if (eq sp-autoskip-closing-pair 'always)
                         (or (not (equal open-pair close-pair))
-                            (not (looking-at close-pair)))
+                            (not (looking-at (regexp-quote close-pair))))
                       t)
                     (sp--do-action-p open-pair 'insert t)
                     (if sp-autoinsert-if-followed-by-word t
@@ -2997,8 +2997,8 @@ followed by word.  It is disabled by default.  See
                           (not (equal open-pair close-pair)))))
                     (not (run-hook-with-args-until-success
                           'sp-autoinsert-inhibit-functions
-                          open-pair
-                          (or sp-point-inside-string (sp-point-in-comment))))))
+                           open-pair
+                           (or sp-point-inside-string (sp-point-in-comment))))))
           ;; if this pair could not be inserted, we try the procedure
           ;; again with this pair removed from sp-pair-list to give
           ;; chance to other pairs sharing a common suffix (for
