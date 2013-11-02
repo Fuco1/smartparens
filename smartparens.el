@@ -5287,10 +5287,10 @@ Examples:
     (sp-forward-slurp-sexp (sp--negate-argument arg))))
 
 (defun sp-add-to-previous-sexp (&optional arg)
-  "Add the expression following point to the list preceding point.
+  "Add the expression around point to the first list preceding point.
 
-With ARG positive N add that many expressions after point to the
-preceding list.
+With ARG positive N add that many expressions to the preceding
+list.
 
 If ARG is raw prefix argument \\[universal-argument] add all expressions until
 the end of enclosing list to the previous list.
@@ -5320,10 +5320,10 @@ Examples:
   (indent-according-to-mode))
 
 (defun sp-add-to-next-sexp (&optional arg)
-  "Add the expressions preceding point to the list following point.
+  "Add the expressions around point to the first list following point.
 
-With ARG positive N add that many expressions before point to the
-following list.
+With ARG positive N add that many expressions to the following
+list.
 
 If ARG is raw prefix argument \\[universal-argument] add all expressions until
 the beginning of enclosing list to the following list.
