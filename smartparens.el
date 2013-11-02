@@ -948,6 +948,29 @@ point (using `sp-previous-sexp')."
   :type 'boolean
   :group 'smartparens)
 
+(defcustom sp-sexp-prefix nil
+  "Alist of major-mode specific prefix specification.
+
+Each item is a list with three properties:
+- major mode
+- a constant symbol 'regexp or 'syntax
+- a regexp or a string containing syntax class codes.
+
+If the second argument is 'regexp, the third argument is
+interpreted as a regexp to search backward from the start of an
+expression.
+
+If the second argument is 'syntax, the third argument is
+interpreted as string containing syntax codes that will be
+skipped."
+  :type '(repeat
+          (list symbol
+                (choice
+                 (const :tag "Regexp" regexp)
+                 (const :tag "Syntax class codes" syntax))
+                string))
+  :group 'smartparens)
+
 ;; hybrid lines
 (defcustom sp-hybrid-kill-excessive-whitespace nil
   "If non-nil, `sp-kill-hybrid-sexp' will kill all whitespace up
@@ -3856,19 +3879,30 @@ following point after `sp-backward-up-sexp' is called)."
         (cons lst (nreverse (cdr r)))))))
 
 (cl-defun sp--get-prefix (&optional (p (point)) op)
-  "Get the prefix of EXPR.  Prefix is any continuous sequence of
-characters in \"expression prefix\" syntax class.
+  "Get the prefix of EXPR.
+
+Prefix is any continuous sequence of characters in \"expression
+prefix\" syntax class.  You can also specify a set of syntax code
+characters or a regexp for a specific major mode.  See `sp'
 
 If the prefix property is defined for OP, the associated regexp
-is used to retrieve the prefix instead."
+is used to retrieve the prefix instead of the global setting."
   (let ((pref (sp-get-pair op :prefix)))
     (save-excursion
       (goto-char p)
       (if pref
           (when (sp--looking-back pref)
-            (substring-no-properties (match-string 0)))
-        (skip-syntax-backward "'")
-        (buffer-substring-no-properties (point) p)))))
+            (match-string-no-properties 0))
+        (-if-let (mmode-prefix (cdr (assoc major-mode sp-sexp-prefix)))
+            (cond
+             ((eq (car mmode-prefix) 'regexp)
+              (sp--looking-back (cadr mmode-prefix))
+              (match-string-no-properties 0))
+             ((eq (car mmode-prefix) 'syntax)
+              (skip-syntax-backward (cadr mmode-prefix))
+              (buffer-substring-no-properties (point) p)))
+          (skip-syntax-backward "'")
+          (buffer-substring-no-properties (point) p))))))
 
 (cl-defun sp--get-suffix (&optional (p (point)) op)
   "Get the suffix of EXPR.  Suffix is any continuous sequence of
