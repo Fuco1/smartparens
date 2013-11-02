@@ -19,7 +19,7 @@ before_install:
         --max-time 10
         --retry 10
         --retry-delay 10
-        https://raw.github.com/rejeep/cask.el/master/go | sh
+        https://raw.github.com/cask/cask/master/go | python
   - export PATH="/home/travis/.cask/bin:$PATH"
   - cask
 script:
