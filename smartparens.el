@@ -980,7 +980,9 @@ blank line."
   :group 'smartparens)
 
 (defcustom sp-hybrid-kill-entire-symbol t
-  "If t, always kill the symbol under point when invoking `sp-kill-hybrid-sexp'.
+  "Governs how symbols under point are treated by `sp-kill-hybrid-sexp'.
+
+If t, always kill the symbol under point.
 
 If nil, never kill the entire symbol and only kill the part after point.
 
