@@ -489,9 +489,11 @@ after the smartparens indicator in the mode list."
           (smartparens-mode 1))
         (unless (-find-indices (lambda (it) (eq (car it) 'smartparens-strict-mode)) minor-mode-overriding-map-alist)
           (setq minor-mode-overriding-map-alist
-                (cons `(smartparens-strict-mode . ,smartparens-strict-mode-map) minor-mode-overriding-map-alist))))
+                (cons `(smartparens-strict-mode . ,smartparens-strict-mode-map) minor-mode-overriding-map-alist)))
+        (setq sp-autoskip-closing-pair 'always))
     (setq minor-mode-overriding-map-alist
-          (-remove (lambda (it) (eq (car it) 'smartparens-strict-mode)) minor-mode-overriding-map-alist))))
+          (-remove (lambda (it) (eq (car it) 'smartparens-strict-mode)) minor-mode-overriding-map-alist))
+    (setq sp-autoskip-closing-pair (car (plist-get (symbol-plist 'sp-autoskip-closing-pair) 'standard-value)))))
 
 ;;;###autoload
 (define-globalized-minor-mode smartparens-global-strict-mode
