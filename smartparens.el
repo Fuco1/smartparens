@@ -4071,13 +4071,19 @@ and newline."
 (defun sp--end-delimiter-closure (pairs pair-list)
   "Compute the \"end-delimiter\" closure of set PAIRS.
 
-PAIRS can be a single pair ID or a list of pair IDs.
+PAIRS can be:
+- single pair ID
+- single cons with opening and closing delimiter
+- list of pair IDs
+- list of conses of opening and closing delimiters
 
 For example, if we have pairs (if . end) and (def . end), then
 the closure of \"if\" pair are both of these because they share
 the closing delimiter.  Therefore, in the navigation functions,
 both have to be considered by the parser."
-  (let* ((pairs (--filter (member (car it) (-flatten (list pairs))) pair-list))
+  (let* ((pairs (-flatten (list pairs)))
+         (pairs (if (consp (car pairs)) (-map 'car pairs) pairs))
+         (pairs (--filter (member (car it) pairs) pair-list))
          (closure (-mapcat
                    (lambda (x)
                      (--filter (equal (cdr x) (cdr it)) pair-list))
