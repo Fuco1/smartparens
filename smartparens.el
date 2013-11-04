@@ -4068,6 +4068,95 @@ and newline."
                     :prefix ""
                     :suffix ""))))))))
 
+(defun sp-restrict-to-pairs (pairs function)
+  "Call the FUNCTION restricted to PAIRS.
+
+PAIRS is either an opening delimiter of a list of opening
+delimiters.
+
+FUNCTION is a function symbol.
+
+For example, you can restrict function `sp-down-sexp' to the
+pair (\"{\" . \"}\") for easier navigation of blocks in C-like
+languages."
+  (let* ((pairs (-flatten (list pairs)))
+         (new-pairs (--filter (member (car it) pairs) sp-pair-list))
+         (sp-pair-list new-pairs))
+    (call-interactively function)))
+
+(defun sp-restrict-to-object (object function)
+  "Call the FUNCTION restricted to OBJECT.
+
+OBJECT is one of following symbols (you have to quote it!):
+- `sp-prefix-pair-object'
+- `sp-prefix-tag-object'
+- `sp-prefix-symbol-object'
+
+This function will enable this prefix and then call FUNCTION.
+
+FUNCTION is a function symbol.
+
+This function is equivalent to doing:
+
+  (let ((sp-prefix-object t))
+    (call-interactively function))
+
+For example, you can restrict function `sp-forward-sexp' to just
+the pairs for easier navigation of blocks in C-like languages."
+  (letf (((symbol-value object) t))
+    (call-interactively function)))
+
+;; TODO: add shorter alias?
+(defun sp-restrict-to-pairs-interactive (pairs function)
+  "Return an interactive lambda that calls FUNCTION restricted to PAIRS.
+
+See `sp-restrict-to-pairs'.
+
+This function implements a \"decorator pattern\", that is, you
+can apply another scoping function to the output of this function
+and the effects will added together. In particular, you can
+combine it with:
+
+- `sp-restrict-to-object-interactive'
+
+You can also bind the output of this function directly to a key, like:
+
+  (global-set-key (kbd ...) (sp-restrict-to-pairs-interactive \"{\" 'sp-down-sexp))
+
+This will be a function that descends down only into { } pair,
+ignoring all others."
+  (lexical-let ((pairs pairs)
+                (function function))
+    (lambda (&optional arg)
+      (interactive "P")
+      (sp-restrict-to-pairs pairs function))))
+
+(defun sp-restrict-to-object-interactive (object function)
+  "Return an interactive lambda that calls FUNCTION restricted to OBJECT.
+
+See `sp-restrict-to-object'.
+
+This function implements a \"decorator pattern\", that is, you
+can apply another scoping function to the output of this function
+and the effects will added together. In particular, you can
+combine it with:
+
+- `sp-restrict-to-pairs-interactive'
+
+You can also bind the output of this function directly to a key, like:
+
+  (global-set-key (kbd ...) (sp-restrict-to-object-interactive
+                             'sp-prefix-pair-object
+                             'sp-forward-sexp))
+
+This will be a function that navigates only by using paired
+expressions, ignoring strings and sgml tags."
+  (lexical-let ((object object)
+                (function function))
+    (lambda (&optional arg)
+      (interactive "P")
+      (sp-restrict-to-object object function))))
+
 (defun sp-prefix-tag-object (&optional arg)
   "Read the command and invoke it on the next tag object.
 
