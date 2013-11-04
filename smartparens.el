@@ -4553,6 +4553,78 @@ Examples:
     (sp--run-hook-with-args (sp-get re :op) :post-handlers 'end-of-sexp)
     re))
 
+(defun sp-beginning-of-next-sexp (&optional arg)
+  "Jump to the beginning of next sexp.
+
+This acts exactly as `sp-beginning-of-sexp' but adds 1 to the
+numeric argument.
+
+Examples:
+  (f|oo) (bar) (baz) -> (foo) (|bar) (baz)
+
+  (f|oo) (bar) (baz) -> (foo) (bar) (|baz) ;; 2"
+  (interactive "P")
+  (if (sp--raw-argument-p arg)
+      (sp-beginning-of-sexp arg)
+    (let ((arg (prefix-numeric-value arg)))
+      (if (> arg 0)
+          (sp-beginning-of-sexp (1+ arg))
+        (sp-beginning-of-sexp (1- arg))))))
+
+(defun sp-beginning-of-previous-sexp (&optional arg)
+  "Jump to the beginning of previous sexp.
+
+This acts exactly as `sp-beginning-of-sexp' with negative
+argument but subtracts 1 from it.
+
+Examples:
+  (foo) (b|ar) (baz) -> (|foo) (bar) (baz)
+
+  (foo) (bar) (b|az) -> (|foo) (bar) (baz) ;; 2"
+  (interactive "P")
+  (if (sp--raw-argument-p arg)
+      (sp-beginning-of-sexp (sp--negate-argument arg))
+    (let ((arg (prefix-numeric-value arg)))
+      (if (> arg 0)
+          (sp-beginning-of-sexp (- (1+ arg)))
+        (sp-beginning-of-sexp (- (1- arg)))))))
+
+(defun sp-end-of-next-sexp (&optional arg)
+  "Jump to the end of next sexp.
+
+This acts exactly as `sp-end-of-sexp' but adds 1 to the
+numeric argument.
+
+Examples:
+  (f|oo) (bar) (baz) -> (foo) (bar|) (baz)
+
+  (f|oo) (bar) (baz) -> (foo) (bar) (baz|) ;; 2"
+  (interactive "P")
+  (if (sp--raw-argument-p arg)
+      (sp-end-of-sexp arg)
+    (let ((arg (prefix-numeric-value arg)))
+      (if (> arg 0)
+          (sp-end-of-sexp (1+ arg))
+        (sp-end-of-sexp (1- arg))))))
+
+(defun sp-end-of-previous-sexp (&optional arg)
+  "Jump to the beginning of previous sexp.
+
+This acts exactly as `sp-end-of-sexp' with negative
+argument but subtracts 1 from it.
+
+Examples:
+  (foo) (b|ar) (baz) -> (foo|) (bar) (baz)
+
+  (foo) (bar) (b|az) -> (foo|) (bar) (baz) ;; 2"
+  (interactive "P")
+  (if (sp--raw-argument-p arg)
+      (sp-end-of-sexp (sp--negate-argument arg))
+    (let ((arg (prefix-numeric-value arg)))
+      (if (> arg 0)
+          (sp-end-of-sexp (- (1+ arg)))
+        (sp-end-of-sexp (- (1- arg)))))))
+
 (defun sp-up-sexp (&optional arg interactive)
   "Move forward out of one level of parentheses.
 
