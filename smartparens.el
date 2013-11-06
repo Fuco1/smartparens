@@ -757,6 +757,7 @@ See `sp-skip-closing-pair' for more info."
           (const :tag "Skip closing delimiter in active expressions" t)
           (const :tag "Always skip closing delimiter" always))
   :group 'smartparens)
+(make-variable-buffer-local 'sp-autoskip-closing-pair)
 
 (defcustom sp-cancel-autoskip-on-backward-movement t
   "If non-nil, autoskip of closing pair is cancelled not only
