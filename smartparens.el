@@ -2314,9 +2314,8 @@ If USE-INSIDE-STRING is non-nil, use value of
 
 (defmacro sp--setaction (action &rest forms)
   (declare (debug (form body)))
-  `(if (not action)
-       (setq action (progn ,@forms))
-     (progn ,@forms)))
+  `(unless action
+     (setq action (progn ,@forms))))
 
 (defun sp--self-insert-command (arg)
   "This command is a wrapper around `self-insert-command'.
