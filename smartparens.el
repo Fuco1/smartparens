@@ -2518,6 +2518,9 @@ delimiter for any pair allowed in current context."
 (cl-defun sp--get-stringlike-regexp (&optional (pair-list (sp--get-allowed-stringlike-list)))
   (regexp-opt (--map (car it) pair-list)))
 
+(defun sp-pair-is-stringlike-p (delim)
+  (--first (equal delim (car it)) (sp--get-allowed-stringlike-list)))
+
 (defun sp--get-last-wraped-region (beg end open close)
   "Return `sp-get-sexp' style plist about the last wrapped region.
 
@@ -3144,6 +3147,7 @@ active region."
           (sp--run-hook-with-args (car active-pair) :post-handlers 'wrap)
           sp-last-operation)))))
 
+;; TODO: [#A] this function is a monster.
 (defun sp-skip-closing-pair ()
   "If point is inside an inserted pair, and the user only moved
 forward with point (that is, only inserted text), if the closing
@@ -3179,8 +3183,17 @@ achieve this by using `sp-pair' or `sp-local-pair' with
            ;; closing delimiter.
            (enc (and (not overlay)
                      (looking-at (sp--get-closing-regexp sp-pair-list))
-                     (save-excursion (backward-char 1) (sp-get-enclosing-sexp))))
-           (expr-start (if overlay (overlay-start overlay) (sp-get enc :beg)))
+                     ;; if the pair is stringlike, this will break. So
+                     ;; we instead need to get the next string-like
+                     ;; expression, but first the newly inserted
+                     ;; character must be removed, because it would
+                     ;; flip the counter
+                     (if (sp-pair-is-stringlike-p (match-string 0))
+                         (let ((delim (delete-and-extract-region (1- (point)) (point))))
+                           (prog1 (sp-get-stringlike-expression)
+                             (insert delim)))
+                       (save-excursion (backward-char 1) (sp-get-enclosing-sexp)))))
+           (expr-start (if overlay (overlay-start overlay) (and enc (sp-get enc (if (equal :op :cl) (1+ :beg) :beg)))))
            ;; +1 since the overlay automatically extends, we need to
            ;; handle that if we're inside inactive sexp.
 
@@ -3193,8 +3206,10 @@ achieve this by using `sp-pair' or `sp-local-pair' with
            (expr-end (if overlay (overlay-end overlay) (and enc (1+ (sp-get enc :end)))))
            (open-pair (if overlay (overlay-get overlay 'pair-id) (sp-get enc :op)))
            (close-pair (cdr (assoc open-pair sp-pair-list)))
-           ;; how many chars have we already typed
-           (already-skipped (and close-pair (- (length close-pair) (- expr-end (point))))))
+           ;; how many chars have we already typed.  This has to take
+           ;; into account if we're at the beg or end of the
+           ;; expression.
+           (already-skipped (and close-pair (- (length close-pair) (- (if (= (point) expr-start) (1+ expr-start) expr-end) (point))))))
       ;; only if we're at the closing pair or inside it
       (when (and (sp--do-action-p open-pair 'autoskip)
                  close-pair (>= already-skipped 0))
@@ -3207,7 +3222,7 @@ achieve this by using `sp-pair' or `sp-local-pair' with
                      ;; closing character was inserted (if opening
                      ;; pair and closing pair are the same, it would
                      ;; delete it right after the insertion otherwise)
-                     (> (- (point) expr-start) (length open-pair)))
+                     (if (equal open-pair close-pair) t (> (- (point) expr-start) (length open-pair))))
             (if (equal (sp--single-key-description last) (substring close-pair-rest 0 1))
                 (progn
                   (forward-char 1)
