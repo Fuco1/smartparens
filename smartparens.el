@@ -4681,7 +4681,7 @@ Examples:
     re))
 
 (defun sp-beginning-of-next-sexp (&optional arg)
-  "Jump to the beginning of next sexp.
+  "Jump to the beginning of next sexp on the same depth.
 
 This acts exactly as `sp-beginning-of-sexp' but adds 1 to the
 numeric argument.
@@ -4699,7 +4699,7 @@ Examples:
         (sp-beginning-of-sexp (1- arg))))))
 
 (defun sp-beginning-of-previous-sexp (&optional arg)
-  "Jump to the beginning of previous sexp.
+  "Jump to the beginning of previous sexp on the same depth.
 
 This acts exactly as `sp-beginning-of-sexp' with negative
 argument but subtracts 1 from it.
@@ -4717,7 +4717,7 @@ Examples:
         (sp-beginning-of-sexp (- (1- arg)))))))
 
 (defun sp-end-of-next-sexp (&optional arg)
-  "Jump to the end of next sexp.
+  "Jump to the end of next sexp on the same depth.
 
 This acts exactly as `sp-end-of-sexp' but adds 1 to the
 numeric argument.
@@ -4735,7 +4735,7 @@ Examples:
         (sp-end-of-sexp (1- arg))))))
 
 (defun sp-end-of-previous-sexp (&optional arg)
-  "Jump to the beginning of previous sexp.
+  "Jump to the end of previous sexp on the same depth.
 
 This acts exactly as `sp-end-of-sexp' with negative
 argument but subtracts 1 from it.
