@@ -197,7 +197,11 @@
                          (sp-point-in-comment))))))))
 
 (defun sp-ruby-skip-method-p (ms mb me)
-  (sp-ruby-method-p ms))
+  (or (sp-ruby-method-p ms)
+      ;; this fixes problems such as "def |def_foo_bar \n end"
+      (save-excursion
+        (goto-char me)
+        (looking-at-p "[_?!:]"))))
 
 (defun sp-ruby-in-string-word-or-inline-p (id action context)
   (or (sp-ruby-in-string-or-word-p id action context)
