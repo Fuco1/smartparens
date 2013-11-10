@@ -124,7 +124,7 @@
                          (:open "begin" :close "end" :actions (insert wrap)))))
 
 (defvar sp-test-get-paired-expression-ruby
-  '(("def end" 1 8 "def" "end" "" "")
+  '(("begin end" 1 10 "begin" "end" "" "")
     ("def foo bar if blaz end end" 1 28 "def" "end" "" "")
     ("def foo end;" 1 12 "def" "end" "" ";")
     ))

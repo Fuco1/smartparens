@@ -782,6 +782,14 @@ test if bar
 ")
 
   (sp-ruby-test-splice-assert 1 "
+beginX
+  end_of_game
+end
+" :=> "
+end_of_game
+")
+
+  (sp-ruby-test-splice-assert 1 "
 if foo
   [] if baXr
 end

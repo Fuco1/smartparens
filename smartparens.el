@@ -3466,6 +3466,7 @@ be a function call that sets the match data."
 The expressions considered are those delimited by pairs on
 `sp-pair-list'."
   (let* ((search-fn (if (not back) 'sp--search-forward-regexp 'sp--search-backward-regexp))
+         (skip-match-fn (cdr (--first (memq major-mode (car it)) sp-navigate-skip-match)))
          (pair-list (sp--get-pair-list))
          (in-string-or-comment (sp-point-in-string-or-comment))
          (string-bounds (and in-string-or-comment (sp--get-string-or-comment-bounds)))
@@ -3481,7 +3482,8 @@ The expressions considered are those delimited by pairs on
                                    (sp--get-allowed-regexp)
                                    (if back bw-bound fw-bound)
                                    r mb me ms)
-        (unless (sp--skip-match-p ms mb me)
+        (unless (or (sp--skip-match-p ms mb me)
+                    (funcall skip-match-fn ms mb me))
           (when (not (sp-point-in-string-or-comment))
             (setq in-string-or-comment nil))
           ;; if the point originally wasn't inside of a string or comment
@@ -3530,7 +3532,6 @@ The expressions considered are those delimited by pairs on
                (open (substring-no-properties ms))
                (close (substring-no-properties ms))
                (failure (funcall eof))
-               (skip-match-fn (cdr (--first (memq major-mode (car it)) sp-navigate-skip-match)))
                (skip-match-pair-fns (->> possible-ops
                                       (--mapcat (let ((smf (sp-get-pair it :skip-match)))
                                                   (when smf (list (cons it smf) (cons (sp-get-pair it :close) smf))))))))

@@ -177,12 +177,6 @@
               (save-excursion (newline))
             (newline)))))))
 
-(defun sp-ruby-in-string-or-word-p (id action context)
-  (or (sp-in-string-p id action context)
-      (and (looking-back id)
-           (not (looking-back (sp--strict-regexp-quote id))))
-      (sp-ruby-method-p id)))
-
 (defun sp-ruby-inline-p (id)
   (save-excursion
     (when (looking-back id)
@@ -221,9 +215,14 @@
   (or (sp-ruby-method-p ms)
       (sp-ruby-inline-p ms)))
 
-
 (defun sp-ruby-skip-method-p (ms mb me)
   (sp-ruby-method-p ms))
+
+(defun sp-ruby-in-string-or-word-p (id action context)
+  (or (sp-in-string-p id action context)
+      (and (looking-back id)
+           (not (looking-back (sp--strict-regexp-quote id))))
+      (sp-ruby-method-p id)))
 
 (defun sp-ruby-in-string-word-or-inline-p (id action context)
   (or (sp-ruby-in-string-or-word-p id action context)
@@ -242,6 +241,14 @@
   "Test whether to insert the closing pipe for a lambda-binding pipe pair."
   (thing-at-point-looking-at
    (rx-to-string `(and (or "do" "{") (* space) ,id))))
+
+(defun sp--ruby-skip-match (ms me mb)
+  (when (string= ms "end")
+    (or (sp-in-string-p ms me mb)
+        (sp-ruby-method-p "end"))))
+
+(add-to-list 'sp-navigate-skip-match
+             '((ruby-mode enh-ruby-mode) . sp--ruby-skip-match))
 
 (sp-with-modes '(ruby-mode enh-ruby-mode)
   (sp-local-pair "do" "end"
@@ -304,6 +311,14 @@
                  :skip-match 'sp-ruby-skip-method-p
                  :suffix "")
 
+  (sp-local-pair "for" "end"
+                 :when '(("SPC" "RET" "<evil-ret>"))
+                 :unless '(sp-ruby-in-string-or-word-p)
+                 :actions '(insert)
+                 :pre-handlers '(sp-ruby-pre-handler)
+                 :post-handlers '(sp-ruby-def-post-handler)
+                 :skip-match 'sp-ruby-skip-inline-match-p)
+
   (sp-local-pair "if" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :unless '(sp-ruby-in-string-word-or-inline-p)
@@ -339,14 +354,6 @@
                  :post-handlers '(sp-ruby-def-post-handler)
                  :skip-match 'sp-ruby-skip-inline-match-p
                  :suffix "")
-
-  (sp-local-pair "for" "end"
-                 :when '(("SPC" "RET" "<evil-ret>"))
-                 :unless '(sp-ruby-in-string-word-or-inline-p)
-                 :actions '(insert)
-                 :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-def-post-handler)
-                 :skip-match 'sp-ruby-skip-inline-match-p)
 
   (sp-local-pair "|" "|"
                  :when '(sp-ruby-should-insert-pipe-close)
