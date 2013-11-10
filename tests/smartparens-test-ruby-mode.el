@@ -781,6 +781,26 @@ foo
 test if bar
 ")
 
+  (sp-ruby-test-splice-assert 1 "
+if foo
+  [] if baXr
+end
+" :=> "
+foo
+[] if bar
+")
+
+  (sp-ruby-test-splice-assert 1 "
+if foo
+  begin
+  end if baXr
+end
+" :=> "
+foo
+begin
+end if bar
+")
+
   ;; TODO: should not leave two spaces after splice
   (sp-ruby-test-splice-assert 1 "
 if foo

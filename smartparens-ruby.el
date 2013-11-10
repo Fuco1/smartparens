@@ -48,6 +48,18 @@
 
 (require 'smartparens)
 
+(defun sp-ruby-forward-sexp ()
+  (interactive)
+  (if (boundp 'enh-ruby-forward-sexp)
+      (enh-ruby-forward-sexp)
+    (ruby-forward-sexp)))
+
+(defun sp-ruby-backward-sexp ()
+  (interactive)
+  (if (boundp 'enh-ruby-backward-sexp)
+      (enh-ruby-backward-sexp)
+    (ruby-backward-sexp)))
+
 (defun sp-ruby-maybe-one-space ()
   (while (looking-back " ") (backward-char))
   (when (or (looking-at-p " ")
@@ -175,10 +187,16 @@
   (save-excursion
     (when (looking-back id)
       (backward-word))
-    (when (not (looking-back "^ *"))
-      (forward-symbol -1)
-      (forward-symbol 1)
-      (looking-at-p (concat " *" id)))))
+    (when (not (or (looking-back "^ *")
+                   (looking-back "= *")))
+      (or (save-excursion
+               (forward-symbol -1)
+               (forward-symbol 1)
+               (looking-at-p (concat " *" id)))
+          (save-excursion
+            (sp-ruby-backward-sexp)
+            (sp-ruby-forward-sexp)
+            (looking-at-p (concat ".* *" id)))))))
 
 (defun sp-ruby-method-p (id)
   (save-excursion
