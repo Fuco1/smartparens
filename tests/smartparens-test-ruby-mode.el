@@ -757,6 +757,22 @@ fun_for
 ")
 
   (sp-ruby-test-splice-assert 1 "
+begin
+  @forX
+end
+" :=> "
+@for
+")
+
+  (sp-ruby-test-splice-assert 1 "
+begin
+  $forX
+end
+" :=> "
+$for
+")
+
+  (sp-ruby-test-splice-assert 1 "
 if foo
   test if baXr
 end

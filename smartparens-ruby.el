@@ -189,7 +189,7 @@
           ;; fix for def_foo
           (looking-at-p (concat id "[_?!:]"))
           ;; fix for foo_def
-          (looking-back "[_:@.]")
+          (looking-back "[_:@$.]")
           ;; fix for def for; end
           (looking-back "def \\|class \\|module ")
           ;; Check if multiline method call
