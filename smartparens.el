@@ -1,4 +1,4 @@
-;;; smartparens.el --- Autoinsert pairs of defined brackets and wrap regions
+;;; smartparens.el --- Automatic insertion, wrapping and paredit-like navigation with user defined pairs.
 
 ;; Copyright (C) 2012-2013 Matus Goljer
 

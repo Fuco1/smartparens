@@ -1,11 +1,11 @@
 (source melpa)
 (source gnu)
 
-(package "smartparens" "0"
-         "Autoinsert pairs of defined brackets and wrap regions")
+(package "smartparens" "1.6.1"
+         "Automatic insertion, wrapping and paredit-like navigation with user defined pairs.")
 
-(depends-on "cl-lib")
-(depends-on "dash")
+(depends-on "cl-lib" "0.1")
+(depends-on "dash" "2.3.0")
 
 (development
   (depends-on "ruby-mode")
