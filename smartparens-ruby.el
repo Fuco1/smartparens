@@ -168,40 +168,44 @@
 (defun sp-ruby-in-string-or-word-p (id action context)
   (or (sp-in-string-p id action context)
       (and (looking-back id)
-           (not (looking-back (sp--strict-regexp-quote id))))))
+           (not (looking-back (sp--strict-regexp-quote id))))
+      (sp-ruby-method-p id)))
 
 (defun sp-ruby-inline-p (id)
   (save-excursion
     (when (looking-back (concat id " *"))
       (backward-word))
     (when (not (looking-back "^ *"))
-      (sp-backward-sexp)
-      (sp-forward-sexp)
+      (forward-symbol -1)
+      (forward-symbol 1)
       (looking-at-p (concat " *" id)))))
-
-(defun sp-ruby-skip-inline-match-p (ms mb me)
-  (sp-ruby-inline-p ms))
 
 (defun sp-ruby-method-p (id)
   (save-excursion
     (when (looking-back (concat id " *"))
       (backward-word))
     (and (looking-at-p id)
-         (or (looking-at-p (concat id "[_?!:]"))
-             (looking-back "[_:@.]")
-             ;; Check if multiline method call
-             ;; But beware of comments!
-             (and (looking-back "\\.[ \n]*")
-                  (not (save-excursion
-                         (search-backward ".")
-                         (sp-point-in-comment))))))))
+         (or
+          ;; fix for def_foo
+          (looking-at-p (concat id "[_?!:]"))
+          ;; fix for foo_def
+          (looking-back "[_:@.]")
+          ;; fix for def for; end
+          (looking-back "def \\|class \\|module ")
+          ;; Check if multiline method call
+          ;; But beware of comments!
+          (and (looking-back "\\.[ \n]*")
+               (not (save-excursion
+                      (search-backward ".")
+                      (sp-point-in-comment))))))))
+
+(defun sp-ruby-skip-inline-match-p (ms mb me)
+  (or (sp-ruby-method-p ms)
+      (sp-ruby-inline-p ms)))
+
 
 (defun sp-ruby-skip-method-p (ms mb me)
-  (or (sp-ruby-method-p ms)
-      ;; this fixes problems such as "def |def_foo_bar \n end"
-      (save-excursion
-        (goto-char me)
-        (looking-at-p "[_?!:]"))))
+  (sp-ruby-method-p ms))
 
 (defun sp-ruby-in-string-word-or-inline-p (id action context)
   (or (sp-ruby-in-string-or-word-p id action context)

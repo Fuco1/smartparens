@@ -734,6 +734,29 @@ end
 ")
 
   (sp-ruby-test-splice-assert 1 "
+def forX
+end
+" :=> "
+for
+")
+
+  (sp-ruby-test-splice-assert 1 "
+begin
+  for_funX
+end
+" :=> "
+for_fun
+")
+
+  (sp-ruby-test-splice-assert 1 "
+begin
+  fun_forX
+end
+" :=> "
+fun_for
+")
+
+  (sp-ruby-test-splice-assert 1 "
 if foo
   test if baXr
 end
