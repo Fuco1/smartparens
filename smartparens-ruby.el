@@ -173,7 +173,7 @@
 
 (defun sp-ruby-inline-p (id)
   (save-excursion
-    (when (looking-back (concat id " *"))
+    (when (looking-back id)
       (backward-word))
     (when (not (looking-back "^ *"))
       (forward-symbol -1)
@@ -182,7 +182,7 @@
 
 (defun sp-ruby-method-p (id)
   (save-excursion
-    (when (looking-back (concat id " *"))
+    (when (looking-back id)
       (backward-word))
     (and (looking-at-p id)
          (or
