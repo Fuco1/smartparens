@@ -3428,12 +3428,21 @@ object bounded by TEST."
        (setq ,end (match-end 0))
        (setq ,str (match-string 0)))))
 
-(defun sp--skip-match-p (ms mb me &optional skip-fn)
-  "Return non-nil if this match should be skipped.  The function
-that tests this is obtained from the pair definition :skip-match
-property."
-  (let ((skip-fn (or skip-fn (sp-get-pair ms :skip-match))))
-    (when skip-fn (funcall skip-fn ms mb me))))
+(cl-defun sp--skip-match-p (ms mb me
+                               &key
+                               (global-skip (cdr (--first (memq major-mode (car it)) sp-navigate-skip-match)))
+                               (pair-skip (sp-get-pair ms :skip-match)))
+  "Return non-nil if this match should be skipped.
+
+This function uses two tests, one specified in
+`sp-navigate-skip-match' (this is global setting for all pairs in
+given major mode) and by a function specified in :skip-match
+property of the pair.
+
+If you are calling this function in a heavy loop, you can supply
+the test functions as keyword arguments to speed up the lookup."
+  (or (when global-skip (funcall global-skip ms mb me))
+      (when pair-skip (funcall pair-skip ms mb me))))
 
 (defmacro sp--valid-initial-delimiter-p (form)
   "Test the last match using `sp--skip-match-p'.  The form should
@@ -3466,7 +3475,7 @@ be a function call that sets the match data."
 The expressions considered are those delimited by pairs on
 `sp-pair-list'."
   (let* ((search-fn (if (not back) 'sp--search-forward-regexp 'sp--search-backward-regexp))
-         (skip-match-fn (cdr (--first (memq major-mode (car it)) sp-navigate-skip-match)))
+         (global-skip-fn (cdr (--first (memq major-mode (car it)) sp-navigate-skip-match)))
          (pair-list (sp--get-pair-list))
          (in-string-or-comment (sp-point-in-string-or-comment))
          (string-bounds (and in-string-or-comment (sp--get-string-or-comment-bounds)))
@@ -3482,8 +3491,7 @@ The expressions considered are those delimited by pairs on
                                    (sp--get-allowed-regexp)
                                    (if back bw-bound fw-bound)
                                    r mb me ms)
-        (unless (or (and skip-match-fn (funcall skip-match-fn ms mb me))
-                    (sp--skip-match-p ms mb me))
+        (unless (sp--skip-match-p ms mb me :global-skip global-skip-fn)
           (when (not (sp-point-in-string-or-comment))
             (setq in-string-or-comment nil))
           ;; if the point originally wasn't inside of a string or comment
@@ -3540,15 +3548,12 @@ The expressions considered are those delimited by pairs on
             (if r
                 (unless (or (and (not in-string-or-comment)
                                  (sp-point-in-string-or-comment))
-                            ;; check the per major-mode skipper
-                            (when skip-match-fn (funcall skip-match-fn ms mb me))
                             ;; check the individual pair skipper.  We
                             ;; need to test all the possible-ops,
                             ;; which makes it a bit ugly :/
                             (let ((skip-match-pair-fn
                                    (cdr (--first (equal (car it) ms) skip-match-pair-fns))))
-                              (when skip-match-pair-fn
-                                (funcall skip-match-pair-fn ms mb me))))
+                              (sp--skip-match-p ms mb me :global-skip global-skip-fn :pair-skip skip-match-pair-fn)))
                   (when (--any? (equal ms it) opens) (setq depth (1+ depth)))
                   (when (--any? (equal ms it) closes) (setq depth (1- depth))))
               (unless (minibufferp)
@@ -3596,7 +3601,8 @@ and the skip-match predicate."
                             (and (eq major-mode 'emacs-lisp-mode)
                                  (not (sp-point-in-string))
                                  (looking-back "?")))))
-                    (sp--skip-match-p match (match-beginning 0) (match-end 0) skip-fn))
+                    ;; TODO: HACK: global-skip is hack here!!!
+                    (sp--skip-match-p match (match-beginning 0) (match-end 0) :pair-skip skip-fn :global-skip nil))
           (setq hit t))))
     hit))
 
