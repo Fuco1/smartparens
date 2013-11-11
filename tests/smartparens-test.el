@@ -10,3 +10,7 @@
 (defun sp-test-run-tests ()
   (interactive)
   (ert "sp-test-*"))
+
+;; Local Variables:
+;; eval: (push (file-name-directory (buffer-file-name)) load-path)
+;; End:
