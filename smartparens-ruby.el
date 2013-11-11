@@ -188,9 +188,11 @@
                (forward-symbol 1)
                (looking-at-p (concat " *" id)))
           (save-excursion
-            (sp-ruby-backward-sexp)
-            (sp-ruby-forward-sexp)
-            (looking-at-p (concat ".* *" id)))))))
+            ;; This does not seem to make emacs snapshot happy
+            (ignore-errors
+              (sp-ruby-backward-sexp)
+              (sp-ruby-forward-sexp)
+              (looking-at-p (concat "[^ ]* *" id))))))))
 
 (defun sp-ruby-method-p (id)
   (save-excursion
