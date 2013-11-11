@@ -3482,7 +3482,7 @@ The expressions considered are those delimited by pairs on
                                    (sp--get-allowed-regexp)
                                    (if back bw-bound fw-bound)
                                    r mb me ms)
-        (unless (or (funcall skip-match-fn ms mb me)
+        (unless (or (and skip-match-fn (funcall skip-match-fn ms mb me))
                     (sp--skip-match-p ms mb me))
           (when (not (sp-point-in-string-or-comment))
             (setq in-string-or-comment nil))
