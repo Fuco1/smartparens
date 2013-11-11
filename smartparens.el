@@ -3456,7 +3456,8 @@ be a function call that sets the match data."
 
 (defun sp--elisp-skip-match (ms mb me)
   "Function used to test for escapes in lisp modes."
-  (and (> mb 1)
+  (and ms
+       (> mb 1)
        (save-excursion
          (goto-char mb)
          (save-match-data
