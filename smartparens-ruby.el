@@ -48,6 +48,18 @@
 
 (require 'smartparens)
 
+(defun sp-ruby-forward-sexp ()
+  (interactive)
+  (if (boundp 'enh-ruby-forward-sexp)
+      (enh-ruby-forward-sexp)
+    (ruby-forward-sexp)))
+
+(defun sp-ruby-backward-sexp ()
+  (interactive)
+  (if (boundp 'enh-ruby-backward-sexp)
+      (enh-ruby-backward-sexp)
+    (ruby-backward-sexp)))
+
 (defun sp-ruby-maybe-one-space ()
   (while (looking-back " ") (backward-char))
   (when (or (looking-at-p " ")
@@ -165,24 +177,26 @@
               (save-excursion (newline))
             (newline)))))))
 
-(defun sp-ruby-in-string-or-word-p (id action context)
-  (or (sp-in-string-p id action context)
-      (and (looking-back id)
-           (not (looking-back (sp--strict-regexp-quote id))))
-      (sp-ruby-method-p id)))
-
 (defun sp-ruby-inline-p (id)
   (save-excursion
-    (when (looking-back (concat id " *"))
+    (when (looking-back id)
       (backward-word))
-    (when (not (looking-back "^ *"))
-      (forward-symbol -1)
-      (forward-symbol 1)
-      (looking-at-p (concat " *" id)))))
+    (when (not (or (looking-back "^ *")
+                   (looking-back "= *")))
+      (or (save-excursion
+               (forward-symbol -1)
+               (forward-symbol 1)
+               (looking-at-p (concat " *" id)))
+          (save-excursion
+            ;; This does not seem to make emacs snapshot happy
+            (ignore-errors
+              (sp-ruby-backward-sexp)
+              (sp-ruby-forward-sexp)
+              (looking-at-p (concat "[^ ]* *" id))))))))
 
 (defun sp-ruby-method-p (id)
   (save-excursion
-    (when (looking-back (concat id " *"))
+    (when (looking-back id)
       (backward-word))
     (and (looking-at-p id)
          (or
@@ -203,9 +217,14 @@
   (or (sp-ruby-method-p ms)
       (sp-ruby-inline-p ms)))
 
-
 (defun sp-ruby-skip-method-p (ms mb me)
   (sp-ruby-method-p ms))
+
+(defun sp-ruby-in-string-or-word-p (id action context)
+  (or (sp-in-string-p id action context)
+      (and (looking-back id)
+           (not (looking-back (sp--strict-regexp-quote id))))
+      (sp-ruby-method-p id)))
 
 (defun sp-ruby-in-string-word-or-inline-p (id action context)
   (or (sp-ruby-in-string-or-word-p id action context)
@@ -224,6 +243,14 @@
   "Test whether to insert the closing pipe for a lambda-binding pipe pair."
   (thing-at-point-looking-at
    (rx-to-string `(and (or "do" "{") (* space) ,id))))
+
+(defun sp--ruby-skip-match (ms me mb)
+  (when (string= ms "end")
+    (or (sp-in-string-p ms me mb)
+        (sp-ruby-method-p "end"))))
+
+(add-to-list 'sp-navigate-skip-match
+             '((ruby-mode enh-ruby-mode) . sp--ruby-skip-match))
 
 (sp-with-modes '(ruby-mode enh-ruby-mode)
   (sp-local-pair "do" "end"
@@ -286,6 +313,14 @@
                  :skip-match 'sp-ruby-skip-method-p
                  :suffix "")
 
+  (sp-local-pair "for" "end"
+                 :when '(("SPC" "RET" "<evil-ret>"))
+                 :unless '(sp-ruby-in-string-or-word-p)
+                 :actions '(insert)
+                 :pre-handlers '(sp-ruby-pre-handler)
+                 :post-handlers '(sp-ruby-def-post-handler)
+                 :skip-match 'sp-ruby-skip-inline-match-p)
+
   (sp-local-pair "if" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :unless '(sp-ruby-in-string-word-or-inline-p)
@@ -321,14 +356,6 @@
                  :post-handlers '(sp-ruby-def-post-handler)
                  :skip-match 'sp-ruby-skip-inline-match-p
                  :suffix "")
-
-  (sp-local-pair "for" "end"
-                 :when '(("SPC" "RET" "<evil-ret>"))
-                 :unless '(sp-ruby-in-string-word-or-inline-p)
-                 :actions '(insert)
-                 :pre-handlers '(sp-ruby-pre-handler)
-                 :post-handlers '(sp-ruby-def-post-handler)
-                 :skip-match 'sp-ruby-skip-inline-match-p)
 
   (sp-local-pair "|" "|"
                  :when '(sp-ruby-should-insert-pipe-close)

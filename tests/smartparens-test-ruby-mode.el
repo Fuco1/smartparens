@@ -1,9 +1,12 @@
 (require 'smartparens-test-env)
 (require 'smartparens-ruby)
 
+(defun sp-ruby-eq-ignore-indent (a b)
+  (equal (replace-regexp-in-string "^ *" "" a)
+         (replace-regexp-in-string "^ *" "" b)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; basic pairs
-
 (defun sp-ruby-test-slurp-assert (n in _ expected)
   (with-temp-buffer
     (ruby-mode)
@@ -14,7 +17,8 @@
     (delete-char -1)
     (sp-forward-slurp-sexp n)
     (delete-trailing-whitespace)
-    (should (equal (buffer-string) expected))))
+    (should
+     (sp-ruby-eq-ignore-indent (buffer-string) expected))))
 
 (ert-deftest sp-test-ruby-slurp-forward ()
   (sp-ruby-test-slurp-assert 1 "
@@ -472,7 +476,8 @@ end
     (delete-char -1)
     (sp-forward-barf-sexp n)
     (delete-trailing-whitespace)
-    (should (equal (buffer-string) expected))))
+    (should
+     (sp-ruby-eq-ignore-indent (buffer-string) expected))))
 
 (ert-deftest sp-test-ruby-barf-forward ()
   (sp-ruby-test-barf-assert 1 "
@@ -692,7 +697,8 @@ foo = if true
     (delete-char -1)
     (sp-splice-sexp n)
     (delete-trailing-whitespace)
-    (should (equal (buffer-string) expected))))
+    (should
+     (sp-ruby-eq-ignore-indent (buffer-string) expected))))
 
 (ert-deftest sp-test-ruby-splice ()
   (sp-ruby-test-splice-assert 1 "
@@ -779,6 +785,34 @@ end
 " :=> "
 foo
 test if bar
+")
+
+  (sp-ruby-test-splice-assert 1 "
+beginX
+  end_of_game
+end
+" :=> "
+end_of_game
+")
+
+  (sp-ruby-test-splice-assert 1 "
+if foo
+  [] if baXr
+end
+" :=> "
+foo
+[] if bar
+")
+
+  (sp-ruby-test-splice-assert 1 "
+if foo
+  begin
+  end if baXr
+end
+" :=> "
+foo
+begin
+end if bar
 ")
 
   ;; TODO: should not leave two spaces after splice
