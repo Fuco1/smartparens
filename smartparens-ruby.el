@@ -239,10 +239,12 @@
       (search-backward id)
       (just-one-space))))
 
-(defun sp-ruby-should-insert-pipe-close (id _action _ctx)
+(defun sp-ruby-should-insert-pipe-close (id action _ctx)
   "Test whether to insert the closing pipe for a lambda-binding pipe pair."
-  (thing-at-point-looking-at
-   (rx-to-string `(and (or "do" "{") (* space) ,id))))
+  (if (eq action 'insert)
+      (thing-at-point-looking-at
+       (rx-to-string `(and (or "do" "{") (* space) ,id)))
+    t))
 
 (defun sp--ruby-skip-match (ms me mb)
   (when (string= ms "end")
@@ -263,7 +265,6 @@
                  :suffix "")
 
   (sp-local-pair "{" "}"
-                 :actions '(insert wrap)
                  :pre-handlers '(sp-ruby-pre-handler)
                  :post-handlers '(sp-ruby-post-handler)
                  :suffix "")
@@ -359,7 +360,6 @@
 
   (sp-local-pair "|" "|"
                  :when '(sp-ruby-should-insert-pipe-close)
-                 :actions '(insert)
                  :pre-handlers '(sp-ruby-pre-pipe-handler)
                  :suffix ""))
 
