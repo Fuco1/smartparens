@@ -5832,6 +5832,7 @@ Examples:
           ;; skipping all whitespace and pair delimiters until we hit
           ;; something in \sw or \s_
           (while (cond
+                  ((eobp) nil)
                   ((not (memq (char-syntax (following-char)) '(?w ?_)))
                    (forward-char)
                    t)
@@ -5877,6 +5878,7 @@ Examples:
     (if fw
         (while (> n 0)
           (while (cond
+                  ((bobp) nil)
                   ((not (memq (char-syntax (preceding-char)) '(?w ?_)))
                    (backward-char)
                    t)
