@@ -3462,7 +3462,8 @@ be a function call that sets the match data."
          (goto-char mb)
          (save-match-data
            (or (sp--looking-back "\\\\" 1 t)
-               (and (sp--looking-back "\\?" 1 t) ;;TODO surely we can do better
+               (and (not (sp-point-in-string-or-comment))
+                    (sp--looking-back "\\?" 1 t) ;;TODO surely we can do better
                     (not (sp--looking-back "\\s_\\?" 2 t))
                     (not (sp--looking-back "\\sw\\?" 2 t))))))))
 
