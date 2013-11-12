@@ -3463,8 +3463,9 @@ property of the pair.
 
 If you are calling this function in a heavy loop, you can supply
 the test functions as keyword arguments to speed up the lookup."
-  (or (when global-skip (funcall global-skip ms mb me))
-      (when pair-skip (funcall pair-skip ms mb me))))
+  (save-match-data
+    (or (when global-skip (funcall global-skip ms mb me))
+        (when pair-skip (funcall pair-skip ms mb me)))))
 
 (defmacro sp--valid-initial-delimiter-p (form)
   "Test the last match using `sp--skip-match-p'.  The form should
