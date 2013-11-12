@@ -797,6 +797,16 @@ unreachable by undo."
   :type 'boolean
   :group 'smartparens)
 
+(defcustom sp-successive-kill-preserve-whitespace 1
+  "Control the behaviour of `sp-kill-sexp' on successive kills.
+
+In the description, we consider more than one space
+\"superfluous\", however, newlines are preserved."
+  :type '(radio
+          (const :tag "Always preserve the whitespace" 0)
+          (const :tag "Remove superfluous whitespace after last kill" 1)
+          (const :tag "Remove superfluous whitespace after all kills" 2)))
+
 ;; wrap custom
 (defcustom sp-autowrap-region t
   "If non-nil, wrap the active region with pair.
@@ -4876,6 +4886,12 @@ Examples:
   (setq arg (or arg 1))
   (sp-up-sexp (- arg) interactive))
 
+(defvar sp-last-kill-whitespace nil
+  "Save the whitespace cleaned after the last kill.
+
+If the next command is `sp-kill-sexp', append the whitespace
+between the successive kills.")
+
 (defun sp-kill-sexp (&optional arg dont-kill)
   "Kill the balanced expression following point.
 
@@ -4977,14 +4993,24 @@ Note: prefix argument is shown after the example in
           (setq n (1- n))))
       (when ok
         (let ((bm (set-marker (make-marker) b)))
-          (funcall kill-fn b e)
+          (if (eq last-command 'kill-region)
+              (progn
+                (when (member sp-successive-kill-preserve-whitespace '(1 2))
+                  (kill-append sp-last-kill-whitespace nil))
+                (funcall kill-fn (if (> b (point)) (point) b) e))
+            (funcall kill-fn b e))
           ;; kill useless junk whitespace, but only if we're actually
           ;; killing the region
           (when (not dont-kill)
             (sp--cleanup-after-kill)
             ;; kill useless newlines
             (when (string-match-p "\n" (buffer-substring-no-properties bm (point)))
-              (delete-region bm (point))))))))))
+              (setq sp-last-kill-whitespace
+                    (concat sp-last-kill-whitespace
+                            (buffer-substring-no-properties bm (point))))
+              (delete-region bm (point)))
+            (when (= 0 sp-successive-kill-preserve-whitespace)
+              (kill-append sp-last-kill-whitespace nil)))))))))
 
 (defun sp--cleanup-after-kill ()
   (let ((bdel (save-excursion
@@ -4996,9 +5022,15 @@ Note: prefix argument is shown after the example in
         (edel (save-excursion
                 (when (looking-at " ")
                   (skip-chars-forward " \t")
-                  (when (not (sp--looking-at (sp--get-closing-regexp)))
+                  (when (not (or (sp--looking-at (sp--get-closing-regexp))
+                                 (looking-at "$")))
                     (backward-char)))
                 (point))))
+    (when (eq this-command 'kill-region)
+      (setq sp-last-kill-whitespace
+            (if (/= 2 sp-successive-kill-preserve-whitespace)
+                (buffer-substring-no-properties bdel edel)
+              "")))
     (delete-region bdel edel))
   (if (memq major-mode sp--lisp-modes)
       (indent-according-to-mode)
