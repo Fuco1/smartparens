@@ -23,12 +23,12 @@ Feature: Sexp manipulation
     And I press "C-c s"
     Then I should see "\"foo bar\" \"baz\""
 
-  Scenario: Split an enclosing string
-    When I insert "\"foo bar baz\""
-    And I go to the end of the word "bar"
-    And I enable string sexps in "emacs-lisp-mode"
-    And I press "C-u C-c s"
-    Then I should see "\"foo\" \"bar\" \"baz\""
+# Scenario: Split an enclosing string
+#   When I insert "\"foo bar baz\""
+#   And I go to the end of the word "bar"
+#   And I enable string sexps in "emacs-lisp-mode"
+#   And I press "C-u C-c s"
+#   Then I should see "\"foo\" \"bar\" \"baz\""
 
 #  Scenario: Slurp a token into empty expression from right
 #    When I insert "()bar baz"
