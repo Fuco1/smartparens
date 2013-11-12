@@ -805,7 +805,8 @@ In the description, we consider more than one space
   :type '(radio
           (const :tag "Always preserve the whitespace" 0)
           (const :tag "Remove superfluous whitespace after last kill" 1)
-          (const :tag "Remove superfluous whitespace after all kills" 2)))
+          (const :tag "Remove superfluous whitespace after all kills" 2))
+  :group 'smartparens)
 
 ;; wrap custom
 (defcustom sp-autowrap-region t
@@ -1022,6 +1023,17 @@ returns non-nil value, we should kill from point."
           (const :tag "Always kill from point" nil)
           (const :tag "Kill from point only inside strings" sp-point-in-string)
           (function :tag "Custom predicate"))
+  :group 'smartparens)
+
+(defcustom sp-comment-string nil
+  "String that is inserted after calling `sp-comment'.
+
+It is an alist of list of major modes to a string.
+
+The value of `comment-start' is used if the major mode is not found."
+  :type '(alist
+          :key-type (repeat symbol)
+          :value-type string)
   :group 'smartparens)
 
 ;; ui custom
@@ -7040,6 +7052,23 @@ backward direction."
     (back-to-indentation)
     (current-column)))
 
+(defun sp--calculate-indentation-offset (old-column old-indentation)
+  "Calculate correct indentation after re-indent."
+  (let ((indentation (sp--current-indentation)))
+    (cond
+     ;; Point was in code, so move it along with the re-indented code
+     ((>= old-column old-indentation)
+      (+ old-column (- indentation old-indentation)))
+     ;; Point was indentation, but would be in code now, so move to
+     ;; the beginning of indentation
+     ((<= indentation old-column) indentation)
+     ;; Point was in indentation, and still is, so leave it there
+     (:else old-column))))
+
+(defun sp--back-to-indentation (old-column old-indentation)
+  (let ((offset (sp--calculate-indentation-offset old-column old-indentation)))
+    (goto-char (+ (line-beginning-position) offset))))
+
 (defun sp-indent-defun (arg)
   "Reindent the current defun.
 
@@ -7057,18 +7086,7 @@ of the point."
         (end-of-defun)
         (beginning-of-defun)
         (indent-sexp))
-      (let* ((indentation* (sp--current-indentation))
-             (offset
-              (cond
-               ;; Point was in code, so move it along with the re-indented code
-               ((>= column indentation)
-                (+ column (- indentation* indentation)))
-               ;; Point was indentation, but would be in code now, so move to
-               ;; the beginning of indentation
-               ((<= indentation* column) indentation*)
-               ;; Point was in indentation, and still is, so leave it there
-               (:else column))))
-        (goto-char (+ (line-beginning-position) offset))))))
+      (sp--back-to-indentation column indentation))))
 
 (defun sp-region-ok-p (start end)
   (save-excursion
@@ -7103,6 +7121,38 @@ comment."
    (t
     (newline-and-indent)
     (ignore-errors (indent-sexp)))))
+
+(defun sp-comment ()
+  "Insert the comment character and adjust hanging sexps such
+  that it doesn't break structure."
+  (interactive)
+  (let ((old-point (point))
+        (column (current-column))
+        (indentation (sp--current-indentation))
+        (old-line (line-number-at-pos))
+        (hsexp (sp-get-hybrid-sexp))
+        (newline-inserted 0))
+    (goto-char (sp-get hsexp :end))
+    (if (sp--looking-at (sp--get-closing-regexp))
+        (progn
+          (newline)
+          (setq newline-inserted (1+ (- (line-end-position) (point)))))
+      (when (/= old-line (line-number-at-pos))
+        (sp-backward-sexp)
+        (newline)
+        (setq newline-inserted (- (line-end-position) (point)))))
+    ;; @{ indenting madness
+    (goto-char old-point)
+    (sp-get hsexp (indent-region :beg (+ :end newline-inserted)))
+    (sp--back-to-indentation column indentation)
+    ;; @}
+    (let ((comment-delim (or (cdr (--first (memq major-mode (car it)) sp-comment-string))
+                             comment-start)))
+      (insert comment-delim)
+      (when (/= newline-inserted 0)
+        (save-excursion
+          (forward-line 1)
+          (indent-according-to-mode))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
