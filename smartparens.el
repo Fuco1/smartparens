@@ -6103,8 +6103,13 @@ Examples:
   (foo (bar| baz) quux) -> foo (bar| baz) quux ;; 2"
   (interactive "p")
   (setq arg (or arg 1))
-  (let ((ok (sp-get-enclosing-sexp arg)))
-    (when ok (sp--unwrap-sexp ok))))
+  (-when-let (ok (sp-get-enclosing-sexp arg))
+    (if (equal ";" (sp-get ok :prefix))
+        (sp-get ok
+          (goto-char :beg)
+          (-when-let (enc (sp-get-enclosing-sexp arg))
+            (sp--unwrap-sexp enc)))
+      (sp--unwrap-sexp ok))))
 
 (defun sp--splice-sexp-do-killing (beg end expr &optional jump-end)
   "Save the text in the region between BEG and END inside EXPR,
