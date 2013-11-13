@@ -4769,6 +4769,7 @@ This acts exactly as `sp-beginning-of-sexp' but adds 1 to the
 numeric argument.
 
 Examples:
+
   (f|oo) (bar) (baz) -> (foo) (|bar) (baz)
 
   (f|oo) (bar) (baz) -> (foo) (bar) (|baz) ;; 2"
@@ -4787,6 +4788,7 @@ This acts exactly as `sp-beginning-of-sexp' with negative
 argument but subtracts 1 from it.
 
 Examples:
+
   (foo) (b|ar) (baz) -> (|foo) (bar) (baz)
 
   (foo) (bar) (b|az) -> (|foo) (bar) (baz) ;; 2"
@@ -4805,6 +4807,7 @@ This acts exactly as `sp-end-of-sexp' but adds 1 to the
 numeric argument.
 
 Examples:
+
   (f|oo) (bar) (baz) -> (foo) (bar|) (baz)
 
   (f|oo) (bar) (baz) -> (foo) (bar) (baz|) ;; 2"
@@ -4823,6 +4826,7 @@ This acts exactly as `sp-end-of-sexp' with negative
 argument but subtracts 1 from it.
 
 Examples:
+
   (foo) (b|ar) (baz) -> (foo|) (bar) (baz)
 
   (foo) (bar) (b|az) -> (foo|) (bar) (baz) ;; 2"
