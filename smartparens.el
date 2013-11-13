@@ -1204,6 +1204,41 @@ beginning."
   (let ((sp (split-string string by)))
     (if (not (cdr sp)) (cons "" sp) sp)))
 
+;; see https://github.com/Fuco1/smartparens/issues/125#issuecomment-20356176
+(defun sp--current-indentation ()
+  "Get the indentation offset of the current line."
+  (save-excursion
+    (back-to-indentation)
+    (current-column)))
+
+(defun sp--calculate-indentation-offset (old-column old-indentation)
+  "Calculate correct indentation after re-indent."
+  (let ((indentation (sp--current-indentation)))
+    (cond
+     ;; Point was in code, so move it along with the re-indented code
+     ((>= old-column old-indentation)
+      (+ old-column (- indentation old-indentation)))
+     ;; Point was indentation, but would be in code now, so move to
+     ;; the beginning of indentation
+     ((<= indentation old-column) indentation)
+     ;; Point was in indentation, and still is, so leave it there
+     (:else old-column))))
+
+(defun sp--back-to-indentation (old-column old-indentation)
+  (let ((offset (sp--calculate-indentation-offset old-column old-indentation)))
+    (goto-char (+ (line-beginning-position) offset))))
+
+(defmacro sp--keep-indentation (&rest body)
+  "Execute BODY and restore the indentation."
+  (declare (indent 0)
+           (debug (body)))
+  (let ((c (make-symbol "c"))
+        (i (make-symbol "i")))
+    `(let ((,c (current-column))
+           (,i (sp--current-indentation)))
+       ,@body
+       (sp--back-to-indentation ,c ,i))))
+
 (defun sp--this-command-self-insert-p ()
   "Return non-nil if `this-command' is some sort of `self-insert-command'."
   (memq this-command '(self-insert-command
@@ -6008,7 +6043,8 @@ represent a valid object in a buffer!"
           (let ((b (bounds-of-thing-at-point 'line)))
             (delete-region (car b) (cdr b))))
         (setq indent-from (point)))
-      (indent-region indent-from indent-to))))
+      (sp--keep-indentation
+        (indent-region indent-from indent-to)))))
 
 (defun sp-unwrap-sexp (&optional arg)
   "Unwrap the following expression.
@@ -7047,30 +7083,6 @@ With ARG being Negative number -N, repeat that many times in
 backward direction."
   (interactive "p")
   (sp-backward-kill-symbol arg t))
-
-;; see https://github.com/Fuco1/smartparens/issues/125#issuecomment-20356176
-(defun sp--current-indentation ()
-  "Get the indentation offset of the current line."
-  (save-excursion
-    (back-to-indentation)
-    (current-column)))
-
-(defun sp--calculate-indentation-offset (old-column old-indentation)
-  "Calculate correct indentation after re-indent."
-  (let ((indentation (sp--current-indentation)))
-    (cond
-     ;; Point was in code, so move it along with the re-indented code
-     ((>= old-column old-indentation)
-      (+ old-column (- indentation old-indentation)))
-     ;; Point was indentation, but would be in code now, so move to
-     ;; the beginning of indentation
-     ((<= indentation old-column) indentation)
-     ;; Point was in indentation, and still is, so leave it there
-     (:else old-column))))
-
-(defun sp--back-to-indentation (old-column old-indentation)
-  (let ((offset (sp--calculate-indentation-offset old-column old-indentation)))
-    (goto-char (+ (line-beginning-position) offset))))
 
 (defun sp-indent-defun (arg)
   "Reindent the current defun.
