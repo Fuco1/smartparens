@@ -6,6 +6,7 @@
 (require 'smartparens-test-get-paired-expression)
 (require 'smartparens-test-get-stringlike-expression)
 (require 'smartparens-test-ruby-mode)
+(require 'smartparens-test-commands)
 
 (defun sp-test-run-tests ()
   (interactive)

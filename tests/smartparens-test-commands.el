@@ -1,0 +1,232 @@
+(require 'dash)
+(require 'smartparens-config)
+
+(defun sp-test-command-setup ()
+  (emacs-lisp-mode))
+
+(defmacro sp-test-command (command examples)
+  (declare (indent 1))
+  `(ert-deftest ,(intern (concat "sp-test-command-"
+                                 (symbol-name command))) ()
+     ,@(mapcar
+        (lambda (example-group)
+          `(let ,(car example-group)
+             (sp--test-command ',command ',(cdr example-group))))
+        examples)))
+
+(defun sp--test-command (command examples)
+  "Run the test for COMMAND."
+  (cl-dolist (example examples)
+    (let ((before (car example)))
+      (cl-dolist (expected (cdr example))
+        (with-temp-buffer
+          (sp-test-command-setup)
+          (insert before)
+          (goto-char (point-min))
+          (search-forward "|")
+          (delete-char -1)
+          (call-interactively command)
+          (insert "|")
+          (cond
+           ((eq expected 'error)
+            (should (equal before (buffer-string))))
+           ((stringp expected)
+            (should (equal expected (buffer-string)))))
+          (setq before expected))))))
+
+(sp-test-command sp-forward-sexp
+  ((nil
+    ("|foo" "foo|")
+    ("|foo bar" "foo| bar" "foo bar|")
+
+    ;; @{ paredit tests
+    ("|" "|")
+
+    ("|()" "()|" "()|")
+    ("(|)" "()|" "()|")
+    ("()|" "()|")
+
+    ("|( )" "( )|" "( )|")
+    ("(| )" "( )|" "( )|")
+    ("( |)" "( )|" "( )|")
+    ("( )|" "( )|")
+
+    ("|\"\"" "\"\"|" "\"\"|")
+    ("\"|\"" "\"\"|" "\"\"|")
+    ("\"\"|" "\"\"|")
+
+    ("|\")\"" "\")\"|" "\")\"|")
+    ;; ("\"|)\"" "\")|\"" "\")\"|" "\")\"|")
+    ("\")|\"" "\")\"|" "\")\"|")
+    ("\")\"|" "\")\"|")
+
+    ("|\"()\"" "\"()\"|" "\"()\"|")
+    ("\"|()\"" "\"()|\"" "\"()\"|" "\"()\"|")
+    ("\"(|)\"" "\"()|\"" "\"()\"|" "\"()\"|")
+    ("\"()\"|" "\"()\"|")
+
+    ("|(\"x\" \"y\")" "(\"x\" \"y\")|" "(\"x\" \"y\")|")
+    ("(|\"x\" \"y\")" "(\"x\"| \"y\")" "(\"x\" \"y\"|)"
+     "(\"x\" \"y\")|" "(\"x\" \"y\")|")
+    ("(\"|x\" \"y\")" "(\"x|\" \"y\")" "(\"x\"| \"y\")" "(\"x\" \"y\"|)"
+     "(\"x\" \"y\")|" "(\"x\" \"y\")|")
+    ("(\"x|\" \"y\")" "(\"x\"| \"y\")" "(\"x\" \"y\"|)"
+     "(\"x\" \"y\")|" "(\"x\" \"y\")|")
+    ("(\"x\"| \"y\")" "(\"x\" \"y\"|)" "(\"x\" \"y\")|" "(\"x\" \"y\")|")
+    ("(\"x\" |\"y\")" "(\"x\" \"y\"|)" "(\"x\" \"y\")|" "(\"x\" \"y\")|")
+    ("(\"x\" \"|y\")" "(\"x\" \"y|\")" "(\"x\" \"y\"|)"
+     "(\"x\" \"y\")|" "(\"x\" \"y\")|")
+    ("(\"x\" \"y|\")" "(\"x\" \"y\"|)" "(\"x\" \"y\")|" "(\"x\" \"y\")|")
+    ("(\"x\" \"y\"|)" "(\"x\" \"y\")|" "(\"x\" \"y\")|")
+    ("(\"x\" \"y\")|" "(\"x\" \"y\")|")
+    ;; @}
+    )
+   (((current-prefix-arg 2))
+    ("|foo bar" "foo bar|")
+    ("|(foo bar) baz" "(foo bar) baz|"))))
+
+(sp-test-command sp-backward-sexp
+  ((nil
+    ("foo|" "|foo")
+    ("foo bar|" "foo |bar" "|foo bar")
+
+    ;; @{paredit tests
+    ("|" "|")
+
+    ("|()" "|()")
+    ("(|)" "|()" "|()")
+    ("()|" "|()" "|()")
+
+    ("|( )" "|( )")
+    ("(| )" "|( )" "|( )")
+    ("( |)" "|( )" "|( )")
+    ("( )|" "|( )" "|( )")
+
+    ("|\"\"" "|\"\"")
+    ("\"|\"" "|\"\"" "|\"\"")
+    ("\"\"|" "|\"\"" "|\"\"")
+
+    ("|\")\"" "|\")\"")
+    ("\"|)\"" "|\")\"" "|\")\"")
+    ;; ("\")|\"" "|\")\"" "|\")\"")
+    ("\")\"|" "|\")\"" "|\")\"")
+
+    ("|\"()\"" "|\"()\"")
+    ("\"|()\"" "|\"()\"" "|\"()\"")
+    ("\"(|)\"" "\"|()\"" "|\"()\"" "|\"()\"")
+    ("\"()\"|" "|\"()\"" "|\"()\"")
+
+    ("|(\"x\" \"y\")" "|(\"x\" \"y\")")
+    ("(|\"x\" \"y\")" "|(\"x\" \"y\")" "|(\"x\" \"y\")")
+    ("(\"|x\" \"y\")" "(|\"x\" \"y\")" "|(\"x\" \"y\")" "|(\"x\" \"y\")")
+    ("(\"x|\" \"y\")" "(\"|x\" \"y\")" "(|\"x\" \"y\")"
+     "|(\"x\" \"y\")" "|(\"x\" \"y\")")
+    ("(\"x\"| \"y\")" "(|\"x\" \"y\")" "|(\"x\" \"y\")" "|(\"x\" \"y\")")
+    ("(\"x\" |\"y\")" "(|\"x\" \"y\")" "|(\"x\" \"y\")" "|(\"x\" \"y\")")
+    ("(\"x\" \"|y\")" "(\"x\" |\"y\")" "(|\"x\" \"y\")"
+     "|(\"x\" \"y\")" "|(\"x\" \"y\")")
+    ("(\"x\" \"y|\")" "(\"x\" \"|y\")" "(\"x\" |\"y\")" "(|\"x\" \"y\")"
+     "|(\"x\" \"y\")" "|(\"x\" \"y\")")
+    ("(\"x\" \"y\"|)" "(\"x\" |\"y\")" "(|\"x\" \"y\")"
+     "|(\"x\" \"y\")" "|(\"x\" \"y\")")
+    ("(\"x\" \"y\")|" "|(\"x\" \"y\")" "|(\"x\" \"y\")")
+    ;; @}
+    )))
+
+(sp-test-command sp-splice-sexp
+  ((nil
+    ("|(f (g\n    h))" error)
+    ("(|f (g\n    h))" "|f (g\n   h)")
+    ("(f| (g\n    h))" "f| (g\n   h)")
+    ("(f |(g\n    h))" "f |(g\n   h)")
+    ("(f (|g\n    h))" "(f |g\n   h)")
+    ("(f (g|\n    h))" "(f g|\n   h)")
+    ("(f (g\n|    h))" "(f g\n|   h)")
+    ("(f (g\n |   h))" "(f g\n |  h)")
+    ("(f (g\n  |  h))" "(f g\n  | h)")
+    ("(f (g\n   | h))" "(f g\n   |h)")
+    ("(f (g\n    |h))" "(f g\n   |h)")
+    ("(f (g\n    h|))" "(f g\n   h|)")
+    ("(f (g\n    h)|)" "f (g\n   h)|")
+    ("(f (g\n    h))|" error)
+
+    ;; Omit whitespace if appropriate.
+    ("|(f (\n    h))" error)
+    ("(|f (\n    h))" "|f (\n   h)")
+    ("(f| (\n    h))" "f| (\n   h)")
+    ("(f |(\n    h))" "f |(\n   h)")
+    ("(f (|\n    h))" "(f |\n h)")
+    ("(f (\n|    h))" "(f \n| h)")
+    ("(f (\n |   h))" "(f \n |h)")
+    ("(f (\n  |  h))" "(f \n |h)")
+    ("(f (\n   | h))" "(f \n |h)")
+    ("(f (\n    |h))" "(f \n |h)")
+    ("(f (\n    h|))" "(f \n h|)")
+    ("(f (\n    h)|)" "f (\n   h)|")
+    ("(f (\n    h))|" error)
+
+    ;; But leave comments intact.
+    ("(f (|   ;xy\n    h))" "(f |   ;xy\n h)")
+    ("(f ( |  ;xy\n    h))" "(f  |  ;xy\n h)")
+    ("(f (  | ;xy\n    h))" "(f   | ;xy\n h)")
+    ("(f (   |;xy\n    h))" "(f |   ;xy\n h)")
+    ("(f (   ;|xy\n    h))" "(f |   ;xy\n h)")
+    ("(f (   ;x|y\n    h))" "(f |   ;xy\n h)")
+    ("(f (   ;xy|\n    h))" "(f |   ;xy\n h)")
+    ("(f (   ;xy\n|    h))" "(f    ;xy\n| h)")
+    ("(f (   ;xy\n |   h))" "(f    ;xy\n |h)")
+    ("(f (   ;xy\n  |  h))" "(f    ;xy\n |h)")
+    ("(f (   ;xy\n   | h))" "(f    ;xy\n |h)")
+    ("(f (   ;xy\n    |h))" "(f    ;xy\n |h)")
+    ("(f (   ;xy\n    h|))" "(f    ;xy\n h|)")
+
+    ;; Don't touch indentation outside a limited scope.
+    ("(foo (|bar)\n          baz)" "(foo |bar\n          baz)")
+    ("(foo (b|ar)\n          baz)" "(foo b|ar\n          baz)")
+    ("(foo (ba|r)\n          baz)" "(foo ba|r\n          baz)")
+    ("(foo (bar|)\n          baz)" "(foo bar|\n          baz)")
+    ("  (foo\n  (|bar baz))" "  (foo\n   |bar baz)")
+    ("  (foo\n  (b|ar baz))" "  (foo\n   b|ar baz)")
+    ("  (foo\n  (ba|r baz))" "  (foo\n   ba|r baz)")
+    ("  (foo\n  (bar| baz))" "  (foo\n   bar| baz)")
+    ("  (foo\n  (bar |baz))" "  (foo\n   bar |baz)")
+    ("  (foo\n  (bar b|az))" "  (foo\n   bar b|az)")
+    ("  (foo\n  (bar ba|z))" "  (foo\n   bar ba|z)")
+    ("  (foo\n  (bar baz|))" "  (foo\n   bar baz|)")
+    ("  (foo (|(bar\n         baz)\n        quux)\n zot)"
+     "(foo |(bar\n      baz)\n     quux\n zot)")
+
+    ("  (foo ((bar\n         b|az)\n        quux)\n zot)"
+     "(foo (bar\n      b|az\n        quux)\n zot)"))))
+
+(sp-test-command sp-split-sexp
+  ((nil
+    ("(foo |bar baz)" "(foo) |(bar baz)")
+    ("(foo bar|)" "(foo bar)|()")
+
+    ("\"foo |bar baz\"" "\"foo\" |\"bar baz\"")
+    ("\"foo bar|\"" "\"foo bar\"|\"\""))
+
+   (((current-prefix-arg '(4)))
+    ("(foo |bar baz)" "(foo) |(bar) (baz)")
+    ("\"foo |bar baz\"" "\"foo\" |\"bar\" \"baz\""))))
+
+(sp-test-command sp-join-sexp
+  ((nil
+    ("(foo bar) |(baz)" "(foo bar |baz)")
+
+    ("[foo bar] |[baz]" "[foo bar |baz]")
+
+    ("(foo bar) |[baz]" error))
+
+   (((current-prefix-arg 2))
+    ("(foo) |(bar) (baz)" "(foo |bar baz)")
+
+    ("[foo] |[bar] [baz]" "[foo |bar baz]")
+
+    ("(foo) |[bar] [baz]" error))
+
+   (((current-prefix-arg '(4)))
+    ("(foo bar (baz)| (quux) (blob bluq))" "(foo bar (baz| quux blob bluq))"))))
+
+(provide 'smartparens-test-commands)
