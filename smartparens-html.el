@@ -164,6 +164,9 @@ backward."
   (sp-local-pair "<" ">")
   (sp-local-tag  "<" "<_>" "</_>" :transform 'sp-match-sgml-tags :post-handlers '(sp-html-post-handler)))
 
+(--each sp--html-modes
+  (add-to-list 'sp-navigate-consider-sgml-tags it))
+
 (provide 'smartparens-html)
 
 ;;; smartparens-html.el ends here
