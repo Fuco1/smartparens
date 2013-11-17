@@ -68,6 +68,7 @@
 (--each sp--html-modes
   (eval-after-load (symbol-name it) '(require 'smartparens-html)))
 (eval-after-load "latex"         '(require 'smartparens-latex))
+(eval-after-load "tex-mode"      '(require 'smartparens-latex))
 (eval-after-load "lua-mode"      '(require 'smartparens-lua))
 (eval-after-load "ruby-mode"     '(require 'smartparens-ruby))
 (eval-after-load "enh-ruby-mode" '(require 'smartparens-ruby))
