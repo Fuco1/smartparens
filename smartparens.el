@@ -1009,7 +1009,7 @@ blank line."
   :type 'boolean
   :group 'smartparens)
 
-(defcustom sp-hybrid-kill-entire-symbol t
+(defcustom sp-hybrid-kill-entire-symbol nil
   "Governs how symbols under point are treated by `sp-kill-hybrid-sexp'.
 
 If t, always kill the symbol under point.
