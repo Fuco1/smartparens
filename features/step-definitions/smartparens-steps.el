@@ -28,6 +28,10 @@
   (lambda ()
     (smartparens-mode -1)))
 
+(Given "^I turn on show smartparens$"
+  (lambda ()
+    (show-smartparens-mode 1)))
+
 (Given "^I add a pair \"\\([^\"]+\\)\"$"
   (lambda (pair)
     (let ((args (split-string pair "/")))
