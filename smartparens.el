@@ -741,23 +741,42 @@ and :unless properties of `sp-pair'."
   :type 'hook
   :group 'smartparens)
 
-(defcustom sp-autoskip-closing-pair t
+(defcustom sp-autoskip-closing-pair 'always-end
   "If t, skip the following closing pair if the expression is
-active (that is right after insertion).
+active (that is right after insertion).  This is controlled by
+`sp-cancel-autoskip-on-backward-movement'.
 
-If set to \"always\", skip the closing pair even if the
-expression is not active.  This only works for expressions with
+If set to \"always-end\", skip the closing pair even if the
+expression is not active and point is at the end of the
+expression.  This only works for expressions with
 single-character delimiters.  If the expression is a string-like
 expression, these must be enabled in current major-mode to work
 with this setting, see `sp-navigate-consider-stringlike-sexp'.
 
-See `sp-skip-closing-pair' for more info."
+If set to \"always\", `sp-up-sexp' is called whenever the closing
+delimiter is typed inside a sexp of the same type.  This is the
+paredit-like behaviour.  This setting only works for
+single-character delimiters and does not work for string-like
+delimiters.
+
+See `sp-autoskip-opening-pair' for similar setting for
+string-like delimiters.
+
+See also `sp-skip-closing-pair'."
   :type '(radio
           (const :tag "Never skip closing delimiter" nil)
           (const :tag "Skip closing delimiter in active expressions" t)
+          (const :tag "Always skip closing delimiter if at the end of sexp" always-end)
           (const :tag "Always skip closing delimiter" always))
   :group 'smartparens)
 (make-variable-buffer-local 'sp-autoskip-closing-pair)
+
+(defcustom sp-autoskip-opening-pair nil
+  "If non-nil, skip into the following string-like expression
+instead of inserting a new pair."
+  :type 'boolean
+  :group 'smartparens)
+(make-variable-buffer-local 'sp-autoskip-opening-pair)
 
 (defcustom sp-cancel-autoskip-on-backward-movement t
   "If non-nil, autoskip of closing pair is cancelled not only
@@ -3055,7 +3074,7 @@ followed by word.  It is disabled by default.  See
                               (sp--get-active-overlay 'pair)))
                     (if (eq sp-autoskip-closing-pair 'always)
                         (or (not (equal open-pair close-pair))
-                            (not (looking-at (regexp-quote close-pair))))
+                            (not (sp-skip-closing-pair nil t)))
                       t)
                     (sp--do-action-p open-pair 'insert t)
                     (if sp-autoinsert-if-followed-by-word t
@@ -3100,8 +3119,8 @@ followed by word.  It is disabled by default.  See
                           (not (equal open-pair close-pair)))))
                     (not (run-hook-with-args-until-success
                           'sp-autoinsert-inhibit-functions
-                           open-pair
-                           (or sp-point-inside-string (sp-point-in-comment))))))
+                          open-pair
+                          (or sp-point-inside-string (sp-point-in-comment))))))
           ;; if this pair could not be inserted, we try the procedure
           ;; again with this pair removed from sp-pair-list to give
           ;; chance to other pairs sharing a common suffix (for
@@ -3203,25 +3222,38 @@ active region."
           (sp--run-hook-with-args (car active-pair) :post-handlers 'wrap)
           sp-last-operation)))))
 
-;; TODO: [#A] this function is a monster.
-(defun sp-skip-closing-pair ()
-  "If point is inside an inserted pair, and the user only moved
+(defun sp--char-is-part-of-stringlike (char)
+  "Return non-nil if CHAR is part of a string-like delimiter of length 1."
+  (->> (sp--get-stringlike-list)
+    (--filter (= 1 (length (cdr it))))
+    (-map 'car)
+    (--any? (string-match-p (regexp-quote char) it))))
+
+(defun sp--char-is-part-of-closing (char)
+  "Return non-nil if CHAR is part of a pair delimiter of length 1."
+  (->> (sp--get-pair-list)
+    (--filter (= 1 (length (cdr it))))
+    (-map 'cdr)
+    (--any? (string-match-p (regexp-quote char) it))))
+
+;; TODO: this only supports single-char delimiters.  Maybe it should
+;; that that way.
+(defun sp-skip-closing-pair (&optional last test-only)
+  "Automatically skip the closing delimiters of pairs.
+
+If point is inside an inserted pair, and the user only moved
 forward with point (that is, only inserted text), if the closing
 pair is typed, we shouldn't insert it again but skip forward.  We
-call this state \"active sexp\".
+call this state \"active sexp\".  The setting
+`sp-cancel-autoskip-on-backward-movement' controls when an active
+expression become inactive.
 
 For example, pressing ( is followed by inserting the pair (|).  If
 we then type 'word' and follow by ), the result should be (word)|
 instead of (word)|).
 
-If the user moved backwards or outside the
-pair, this behaviour is canceled.  This behaviour can be globally
-disabled by setting `sp-cancel-autoskip-on-backward-movement' to
-nil.
-
-This behaviour can be globally disabled by setting
-`sp-autoskip-closing-pair' to nil.  You can also enable it for
-all sexps, not only active ones by setting it to 'always.
+This behaviour can be customized by various settings of
+`sp-autoskip-closing-pair' and `sp-autoskip-opening-pair'.
 
 Additionally, this behaviour can be selectively disabled for
 specific pairs by removing their \"autoskip\" action.  You can
@@ -3230,67 +3262,87 @@ achieve this by using `sp-pair' or `sp-local-pair' with
   (when (or (and (eq sp-autoskip-closing-pair t)
                  sp-pair-overlay-list
                  (sp--get-active-overlay 'pair))
-            (eq sp-autoskip-closing-pair 'always))
-    ;; TODO: this let is so ugly :/
-    (let* ((overlay (sp--get-active-overlay 'pair))
-           ;; FIXME: this is broken when we are inside an inactive
-           ;; sexp... only works for length 1.  We actually need to go
-           ;; back more than one char to search if we are inside a
-           ;; closing delimiter.
-           (enc (and (not overlay)
-                     (looking-at (sp--get-closing-regexp sp-pair-list))
-                     ;; if the pair is stringlike, this will break. So
-                     ;; we instead need to get the next string-like
-                     ;; expression, but first the newly inserted
-                     ;; character must be removed, because it would
-                     ;; flip the counter
-                     (if (sp-pair-is-stringlike-p (match-string 0))
-                         (let ((delim (delete-and-extract-region (1- (point)) (point))))
-                           (prog1 (sp-get-stringlike-expression)
-                             (insert delim)))
-                       (save-excursion (backward-char 1) (sp-get-enclosing-sexp)))))
-           (expr-start (if overlay (overlay-start overlay) (and enc (sp-get enc (if (equal :op :cl) (1+ :beg) :beg)))))
-           ;; +1 since the overlay automatically extends, we need to
-           ;; handle that if we're inside inactive sexp.
-
-           ;; This is only an issue when the character will complete
-           ;; the delimiter, since before then it is just skipped over
-           ;; during search.  In that case, we need to add "cl-l" to
-           ;; the `expr-end'.  Also, this fix only works for
-           ;; single-char delimiters.  This entire approach fails for
-           ;; multi-char.
-           (expr-end (if overlay (overlay-end overlay) (and enc (1+ (sp-get enc :end)))))
-           (open-pair (if overlay (overlay-get overlay 'pair-id) (sp-get enc :op)))
-           (close-pair (cdr (assoc open-pair sp-pair-list)))
-           ;; how many chars have we already typed.  This has to take
-           ;; into account if we're at the beg or end of the
-           ;; expression.
-           (already-skipped (and close-pair (- (length close-pair) (- (if (= (point) expr-start) (1+ expr-start) expr-end) (point))))))
-      ;; only if we're at the closing pair or inside it
-      (when (and (sp--do-action-p open-pair 'autoskip)
-                 close-pair (>= already-skipped 0))
-        ;; rest of yet-untyped close-pair
-        (let ((close-pair-rest (substring close-pair already-skipped))
-              (last last-command-event))
-          (when (and (sp--looking-at (regexp-quote close-pair-rest))
-                     ;; start deletion only if point is not right
-                     ;; after the opening pair *after* the potential
-                     ;; closing character was inserted (if opening
-                     ;; pair and closing pair are the same, it would
-                     ;; delete it right after the insertion otherwise)
-                     (if (equal open-pair close-pair) t (> (- (point) expr-start) (length open-pair))))
-            (if (equal (sp--single-key-description last) (substring close-pair-rest 0 1))
-                (progn
-                  (forward-char 1)
-                  (delete-char (- 1))
-                  (setq sp-last-operation 'sp-skip-closing-pair))
-              ;; Charactar that is not part of the closing pair was
-              ;; typed.  Only remove overlays if we're inside the
-              ;; closing pair.  If we are at the beginning, we are
-              ;; allowed to type other characters.  Note: what does
-              ;; this do exactly???
-              (when (and (> already-skipped 0) overlay)
-                (mapc 'sp--remove-overlay sp-pair-overlay-list)))))))))
+            (memq sp-autoskip-closing-pair '(always always-end)))
+    ;; these two are pretty hackish ~_~
+    (cl-flet ((get-sexp
+               ()
+               (delete-char -1)
+               (insert " ")
+               (prog1 (sp-get-sexp)
+                 (delete-char -1)
+                 (insert last)))
+              (get-enclosing-sexp
+               ()
+               (delete-char -1)
+               (insert " ")
+               (prog1 (sp-get-enclosing-sexp)
+                 (delete-char -1)
+                 (insert last))))
+      (let ((last (or last (sp--single-key-description last-command-event))))
+        (-when-let (active-sexp
+                    (cond
+                     ((-when-let* ((ov (sp--get-active-overlay 'pair))
+                                   (op (overlay-get ov 'pair-id))
+                                   (cl (cdr (assoc op sp-pair-list))))
+                        ;; if the sexp is active, we are inside it.
+                        (when (and (= 1 (length op))
+                                   (equal last cl))
+                          (list :beg (overlay-start ov)
+                                :end (overlay-end ov)
+                                :op op
+                                :cl cl
+                                :prefix ""
+                                :suffix ""))))
+                     ((sp--char-is-part-of-stringlike last)
+                      ;; a part of closing delimiter is typed. There are four
+                      ;; options now:
+                      ;; - we are inside the sexp, at its end
+                      ;; - we are inside the sexp, somewhere in the middle
+                      ;; - we are outside, in front of a sexp
+                      ;; - we are outside, somewhere between sexps
+                      (cond
+                       ((and (sp--looking-at (sp--get-stringlike-regexp))
+                             (not (sp--skip-match-p (match-string-no-properties 0)
+                                                    (match-beginning 0)
+                                                    (match-end 0))))
+                        ;; if we're looking at the delimiter, and it is valid in
+                        ;; current context, get the sexp.
+                        (get-sexp))
+                       ;; here comes the feature when we're somewhere in the
+                       ;; middle of the sexp (or outside), if ever supported.
+                       ))
+                     ((sp--char-is-part-of-closing last)
+                      (cond
+                       ((and (sp--looking-at (sp--get-closing-regexp))
+                             (not (sp--skip-match-p (match-string-no-properties 0)
+                                                    (match-beginning 0)
+                                                    (match-end 0))))
+                        (get-sexp))
+                       ;; here comes the feature when we're somewhere in the
+                       ;; middle of the sexp (or outside), if ever supported.
+                       ((eq sp-autoskip-closing-pair 'always)
+                        (let ((enc (get-enclosing-sexp)))
+                          (when (equal (sp-get enc :cl) last)
+                            enc)))))))
+          (when (sp--do-action-p (sp-get active-sexp :op) 'autoskip)
+            (cond
+             ((= (point) (sp-get active-sexp :beg))
+              ;; we are in front of a string-like sexp
+              (when sp-autoskip-opening-pair
+                (if test-only t
+                  (delete-char -1)
+                  (forward-char)
+                  (setq sp-last-operation 'sp-skip-closing-pair))))
+             ((= (point) (sp-get active-sexp :end-in))
+              (if test-only t
+                (delete-char 1)
+                (setq sp-last-operation 'sp-skip-closing-pair)))
+             ((sp-get active-sexp
+                (and (> (point) :beg-in)
+                     (< (point) :end-in)))
+              (if test-only t
+                (delete-char -1)
+                (sp-up-sexp))))))))))
 
 (defun sp-delete-pair (&optional arg)
   "Automatically delete opening or closing pair, or both, depending on
