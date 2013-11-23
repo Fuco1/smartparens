@@ -3326,10 +3326,10 @@ achieve this by using `sp-pair' or `sp-local-pair' with
                        ;; here comes the feature when we're somewhere in the
                        ;; middle of the sexp (or outside), if ever supported.
                        ((eq sp-autoskip-closing-pair 'always)
-                        (let ((enc (get-enclosing-sexp)))
-                          (when (equal (sp-get enc :cl) last)
-                            enc)))))))
-          (when (sp--do-action-p (sp-get active-sexp :op) 'autoskip)
+                        (get-enclosing-sexp))))))
+          (when (and active-sexp
+                     (equal (sp-get active-sexp :cl) last)
+                     (sp--do-action-p (sp-get active-sexp :op) 'autoskip))
             (cond
              ((= (point) (sp-get active-sexp :beg))
               ;; we are in front of a string-like sexp
