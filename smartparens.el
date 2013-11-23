@@ -2523,6 +2523,11 @@ stuff here."
 This is used for navigation functions."
   (--filter (not (string= (car it) (cdr it))) sp-pair-list))
 
+(defun sp--get-stringlike-list ()
+  "Return all pairs that are recognized in this `major-mode' that
+have same opening and closing delimiter."
+  (--filter (string= (car it) (cdr it)) sp-pair-list))
+
 (defun sp--get-allowed-pair-list ()
   "Return all pairs that are recognized in this
 `major-mode', do not have same opening and closing delimiter and
