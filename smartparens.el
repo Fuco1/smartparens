@@ -637,6 +637,18 @@ MODES."
   :type '(repeat symbol)
   :group 'smartparens)
 
+(defcustom sp-global-when-list nil
+  "List of functions analagous to the :when argument of sp-pair, but run for
+every pair, not just one."
+  :type '(repeat symbol)
+  :group 'smartparens)
+
+(defcustom sp-global-unless-list nil
+  "List of functions analagous to the :unless argument of sp-pair, but run for
+every pair, not just one."
+  :type '(repeat symbol)
+  :group 'smartparens)
+
 ;;;###autoload
 (define-globalized-minor-mode smartparens-global-mode
   smartparens-mode
@@ -2255,8 +2267,8 @@ If USE-INSIDE-STRING is non-nil, use value of
 `sp-point-in-string-or-comment'."
   (setq action (-flatten (list action)))
   (let* ((actions (sp-get-pair id :actions))
-         (when-l (sp-get-pair id :when))
-         (unless-l (sp-get-pair id :unless))
+         (when-l (-concat sp-global-when-list (sp-get-pair id :when)))
+         (unless-l (-concat sp-global-unless-list (sp-get-pair id :unless)))
          (in-string (if use-inside-string
                         ;; if we're not inside a string, we can still
                         ;; be inside a comment!
