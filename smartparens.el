@@ -7207,33 +7207,36 @@ comment."
   "Insert the comment character and adjust hanging sexps such
   that it doesn't break structure."
   (interactive)
-  (let ((old-point (point))
-        (column (current-column))
-        (indentation (sp--current-indentation))
-        (old-line (line-number-at-pos))
-        (hsexp (sp-get-hybrid-sexp))
-        (newline-inserted 0))
-    (goto-char (sp-get hsexp :end))
-    (if (sp--looking-at (sp--get-closing-regexp))
-        (progn
+  (if (sp-point-in-comment)
+      (when (= 1 (length (single-key-description last-command-event))) ;; pretty hacky
+        (insert (single-key-description last-command-event)))
+    (let ((old-point (point))
+          (column (current-column))
+          (indentation (sp--current-indentation))
+          (old-line (line-number-at-pos))
+          (hsexp (sp-get-hybrid-sexp))
+          (newline-inserted 0))
+      (goto-char (sp-get hsexp :end))
+      (if (sp--looking-at (sp--get-closing-regexp))
+          (progn
+            (newline)
+            (setq newline-inserted (1+ (- (line-end-position) (point)))))
+        (when (/= old-line (line-number-at-pos))
+          (sp-backward-sexp)
           (newline)
-          (setq newline-inserted (1+ (- (line-end-position) (point)))))
-      (when (/= old-line (line-number-at-pos))
-        (sp-backward-sexp)
-        (newline)
-        (setq newline-inserted (- (line-end-position) (point)))))
-    ;; @{ indenting madness
-    (goto-char old-point)
-    (sp-get hsexp (indent-region :beg (+ :end newline-inserted)))
-    (sp--back-to-indentation column indentation)
-    ;; @}
-    (let ((comment-delim (or (cdr (--first (memq major-mode (car it)) sp-comment-string))
-                             comment-start)))
-      (insert comment-delim)
-      (when (/= newline-inserted 0)
-        (save-excursion
-          (forward-line 1)
-          (indent-according-to-mode))))))
+          (setq newline-inserted (- (line-end-position) (point)))))
+      ;; @{ indenting madness
+      (goto-char old-point)
+      (sp-get hsexp (indent-region :beg (+ :end newline-inserted)))
+      (sp--back-to-indentation column indentation)
+      ;; @}
+      (let ((comment-delim (or (cdr (--first (memq major-mode (car it)) sp-comment-string))
+                               comment-start)))
+        (insert comment-delim)
+        (when (/= newline-inserted 0)
+          (save-excursion
+            (forward-line 1)
+            (indent-according-to-mode)))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
