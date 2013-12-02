@@ -1805,7 +1805,7 @@ modes, use this property on `sp-local-pair' instead."
           (plist-put pair (car arg) (eval (cdr arg)))))
       (sp--update-pair-list pair t))
     (sp--update-trigger-keys)
-    (when (or wrap bind) (global-set-key (kbd (or wrap bind))
+    (when (or wrap bind) (global-set-key (read-kbd-macro (or wrap bind))
                                          `(lambda (&optional arg)
                                             (interactive "P")
                                             (sp-wrap-with-pair ,open))))
@@ -1926,7 +1926,7 @@ addition, there is a global per major-mode option, see
         (-when-let* ((symbol (intern (concat (symbol-name m) "-map")))
                      (map (and (boundp symbol) (symbol-value symbol))))
           (when (or wrap bind) (define-key map
-                                 (kbd (or wrap bind))
+                                 (read-kbd-macro (or wrap bind))
                                  `(lambda (&optional arg)
                                     (interactive "P")
                                     (sp-wrap-with-pair ,open))))
