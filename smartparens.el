@@ -7091,10 +7091,11 @@ See `sp-forward-symbol' for what constitutes a symbol."
                       (if word
                           (kill-region p (save-excursion (forward-word) (point)))
                         (kill-region p :end))
-                    (goto-char :beg-prf)
-                    (if word
-                        (kill-region :beg-prf (save-excursion (forward-word) (point)))
-                      (kill-region :beg-prf :end))))))))
+                    (let ((kill-from (if (> p :beg-prf) :beg :beg-prf)))
+                      (goto-char kill-from)
+                      (if word
+                          (kill-region kill-from (save-excursion (forward-word) (point)))
+                        (kill-region kill-from :end)))))))))
         (sp--cleanup-after-kill)
         (setq arg (1- arg)))
     (sp-backward-kill-symbol (sp--negate-argument arg) word)))

@@ -229,4 +229,20 @@
    (((current-prefix-arg '(4)))
     ("(foo bar (baz)| (quux) (blob bluq))" "(foo bar (baz| quux blob bluq))"))))
 
+(sp-test-command sp-kill-word
+  ((nil
+    ("|  'foo-bar-baz" "|-bar-baz")
+    ("|'foo-bar-baz" "|-bar-baz")
+    ("'|foo-bar-baz" "'|-bar-baz")
+    ("'f|oo-bar-baz" "'f|-bar-baz")
+    ("'foo-|bar-baz" "'foo-|-baz"))))
+
+(sp-test-command sp-kill-symbol
+  ((nil
+    ("|  'foo-bar-baz" "|")
+    ("|'foo-bar-baz" "|")
+    ("'|foo-bar-baz" "'|")
+    ("'f|oo-bar-baz" "'|")
+    ("'foo-|bar-baz" "'|"))))
+
 (provide 'smartparens-test-commands)
