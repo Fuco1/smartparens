@@ -2192,6 +2192,10 @@ are of zero length, or if point moved backwards."
   "Return t if point is inside code, nil otherwise."
   (eq context 'code))
 
+(defun sp-in-comment-p (id action context)
+  "Return t if point is inside comment, nil otherwise."
+  (eq context 'comment))
+
 (defun sp-in-math-p (id action context)
   "Return t if point is inside code, nil otherwise."
   (when (functionp 'texmathp)
@@ -2262,12 +2266,11 @@ If USE-INSIDE-STRING is non-nil, use value of
          (when-l (sp-get-pair id :when))
          (unless-l (sp-get-pair id :unless))
          (in-string (if use-inside-string
-                        ;; if we're not inside a string, we can still
-                        ;; be inside a comment!
-                        (or sp-point-inside-string (sp-point-in-comment))
-                      (sp-point-in-string-or-comment)))
+                        sp-point-inside-string
+                      (sp-point-in-string)))
          (context (cond
                    (in-string 'string)
+                   ((sp-point-in-comment) 'comment)
                    (t 'code)))
          a r)
     (while (and action (not r))
