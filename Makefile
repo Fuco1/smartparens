@@ -3,7 +3,7 @@ CASK ?= cask
 ECUKES ?= ecukes
 #$(shell find elpa/ecukes-*/ecukes | tail -1)
 
-test: unit-tests ecukes-features
+test: unit-tests #ecukes-features
 
 unit-tests: elpa
 	${CASK} exec ${EMACS} -Q -batch -L . -L tests \
