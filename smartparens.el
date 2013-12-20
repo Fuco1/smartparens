@@ -372,6 +372,10 @@ The format is the same as returned by `sp-get-sexp'.")
 Used to remember the state from before `self-insert-command' is
 run.")
 
+(defvar sp-buffer-modified-p nil
+  "Non-nil if buffer was modified before the advice on
+`self-insert-command' executed.")
+
 (defconst sp-max-pair-length-c 10
   "Maximum length of an opening or closing delimiter.
 
@@ -2421,6 +2425,7 @@ would execute if smartparens-mode were disabled."
 
 (defadvice self-insert-command (around self-insert-command-adviced activate)
   (setq sp-point-inside-string (sp-point-in-string))
+  (setq sp-buffer-modified-p (buffer-modified-p))
 
   ad-do-it
 
@@ -3330,24 +3335,25 @@ achieve this by using `sp-pair' or `sp-local-pair' with
           (when (and active-sexp
                      (equal (sp-get active-sexp :cl) last)
                      (sp--do-action-p (sp-get active-sexp :op) 'autoskip))
-            (cond
-             ((= (point) (sp-get active-sexp :beg))
-              ;; we are in front of a string-like sexp
-              (when sp-autoskip-opening-pair
-                (if test-only t
-                  (delete-char -1)
-                  (forward-char)
-                  (setq sp-last-operation 'sp-skip-closing-pair))))
-             ((= (point) (sp-get active-sexp :end-in))
-              (if test-only t
-                (delete-char 1)
-                (setq sp-last-operation 'sp-skip-closing-pair)))
-             ((sp-get active-sexp
-                (and (> (point) :beg-in)
-                     (< (point) :end-in)))
-              (if test-only t
-                (delete-char -1)
-                (sp-up-sexp))))))))))
+            (when (cond
+                   ((= (point) (sp-get active-sexp :beg))
+                    ;; we are in front of a string-like sexp
+                    (when sp-autoskip-opening-pair
+                      (if test-only t
+                        (delete-char -1)
+                        (forward-char)
+                        (setq sp-last-operation 'sp-skip-closing-pair))))
+                   ((= (point) (sp-get active-sexp :end-in))
+                    (if test-only t
+                      (delete-char 1)
+                      (setq sp-last-operation 'sp-skip-closing-pair)))
+                   ((sp-get active-sexp
+                      (and (> (point) :beg-in)
+                           (< (point) :end-in)))
+                    (if test-only t
+                      (delete-char -1)
+                      (sp-up-sexp))))
+              (unless sp-buffer-modified-p (set-buffer-modified-p nil)))))))))
 
 (defun sp-delete-pair (&optional arg)
   "Automatically delete opening or closing pair, or both, depending on
