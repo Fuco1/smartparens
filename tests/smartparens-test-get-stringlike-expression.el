@@ -116,7 +116,8 @@
   "Test basic stringlike expressions in `latex-mode'."
   (sp-test-setup-stringlike-expression-env-latex
    (--each sp-test-get-stringlike-expression
-     (sp-test-stringlike-sexp (car it) (apply 'sp-test-make-pair (cddr it)) (cadr it) nil nil))
+     (when (sp-get-pair (nth 4 it))
+       (sp-test-stringlike-sexp (car it) (apply 'sp-test-make-pair (cddr it)) (cadr it) nil nil)))
    (--each sp-test-get-stringlike-expression-latex
      (sp-test-stringlike-sexp (car it) (apply 'sp-test-make-pair (cddr it)) (cadr it) nil nil))))
 
