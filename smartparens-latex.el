@@ -75,6 +75,9 @@ This predicate is only tested on \"insert\" action."
   (when (eq action 'insert)
     (looking-back (concat "\\\\" (regexp-quote id)))))
 
+(add-to-list 'sp-navigate-skip-match
+             '((tex-mode plain-tex-mode latex-mode) . sp--backslash-skip-match))
+
 (sp-with-modes '(
                  tex-mode
                  plain-tex-mode
@@ -101,17 +104,17 @@ This predicate is only tested on \"insert\" action."
   ;; pairs for big brackets.  Needs more research on what pairs are
   ;; useful to add here.  Post suggestions if you know some.
   (sp-local-pair "\\left(" "\\right)"
-		 :trigger "\\l("
-		 :when '(sp-in-math-p)
-		 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+                 :trigger "\\l("
+                 :when '(sp-in-math-p)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\left[" "\\right]"
-		 :trigger "\\l["
-		 :when '(sp-in-math-p)
-		 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+                 :trigger "\\l["
+                 :when '(sp-in-math-p)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\left\\{" "\\right\\}"
-		 :trigger "\\l{"
-		 :when '(sp-in-math-p)
-		 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+                 :trigger "\\l{"
+                 :when '(sp-in-math-p)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\bigl(" "\\bigr)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\biggl(" "\\biggr)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\Bigl(" "\\Bigr)" :post-handlers '(sp-latex-insert-spaces-inside-pair))

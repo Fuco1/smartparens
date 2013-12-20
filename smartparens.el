@@ -3588,6 +3588,12 @@ be a function call that sets the match data."
                     (not (sp--looking-back "\\s_\\?" 2 t))
                     (not (sp--looking-back "\\sw\\?" 2 t))))))))
 
+(defun sp--backslash-skip-match (ms mb me)
+  (and ms
+       (save-excursion
+         (goto-char mb)
+         (sp--looking-back "\\\\" 1 t))))
+
 ;; TODO: since this function is used for all the navigation, we should
 ;; optimaze it a lot! Get some elisp profiler! Also, we should split
 ;; this into smaller functions (esp. the "first expression search"
