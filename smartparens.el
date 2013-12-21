@@ -2297,11 +2297,11 @@ If USE-INSIDE-STRING is non-nil, use value of
 
 (defun sp--parse-insertion-spec (fun)
   "Parse the insertion specification FUN and return a form to evaluate."
-  (flet ((push-non-empty
-          (what)
-          (unless (equal (cadr what) "")
-            ;; relies on dynamic binding
-            (push what spec))))
+  (cl-flet ((push-non-empty
+             (what)
+             (unless (equal (cadr what) "")
+               ;; relies on dynamic binding
+               (push what spec))))
     (let ((spec nil)
           (after nil)
           (last 1))
