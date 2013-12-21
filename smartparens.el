@@ -2295,13 +2295,72 @@ If USE-INSIDE-STRING is non-nil, use value of
                       (sp-point-in-string-or-comment)))))
     (if in-string 'string 'code)))
 
+(defun sp--parse-insertion-spec (fun)
+  "Parse the insertion specification FUN and return a form to evaluate."
+  (flet ((push-non-empty
+          (what)
+          (unless (equal (cadr what) "")
+            ;; relies on dynamic binding
+            (push what spec))))
+    (let ((spec nil)
+          (after nil)
+          (last 1))
+      (with-temp-buffer
+        (insert fun)
+        (goto-char (point-min))
+        (while (re-search-forward "\\(|\\|\\[\\)" nil t)
+          (cond
+           ((equal (match-string 0) "[")
+            (if (eq (preceding-char) 92)
+                (push-non-empty `(insert ,(concat (buffer-substring-no-properties last (- (point) 2)) "[")))
+              (push-non-empty `(insert ,(buffer-substring-no-properties last (1- (point)))))
+              (let* ((p (point))
+                     (fun-end (progn
+                                (re-search-forward "]" nil t)
+                                (1- (point))))
+                     (fun-spec (buffer-substring-no-properties p fun-end))
+                     (instruction (cond
+                                   ((equal fun-spec "i")
+                                    '(indent-according-to-mode)))))
+                (when instruction (push instruction spec)))))
+           ((equal (match-string 0) "|")
+            (cond
+             ((eq (preceding-char) 92)
+              (push-non-empty `(insert ,(concat (buffer-substring-no-properties last (- (point) 2)) "|"))))
+             (t
+              (push-non-empty `(insert ,(buffer-substring-no-properties last (1- (point)))))
+              (push 'save-excursion spec)
+              (when (eq (following-char) 124)
+                (forward-char 1)
+                (setq after '(indent-according-to-mode)))))))
+          (setq last (point)))
+        (push-non-empty `(insert ,(buffer-substring-no-properties last (point-max)))))
+      (let* ((specr (nreverse spec))
+             (specsplit (--split-with (not (eq it 'save-excursion)) specr))
+             (re (-concat (car specsplit) (if (cadr specsplit) (cdr specsplit) nil))))
+        (cons 'progn (if after (-snoc re after) re))))))
+
+(defun sp--run-function-or-insertion (fun id action context)
+  "Run a function or insertion.
+
+If FUN is a function, call it with `funcall' with ID, ACTION and
+CONTEXT as arguments.
+
+If FUN is a string, interpret it as \"insertion specification\",
+see `sp-pair' for description."
+  (cond
+   ((functionp fun)
+    (funcall fun id action context))
+   ((stringp fun)
+    (eval (sp--parse-insertion-spec fun)))))
+
 (defun sp--run-hook-with-args (id type action)
   "Run all the hooks for pair ID of type TYPE on action ACTION."
   (ignore-errors
     (let ((hook (sp-get-pair id type))
           (context (sp--get-context type)))
       (if hook
-          (run-hook-with-args 'hook id action context)
+           (--each hook (sp--run-function-or-insertion it id action context))
         (let ((tag-hook (plist-get
                          (--first (string-match-p
                                    (replace-regexp-in-string "_" ".*?" (plist-get it :open))
@@ -2340,8 +2399,9 @@ If USE-INSIDE-STRING is non-nil, use value of
                     (conds (cdr it)))
                 (when (or (--any? (eq this-command it) conds)
                           (--any? (equal (single-key-description last-command-event) it) conds))
-                  (funcall fun sp-last-inserted-pair 'insert
-                           (sp--get-context :post-handlers)))))))
+                  (sp--run-function-or-insertion
+                   fun sp-last-inserted-pair 'insert
+                   (sp--get-context :post-handlers)))))))
         (setq sp-last-inserted-pair nil))
 
       ;; Here we run the delayed insertion. Some details in issue #113
