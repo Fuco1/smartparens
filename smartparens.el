@@ -522,7 +522,7 @@ after the smartparens indicator in the mode list."
 
 ;;;###autoload
 (defun turn-on-smartparens-strict-mode ()
-  "Turn on `smartparens-mode'."
+  "Turn on `smartparens-strict-mode'."
   (interactive)
   (unless (or (member major-mode sp-ignore-modes-list)
               (and (not (derived-mode-p 'comint-mode))
