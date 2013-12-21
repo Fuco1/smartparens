@@ -42,6 +42,20 @@ executing `sp-skip-closing-pair'."
                     (insert "a")
                     (save-excursion
                       (insert "b")))))
+  (should (equal (sp--parse-insertion-spec "a\\|b")
+                 '(progn (insert "a|") (insert "b"))))
+  (should (equal (sp--parse-insertion-spec "a\\||b")
+                 '(progn
+                    (insert "a|")
+                    (save-excursion
+                      (insert "b")))))
+  (should (equal (sp--parse-insertion-spec "a\\[b]")
+                 '(progn (insert "a[") (insert "b]"))))
+  (should (equal (sp--parse-insertion-spec "a\\[b[i]")
+                 '(progn
+                    (insert "a[")
+                    (insert "b")
+                    (indent-according-to-mode))))
   (should (equal (sp--parse-insertion-spec "a||b")
                  '(progn
                     (insert "a")

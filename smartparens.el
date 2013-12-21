@@ -2311,7 +2311,7 @@ If USE-INSIDE-STRING is non-nil, use value of
         (while (re-search-forward "\\(|\\|\\[\\)" nil t)
           (cond
            ((equal (match-string 0) "[")
-            (if (eq (preceding-char) 92)
+            (if (save-excursion (backward-char 1) (eq (preceding-char) 92))
                 (push-non-empty `(insert ,(concat (buffer-substring-no-properties last (- (point) 2)) "[")))
               (push-non-empty `(insert ,(buffer-substring-no-properties last (1- (point)))))
               (let* ((p (point))
@@ -2325,7 +2325,7 @@ If USE-INSIDE-STRING is non-nil, use value of
                 (when instruction (push instruction spec)))))
            ((equal (match-string 0) "|")
             (cond
-             ((eq (preceding-char) 92)
+             ((save-excursion (backward-char 1) (eq (preceding-char) 92))
               (push-non-empty `(insert ,(concat (buffer-substring-no-properties last (- (point) 2)) "|"))))
              (t
               (push-non-empty `(insert ,(buffer-substring-no-properties last (1- (point)))))
