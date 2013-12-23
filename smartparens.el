@@ -1765,11 +1765,16 @@ the pairs stay on the same line.
 
 WRAP is a key binding to which a \"wrapping\" action is bound.
 The key should be in format that is accepted by `kbd'.  This
-function will be generated on the fly by smartparens, using name
-\"sp---wrap-with-<ASCII-OF-CHAR1>-<ASCII-OF-CHAR2>-...\".  The
-binding is be added to global keymap.  When executed, it wraps
-ARG (default 1) expressions with this pair (like
-`paredit-wrap-round' and friends).
+option binds a lambda form:
+
+  `(lambda (&optional arg)
+     (interactive \"P\")
+     (sp-wrap-with-pair ,OPEN))
+
+to the specified key sequence.  The binding is added to global
+keymap.  When executed, it wraps ARG (default 1) expressions with
+this pair (like `paredit-wrap-round' and friends).  Additionally,
+it accepts the same prefix arguments as `sp-select-next-thing'.
 
 BIND is equivalent to WRAP.  It is a legacy setting and will be
 removed soon.
