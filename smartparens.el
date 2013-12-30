@@ -3403,25 +3403,28 @@ achieve this by using `sp-pair' or `sp-local-pair' with
           (when (and active-sexp
                      (equal (sp-get active-sexp :cl) last)
                      (sp--do-action-p (sp-get active-sexp :op) 'autoskip))
-            (when (cond
-                   ((= (point) (sp-get active-sexp :beg))
-                    ;; we are in front of a string-like sexp
-                    (when sp-autoskip-opening-pair
-                      (if test-only t
-                        (delete-char -1)
-                        (forward-char)
-                        (setq sp-last-operation 'sp-skip-closing-pair))))
-                   ((= (point) (sp-get active-sexp :end-in))
-                    (if test-only t
-                      (delete-char 1)
-                      (setq sp-last-operation 'sp-skip-closing-pair)))
-                   ((sp-get active-sexp
-                      (and (> (point) :beg-in)
-                           (< (point) :end-in)))
-                    (if test-only t
-                      (delete-char -1)
-                      (sp-up-sexp))))
-              (unless sp-buffer-modified-p (set-buffer-modified-p nil)))))))))
+            (-when-let (re (cond
+                            ((= (point) (sp-get active-sexp :beg))
+                             ;; we are in front of a string-like sexp
+                             (when sp-autoskip-opening-pair
+                               (if test-only t
+                                 (delete-char -1)
+                                 (forward-char)
+                                 (setq sp-last-operation 'sp-skip-closing-pair))))
+                            ((= (point) (sp-get active-sexp :end-in))
+                             (if test-only t
+                               (delete-char 1)
+                               (setq sp-last-operation 'sp-skip-closing-pair)))
+                            ((sp-get active-sexp
+                               (and (> (point) :beg-in)
+                                    (< (point) :end-in)))
+                             (if test-only t
+                               (delete-char -1)
+                               (sp-up-sexp)))))
+              (unless (or test-only
+                          sp-buffer-modified-p)
+                (set-buffer-modified-p nil))
+              re)))))))
 
 (defun sp-delete-pair (&optional arg)
   "Automatically delete opening or closing pair, or both, depending on
