@@ -452,7 +452,8 @@ Symbol is defined as a chunk of text recognized by
 
 (defgroup smartparens ()
   "Smartparens minor mode."
-  :group 'editor)
+  :group 'editor
+  :prefix "sp-")
 
 ;;;###autoload
 (define-minor-mode smartparens-mode
@@ -518,7 +519,8 @@ after the smartparens indicator in the mode list."
 ;;;###autoload
 (define-globalized-minor-mode smartparens-global-strict-mode
   smartparens-strict-mode
-  turn-on-smartparens-strict-mode)
+  turn-on-smartparens-strict-mode
+  :group 'smartparens)
 
 ;;;###autoload
 (defun turn-on-smartparens-strict-mode ()
