@@ -2578,7 +2578,7 @@ would execute if smartparens-mode were disabled."
            (not (member 'pre-command-hook 'cua--pre-command-handler)))
       (cua--pre-command-handler))
      ((and (boundp 'delete-selection-mode) delete-selection-mode
-           (not (member 'pre-command-hook 'delete-selection-pre-hook)))
+           (not (member 'delete-selection-pre-hook 'pre-command-hook)))
       (delete-selection-pre-hook)))))
 
 (defun sp--pre-command-hook-handler ()
