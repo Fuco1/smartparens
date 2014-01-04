@@ -2574,11 +2574,11 @@ would execute if smartparens-mode were disabled."
     ;; disabled.  Smartparens-mode adds advices on cua-mode and
     ;; delete-selection-mode that automatically remove the callbacks
     (cond
-     ((and (boundp 'cua-mode) cua-mode
-           (not (member 'pre-command-hook 'cua--pre-command-handler)))
+     ((and (bound-and-true-p cua-mode)
+           (not (member 'cua--pre-command-handler pre-command-hook)))
       (cua--pre-command-handler))
-     ((and (boundp 'delete-selection-mode) delete-selection-mode
-           (not (member 'pre-command-hook 'delete-selection-pre-hook)))
+     ((and (bound-and-true-p delete-selection-mode)
+           (not (member 'delete-selection-pre-hook pre-command-hook)))
       (delete-selection-pre-hook)))))
 
 (defun sp--pre-command-hook-handler ()
