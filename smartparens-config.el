@@ -58,7 +58,7 @@
   (sp-local-pair "'" nil :actions nil)
   ;; also only use the pseudo-quote inside strings where it serve as
   ;; hyperlink.
-  (sp-local-pair "`" "'" :when '(sp-in-string-p)))
+  (sp-local-pair "`" "'" :when '(sp-in-string-p sp-in-comment-p)))
 
 ;; NOTE: Normally, `sp-local-pair' accepts list of modes (or a single
 ;; mode) as a first argument.  The macro `sp-with-modes' adds this
