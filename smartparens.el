@@ -3649,13 +3649,17 @@ be a function call that sets the match data."
               (match-end 0)))))
 
 (defun sp--elisp-skip-match (ms mb me)
-  "Function used to test for escapes in lisp modes."
+  "Function used to test for escapes in lisp modes.
+
+Non-nil return value means to skip the result."
   (and ms
        (> mb 1)
        (save-excursion
          (goto-char mb)
          (save-match-data
-           (or (sp--looking-back "\\\\" 1 t)
+           (or (and (sp--looking-back "\\\\" 1 t)
+                    ;; it might be a part of ?\\ token
+                    (not (sp--looking-back "\\?\\\\\\\\" 3 t)))
                (and (not (sp-point-in-string-or-comment))
                     (sp--looking-back "\\?" 1 t) ;;TODO surely we can do better
                     (not (sp--looking-back "\\s_\\?" 2 t))
