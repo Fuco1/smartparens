@@ -384,16 +384,16 @@ can be of any length.")
 
 (defvar sp-pairs '((t
                     .
-                    ((:open "\\\\(" :close "\\\\)" :actions (insert wrap autoskip))
-                     (:open "\\{"   :close "\\}"   :actions (insert wrap autoskip))
-                     (:open "\\("   :close "\\)"   :actions (insert wrap autoskip))
-                     (:open "\\\""  :close "\\\""  :actions (insert wrap autoskip))
-                     (:open "\""    :close "\""    :actions (insert wrap autoskip))
-                     (:open "'"     :close "'"     :actions (insert wrap autoskip))
-                     (:open "("     :close ")"     :actions (insert wrap autoskip))
-                     (:open "["     :close "]"     :actions (insert wrap autoskip))
-                     (:open "{"     :close "}"     :actions (insert wrap autoskip))
-                     (:open "`"     :close "`"     :actions (insert wrap autoskip)))))
+                    ((:open "\\\\(" :close "\\\\)" :actions (insert wrap autoskip navigate))
+                     (:open "\\{"   :close "\\}"   :actions (insert wrap autoskip navigate))
+                     (:open "\\("   :close "\\)"   :actions (insert wrap autoskip navigate))
+                     (:open "\\\""  :close "\\\""  :actions (insert wrap autoskip navigate))
+                     (:open "\""    :close "\""    :actions (insert wrap autoskip navigate))
+                     (:open "'"     :close "'"     :actions (insert wrap autoskip navigate))
+                     (:open "("     :close ")"     :actions (insert wrap autoskip navigate))
+                     (:open "["     :close "]"     :actions (insert wrap autoskip navigate))
+                     (:open "{"     :close "}"     :actions (insert wrap autoskip navigate))
+                     (:open "`"     :close "`"     :actions (insert wrap autoskip navigate)))))
   "List of pair definitions.
 
 Maximum length of opening or closing pair is
@@ -1654,7 +1654,7 @@ is wrapped instead.  This is useful with selection functions in
                    close
                    &key
                    trigger
-                   (actions '(wrap insert autoskip))
+                   (actions '(wrap insert autoskip navigate))
                    when
                    unless
                    pre-handlers
@@ -1686,6 +1686,7 @@ this pair.  Possible values are:
 - autoskip - if the sexp is active or `sp-autoskip-closing-pair' is
   set to 'always, skip over the closing delimiter if user types its
   characters in order.
+- navigate - enable this pair for navigation/highlight.
 
 If the ACTIONS argument has value :rem, the pair is removed.
 This can be used to remove default pairs you don't want to use.
@@ -1698,7 +1699,8 @@ lambdas!).  They should accept three arguments: opening
 delimiter (which uniquely determines the pair), action and
 context.  The context argument can have values:
 
-- string  - if point is inside string or comment.
+- string  - if point is inside string.
+- comment - if point is inside comment.
 - code    - if point is inside code.  This context is only
   recognized in programming modes that define string semantics.
 
@@ -2608,14 +2610,14 @@ have same opening and closing delimiter."
 `major-mode', do not have same opening and closing delimiter and
 are allowed in the current context.  See also
 `sp--get-pair-list'."
-  (--filter (and (sp--do-action-p (car it) 'insert)
+  (--filter (and (sp--do-action-p (car it) 'navigate)
                  (not (equal (car it) (cdr it)))) sp-pair-list))
 
 (defun sp--get-allowed-stringlike-list ()
   "Return all pairs that are recognized in this `major-mode',
 have the same opening and closing delimiter and are allowed in
 the current context."
-  (--filter (and (sp--do-action-p (car it) 'insert)
+  (--filter (and (sp--do-action-p (car it) 'navigate)
                  (equal (car it) (cdr it))) sp-pair-list))
 
 (defun sp--get-pair-list-context ()
@@ -3682,7 +3684,7 @@ The expressions considered are those delimited by pairs on
 `sp-pair-list'."
   (let* ((search-fn (if (not back) 'sp--search-forward-regexp 'sp--search-backward-regexp))
          (global-skip-fn (cdr (--first (memq major-mode (car it)) sp-navigate-skip-match)))
-         (pair-list (sp--get-pair-list))
+         (pair-list (sp--get-allowed-pair-list))
          (in-string-or-comment (sp-point-in-string-or-comment))
          (string-bounds (and in-string-or-comment (sp--get-string-or-comment-bounds)))
          (fw-bound (if in-string-or-comment (cdr string-bounds) (point-max)))
@@ -4520,9 +4522,9 @@ expressions are considered."
                ((and (memq major-mode sp-navigate-consider-sgml-tags)
                      (sp--looking-back ">")
                      (sp-get-sgml-tag t)))
-               ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-closing-regexp) nil))
+               ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-closing-regexp (sp--get-allowed-pair-list)) nil))
                 (sp-get-sexp t))
-               ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-opening-regexp) nil))
+               ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-opening-regexp (sp--get-allowed-pair-list)) nil))
                 (sp-get-sexp t))
                ((eq (char-syntax (preceding-char)) 34)
                 (sp-get-string t))
@@ -4542,9 +4544,9 @@ expressions are considered."
              ((and (memq major-mode sp-navigate-consider-sgml-tags)
                    (looking-at "<")
                    (sp-get-sgml-tag)))
-             ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-opening-regexp)))
+             ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-opening-regexp (sp--get-allowed-pair-list))))
               (sp-get-sexp nil))
-             ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-closing-regexp)))
+             ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-closing-regexp (sp--get-allowed-pair-list))))
               (sp-get-sexp nil))
              ((eq (char-syntax (following-char)) 34)
               (sp-get-string nil))
@@ -6010,8 +6012,8 @@ Examples:
   (setq arg (or arg 1))
   (let ((n (abs arg))
         (fw (> arg 0))
-        (open (sp--get-opening-regexp))
-        (close (sp--get-closing-regexp)))
+        (open (sp--get-opening-regexp (sp--get-allowed-pair-list)))
+        (close (sp--get-closing-regexp (sp--get-allowed-pair-list))))
     (if fw
         (while (> n 0)
           ;; First we need to get to the beginning of a symbol.  This means
@@ -6059,8 +6061,8 @@ Examples:
   (setq arg (or arg 1))
   (let ((n (abs arg))
         (fw (> arg 0))
-        (open (sp--get-opening-regexp))
-        (close (sp--get-closing-regexp)))
+        (open (sp--get-opening-regexp (sp--get-allowed-pair-list)))
+        (close (sp--get-closing-regexp (sp--get-allowed-pair-list))))
     (if fw
         (while (> n 0)
           (while (cond

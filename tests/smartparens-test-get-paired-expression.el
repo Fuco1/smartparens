@@ -118,10 +118,10 @@
 ;; ruby pairs
 
 (defvar sp--test-ruby-pairs
-  (sp-test-merge-pairs '((:open "def"   :close "end" :actions (insert wrap))
-                         (:open "if"    :close "end" :actions (insert wrap))
-                         (:open "do"    :close "end" :actions (insert wrap))
-                         (:open "begin" :close "end" :actions (insert wrap)))))
+  (sp-test-merge-pairs '((:open "def"   :close "end" :actions (insert wrap autoskip navigate))
+                         (:open "if"    :close "end" :actions (insert wrap autoskip navigate))
+                         (:open "do"    :close "end" :actions (insert wrap autoskip navigate))
+                         (:open "begin" :close "end" :actions (insert wrap autoskip navigate)))))
 
 (defvar sp-test-get-paired-expression-ruby
   '(("begin end" 1 10 "begin" "end" "" "")

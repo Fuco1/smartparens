@@ -4,12 +4,12 @@
 (defvar sp--test-basic-pairs
   '((t
      .
-     ((:open "\\{" :close "\\}" :actions (insert wrap))
-      (:open "("   :close ")"   :actions (insert wrap))
-      (:open "["   :close "]"   :actions (insert wrap))
-      (:open "{"   :close "}"   :actions (insert wrap))
-      (:open "\""  :close "\""  :actions (insert wrap))
-      (:open "\\\""  :close "\\\""  :actions (insert wrap))))))
+     ((:open "\\{" :close "\\}" :actions (insert wrap autoskip navigate))
+      (:open "("   :close ")"   :actions (insert wrap autoskip navigate))
+      (:open "["   :close "]"   :actions (insert wrap autoskip navigate))
+      (:open "{"   :close "}"   :actions (insert wrap autoskip navigate))
+      (:open "\""  :close "\""  :actions (insert wrap autoskip navigate))
+      (:open "\\\""  :close "\\\""  :actions (insert wrap autoskip navigate))))))
 
 (defmacro sp-test-setup-paired-expression-env (pairs mode mode-hook &rest forms)
   (declare (indent 0))
