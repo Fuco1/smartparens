@@ -452,7 +452,7 @@ Symbol is defined as a chunk of text recognized by
 
 (defgroup smartparens ()
   "Smartparens minor mode."
-  :group 'editor
+  :group 'editing
   :prefix "sp-")
 
 ;;;###autoload
