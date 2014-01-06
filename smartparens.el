@@ -7440,37 +7440,38 @@ support custom pairs."
 (defun sp-show--pair-function ()
   "Display the show pair overlays."
   (when show-smartparens-mode
-    (let* ((pair-list (sp--get-allowed-pair-list))
-           (opening (sp--get-opening-regexp pair-list))
-           (closing (sp--get-closing-regexp pair-list))
-           (allowed (and sp-show-pair-from-inside (sp--get-allowed-regexp)))
-           ok match)
-      (cond
-       ((or (sp--looking-at (if sp-show-pair-from-inside allowed opening))
-            (and (memq major-mode sp-navigate-consider-stringlike-sexp)
-                 (looking-at (sp--get-stringlike-regexp)))
-            (and (memq major-mode sp-navigate-consider-sgml-tags)
-                 (looking-at "<")))
-        (setq match (match-string 0))
-        ;; we can use `sp-get-thing' here because we *are* at some
-        ;; pair opening, and so only the tag or the sexp can trigger.
-        (setq ok (sp-get-thing))
-        (if ok
-            (sp-get ok (sp-show--pair-create-overlays :beg :end :op-l :cl-l))
-          (sp-show--pair-create-mismatch-overlay (point) (length match))))
-       ((or (sp--looking-back (if sp-show-pair-from-inside allowed closing))
-            (and (memq major-mode sp-navigate-consider-stringlike-sexp)
-                 (sp--looking-back (sp--get-stringlike-regexp)))
-            (and (memq major-mode sp-navigate-consider-sgml-tags)
-                 (sp--looking-back ">")))
-        (setq match (match-string 0))
-        (setq ok (sp-get-thing t))
-        (if ok
-            (sp-get ok (sp-show--pair-create-overlays :beg :end :op-l :cl-l))
-          (sp-show--pair-create-mismatch-overlay (- (point) (length match))
-                                                 (length match))))
-       (sp-show-pair-overlays
-        (sp-show--pair-delete-overlays))))))
+    (save-match-data
+      (let* ((pair-list (sp--get-allowed-pair-list))
+             (opening (sp--get-opening-regexp pair-list))
+             (closing (sp--get-closing-regexp pair-list))
+             (allowed (and sp-show-pair-from-inside (sp--get-allowed-regexp)))
+             ok match)
+        (cond
+         ((or (sp--looking-at (if sp-show-pair-from-inside allowed opening))
+              (and (memq major-mode sp-navigate-consider-stringlike-sexp)
+                   (looking-at (sp--get-stringlike-regexp)))
+              (and (memq major-mode sp-navigate-consider-sgml-tags)
+                   (looking-at "<")))
+          (setq match (match-string 0))
+          ;; we can use `sp-get-thing' here because we *are* at some
+          ;; pair opening, and so only the tag or the sexp can trigger.
+          (setq ok (sp-get-thing))
+          (if ok
+              (sp-get ok (sp-show--pair-create-overlays :beg :end :op-l :cl-l))
+            (sp-show--pair-create-mismatch-overlay (point) (length match))))
+         ((or (sp--looking-back (if sp-show-pair-from-inside allowed closing))
+              (and (memq major-mode sp-navigate-consider-stringlike-sexp)
+                   (sp--looking-back (sp--get-stringlike-regexp)))
+              (and (memq major-mode sp-navigate-consider-sgml-tags)
+                   (sp--looking-back ">")))
+          (setq match (match-string 0))
+          (setq ok (sp-get-thing t))
+          (if ok
+              (sp-get ok (sp-show--pair-create-overlays :beg :end :op-l :cl-l))
+            (sp-show--pair-create-mismatch-overlay (- (point) (length match))
+                                                   (length match))))
+         (sp-show-pair-overlays
+          (sp-show--pair-delete-overlays)))))))
 
 (defun sp-show--pair-enc-function (&optional thing)
   "Display the show pair overlays for enclosing expression."
