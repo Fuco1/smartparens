@@ -70,10 +70,11 @@
       (looking-at-p "\\sw"))))
 
 (defun sp-latex-point-after-backslash (id action context)
-  "Return t if point follows two backslashes, nil otherwise.
+  "Return t if point follows a backslash, nil otherwise.
 This predicate is only tested on \"insert\" action."
   (when (eq action 'insert)
-    (looking-back (concat "\\\\" (regexp-quote id)))))
+    (let ((trigger (sp-get-pair id :trigger)))
+      (looking-back (concat "\\\\" (regexp-quote (if trigger trigger id)))))))
 
 (add-to-list 'sp-navigate-skip-match
              '((tex-mode plain-tex-mode latex-mode) . sp--backslash-skip-match))
@@ -83,7 +84,9 @@ This predicate is only tested on \"insert\" action."
                  plain-tex-mode
                  latex-mode
                  )
-  (sp-local-pair "`" "'" :skip-match 'sp-latex-skip-match-apostrophe)
+  (sp-local-pair "`" "'"
+                 :skip-match 'sp-latex-skip-match-apostrophe
+                 :unless '(sp-latex-point-after-backslash))
   ;; math modes, yay.  The :actions are provided automatically if
   ;; these pairs do not have global definitions.
   (sp-local-pair "$" "$")
@@ -96,7 +99,9 @@ This predicate is only tested on \"insert\" action."
 
   ;; quote should insert ``'' instead of double quotes.  If we ever
   ;; need to insert ", C-q is our friend.
-  (sp-local-pair "``" "''" :trigger "\"")
+  (sp-local-pair "``" "''"
+                 :trigger "\""
+                 :unless '(sp-latex-point-after-backslash))
 
   ;; add the prefix function sticking to {} pair
   (sp-local-pair "{" nil :prefix "\\\\\\(\\sw\\|\\s_\\)*")
