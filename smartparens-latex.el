@@ -73,7 +73,7 @@
   "Return t if point follows a backslash, nil otherwise.
 This predicate is only tested on \"insert\" action."
   (when (eq action 'insert)
-    (looking-back (concat "\\\\" (regexp-quote id)))))
+    (looking-back (concat "\\\\" (regexp-quote (if (sp-get-pair id :trigger) (sp-get-pair id :trigger) id))))))
 
 (add-to-list 'sp-navigate-skip-match
              '((tex-mode plain-tex-mode latex-mode) . sp--backslash-skip-match))
