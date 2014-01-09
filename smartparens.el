@@ -1929,7 +1929,7 @@ addition, there is a global per major-mode option, see
         (when skip-match (plist-put pair :skip-match skip-match))
         (when (and (not (sp-get-pair-definition open t))
                    (equal actions '(:add)))
-          (setq actions '(wrap insert autoskip)))
+          (setq actions '(wrap insert autoskip navigate)))
         (plist-put pair :actions actions)
         (plist-put pair :when when)
         (plist-put pair :unless unless)
