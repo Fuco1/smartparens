@@ -3112,6 +3112,11 @@ include separate pair node."
             (append (list nil second-action nil first-action)
                     previous-undo-actions)))))
 
+(defun sp--string-empty-p (delimeter)
+  "Return t if point is inside an empty string."
+  (and (equal (char-after (1+ (point))) delimeter)
+       (equal (char-after (- (point) 2)) delimeter)))
+
 (defun sp-insert-pair (&optional pair)
   "Automatically insert the closing pair if it is allowed in current context.
 
@@ -3232,12 +3237,12 @@ followed by word.  It is disabled by default.  See
           ;; no good "default" case.
           (when (and sp-autoescape-string-quote
                      sp-point-inside-string
-                     (equal open-pair "\"")
-                     (equal close-pair "\"")
+                     (or
+                      (and (equal open-pair "\"") (equal close-pair "\""))
+                      (and (equal open-pair "'") (equal close-pair "'")))
                      (or (not (memq major-mode sp-autoescape-string-quote-if-empty))
                          ;; test if the string is empty here
-                         (not (and (equal (char-after (1+ (point))) ?\")
-                                   (equal (char-after (- (point) 2)) ?\")))))
+                         (not (sp-point-in-empty-string))))
             (save-excursion
               (backward-char 1)
               (insert sp-escape-char)
