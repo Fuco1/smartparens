@@ -10,13 +10,15 @@ For the complete documentation visit the [documentation wiki][wiki].
 
 # Default configuration
 
-The default configuration was moved into a separate file. If you wish to use the default configuration as a basis for your own additional customization, add:
+Smartparents provides many options to customize most aspects of its working.  After loading `smartparens.el`, you can customize many of these options using the customization interface: `M-x customize-group RET smartparens RET`.  Smartparens also ships with additional recommended (default) configuration, which is separated in file `smartparens-config.el` to make the maintainance easier.  If you wish to load the default configuration, add:
 
 ```scheme
 (require 'smartparens-config)
 ```
 
-in your configuration files (e.g. init.el) to load it. There are also files with additional configuration for specific modes, such as `smartparens-latex.el`. The usage is similar as with the default config. Note however that the `smartparens-config.el` file will auto-load all the mode-speceific customizations.
+in your configuration files (e.g. init.el) to load it.  There are also files with additional configuration for specific modes, such as `smartparens-latex.el` or `smartparens-ruby.el`.  You can load them the same way as the default config file.  Note however that the `smartparens-config.el` file will auto-load all the mode-speceific customizations.  It is a good idea to require this file if you are a new user, and later add or remove the options you don't like.
+
+*Note: `smartparens-config` automatically loads the core smartparens files, so you don't have to require those separately.*
 
 # Support the project
 
