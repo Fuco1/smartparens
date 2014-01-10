@@ -1,6 +1,6 @@
 ;;; smartparens-ruby.el --- Additional configuration for Ruby based modes.
 
-;; Copyright (C) 2013 Jean-Louis Giordano
+;; Copyright (C) 2013-2014 Jean-Louis Giordano
 
 ;; Author: Jean-Louis Giordano <jean-louis@jawaninja.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>

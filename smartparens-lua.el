@@ -1,6 +1,6 @@
 ;;; smartparens-lua.el --- Additional configuration for Lua based modes.
 
-;; Copyright (C) 2013 Matus Goljer
+;; Copyright (C) 2013-2014 Matus Goljer
 
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>

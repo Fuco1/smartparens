@@ -1,6 +1,6 @@
 ;;; smartparens-html.el --- Additional configuration for HTML based modes.
 
-;; Copyright (C) 2013 Matus Goljer
+;; Copyright (C) 2013-2014 Matus Goljer
 
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
