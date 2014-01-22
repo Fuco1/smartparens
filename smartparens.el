@@ -4260,19 +4260,26 @@ and newline."
 (defun sp--sgml-opening-p (tag)
   (not (equal "/" (substring tag 1 2))))
 
+(defun sp--sgml-ignore-tag (tag)
+  "Return non-nil if tag should be ignored in search, nil otherwise."
+  (member tag '("!--" "!DOCTYPE")))
+
 (defun sp-get-sgml-tag (&optional back)
   (sp--maybe-init)
   (save-excursion
-    (let ((search-fn (if (not back) 'sp--search-forward-regexp 'sp--search-backward-regexp))
+    (let ((search-fn (if (not back) 'sp--search-forward-regexp 'search-backward-regexp))
+          (case-fold-search nil)
           tag tag-name needle
           open-start open-end
           close-start close-end)
-      (when (funcall search-fn "</?.*?\\s-?.*?>" nil t)
-        (setq tag (substring-no-properties (match-string 0)))
-        (setq tag-name (sp--sgml-get-tag-name tag))
+      (when (and (funcall search-fn "</?.*?\\s-?.*?>" nil t)
+                 (progn
+                   (setq tag (substring-no-properties (match-string 0)))
+                   (setq tag-name (sp--sgml-get-tag-name tag))
+                   (not (sp--sgml-ignore-tag tag-name))))
         (setq needle (concat "</?" tag-name))
         (let* ((forward (sp--sgml-opening-p tag))
-               (search-fn (if forward 'sp--search-forward-regexp 'sp--search-backward-regexp))
+               (search-fn (if forward 'sp--search-forward-regexp 'search-backward-regexp))
                (depth 1))
           (save-excursion
             (if (not back)
