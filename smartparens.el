@@ -1063,7 +1063,7 @@ The value of `comment-start' is used if the major mode is not found."
 
 ;; ui custom
 (defcustom sp-highlight-pair-overlay t
-  "If non-nil, autoinserted pairs are highlighted until point is inside the pair."
+  "If non-nil, autoinserted pairs are highlighted while point is inside the pair."
   :type 'boolean
   :group 'smartparens)
 
