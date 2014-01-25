@@ -7465,11 +7465,19 @@ support custom pairs."
              (allowed (and sp-show-pair-from-inside (sp--get-allowed-regexp)))
              ok match)
         (cond
-         ((or (sp--looking-at (if sp-show-pair-from-inside allowed opening))
-              (and (memq major-mode sp-navigate-consider-stringlike-sexp)
-                   (looking-at (sp--get-stringlike-regexp)))
-              (and (memq major-mode sp-navigate-consider-sgml-tags)
-                   (looking-at "<")))
+         (
+          (or
+          (sp--looking-at (if sp-show-pair-from-inside allowed opening))
+          (and
+           (or
+            (and (memq major-mode sp-navigate-consider-stringlike-sexp)
+                 (looking-at (sp--get-stringlike-regexp)))
+            (and (memq major-mode sp-navigate-consider-sgml-tags)
+                 (looking-at "<")))
+           ;; We only want to match string-like delimiters or '<' if
+           ;; they are opening a sexp
+           (eq (point) (sp-get (sp-get-thing) :beg))
+          ))
           (setq match (match-string 0))
           ;; we can use `sp-get-thing' here because we *are* at some
           ;; pair opening, and so only the tag or the sexp can trigger.
