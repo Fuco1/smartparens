@@ -3241,8 +3241,15 @@ followed by word.  It is disabled by default.  See
                       (and (equal open-pair "\"") (equal close-pair "\""))
                       (and (equal open-pair "'") (equal close-pair "'")))
                      (or (not (memq major-mode sp-autoescape-string-quote-if-empty))
-                         ;; test if the string is empty here
-                         (not (sp-point-in-empty-string))))
+                         ;; Test if the string is empty here, by which
+                         ;; we mean the point is surrounded by the
+                         ;; string delimiters.  This enables us to
+                         ;; write e.g. """""" in python docs.
+                         (flet ((check-quote (delimiter)
+                                             (and (equal (char-after (point)) delimiter)
+                                                  (equal (char-before (point)) delimiter))))
+                           (not (or (check-quote ?\")
+                                    (check-quote ?'))))))
             (save-excursion
               (backward-char 1)
               (insert sp-escape-char)
