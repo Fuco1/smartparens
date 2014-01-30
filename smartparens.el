@@ -3250,8 +3250,8 @@ followed by word.  It is disabled by default.  See
                          ;; string delimiters.  This enables us to
                          ;; write e.g. """""" in python docs.
                          (flet ((check-quote (delimiter)
-                                             (and (equal (char-after (point)) delimiter)
-                                                  (equal (char-before (point)) delimiter))))
+                                             (and (equal (char-after (1+ (point))) delimiter)
+                                                  (equal (char-before (1- (point))) delimiter))))
                            (not (or (check-quote ?\")
                                     (check-quote ?'))))))
             (save-excursion
