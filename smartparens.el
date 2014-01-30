@@ -1686,7 +1686,8 @@ this pair.  Possible values are:
 - autoskip - if the sexp is active or `sp-autoskip-closing-pair' is
   set to 'always, skip over the closing delimiter if user types its
   characters in order.
-- navigate - enable this pair for navigation/highlight.
+- navigate - enable this pair for navigation/highlight and strictness
+  checks
 
 If the ACTIONS argument has value :rem, the pair is removed.
 This can be used to remove default pairs you don't want to use.
@@ -2620,10 +2621,11 @@ the current context."
   (--filter (and (sp--do-action-p (car it) 'navigate)
                  (equal (car it) (cdr it))) sp-pair-list))
 
-(defun sp--get-pair-list-context ()
+(defun sp--get-pair-list-context (&optional action)
   "Return all pairs that are recognized in this `major-mode' and
 are allowed in the current context."
-  (--filter (sp--do-action-p (car it) 'insert) sp-pair-list))
+  (setq action (or action 'insert))
+  (--filter (sp--do-action-p (car it) action) sp-pair-list))
 
 (defun sp--get-pair-list-wrap ()
   "Return the list of all pairs that can be used for wrapping."
@@ -7043,7 +7045,7 @@ Examples:
          ((and (sp-point-in-string)
                (save-excursion (forward-char) (not (sp-point-in-string))))
           (setq n 0))
-         ((sp--looking-at (sp--get-opening-regexp (sp--get-pair-list-context)))
+         ((sp--looking-at (sp--get-opening-regexp (sp--get-pair-list-context 'navigate)))
           (if (save-match-data (sp-get-thing))
               (goto-char (match-end 0))
             (delete-char (length (match-string 0))))
@@ -7054,7 +7056,7 @@ Examples:
           (forward-char)
           ;; make this customizable
           (setq n (1- n)))
-         ((sp--looking-at (sp--get-closing-regexp (sp--get-pair-list-context)))
+         ((sp--looking-at (sp--get-closing-regexp (sp--get-pair-list-context 'navigate)))
           (if (save-match-data (sp-get-thing))
               ;; make this customizable -- maybe we want to skip and
               ;; continue deleting
@@ -7118,7 +7120,7 @@ Examples:
          ((and (sp-point-in-string)
                (save-excursion (backward-char) (not (sp-point-in-string))))
           (setq n 0))
-         ((sp--looking-back (sp--get-closing-regexp (sp--get-pair-list-context)))
+         ((sp--looking-back (sp--get-closing-regexp (sp--get-pair-list-context 'navigate)))
           (if (save-match-data (sp-get-thing t))
               (goto-char (match-beginning 0))
             (delete-char (- (length (match-string 0)))))
@@ -7129,7 +7131,7 @@ Examples:
           (backward-char)
           ;; make this customizable
           (setq n (1- n)))
-         ((sp--looking-back (sp--get-opening-regexp (sp--get-pair-list-context)))
+         ((sp--looking-back (sp--get-opening-regexp (sp--get-pair-list-context 'navigate)))
           (if (save-match-data (sp-get-thing t))
               ;; make this customizable -- maybe we want to skip and
               ;; continue deleting
@@ -7153,7 +7155,7 @@ delimiter enclosing this sexp."
   (setq pos (or pos (point)))
   (let (op act)
     (cond
-     ((sp--looking-back (sp--get-opening-regexp (sp--get-pair-list-context)))
+     ((sp--looking-back (sp--get-opening-regexp (sp--get-pair-list-context 'navigate)))
       (setq op (match-string 0))
       (setq act (--first (equal (car it) op) sp-pair-list))
       (when (sp--looking-at (regexp-quote (cdr act))) act))
