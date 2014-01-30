@@ -514,7 +514,7 @@ after the smartparens indicator in the mode list."
         (setq sp-autoskip-closing-pair 'always))
     (setq minor-mode-overriding-map-alist
           (-remove (lambda (it) (eq (car it) 'smartparens-strict-mode)) minor-mode-overriding-map-alist))
-    (setq sp-autoskip-closing-pair (car (plist-get (symbol-plist 'sp-autoskip-closing-pair) 'standard-value)))))
+    (setq sp-autoskip-closing-pair (eval (car (plist-get (symbol-plist 'sp-autoskip-closing-pair) 'standard-value))))))
 
 ;;;###autoload
 (define-globalized-minor-mode smartparens-global-strict-mode
@@ -747,7 +747,7 @@ and :unless properties of `sp-pair'."
   :type 'hook
   :group 'smartparens)
 
-(defcustom sp-autoskip-closing-pair always-end
+(defcustom sp-autoskip-closing-pair 'always-end
   "If t, skip the following closing pair if the expression is
 active (that is right after insertion).  This is controlled by
 `sp-cancel-autoskip-on-backward-movement'.
