@@ -747,7 +747,7 @@ and :unless properties of `sp-pair'."
   :type 'hook
   :group 'smartparens)
 
-(defcustom sp-autoskip-closing-pair 'always-end
+(defcustom sp-autoskip-closing-pair always-end
   "If t, skip the following closing pair if the expression is
 active (that is right after insertion).  This is controlled by
 `sp-cancel-autoskip-on-backward-movement'.
