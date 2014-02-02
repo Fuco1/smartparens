@@ -446,6 +446,47 @@ Symbol is defined as a chunk of text recognized by
                          )
   "List of HTML modes.")
 
+(defvar sp-message-alist
+      '((:unmatched-expression
+         "Search failed. This means there is unmatched expression somewhere or we are at the beginning/end of file."
+         "Unmatched expression.")
+        (:delimiter-in-string
+         "Opening or closing pair is inside a string or comment and matching pair is outside (or vice versa). Ignored.")
+        (:no-matching-tag
+         "Search failed. No matching tag found."
+         "No matching tag.")
+        (:invalid-context-prev
+         "Invalid context: previous h-sexp ends after the next one."
+         "Invalid context.")
+        (:invalid-context-cur
+         "Invalid context: current h-sexp starts after the next one."
+         "Invalid context.")
+        (:no-structure-found
+         "Previous sexp starts after current h-sexp or no structure was found."
+         "No valid structure found.")
+        (:invalid-structure
+         "This operation would result in invalid structure. Ignored."
+         "Ignored because of invalid structure.")
+        (:cant-slurp
+         "We can't slurp without breaking strictly balanced expression. Ignored."
+         "Can't slurp without breaking balance.")
+        (:blank-sexp
+         "Point is in blank sexp, nothing to barf."
+         "Point is in blank sexp.")
+        (:point-not-deep-enough
+         "Point has to be at least two levels deep to swap the enclosing delimiters."
+         "Point has to be at least two levels deep."
+         "Point not deep enough.")
+        (:different-type
+         "The expressions to be joined are of different type."
+         "Expressions are of different type."))
+      "List of predefined messages to be displayed by `sp-message'.
+
+Each element is a list consisting of a keyword and one or more
+strings, which are chosen based on the `sp-message-width'
+variable. If the latter is `t', the first string is chosen as
+default, which should be the most verbose option available.")
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Customize & Mode definitions
@@ -1077,6 +1118,17 @@ The value of `comment-start' is used if the major mode is not found."
   :type 'boolean
   :group 'smartparens)
 
+(defcustom sp-message-width 'frame
+  "Length of information and error messages to display. If set to
+'frame (the default), messages are chosen based of the frame
+width. `t' means chose the default (verbose) message, `nil' means
+mute. Integers specify the maximum width."
+  :type '(choice (const :tag "Fit to frame" frame)
+                 (const :tag "Verbose" t)
+                 (const :tag "Mute" nil)
+                 (integer :tag "Max width"))
+  :group 'smartparens)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Selection mode emulation
@@ -1461,6 +1513,28 @@ which to do the comparsion."
   (setq what-a (or what-a :beg))
   (setq what-b (or what-b what-a))
   `(,fun (sp-get ,a ,what-a) (sp-get ,b ,what-b)))
+
+(defun sp-message (key)
+  "Display a message. The argument is either a string or list of
+strings, or a keyword, in which case the string list is looked up
+in `sp-message-alist'. The string to be displayed is chosen based
+on the `sp-message-width' variable."
+  (let ((msgs (cond ((listp key) key)
+                    ((stringp key) (list key))
+                    (t (cdr (assq key sp-message-alist))))))
+    (when (and msgs sp-message-width)
+      (if (eq sp-message-width t)
+          (message (car msgs))
+        (let ((maxlen (if (eq sp-message-width 'frame)
+                          (frame-width)
+                        sp-message-width))
+              (s nil))
+          (dolist (msg msgs)
+            (if (and (<= (length msg) maxlen)
+                     (> (length msg) (length s)))
+                (setf s msg)))
+          (when s
+            (message s)))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3783,7 +3857,7 @@ The expressions considered are those delimited by pairs on
                   (when (--any? (equal ms it) opens) (setq depth (1+ depth)))
                   (when (--any? (equal ms it) closes) (setq depth (1- depth))))
               (unless (minibufferp)
-                (message "Search failed.  This means there is unmatched expression somewhere or we are at the beginning/end of file."))
+                (sp-message :unmatched-expression))
               (setq depth -1)
               (setq failure t)))
           (if forward
@@ -3794,13 +3868,13 @@ The expressions considered are those delimited by pairs on
                   (/= depth 0))
               (progn
                 (unless (minibufferp)
-                  (message "Search failed.  This means there is unmatched expression somewhere or we are at the beginning/end of file."))
+                  (sp-message :unmatched-expression))
                 nil)
             (cond
              ((or (and (sp-point-in-string-or-comment s) (not (sp-point-in-string-or-comment e)))
                   (and (not (sp-point-in-string-or-comment s)) (sp-point-in-string-or-comment e)))
               (unless (minibufferp)
-                (message "Opening or closing pair is inside a string or comment and matching pair is outside (or vice versa).  Ignored."))
+                (sp-message :delimiter-in-string))
               nil)
              (t
               (let* ((op (if forward open close)))
@@ -4320,7 +4394,7 @@ and newline."
                   (if forward (setq depth (1- depth)) (setq depth (1+ depth))))
               (setq depth -1)))
           (if (eq depth -1)
-              (progn (message "Search failed. No matching tag found.") nil)
+              (progn (sp-message :no-matching-tag) nil)
             (save-excursion
               (if forward
                   (progn
@@ -5449,7 +5523,7 @@ Examples:
                    (sp-backward-sexp)
                    (sp-get-hybrid-sexp))))
       (if (sp-compare-sexps prev next > :end)
-          (message "Invalid context: previous h-sexp ends after the next one.")
+          (sp-message :invalid-context-prev)
         (sp--transpose-objects prev next))
       (when (looking-at "[\n\t ]+")
         (forward-line)
@@ -5474,7 +5548,7 @@ Examples:
                  (sp-forward-sexp)
                  (sp-get-hybrid-sexp))))
     (if (sp-compare-sexps cur next >)
-        (message "Invalid context: current h-sexp starts after the next one.")
+        (sp-message :invalid-context-cur)
       (sp--transpose-objects cur next))))
 
 ;; The following two functions are inspired by "adjust-parens.el"
@@ -5495,7 +5569,7 @@ handling of empty lines."
                       (sp-get-sexp t))))
     (if (not (and prev-sexp hsexp
                   (sp-compare-sexps prev-sexp hsexp < :end :beg)))
-        (message "Previous sexp starts after current hsexp or no structure was found.")
+        (sp-message :no-structure-found)
       (save-excursion
         (sp-get prev-sexp
           (goto-char (sp-get hsexp :end))
@@ -5603,7 +5677,7 @@ triggers that `sp-forward-slurp-sexp' does."
         ;; we need to call this again to get the new structure after
         ;; indent.
         (sp--next-thing-selection -1))
-    (message "This operation would result in invalid structure. Ignored.")
+    (sp-message :invalid-structure)
     nil))
 
 
@@ -5688,7 +5762,7 @@ Examples:
                         (when (= (sp-get enc :beg) (sp-get ok :beg)) (plist-put enc :end (point)))
                         (sp--run-hook-with-args (sp-get enc :op) :post-handlers 'slurp-forward))
                       (setq n (1- n)))
-                  (message "We can't slurp without breaking strictly balanced expression. Ignored.")
+                  (sp-message :cant-slurp)
                   (setq n -1)))))))
     (sp-backward-slurp-sexp (sp--negate-argument arg))))
 
@@ -5766,7 +5840,7 @@ Examples:
                         (when (sp-compare-sexps enc ok) (plist-put enc :beg (- (point) (sp-get ok :op-l))))
                         (sp--run-hook-with-args (sp-get enc :op) :post-handlers 'slurp-backward))
                       (setq n (1- n)))
-                  (message "We can't slurp without breaking strictly balanced expression. Ignored.")
+                  (sp-message :cant-slurp)
                   (setq n -1)))))))
     (sp-forward-slurp-sexp (sp--negate-argument arg))))
 
@@ -5863,7 +5937,7 @@ Examples: (prefix arg in comment)
          (arg (prefix-numeric-value arg)))
     (if (> arg 0)
         (if (sp-point-in-blank-sexp)
-            (message "Point is in blank sexp, nothing to barf")
+            (sp-message :blank-sexp)
           (save-excursion
             (let ((enc (sp-get-enclosing-sexp)))
               (sp-get enc
@@ -5907,7 +5981,7 @@ Examples:
          (arg (prefix-numeric-value arg)))
     (if (> arg 0)
         (if (sp-point-in-blank-sexp)
-            (message "Point is in blank sexp, nothing to barf")
+            (sp-message :blank-sexp)
           (save-excursion
             (let ((enc (sp-get-enclosing-sexp)))
               (sp-get enc
@@ -6190,7 +6264,7 @@ Examples:
           (sp-get encp (goto-char :beg-prf))
           (sp-get enc (insert :prefix :op))
           (sp-get encp (delete-char (+ :op-l :prefix-l))))
-      (message "Point has to be at least two levels deep to swap the enclosing delimiters."))))
+      (sp-message :point-not-deep-enough))))
 
 (defun sp--unwrap-sexp (sexp &optional no-cleanup)
   "Unwrap expression defined by SEXP.
@@ -6724,7 +6798,7 @@ Return the information about resulting expression."
               :op (sp-get prev :op)
               :cl (sp-get prev :cl)
               :prefix (sp-get prev :prefix)))
-    (message "The expressions to be joined are of different type.")))
+    (sp-message :different-type)))
 
 (defun sp-join-sexp (&optional arg)
   "Join the sexp before and after point if they are of the same type.
