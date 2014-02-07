@@ -1058,7 +1058,10 @@ expression.
 
 If the second argument is 'syntax, the third argument is
 interpreted as string containing syntax codes that will be
-skipped."
+skipped.
+
+You can also override this property locally for a specific pair
+by specifying its :prefix property."
   :type '(repeat
           (list symbol
                 (choice
