@@ -555,7 +555,9 @@ after the smartparens indicator in the mode list."
         (setq sp-autoskip-closing-pair 'always))
     (setq minor-mode-overriding-map-alist
           (-remove (lambda (it) (eq (car it) 'smartparens-strict-mode)) minor-mode-overriding-map-alist))
-    (setq sp-autoskip-closing-pair (eval (car (plist-get (symbol-plist 'sp-autoskip-closing-pair) 'standard-value))))))
+    (let ((std-val (car (plist-get (symbol-plist 'sp-autoskip-closing-pair) 'standard-value)))
+          (saved-val (car (plist-get (symbol-plist 'sp-autoskip-closing-pair) 'saved-value))))
+      (setq sp-autoskip-closing-pair (eval (or saved-val std-val))))))
 
 ;;;###autoload
 (define-globalized-minor-mode smartparens-global-strict-mode
