@@ -4080,7 +4080,7 @@ See `sp-get-hybrid-sexp' for definition."
   "Get the end of hybrid sexp.
 See `sp-get-hybrid-sexp' for definition."
   (save-excursion
-    (flet ((skip-prefix-backward
+    (cl-flet ((skip-prefix-backward
             (p)
             (save-excursion
               (goto-char p)
