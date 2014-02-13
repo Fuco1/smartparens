@@ -4080,14 +4080,14 @@ See `sp-get-hybrid-sexp' for definition."
   "Get the end of hybrid sexp.
 See `sp-get-hybrid-sexp' for definition."
   (save-excursion
-    (cl-flet ((skip-prefix-backward
-            (p)
-            (save-excursion
-              (goto-char p)
-              (save-restriction
-                (sp--narrow-to-line)
-                (skip-syntax-backward " .")
-                (point)))))
+    (cl-labels ((skip-prefix-backward
+                 (p)
+                 (save-excursion
+                   (goto-char p)
+                   (save-restriction
+                     (sp--narrow-to-line)
+                     (skip-syntax-backward " .")
+                     (point)))))
       (let ((p (progn (when (sp-point-in-symbol) (sp-backward-sexp)) (point)))
             (le (line-end-position))
             (cur (--if-let (save-excursion (sp-forward-sexp)) it (list :beg (1+ (point-max))))) ;hack
