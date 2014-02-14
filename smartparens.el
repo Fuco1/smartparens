@@ -2555,7 +2555,7 @@ see `sp-pair' for description."
 If the just-typed key is a possible trigger for any pair,
 `self-insert-command' is called and the special behaviours are
 handled in its advice provided by `smartparens-mode'.  If the
-just-typed key is not a trigger, fall back to the commant that
+just-typed key is not a trigger, fall back to the command that
 would execute if smartparens-mode were disabled."
   (interactive "p")
   (if (and (member (sp--single-key-description last-command-event) sp-trigger-keys)
