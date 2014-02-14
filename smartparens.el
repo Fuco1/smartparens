@@ -5677,7 +5677,8 @@ triggers that `sp-forward-slurp-sexp' does."
                                     (goto-char :beg-in)
                                     (skip-syntax-forward " ")))))))
           (unless (or (looking-at "[ \t]*$")
-                      (looking-at (sp--get-stringlike-regexp)))
+                      (looking-at (sp--get-stringlike-regexp))
+                      (looking-at (sp--get-closing-regexp)))
             (newline)))
         (sp-get (sp--next-thing-selection -1) (indent-region :beg :end))
         ;; we need to call this again to get the new structure after
