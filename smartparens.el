@@ -520,6 +520,7 @@ You can enable pre-set bindings by customizing
 (defvar smartparens-strict-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map [remap delete-char] 'sp-delete-char)
+    (define-key map [remap delete-forward-char] 'sp-delete-char)
     (define-key map [remap backward-delete-char-untabify] 'sp-backward-delete-char)
     (define-key map [remap backward-delete-char] 'sp-backward-delete-char)
     (define-key map [remap delete-backward-char] 'sp-backward-delete-char)
