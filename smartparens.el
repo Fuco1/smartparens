@@ -4308,13 +4308,17 @@ This function simply transforms BOUNDS, which is a cons (BEG
 . END) into format compatible with `sp-get-sexp'."
   (let* ((bob (= (point-min) (car bounds)))
          (eob (= (point-max) (cdr bounds)))
+         ;; if the closing and opening isn't the same token, we should
+         ;; return nil
+         (op (char-to-string (char-before (car bounds))))
          (cl (char-to-string (char-after (if eob (1- (cdr bounds)) (cdr bounds))))))
-    (list :beg (if bob (car bounds) (1- (car bounds)))
-          :end (if eob (cdr bounds) (1+ (cdr bounds)))
-          :op cl
-          :cl cl
-          :prefix ""
-          :suffix "")))
+    (when (equal op cl)
+      (list :beg (if bob (car bounds) (1- (car bounds)))
+            :end (if eob (cdr bounds) (1+ (cdr bounds)))
+            :op cl
+            :cl cl
+            :prefix ""
+            :suffix ""))))
 
 (defun sp-get-string (&optional back)
   "Find the nearest string after point, or before if BACK is non-nil.
@@ -4334,8 +4338,8 @@ returned by `sp-get-sexp'."
           (sp--get-string r))
       (save-excursion
         (sp-skip-into-string back)
-        (let ((r (sp-get-quoted-string-bounds)))
-          (when r (sp--get-string r)))))))
+        (--when-let (sp-get-quoted-string-bounds)
+          (sp--get-string it))))))
 
 (defun sp-get-whitespace ()
   "Get the whitespace around point.
