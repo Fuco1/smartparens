@@ -424,6 +424,7 @@ Symbol is defined as a chunk of text recognized by
                          inferior-emacs-lisp-mode
                          lisp-interaction-mode
                          scheme-mode
+                         scheme-interaction-mode
                          inferior-scheme-mode
                          geiser-repl-mode
                          lisp-mode
