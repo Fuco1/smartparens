@@ -3681,32 +3681,36 @@ pairs!"
   (let ((case-fold-search nil))
     (search-forward-regexp regexp bound noerror count)))
 
-(defmacro sp--get-bounds (name docstring test)
-  "Generate a function called NAME that return the bounds of
-object bounded by TEST."
-  (declare (indent 1)
-           (debug (&define name stringp def-form)))
-  `(defun ,name ()
-     ,docstring
-     (when ,test
-       (let ((open (save-excursion
-                     (while (and ,test (not (bobp)))
-                       (forward-char -1))
-                     (if (bobp) (point) (1+ (point)))))
-             (close (save-excursion
-                      (while (and ,test (not (eobp)))
-                        (forward-char 1))
-                      (if (eobp) (point) (1- (point))))))
-         (cons open close)))))
-
-(sp--get-bounds sp-get-quoted-string-bounds
+(defun sp-get-quoted-string-bounds ()
   "If the point is inside a quoted string, return its bounds."
-  (nth 3 (syntax-ppss)))
+  (when (nth 3 (syntax-ppss))
+    (let ((open (save-excursion
+                  (while (nth 3 (syntax-ppss))
+                    (backward-char 1))
+                  (point)))
+          (close (save-excursion
+                   (while (nth 3 (syntax-ppss))
+                     (forward-char 1))
+                   (point))))
+      (cons open close))))
 
-(sp--get-bounds sp-get-comment-bounds
+(defun sp-get-comment-bounds ()
   "If the point is inside a comment, return its bounds."
-  (or (sp-point-in-comment)
-      (looking-at "[[:space:]]+;;")))
+  (when (or (sp-point-in-comment)
+            (looking-at "[[:space:]]+\\s<"))
+    (let ((open (save-excursion
+                  (while (and (not (bobp))
+                              (or (sp-point-in-comment)
+                                  (looking-at "[[:space:]]+\\s<")))
+                    (backward-char 1))
+                  (point)))
+          (close (save-excursion
+                   (while (and (not (eobp))
+                               (or (sp-point-in-comment)
+                                   (looking-at "[[:space:]]+\\s<")))
+                     (forward-char 1))
+                   (point))))
+      (cons open close))))
 
 (defun sp--get-string-or-comment-bounds ()
   "Get the bounds of string or comment the point is in."
@@ -4311,11 +4315,11 @@ This function simply transforms BOUNDS, which is a cons (BEG
          (eob (= (point-max) (cdr bounds)))
          ;; if the closing and opening isn't the same token, we should
          ;; return nil
-         (op (char-to-string (char-before (car bounds))))
-         (cl (char-to-string (char-after (if eob (1- (cdr bounds)) (cdr bounds))))))
+         (op (char-to-string (char-after (car bounds))))
+         (cl (char-to-string (char-before (cdr bounds)))))
     (when (equal op cl)
-      (list :beg (if bob (car bounds) (1- (car bounds)))
-            :end (if eob (cdr bounds) (1+ (cdr bounds)))
+      (list :beg (car bounds)
+            :end (cdr bounds)
             :op cl
             :cl cl
             :prefix ""
