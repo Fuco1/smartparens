@@ -245,4 +245,12 @@
     ("'f|oo-bar-baz" "'|")
     ("'foo-|bar-baz" "'|"))))
 
+(sp-test-command sp-up-sexp
+  ((nil
+    ("(;; foo\n b|ar\n baz\n )" "(;; foo\n bar\n baz)|")
+    ("(;; foo\n b|ar\n baz\n ;; foo\n )" "(;; foo\n bar\n baz\n ;; foo\n )|")))
+  (((current-prefix-arg -1)
+    ("(\n b|ar\n baz)" "|(bar\n baz)")
+    ("(;; foo\n b|ar\n baz)" "|(;; foo\n bar\n baz)"))))
+
 (provide 'smartparens-test-commands)

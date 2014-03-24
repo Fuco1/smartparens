@@ -5144,12 +5144,18 @@ Examples:
                       ;; if the expression is empty remove everything inside
                       (if (sp-compare-sexps ok prev)
                           (sp-get ok (delete-region :beg-in :end-in))
-                        (delete-region (sp-get prev :end) (point)))))
+                        (when (save-excursion
+                                (skip-chars-backward " \t\n")
+                                (= (point) (sp-get prev :end-suf)))
+                          (delete-region (sp-get prev :end-suf) (point))))))
                 (goto-char (sp-get ok :beg-in))
                 (let ((next (sp-get-thing)))
                   (if (sp-compare-sexps ok next)
                       (sp-get ok (delete-region :beg-in :end-in))
-                    (delete-region (point) (sp-get next :beg))))))))
+                    (when (save-excursion
+                            (skip-chars-forward " \t\n")
+                            (= (point) (sp-get next :beg-prf)))
+                      (delete-region (point) (sp-get next :beg-prf)))))))))
       ;; on forward up, we can detect that the pair was not closed.
       ;; Therefore, jump sexps backwards until we hit the error, then
       ;; extract the opening pair and insert it at point.  Only works
