@@ -444,6 +444,7 @@ Symbol is defined as a chunk of text recognized by
                          nxml-mode
                          web-mode
                          jinja2-mode
+                         html-erb-mode
                          )
   "List of HTML modes.")
 
