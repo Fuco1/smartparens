@@ -251,6 +251,8 @@
     ("(;; foo\n b|ar\n baz\n ;; foo\n )" "(;; foo\n bar\n baz\n ;; foo\n )|"))
    (((current-prefix-arg -1))
     ("(\n b|ar\n baz)" "|(bar\n baz)")
-    ("(;; foo\n b|ar\n baz)" "|(;; foo\n bar\n baz)"))))
+    ("(;; foo\n b|ar\n baz)" "|(;; foo\n bar\n baz)")
+    ("(`|(depends-on ,pkg))" "|(`(depends-on ,pkg))")
+    ("(,@|(depends-on ,pkg))" "|(,@(depends-on ,pkg))"))))
 
 (provide 'smartparens-test-commands)
