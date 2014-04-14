@@ -3686,11 +3686,13 @@ pairs!"
   "If the point is inside a quoted string, return its bounds."
   (when (nth 3 (syntax-ppss))
     (let ((open (save-excursion
-                  (while (nth 3 (syntax-ppss))
+                  (while (and (not (bobp))
+                              (nth 3 (syntax-ppss)))
                     (backward-char 1))
                   (point)))
           (close (save-excursion
-                   (while (nth 3 (syntax-ppss))
+                   (while (and (not (eobp))
+                               (nth 3 (syntax-ppss)))
                      (forward-char 1))
                    (point))))
       (cons open close))))
@@ -3702,7 +3704,9 @@ pairs!"
     (let ((open (save-excursion
                   (while (and (not (bobp))
                               (or (sp-point-in-comment)
-                                  (looking-at "[[:space:]]+\\s<")))
+                                  (save-excursion
+                                    (backward-char 1)
+                                    (looking-at "[[:space:]]+\\s<"))))
                     (backward-char 1))
                   (point)))
           (close (save-excursion
