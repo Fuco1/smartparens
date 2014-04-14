@@ -3293,8 +3293,8 @@ followed by word.  It is disabled by default.  See
                                 (not (equal open-pair close-pair)))))
                           (not (run-hook-with-args-until-success
                                 'sp-autoinsert-inhibit-functions
-                                open-pair
-                                (or sp-point-inside-string (sp-point-in-comment))))))
+                                 open-pair
+                                 (or sp-point-inside-string (sp-point-in-comment))))))
                  (when pair (delete-char (- (length pair))))))
           ;; if this pair could not be inserted, we try the procedure
           ;; again with this pair removed from sp-pair-list to give
@@ -3333,9 +3333,9 @@ followed by word.  It is disabled by default.  See
                          ;; we mean the point is surrounded by the
                          ;; string delimiters.  This enables us to
                          ;; write e.g. """""" in python docs.
-                         (flet ((check-quote (delimiter)
-                                             (and (equal (char-after (1+ (point))) delimiter)
-                                                  (equal (char-before (1- (point))) delimiter))))
+                         (cl-flet ((check-quote (delimiter)
+                                                (and (equal (char-after (1+ (point))) delimiter)
+                                                     (equal (char-before (1- (point))) delimiter))))
                            (not (or (check-quote ?\")
                                     (check-quote ?'))))))
             (save-excursion
@@ -4091,14 +4091,14 @@ See `sp-get-hybrid-sexp' for definition."
   "Get the end of hybrid sexp.
 See `sp-get-hybrid-sexp' for definition."
   (save-excursion
-    (flet ((skip-prefix-backward
-            (p)
-            (save-excursion
-              (goto-char p)
-              (save-restriction
-                (sp--narrow-to-line)
-                (skip-syntax-backward " .")
-                (point)))))
+    (cl-flet ((skip-prefix-backward
+               (p)
+               (save-excursion
+                 (goto-char p)
+                 (save-restriction
+                   (sp--narrow-to-line)
+                   (skip-syntax-backward " .")
+                   (point)))))
       (let ((p (progn (when (sp-point-in-symbol) (sp-backward-sexp)) (point)))
             (le (line-end-position))
             (cur (--if-let (save-excursion (sp-forward-sexp)) it (list :beg (1+ (point-max))))) ;hack
