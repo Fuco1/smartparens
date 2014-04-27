@@ -2621,7 +2621,10 @@ would execute if smartparens-mode were disabled."
               (when (and (eq sp-last-operation 'sp-self-insert)
                          sp-point-inside-string
                          sp-autoescape-string-quote
-                         (eq (preceding-char) ?\"))
+                         (or (and (eq (preceding-char) ?\")
+                                  (eq sp-point-inside-string ?\"))
+                             (and (eq (preceding-char) ?')
+                                  (eq sp-point-inside-string ?'))))
                 (save-excursion
                   (backward-char 1)
                   (insert sp-escape-char))))))
@@ -3326,8 +3329,10 @@ followed by word.  It is disabled by default.  See
           (when (and sp-autoescape-string-quote
                      sp-point-inside-string
                      (or
-                      (and (equal open-pair "\"") (equal close-pair "\""))
-                      (and (equal open-pair "'") (equal close-pair "'")))
+                      (and (equal open-pair "\"") (equal close-pair "\"")
+                           (eq sp-point-inside-string ?\"))
+                      (and (equal open-pair "'") (equal close-pair "'")
+                           (eq sp-point-inside-string ?')))
                      (or (not (memq major-mode sp-autoescape-string-quote-if-empty))
                          ;; Test if the string is empty here, by which
                          ;; we mean the point is surrounded by the
