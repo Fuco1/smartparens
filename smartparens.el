@@ -3702,6 +3702,7 @@ pairs!"
                    (point))))
       (cons open close))))
 
+;; TODO: the repeated conditions are ugly, refactor this!
 (defun sp-get-comment-bounds ()
   "If the point is inside a comment, return its bounds."
   (when (or (sp-point-in-comment)
@@ -3713,12 +3714,22 @@ pairs!"
                                     (backward-char 1)
                                     (looking-at "[[:space:]]+\\s<"))))
                     (backward-char 1))
+                  (when (not (or (bobp)
+                                 (or (sp-point-in-comment)
+                                     (save-excursion
+                                       (backward-char 1)
+                                       (looking-at "[[:space:]]+\\s<")))))
+                    (forward-char))
                   (point)))
           (close (save-excursion
                    (while (and (not (eobp))
                                (or (sp-point-in-comment)
                                    (looking-at "[[:space:]]+\\s<")))
                      (forward-char 1))
+                   (when (not (or (eobp)
+                                  (or (sp-point-in-comment)
+                                      (looking-at "[[:space:]]+\\s<"))))
+                     (backward-char 1))
                    (point))))
       (cons open close))))
 
@@ -6047,7 +6058,8 @@ Examples:
         (forward-fn (if forward 'forward-char 'backward-char))
         (next-char-fn (if forward 'following-char 'preceding-char))
         (looking (if forward 'sp--looking-at 'sp--looking-back))
-        (eob-test (if forward '(eobp) '(bobp))))
+        (eob-test (if forward '(eobp) '(bobp)))
+        (comment-bound (if forward 'cdr 'car)))
     `(let ((in-comment (sp-point-in-comment))
            ;; HACK: if we run out of current context this might skip a
            ;; pair that was not allowed before.  However, such a call is
@@ -6069,6 +6081,9 @@ Examples:
                                  (,looking allowed-strings))))
                    (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\\ ?\" ?' ?.))
                        (unless in-comment (sp-point-in-comment))))
+         (when (and (not in-comment)
+                    (sp-point-in-comment))
+           (goto-char (,comment-bound (sp-get-comment-bounds))))
          (,forward-fn 1)))))
 
 (defun sp-skip-forward-to-symbol (&optional stop-at-string stop-after-string stop-inside-string)
