@@ -2637,41 +2637,42 @@ would execute if smartparens-mode were disabled."
 (defun sp--delete-selection-mode-handle (&optional from-wrap)
   "Call the original `delete-selection-pre-hook'."
   (if smartparens-mode
-      (cond
-       ;; try the cua-mode emulation with `cua-delete-selection'
-       ((and (boundp 'cua-mode) cua-mode
-             (or (not (sp--this-original-command-self-insert-p))
-                 (not sp-autowrap-region)))
-        ;; if sp-autowrap-region is disabled, we need to translate
-        ;; `sp--cua-replace-region' back to `self-insert-command'
-        ;; because this is *pre* command hook
-        ;; TODO: why do we need sp-cua-replace-region?
-        (when (and (not sp-autowrap-region)
-                   (eq this-command 'sp--cua-replace-region))
-          (setq this-command 'self-insert-command))
-        (cua--pre-command-handler))
-       ;; this handles the special case after `self-insert-command' if
-       ;; `sp-autowrap-region' is t.
-       ((and (boundp 'cua-mode) cua-mode from-wrap)
-        (setq this-command this-original-command)
-        (cua-replace-region))
-       ;; if not self-insert, just run the hook from
-       ;; `delete-selection-mode'
-       ((and (boundp 'delete-selection-mode) delete-selection-mode
+      (progn
+        ;; if not self-insert, just run the hook from
+        ;; `delete-selection-mode'
+        (and (bound-and-true-p delete-selection-mode)
              (or from-wrap
                  (not sp-autowrap-region)
-                 (not (sp--this-original-command-self-insert-p))))
-        (delete-selection-pre-hook)))
+                 (not (sp--this-original-command-self-insert-p)))
+             (delete-selection-pre-hook))
+        ;; try the cua-mode emulation with `cua-delete-selection'
+        (cond
+         ((and (bound-and-true-p cua-mode)
+               (or (not (sp--this-original-command-self-insert-p))
+                   (not sp-autowrap-region)))
+          ;; if sp-autowrap-region is disabled, we need to translate
+          ;; `sp--cua-replace-region' back to `self-insert-command'
+          ;; because this is *pre* command hook
+          ;; TODO: why do we need sp-cua-replace-region?
+          (when (and (not sp-autowrap-region)
+                     (eq this-command 'sp--cua-replace-region))
+            (setq this-command 'self-insert-command))
+          (cua--pre-command-handler))
+         ;; this handles the special case after `self-insert-command' if
+         ;; `sp-autowrap-region' is t.
+         ((and (bound-and-true-p cua-mode) from-wrap)
+          (setq this-command this-original-command)
+          (cua-replace-region))))
     ;; this handles the callbacks properly if the smartparens mode is
-    ;; disabled.  Smartparens-mode adds advices on cua-mode and
-    ;; delete-selection-mode that automatically remove the callbacks
-    (cond
-     ((and (bound-and-true-p cua-mode)
-           (not (member 'cua--pre-command-handler pre-command-hook)))
-      (cua--pre-command-handler))
-     ((and (bound-and-true-p delete-selection-mode)
-           (not (member 'delete-selection-pre-hook pre-command-hook)))
-      (delete-selection-pre-hook)))))
+    ;; disabled.  Smartparens-mode adds advices on
+    ;; delete-selection-mode and cua-mode that automatically remove
+    ;; the callbacks
+    (and (bound-and-true-p delete-selection-mode)
+         (not (member 'delete-selection-pre-hook pre-command-hook))
+         (delete-selection-pre-hook))
+    (and (bound-and-true-p cua-mode)
+         (not (member 'cua--pre-command-handler pre-command-hook))
+         (cua--pre-command-handler))))
 
 (defun sp--pre-command-hook-handler ()
   "Main handler of pre-command-hook.
