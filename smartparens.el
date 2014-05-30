@@ -6088,7 +6088,7 @@ Examples:
          (when (and (not in-comment)
                     (sp-point-in-comment))
            (goto-char (,comment-bound (sp-get-comment-bounds))))
-         (,forward-fn 1)))))
+         (when (not ,eob-test) (,forward-fn 1))))))
 
 (defun sp-skip-forward-to-symbol (&optional stop-at-string stop-after-string stop-inside-string)
   "Skip whitespace and comments moving forward.
