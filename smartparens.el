@@ -1315,7 +1315,7 @@ beginning."
 
 (defun sp--back-to-indentation (old-column old-indentation)
   (let ((offset (sp--calculate-indentation-offset old-column old-indentation)))
-    (goto-char (+ (line-beginning-position) offset))))
+    (move-to-column offset)))
 
 (defmacro sp--keep-indentation (&rest body)
   "Execute BODY and restore the indentation."
