@@ -3792,6 +3792,7 @@ Non-nil return value means to skip the result."
                     (not (sp--looking-back "\\?\\\\\\\\" 3 t)))
                (and (not (sp-point-in-string-or-comment))
                     (sp--looking-back "\\?" 1 t) ;;TODO surely we can do better
+                    (not (sp--looking-back "\\\\\\?" 2 t))
                     (not (sp--looking-back "\\s_\\?" 2 t))
                     (not (sp--looking-back "\\sw\\?" 2 t))))))))
 
@@ -5439,6 +5440,14 @@ t.  All the special prefix arguments work the same way."
   (interactive "P")
   (save-excursion
     (sp-kill-sexp (sp--negate-argument arg) t)))
+
+(defun sp-clone-sexp ()
+  (interactive)
+  (-when-let (ok (sp-get-thing))
+    (sp-get ok
+      (goto-char :end-suf)
+      (sp-newline)
+      (insert (buffer-substring-no-properties :beg-prf :end-suf)))))
 
 (defun sp-kill-hybrid-sexp (arg)
   "Kill a line as if with `kill-line', but respecting delimiters.
