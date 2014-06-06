@@ -25,7 +25,11 @@
   (unwind-protect
       (progn
         (insert string)
-        (if back (goto-char (point-max)) (goto-char (point-min)))
+        (if back (progn
+                   (goto-char (point-max))
+                   (--when-let (car (sp-get-comment-bounds))
+                     (goto-char it)))
+          (goto-char (point-min)))
         (let ((pair (sp-get-paired-expression back)))
           (should (equal pair expected))))
     (erase-buffer)))

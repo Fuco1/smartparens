@@ -3810,16 +3810,31 @@ Non-nil return value means to skip the result."
 
 The expressions considered are those delimited by pairs on
 `sp-pair-list'."
-  (let* ((search-fn (if (not back) 'sp--search-forward-regexp 'sp--search-backward-regexp))
-         (global-skip-fn (cdr (--first (memq major-mode (car it)) sp-navigate-skip-match)))
-         (pair-list (sp--get-allowed-pair-list))
-         (in-string-or-comment (sp-point-in-string-or-comment))
-         (string-bounds (and in-string-or-comment (sp--get-string-or-comment-bounds)))
-         (fw-bound (if in-string-or-comment (cdr string-bounds) (point-max)))
-         (bw-bound (if in-string-or-comment (car string-bounds) (point-min)))
-         s e active-pair forward mb me ms r done
-         possible-pairs possible-interfering-pairs possible-ops possible-cls)
-    (save-excursion
+  (save-excursion
+    (let* ((search-fn (if (not back) 'sp--search-forward-regexp 'sp--search-backward-regexp))
+           (global-skip-fn (cdr (--first (memq major-mode (car it)) sp-navigate-skip-match)))
+           (pair-list (sp--get-allowed-pair-list))
+           ;; TODO UGLY HACK!!!  When the situation is:
+           ;; ..)|;; comment
+           ;; the context the point gets is the comment.  But if we
+           ;; are searching backward, that is incorrect, because in
+           ;; that case we want the context of the closing pair.
+           ;; Therefore, if the direction is backward, we need to move
+           ;; one point backward, then test the comment/string thing,
+           ;; then compute the correct bounds, and then restore the
+           ;; point so the search will pick up the )
+           (in-string-or-comment (-if-let (soc (sp-point-in-string-or-comment))
+                                     (if back
+                                         (save-excursion
+                                           (backward-char)
+                                           (sp-point-in-string-or-comment))
+                                       soc)
+                                   soc))
+           (string-bounds (and in-string-or-comment (sp--get-string-or-comment-bounds)))
+           (fw-bound (if in-string-or-comment (cdr string-bounds) (point-max)))
+           (bw-bound (if in-string-or-comment (car string-bounds) (point-min)))
+           s e active-pair forward mb me ms r done
+           possible-pairs possible-interfering-pairs possible-ops possible-cls)
       (while (not done)
         ;; search for the first opening pair.  Here, only consider tags
         ;; that are allowed in the current context.
@@ -3828,14 +3843,18 @@ The expressions considered are those delimited by pairs on
                                    (if back bw-bound fw-bound)
                                    r mb me ms)
         (unless (sp--skip-match-p ms mb me :global-skip global-skip-fn)
-          (when (not (sp-point-in-string-or-comment))
+          (when (not (if (not back)
+                         (sp-point-in-string-or-comment (1- (point)))
+                       (sp-point-in-string-or-comment)))
             (setq in-string-or-comment nil))
           ;; if the point originally wasn't inside of a string or comment
           ;; but now is, jump out of the string/comment and only search
           ;; the code.  This ensures that the comments and strings are
           ;; skipped if we search inside code.
           (if (and (not in-string-or-comment)
-                   (sp-point-in-string-or-comment))
+                   (if (not back)
+                       (sp-point-in-string-or-comment (1- (point)))
+                     (sp-point-in-string-or-comment)))
               (let* ((bounds (sp--get-string-or-comment-bounds))
                      (jump-to (if back (1- (car bounds)) (1+ (cdr bounds)))))
                 (goto-char jump-to))
@@ -3883,7 +3902,10 @@ The expressions considered are those delimited by pairs on
             (sp--search-and-save-match search-fn needle b r mb me ms)
             (if r
                 (unless (or (and (not in-string-or-comment)
-                                 (sp-point-in-string-or-comment))
+                                 (if forward (save-excursion
+                                               (backward-char)
+                                               (sp-point-in-string-or-comment))
+                                   (sp-point-in-string-or-comment)))
                             ;; check the individual pair skipper.  We
                             ;; need to test all the possible-ops,
                             ;; which makes it a bit ugly :/
@@ -3906,20 +3928,21 @@ The expressions considered are those delimited by pairs on
                 (unless (minibufferp)
                   (sp-message :unmatched-expression))
                 nil)
-            (cond
-             ((or (and (sp-point-in-string-or-comment s) (not (sp-point-in-string-or-comment e)))
-                  (and (not (sp-point-in-string-or-comment s)) (sp-point-in-string-or-comment e)))
-              (unless (minibufferp)
-                (sp-message :delimiter-in-string))
-              nil)
-             (t
-              (let* ((op (if forward open close)))
-                (list :beg s
-                      :end e
-                      :op op
-                      :cl (if forward close open)
-                      :prefix (sp--get-prefix s op)
-                      :suffix (sp--get-suffix e op)))))))))))
+            (let ((end-in-cos (sp-point-in-string-or-comment (1- e)))) ;; fix the "point on comment" issue
+              (cond
+               ((or (and (sp-point-in-string-or-comment s) (not end-in-cos))
+                    (and (not (sp-point-in-string-or-comment s)) end-in-cos))
+                (unless (minibufferp)
+                  (sp-message :delimiter-in-string))
+                nil)
+               (t
+                (let* ((op (if forward open close)))
+                  (list :beg s
+                        :end e
+                        :op op
+                        :cl (if forward close open)
+                        :prefix (sp--get-prefix s op)
+                        :suffix (sp--get-suffix e op))))))))))))
 
 ;; TODO: this does not consider unbalanced quotes in comments!!!
 (defun sp--find-next-stringlike-delimiter (needle search-fn-f &optional limit skip-fn)
