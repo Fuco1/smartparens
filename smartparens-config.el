@@ -51,6 +51,19 @@
 ;; original definition of closing pair.
 (sp-pair "'" nil :unless '(sp-point-after-word-p))
 
+(defun sp-lisp-invalid-hyperlink-p (_ action _)
+  (when (eq action 'navigate)
+    (or (and (looking-at "\\sw\\|\\s_")
+             (save-excursion
+               (backward-char 2)
+               (looking-at "\\sw\\|\\s_")))
+        (and (save-excursion
+               (backward-char 1)
+               (looking-at "\\sw\\|\\s_"))
+             (save-excursion
+               (forward-char 1)
+               (looking-at "\\sw\\|\\s_"))))))
+
 ;; emacs is lisp hacking enviroment, so we set up some most common
 ;; lisp modes too
 (sp-with-modes sp--lisp-modes
@@ -58,7 +71,16 @@
   (sp-local-pair "'" nil :actions nil)
   ;; also only use the pseudo-quote inside strings where it serve as
   ;; hyperlink.
-  (sp-local-pair "`" "'" :when '(sp-in-string-p sp-in-comment-p)))
+  (sp-local-pair "`" "'"
+                 :when '(sp-in-string-p
+                         sp-in-comment-p)
+                 :unless '(sp-lisp-invalid-hyperlink-p)
+                 :skip-match (lambda (ms mb me)
+                               (cond
+                                ((equal ms "'")
+                                 (or (sp-lisp-invalid-hyperlink-p "`" 'navigate '_)
+                                     (not (sp-point-in-string-or-comment))))
+                                (t (not (sp-point-in-string-or-comment)))))))
 
 ;; NOTE: Normally, `sp-local-pair' accepts list of modes (or a single
 ;; mode) as a first argument.  The macro `sp-with-modes' adds this

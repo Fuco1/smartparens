@@ -63,6 +63,12 @@
     ("`(foo)" 2 7 "(" ")" "`" "")
     (",@(foo)" 3 8 "(" ")" ",@" "")
     (",[vector foo (bar) lolz]" 2 25 "[" "]" "," "")
+    ("(foo (bar) (baz) ((quux) (quo)) qua);;asdasdasd" 1 37 "(" ")" "" "")
+    ("(foo (bar) (baz) ((quux) (quo)) qua) ;;asdasdasd" 1 37 "(" ")" "" "")
+    ("(#\\?)" 1 6 "(" ")" "" "")
+    ("(foo bar?)" 1 11 "(" ")" "" "")
+    ("(foo bar ?) baz)" 1 17 "(" ")" "" "")
+    ("(foo bar \\?)" 1 13 "(" ")" "" "")
     ))
 
 (ert-deftest sp-test-get-paired-expression-elisp ()

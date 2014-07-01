@@ -1,5 +1,6 @@
 (require 'ert)
 (require 'dash)
+(require 'cl-lib)
 
 (require 'smartparens)
 (require 'smartparens-test-env)
@@ -83,6 +84,23 @@ executing `sp-skip-closing-pair'."
   (should (equal (sp--parse-insertion-spec "[i]")
                  '(progn
                     (indent-according-to-mode)))))
+
+(ert-deftest sp-test-sp-autoescape-string-quote-if-empty ()
+  (let ((python-indent-offset 4))
+    (with-temp-buffer
+      (python-mode)
+      (smartparens-mode 1)
+      (insert "def foo():\n    ")
+      (pop-to-buffer (current-buffer))
+      (let ((sp-autoescape-string-quote-if-empty '(python-mode))
+            (sp-autoescape-string-quote t)
+            (sp-autoskip-closing-pair nil)
+            (sp-undo-pairs-separately nil)
+            (sp-autoinsert-if-followed-by-same 0))
+        (execute-kbd-macro "\"")
+        (execute-kbd-macro "\"")
+        (execute-kbd-macro "\""))
+      (should (equal (buffer-string) "def foo():\n    \"\"\"\"\"\"")))))
 
 (defun sp-test-run-tests ()
   (interactive)

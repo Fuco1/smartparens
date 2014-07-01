@@ -58,16 +58,18 @@
     (insert "  ")
     (backward-char 1)))
 
-(defun sp-latex-insert-quotes (_i action _c)
-  (when (eq action 'insert)
-    (delete-char -1)
-    (insert "``")))
-
 (defun sp-latex-skip-match-apostrophe (ms mb me)
   (when (equal ms "'")
     (save-excursion
       (goto-char me)
       (looking-at-p "\\sw"))))
+
+(defun sp-latex-skip-double-quote (_ action _)
+  (when (eq action 'insert)
+    (when (looking-at-p "''''")
+      (delete-char -2)
+      (delete-char 2)
+      (forward-char 2))))
 
 (defun sp-latex-point-after-backslash (id action context)
   "Return t if point follows a backslash, nil otherwise.
@@ -101,7 +103,8 @@ This predicate is only tested on \"insert\" action."
   ;; need to insert ", C-q is our friend.
   (sp-local-pair "``" "''"
                  :trigger "\""
-                 :unless '(sp-latex-point-after-backslash))
+                 :unless '(sp-latex-point-after-backslash)
+                 :post-handlers '(sp-latex-skip-double-quote))
 
   ;; add the prefix function sticking to {} pair
   (sp-local-pair "{" nil :prefix "\\\\\\(\\sw\\|\\s_\\)*")

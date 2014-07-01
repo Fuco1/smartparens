@@ -39,6 +39,17 @@
     ("|foo" "foo|")
     ("|foo bar" "foo| bar" "foo bar|")
 
+    ;; test movement over comments
+    ("|(foo)\nbar ;; baz (foo) baz\n(quux)"
+     "(foo)|\nbar ;; baz (foo) baz\n(quux)"
+     "(foo)\nbar| ;; baz (foo) baz\n(quux)"
+     "(foo)\nbar ;; baz (foo) baz\n(quux)|")
+
+    ("(foo)\nbar ;; |baz (foo) baz\n(quux)"
+     "(foo)\nbar ;; baz| (foo) baz\n(quux)"
+     "(foo)\nbar ;; baz (foo)| baz\n(quux)"
+     "(foo)\nbar ;; baz (foo) baz|\n(quux)")
+
     ;; @{ paredit tests
     ("|" "|")
 
@@ -90,6 +101,17 @@
     ("foo|" "|foo")
     ("foo bar|" "foo |bar" "|foo bar")
 
+    ;; test movement over comments
+    ("(foo)\nbar ;; baz (foo) baz\n(quux)|"
+     "(foo)\nbar ;; baz (foo) baz\n|(quux)"
+     "(foo)\n|bar ;; baz (foo) baz\n(quux)"
+     "|(foo)\nbar ;; baz (foo) baz\n(quux)")
+
+    ("(foo)\nbar ;; baz (foo) baz|\n(quux)"
+     "(foo)\nbar ;; baz (foo) |baz\n(quux)"
+     "(foo)\nbar ;; baz |(foo) baz\n(quux)"
+     "(foo)\nbar ;; |baz (foo) baz\n(quux)")
+
     ;; @{paredit tests
     ("|" "|")
 
@@ -132,6 +154,46 @@
     ("(\"x\" \"y\")|" "|(\"x\" \"y\")" "|(\"x\" \"y\")")
     ;; @}
     )))
+
+(sp-test-command sp-forward-slurp-sexp
+  ((nil
+    ;; beware, this also tests the reindenting/cleanup!!!
+    ("(f|oo)\nbar ;; baz (foo) baz\n(quux)"
+     "(f|oo\n bar) ;; baz (foo) baz\n(quux)"
+     "(f|oo\n bar ;; baz (foo) baz\n (quux))")
+
+    ("(foo)\nbar ;; baz (f|oo) baz\n(quux)"
+     "(foo)\nbar ;; baz (f|oo baz)\n(quux)"))))
+
+(sp-test-command sp-backward-slurp-sexp
+  ((nil
+    ;; beware, this also tests the reindenting/cleanup!!!
+    ("(foo)\nbar ;; baz (foo) baz\n(qu|ux)"
+     "(foo)\n(bar ;; baz (foo) baz\n qu|ux)"
+     "((foo)\n bar ;; baz (foo) baz\n qu|ux)")
+
+    ("(foo)\nbar ;; baz (f|oo) baz\n(quux)"
+     "(foo)\nbar ;; (baz f|oo) baz\n(quux)"))))
+
+(sp-test-command sp-forward-barf-sexp
+  ((nil
+    ;; beware, this also tests the reindenting/cleanup!!!
+    ("(f|oo\n bar ;; baz (foo) baz\n (quux))"
+     "(f|oo\n bar) ;; baz (foo) baz\n(quux)"
+     "(f|oo)\nbar ;; baz (foo) baz\n(quux)")
+
+    ("(foo)\nbar ;; baz (f|oo baz)\n(quux)"
+     "(foo)\nbar ;; baz (f|oo) baz\n(quux)"))))
+
+(sp-test-command sp-backward-barf-sexp
+  ((nil
+    ;; beware, this also tests the reindenting/cleanup!!!
+    ("((foo)\n bar ;; baz (foo) baz\n qu|ux)"
+     "(foo)\n(bar ;; baz (foo) baz\n qu|ux)"
+     "(foo)\nbar ;; baz (foo) baz\n(qu|ux)")
+
+    ("(foo)\nbar ;; (baz f|oo) baz\n(quux)"
+     "(foo)\nbar ;; baz (f|oo) baz\n(quux)"))))
 
 (sp-test-command sp-splice-sexp
   ((nil
@@ -244,5 +306,15 @@
     ("'|foo-bar-baz" "'|")
     ("'f|oo-bar-baz" "'|")
     ("'foo-|bar-baz" "'|"))))
+
+(sp-test-command sp-up-sexp
+  ((nil
+    ("(;; foo\n b|ar\n baz\n )" "(;; foo\n bar\n baz)|")
+    ("(;; foo\n b|ar\n baz\n ;; foo\n )" "(;; foo\n bar\n baz\n ;; foo\n )|"))
+   (((current-prefix-arg -1))
+    ("(\n b|ar\n baz)" "|(bar\n baz)")
+    ("(;; foo\n b|ar\n baz)" "|(;; foo\n bar\n baz)")
+    ("(`|(depends-on ,pkg))" "|(`(depends-on ,pkg))")
+    ("(,@|(depends-on ,pkg))" "|(,@(depends-on ,pkg))"))))
 
 (provide 'smartparens-test-commands)
