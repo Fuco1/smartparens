@@ -1332,14 +1332,12 @@ beginning."
   "Return non-nil if `this-command' is some sort of `self-insert-command'."
   (memq this-command '(self-insert-command
                        org-self-insert-command
-                       orgtbl-self-insert-command
                        sp--self-insert-command)))
 
 (defun sp--this-original-command-self-insert-p ()
   "Return non-nil if `this-original-command' is some sort of `self-insert-command'."
   (memq this-original-command '(self-insert-command
                                 org-self-insert-command
-                                orgtbl-self-insert-command
                                 sp--self-insert-command)))
 
 (defun sp--signum (x)
@@ -2610,11 +2608,12 @@ would execute if smartparens-mode were disabled."
               ;; That is a function that would normally run if SP was
               ;; inactive. TODO: should this be customizable?
               (when (not action)
-                (when (and (not (sp--this-original-command-self-insert-p))
-                           (lookup-key sp-keymap (vector last-command-event)))
-                  (delete-char -1)
-                  (sp--call-fallback-command)
-                  (setq action t)))
+                (let ((fb-fun (sp--keybinding-fallback)))
+                  (when (and (not (eq fb-fun 'self-insert-command))
+                             (lookup-key sp-keymap (vector last-command-event)))
+                    (delete-char -1)
+                    (sp--call-fallback-command)
+                    (setq action t))))
               ;; if nothing happened, we just inserted a character, so
               ;; set the apropriate operation.  We also need to check
               ;; for `sp--self-insert-no-escape' not to overwrite
