@@ -1339,7 +1339,8 @@ beginning."
   (memq this-original-command '(self-insert-command
                                 org-self-insert-command
                                 orgtbl-self-insert-command
-                                sp--self-insert-command)))
+                                ;;sp--self-insert-command
+                                )))
 
 (defun sp--signum (x)
   "Return 1 if X is positive, -1 if negative, 0 if zero."
