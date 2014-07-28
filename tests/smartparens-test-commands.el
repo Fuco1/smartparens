@@ -2,7 +2,10 @@
 (require 'smartparens-config)
 
 (defun sp-test-command-setup ()
-  (emacs-lisp-mode))
+  (cond
+   ((not (boundp 'mode)) (emacs-lisp-mode))
+   ((eq mode 'elisp) (emacs-lisp-mode))
+   ((eq mode 'c) (c-mode))))
 
 (defmacro sp-test-command (command examples)
   (declare (indent 1))
@@ -163,7 +166,12 @@
      "(f|oo\n bar ;; baz (foo) baz\n (quux))")
 
     ("(foo)\nbar ;; baz (f|oo) baz\n(quux)"
-     "(foo)\nbar ;; baz (f|oo baz)\n(quux)"))))
+     "(foo)\nbar ;; baz (f|oo baz)\n(quux)"))
+
+   (((mode 'c))
+    ("int funct() { int |foo =} bar;" "int funct() { int |foo = bar;}")
+    ("int funct() { int |foo =}; bar" "int funct() { int |foo = bar};")
+    ("int funct() { int |foo =}; bar;" "int funct() { int |foo = bar;};"))))
 
 (sp-test-command sp-backward-slurp-sexp
   ((nil
