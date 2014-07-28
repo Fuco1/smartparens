@@ -1468,6 +1468,15 @@ replacement of all the keywords with actual calls to sp-get."
       (:prefix-l    `(length (plist-get ,struct :prefix)))
       (:suffix      `(plist-get ,struct :suffix))
       (:suffix-l    `(length (plist-get ,struct :suffix)))
+      ;; combined op/cl and suffix/prefix
+      (:opp         `(concat (plist-get ,struct :prefix)
+                             (plist-get ,struct :op)))
+      (:opp-l       `(+ (length (plist-get ,struct :prefix))
+                        (length (plist-get ,struct :op))))
+      (:cls         `(concat (plist-get ,struct :cl)
+                             (plist-get ,struct :suffix)))
+      (:cls-l       `(+ (length (plist-get ,struct :cl))
+                        (length (plist-get ,struct :suffix))))
       (t keyword))))
 
 ;; The structure returned by sp-get-sexp is a plist with following properties:
