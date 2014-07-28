@@ -132,7 +132,7 @@
 (defvar sp-test-get-paired-expression-ruby
   '(("begin end" 1 10 "begin" "end" "" "")
     ("def foo bar if blaz end end" 1 28 "def" "end" "" "")
-    ("def foo end;" 1 12 "def" "end" "" ";")
+    ("def foo end;" 1 12 "def" "end" "" "")
     ))
 
 (ert-deftest sp-test-get-paired-expression-ruby ()

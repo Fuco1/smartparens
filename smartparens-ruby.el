@@ -254,6 +254,8 @@
 (add-to-list 'sp-navigate-skip-match
              '((ruby-mode enh-ruby-mode) . sp--ruby-skip-match))
 
+(add-to-list 'sp-sexp-suffix '(ruby-mode syntax ""))
+
 (sp-with-modes '(ruby-mode enh-ruby-mode)
   (sp-local-pair "do" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
