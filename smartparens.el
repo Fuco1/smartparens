@@ -7784,8 +7784,18 @@ support custom pairs."
 (sp--update-override-key-bindings)
 
 (defadvice ac-complete (after sp-auto-complete-advice activate)
+  "If `smartparens-mode' is active, we check if the completed string
+has a pair definition.  If so, we insert the closing pair."
   (when smartparens-mode
     (setq sp-recent-keys (reverse (split-string ad-return-value "")))
+    (sp-insert-pair))
+  ad-return-value)
+
+(defadvice company--insert-candidate (after sp-company--insert-candidate activate)
+  "If `smartparens-mode' is active, we check if the completed string
+has a pair definition.  If so, we insert the closing pair."
+  (when smartparens-mode
+    (setq sp-recent-keys (reverse (split-string (ad-get-arg 0) "")))
     (sp-insert-pair))
   ad-return-value)
 
