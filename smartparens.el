@@ -5556,7 +5556,9 @@ Examples:
       ;; to just one space
       (when (sp-point-in-blank-line)
         (delete-region (line-beginning-position) (line-end-position))
-        (insert (make-string orig-indent ?\ )))))))
+        (let ((need-indent (- orig-indent (current-column))))
+          (when (> need-indent 0)
+            (insert (make-string need-indent ?\ )))))))))
 
 (defun sp--transpose-objects (first second)
   "Transpose FIRST and SECOND object while preserving the
