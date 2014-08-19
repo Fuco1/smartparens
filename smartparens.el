@@ -100,8 +100,8 @@ better orientation."
                                    sp-use-smartparens-bindings
                                    ))
         (commands (cl-loop for i in (cdr (assoc-string (file-truename (locate-library "smartparens")) load-history))
-                        if (and (consp i) (eq (car i) 'defun) (commandp (cdr i)))
-                        collect (cdr i))))
+                           if (and (consp i) (eq (car i) 'defun) (commandp (cdr i)))
+                           collect (cdr i))))
     (with-current-buffer (get-buffer-create "*Smartparens cheat sheet*")
       (let ((standard-output (current-buffer))
             (help-xref-following t))
@@ -449,40 +449,40 @@ Symbol is defined as a chunk of text recognized by
   "List of HTML modes.")
 
 (defvar sp-message-alist
-      '((:unmatched-expression
-         "Search failed. This means there is unmatched expression somewhere or we are at the beginning/end of file."
-         "Unmatched expression.")
-        (:delimiter-in-string
-         "Opening or closing pair is inside a string or comment and matching pair is outside (or vice versa). Ignored.")
-        (:no-matching-tag
-         "Search failed. No matching tag found."
-         "No matching tag.")
-        (:invalid-context-prev
-         "Invalid context: previous h-sexp ends after the next one."
-         "Invalid context.")
-        (:invalid-context-cur
-         "Invalid context: current h-sexp starts after the next one."
-         "Invalid context.")
-        (:no-structure-found
-         "Previous sexp starts after current h-sexp or no structure was found."
-         "No valid structure found.")
-        (:invalid-structure
-         "This operation would result in invalid structure. Ignored."
-         "Ignored because of invalid structure.")
-        (:cant-slurp
-         "We can't slurp without breaking strictly balanced expression. Ignored."
-         "Can't slurp without breaking balance.")
-        (:blank-sexp
-         "Point is in blank sexp, nothing to barf."
-         "Point is in blank sexp.")
-        (:point-not-deep-enough
-         "Point has to be at least two levels deep to swap the enclosing delimiters."
-         "Point has to be at least two levels deep."
-         "Point not deep enough.")
-        (:different-type
-         "The expressions to be joined are of different type."
-         "Expressions are of different type."))
-      "List of predefined messages to be displayed by `sp-message'.
+  '((:unmatched-expression
+     "Search failed. This means there is unmatched expression somewhere or we are at the beginning/end of file."
+     "Unmatched expression.")
+    (:delimiter-in-string
+     "Opening or closing pair is inside a string or comment and matching pair is outside (or vice versa). Ignored.")
+    (:no-matching-tag
+     "Search failed. No matching tag found."
+     "No matching tag.")
+    (:invalid-context-prev
+     "Invalid context: previous h-sexp ends after the next one."
+     "Invalid context.")
+    (:invalid-context-cur
+     "Invalid context: current h-sexp starts after the next one."
+     "Invalid context.")
+    (:no-structure-found
+     "Previous sexp starts after current h-sexp or no structure was found."
+     "No valid structure found.")
+    (:invalid-structure
+     "This operation would result in invalid structure. Ignored."
+     "Ignored because of invalid structure.")
+    (:cant-slurp
+     "We can't slurp without breaking strictly balanced expression. Ignored."
+     "Can't slurp without breaking balance.")
+    (:blank-sexp
+     "Point is in blank sexp, nothing to barf."
+     "Point is in blank sexp.")
+    (:point-not-deep-enough
+     "Point has to be at least two levels deep to swap the enclosing delimiters."
+     "Point has to be at least two levels deep."
+     "Point not deep enough.")
+    (:different-type
+     "The expressions to be joined are of different type."
+     "Expressions are of different type."))
+  "List of predefined messages to be displayed by `sp-message'.
 
 Each element is a list consisting of a keyword and one or more
 strings, which are chosen based on the `sp-message-width'
@@ -2428,11 +2428,11 @@ If USE-INSIDE-STRING is non-nil, use value of
 
 (defun sp--parse-insertion-spec (fun)
   "Parse the insertion specification FUN and return a form to evaluate."
-  (cl-flet ((push-non-empty
-             (what)
-             (unless (equal (cadr what) "")
-               ;; relies on dynamic binding
-               (push what spec))))
+  (cl-labels ((push-non-empty
+               (what)
+               (unless (equal (cadr what) "")
+                 ;; relies on dynamic binding
+                 (push what spec))))
     (let ((spec nil)
           (after nil)
           (last 1))
@@ -2491,7 +2491,7 @@ see `sp-pair' for description."
     (let ((hook (sp-get-pair id type))
           (context (sp--get-context type)))
       (if hook
-           (--each hook (sp--run-function-or-insertion it id action context))
+          (--each hook (sp--run-function-or-insertion it id action context))
         (let ((tag-hook (plist-get
                          (--first (string-match-p
                                    (replace-regexp-in-string "_" ".*?" (plist-get it :open))
@@ -3335,8 +3335,8 @@ followed by word.  It is disabled by default.  See
                                 (not (equal open-pair close-pair)))))
                           (not (run-hook-with-args-until-success
                                 'sp-autoinsert-inhibit-functions
-                                 open-pair
-                                 (or sp-point-inside-string (sp-point-in-comment))))))
+                                open-pair
+                                (or sp-point-inside-string (sp-point-in-comment))))))
                  (when pair (delete-char (- (length pair))))))
           ;; if this pair could not be inserted, we try the procedure
           ;; again with this pair removed from sp-pair-list to give
@@ -3377,9 +3377,9 @@ followed by word.  It is disabled by default.  See
                          ;; we mean the point is surrounded by the
                          ;; string delimiters.  This enables us to
                          ;; write e.g. """""" in python docs.
-                         (cl-flet ((check-quote (delimiter)
-                                                (and (equal (char-after (1+ (point))) delimiter)
-                                                     (equal (char-before (1- (point))) delimiter))))
+                         (cl-labels ((check-quote (delimiter)
+                                                  (and (equal (char-after (1+ (point))) delimiter)
+                                                       (equal (char-before (1- (point))) delimiter))))
                            (not (or (check-quote ?\")
                                     (check-quote ?'))))))
             (save-excursion
@@ -3490,20 +3490,20 @@ achieve this by using `sp-pair' or `sp-local-pair' with
                  (sp--get-active-overlay 'pair))
             (memq sp-autoskip-closing-pair '(always always-end)))
     ;; these two are pretty hackish ~_~
-    (cl-flet ((get-sexp
-               ()
-               (delete-char -1)
-               (insert " ")
-               (prog1 (sp-get-sexp)
+    (cl-labels ((get-sexp
+                 ()
                  (delete-char -1)
-                 (insert last)))
-              (get-enclosing-sexp
-               ()
-               (delete-char -1)
-               (insert " ")
-               (prog1 (sp-get-enclosing-sexp)
+                 (insert " ")
+                 (prog1 (sp-get-sexp)
+                   (delete-char -1)
+                   (insert last)))
+                (get-enclosing-sexp
+                 ()
                  (delete-char -1)
-                 (insert last))))
+                 (insert " ")
+                 (prog1 (sp-get-enclosing-sexp)
+                   (delete-char -1)
+                   (insert last))))
       (let ((last (or last (sp--single-key-description last-command-event))))
         (-when-let (active-sexp
                     (cond
@@ -4136,12 +4136,12 @@ of opening/closing delimiter or prefix)."
   "Get the beginning of hybrid sexp.
 See `sp-get-hybrid-sexp' for definition."
   (save-excursion
-    (cl-flet ((indent-or-beg-of-line
-               (lb)
-               (if (sp-point-in-blank-line)
-                   lb
-                 (back-to-indentation)
-                 (point))))
+    (cl-labels ((indent-or-beg-of-line
+                 (lb)
+                 (if (sp-point-in-blank-line)
+                     lb
+                   (back-to-indentation)
+                   (point))))
       (let ((p (progn (when (sp-point-in-symbol) (sp-backward-sexp)) (point)))
             (lb (line-beginning-position))
             (cur (--if-let (save-excursion (sp-backward-sexp)) it (list :end 0))) ;hack
@@ -4170,14 +4170,14 @@ See `sp-get-hybrid-sexp' for definition."
   "Get the end of hybrid sexp.
 See `sp-get-hybrid-sexp' for definition."
   (save-excursion
-    (cl-flet ((skip-prefix-backward
-               (p)
-               (save-excursion
-                 (goto-char p)
-                 (save-restriction
-                   (sp--narrow-to-line)
-                   (skip-syntax-backward " .")
-                   (point)))))
+    (cl-labels ((skip-prefix-backward
+                 (p)
+                 (save-excursion
+                   (goto-char p)
+                   (save-restriction
+                     (sp--narrow-to-line)
+                     (skip-syntax-backward " .")
+                     (point)))))
       (let ((p (progn (when (sp-point-in-symbol) (sp-backward-sexp)) (point)))
             (le (line-end-position))
             (cur (--if-let (save-excursion (sp-forward-sexp)) it (list :beg (1+ (point-max))))) ;hack
@@ -5793,9 +5793,9 @@ triggers that `sp-forward-slurp-sexp' does."
               (goto-char :end-in)
               (insert (buffer-substring-no-properties
                        :beg-in
-                       (+ :beg-in (save-excursion
-                                    (goto-char :beg-in)
-                                    (skip-syntax-forward " ")))))))
+                        (+ :beg-in (save-excursion
+                                     (goto-char :beg-in)
+                                     (skip-syntax-forward " ")))))))
           (unless (or (looking-at "[ \t]*$")
                       (looking-at (sp--get-stringlike-regexp))
                       (looking-at (sp--get-closing-regexp)))
@@ -6663,8 +6663,8 @@ We want to move the `while' before the `let'.
                                      :end)))
            (inner-raise (sp-get enc (delete-and-extract-region
                                      :beg-prf
-                                     (save-excursion
-                                       (sp-forward-whitespace)))))
+                                      (save-excursion
+                                        (sp-forward-whitespace)))))
            (whitespace (sp-get enc
                          ;; this happens when the entire inside sexp was removed.
                          (when (= old-buffer-size (+ (buffer-size) :len))
