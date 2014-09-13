@@ -2426,6 +2426,18 @@ If USE-INSIDE-STRING is non-nil, use value of
                       (sp-point-in-string-or-comment)))))
     (if in-string 'string 'code)))
 
+(defun sp--get-context (&optional point in-string in-comment)
+  "Return the context of POINT.
+
+If the optional arguments IN-STRING or IN-COMMENT non-nil, their
+value is used instead of a test."
+  (save-excursion
+    (goto-char (or point (point)))
+    (cond
+     ((or in-string (sp-point-in-string)) 'string)
+     ((or in-comment (sp-point-in-comment)) 'comment)
+     (t 'code))))
+
 (defun sp--parse-insertion-spec (fun)
   "Parse the insertion specification FUN and return a form to evaluate."
   (cl-labels ((push-non-empty
@@ -3645,9 +3657,12 @@ is remove the just added wrapping."
          ;; we're inside a pair
          ((and inside-pair sp-autodelete-pair)
           (search-forward (substring (cdr inside-pair) 0 1))
-          (delete-char (- (+ (- (point) p) (1- (length (car inside-pair))))))
-          (delete-char (1- (length (cdr inside-pair))))
-          (setq sp-last-operation 'sp-delete-pair))
+          (let ((cs (sp--get-context p))
+                (ce (sp--get-context (point))))
+            (when (eq cs ce)
+              (delete-char (- (+ (- (point) p) (1- (length (car inside-pair))))))
+              (delete-char (1- (length (cdr inside-pair))))
+              (setq sp-last-operation 'sp-delete-pair))))
          ;; we're behind a closing pair
          ((and behind-pair sp-autodelete-closing-pair)
           (delete-char (- (1- (length (cdr behind-pair)))))
