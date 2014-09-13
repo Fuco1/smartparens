@@ -3875,13 +3875,11 @@ The expressions considered are those delimited by pairs on
            ;; one point backward, then test the comment/string thing,
            ;; then compute the correct bounds, and then restore the
            ;; point so the search will pick up the )
-           (in-string-or-comment (-if-let (soc (sp-point-in-string-or-comment))
-                                     (if back
-                                         (save-excursion
-                                           (backward-char)
-                                           (sp-point-in-string-or-comment))
-                                       soc)
-                                   soc))
+           (in-string-or-comment (if back
+                                     (save-excursion
+                                       (backward-char)
+                                       (sp-point-in-string-or-comment))
+                                   (sp-point-in-string-or-comment)))
            (string-bounds (and in-string-or-comment (sp--get-string-or-comment-bounds)))
            (fw-bound (if in-string-or-comment (cdr string-bounds) (point-max)))
            (bw-bound (if in-string-or-comment (car string-bounds) (point-min)))
