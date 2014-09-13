@@ -4431,7 +4431,8 @@ expression.
 The return value is a plist with the same format as the value
 returned by `sp-get-sexp'."
   (sp--maybe-init)
-  (let (b e)
+  (if (sp-point-in-comment)
+      (sp-get-stringlike-expression back)
     (if (sp-point-in-string)
         (let ((r (sp-get-quoted-string-bounds)))
           (sp--get-string r))
