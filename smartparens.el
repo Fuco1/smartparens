@@ -4018,9 +4018,11 @@ opening and closing delimiter, such as *...*, \"...\", `...` etc."
           (setq m (match-string-no-properties 0))
           (setq needle (regexp-quote m))
           (setq skip-match-fn (sp-get-pair m :skip-match))
-          (when (sp-point-in-string)
-            (let ((r (sp-get-quoted-string-bounds)))
-              (setq limit (cons (1- (car r)) (1+ (cdr r))))))
+          (cond
+           ((sp-point-in-string)
+            (setq limit (sp-get-quoted-string-bounds)))
+           ((sp-point-in-comment)
+            (setq limit (sp-get-comment-bounds))))
           (save-excursion
             (while (sp--find-next-stringlike-delimiter needle 'search-backward-regexp (car limit) skip-match-fn)
               (setq count (1+ count))))
