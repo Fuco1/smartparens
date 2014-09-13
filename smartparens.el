@@ -3656,12 +3656,13 @@ is remove the just added wrapping."
             (setq sp-last-operation 'sp-delete-pair-opening))))
          ;; we're inside a pair
          ((and inside-pair sp-autodelete-pair)
-          (search-forward (substring (cdr inside-pair) 0 1))
-          (let ((cs (sp--get-context p))
-                (ce (sp--get-context (point))))
+          (let* ((end (save-excursion
+                        (search-forward (cdr inside-pair))))
+                 (cs (sp--get-context p))
+                 (ce (sp--get-context end)))
             (when (eq cs ce)
-              (delete-char (- (+ (- (point) p) (1- (length (car inside-pair))))))
-              (delete-char (1- (length (cdr inside-pair))))
+              (delete-char (- end p))
+              (delete-char (- (1- (length (car inside-pair)))))
               (setq sp-last-operation 'sp-delete-pair))))
          ;; we're behind a closing pair
          ((and behind-pair sp-autodelete-closing-pair)
