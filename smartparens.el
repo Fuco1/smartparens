@@ -2415,7 +2415,7 @@ If USE-INSIDE-STRING is non-nil, use value of
       (!cdr action))
     r))
 
-(defun sp--get-context (type)
+(defun sp--get-handler-context (type)
   "Return the context constant.  TYPE is type of the handler."
   (let ((in-string (cl-case type
                      (:pre-handlers
@@ -2489,7 +2489,7 @@ see `sp-pair' for description."
   "Run all the hooks for pair ID of type TYPE on action ACTION."
   (ignore-errors
     (let ((hook (sp-get-pair id type))
-          (context (sp--get-context type)))
+          (context (sp--get-handler-context type)))
       (if hook
           (--each hook (sp--run-function-or-insertion it id action context))
         (let ((tag-hook (plist-get
@@ -2532,7 +2532,7 @@ see `sp-pair' for description."
                           (--any? (equal (single-key-description last-command-event) it) conds))
                   (sp--run-function-or-insertion
                    fun sp-last-inserted-pair 'insert
-                   (sp--get-context :post-handlers)))))))
+                   (sp--get-handler-context :post-handlers)))))))
         (setq sp-last-inserted-pair nil))
 
       ;; Here we run the delayed insertion. Some details in issue #113
@@ -2550,7 +2550,7 @@ see `sp-pair' for description."
                                (eq this-command it))
                               ((stringp it)
                                (equal (single-key-description last-command-event) it))
-                              ((ignore-errors (funcall it pair 'insert (sp--get-context :post-handlers))))) conds))
+                              ((ignore-errors (funcall it pair 'insert (sp--get-handler-context :post-handlers))))) conds))
             ;; TODO: refactor this and the same code in
             ;; `sp-insert-pair' to a separate function
             (sp--run-hook-with-args open-pair :pre-handlers 'insert)
