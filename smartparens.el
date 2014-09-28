@@ -7701,7 +7701,7 @@ support custom pairs."
              (opening (sp--get-opening-regexp pair-list))
              (closing (sp--get-closing-regexp pair-list))
              (allowed (and sp-show-pair-from-inside (sp--get-allowed-regexp)))
-             ok match)
+             match)
         (cond
          ((or (sp--looking-at (if sp-show-pair-from-inside allowed opening))
               (and (memq major-mode sp-navigate-consider-stringlike-sexp)
@@ -7711,8 +7711,7 @@ support custom pairs."
           (setq match (match-string 0))
           ;; we can use `sp-get-thing' here because we *are* at some
           ;; pair opening, and so only the tag or the sexp can trigger.
-          (setq ok (sp-get-thing))
-          (if ok
+          (-if-let (ok (sp-get-thing))
               (sp-get ok (sp-show--pair-create-overlays :beg :end :op-l :cl-l))
             (sp-show--pair-create-mismatch-overlay (point) (length match))))
          ((or (sp--looking-back (if sp-show-pair-from-inside allowed closing))
@@ -7721,8 +7720,7 @@ support custom pairs."
               (and (memq major-mode sp-navigate-consider-sgml-tags)
                    (sp--looking-back ">")))
           (setq match (match-string 0))
-          (setq ok (sp-get-thing t))
-          (if ok
+          (-if-let (ok (sp-get-thing t))
               (sp-get ok (sp-show--pair-create-overlays :beg :end :op-l :cl-l))
             (sp-show--pair-create-mismatch-overlay (- (point) (length match))
                                                    (length match))))
