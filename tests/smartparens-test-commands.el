@@ -325,4 +325,12 @@
     ("(`|(depends-on ,pkg))" "|(`(depends-on ,pkg))")
     ("(,@|(depends-on ,pkg))" "|(,@(depends-on ,pkg))"))))
 
+(sp-test-command backward-delete-char
+  ((nil
+    (";;asdas'|\n'asdasd'" ";;asdas|\n'asdasd'")
+    ("foo \"|\" bar" "foo | bar")
+    ("foo [|] bar" "foo | bar")
+    ("foo \\{|\\} bar" "foo | bar")
+    (";;foo \\{|\\}\nbar" ";;foo |\nbar"))))
+
 (provide 'smartparens-test-commands)
