@@ -7716,6 +7716,10 @@ support custom pairs."
                (allowed (and sp-show-pair-from-inside (sp--get-allowed-regexp)))
                match)
           (cond
+           ;; if we are in a situation "()|", we should highlight the
+           ;; regular pair and not the string pair "from inside"
+           ((sp--looking-back (if sp-show-pair-from-inside allowed closing))
+            (create-backward (match-string 0)))
            ((or (sp--looking-at (if sp-show-pair-from-inside allowed opening))
                 (and (memq major-mode sp-navigate-consider-stringlike-sexp)
                      (looking-at (sp--get-stringlike-regexp)))
