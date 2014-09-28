@@ -3906,9 +3906,10 @@ The expressions considered are those delimited by pairs on
                    (if (not back)
                        (sp-point-in-string-or-comment (1- (point)))
                      (sp-point-in-string-or-comment)))
-              (let* ((bounds (sp--get-string-or-comment-bounds))
-                     (jump-to (if back (1- (car bounds)) (1+ (cdr bounds)))))
-                (goto-char jump-to))
+              (-if-let (bounds (sp--get-string-or-comment-bounds))
+                  (let ((jump-to (if back (1- (car bounds)) (1+ (cdr bounds)))))
+                    (goto-char jump-to))
+                (setq done t))
             (setq done t))))
       (when r
         (setq possible-pairs (--filter (or (equal ms (car it))
