@@ -5446,28 +5446,34 @@ Note: prefix argument is shown after the example in
               (kill-append sp-last-kill-whitespace nil)))))))))
 
 (defun sp--cleanup-after-kill ()
-  (let ((bdel (save-excursion
-                (when (looking-back " ")
-                  (skip-chars-backward " \t")
-                  (when (not (looking-back (sp--get-opening-regexp)))
-                    (forward-char)))
-                (point)))
-        (edel (save-excursion
-                (when (looking-at " ")
-                  (skip-chars-forward " \t")
-                  (when (not (or (sp--looking-at (sp--get-closing-regexp))
-                                 (looking-at "$")))
-                    (backward-char)))
-                (point))))
-    (when (eq this-command 'kill-region)
-      (setq sp-last-kill-whitespace
-            (if (/= 2 sp-successive-kill-preserve-whitespace)
-                (buffer-substring-no-properties bdel edel)
-              "")))
-    (delete-region bdel edel))
+  (unless (looking-back "^[\t\s]+")
+    (let ((bdel (save-excursion
+                  (when (looking-back " ")
+                    (skip-chars-backward " \t")
+                    (when (not (looking-back (sp--get-opening-regexp)))
+                      (forward-char)))
+                  (point)))
+          (edel (save-excursion
+                  (when (looking-at " ")
+                    (skip-chars-forward " \t")
+                    (when (not (or (sp--looking-at (sp--get-closing-regexp))
+                                   (looking-at "$")))
+                      (backward-char)))
+                  (point))))
+      (when (eq this-command 'kill-region)
+        (setq sp-last-kill-whitespace
+              (if (/= 2 sp-successive-kill-preserve-whitespace)
+                  (buffer-substring-no-properties bdel edel)
+                "")))
+      (delete-region bdel edel)))
   (if (memq major-mode sp--lisp-modes)
       (indent-according-to-mode)
-    (when (looking-back "^ *")
+    (save-excursion
+      (indent-region (line-beginning-position) (line-end-position)))
+    (when (> (save-excursion
+               (back-to-indentation)
+               (current-indentation))
+             (current-column))
       (back-to-indentation))))
 
 (defun sp-backward-kill-sexp (&optional arg dont-kill)
