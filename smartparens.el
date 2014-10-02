@@ -448,6 +448,11 @@ Symbol is defined as a chunk of text recognized by
                          )
   "List of HTML modes.")
 
+(defvar sp--indentation-sensitive-modes '(
+                         python-mode
+                         )
+  "List of modes that are indentation sensitive.")
+
 (defvar sp-message-alist
   '((:unmatched-expression
      "Search failed. This means there is unmatched expression somewhere or we are at the beginning/end of file."
@@ -7443,7 +7448,8 @@ See `sp-forward-symbol' for what constitutes a symbol."
                       (if word
                           (kill-region kill-from (save-excursion (forward-word) (point)))
                         (kill-region kill-from :end)))))))))
-        (sp--cleanup-after-kill)
+        (unless (memq major-mode sp--indentation-sensitive-modes)
+          (sp--cleanup-after-kill))
         (setq arg (1- arg)))
     (sp-backward-kill-symbol (sp--negate-argument arg) word)))
 
@@ -7484,7 +7490,8 @@ See `sp-backward-symbol' for what constitutes a symbol."
                     (if word
                         (kill-region (save-excursion (backward-word) (point)) :end)
                       (kill-region :beg-prf :end))))))))
-        (sp--cleanup-after-kill)
+        (unless (memq major-mode sp--indentation-sensitive-modes)
+          (sp--cleanup-after-kill))
         (setq arg (1- arg)))
     (sp-kill-symbol (sp--negate-argument arg) word)))
 
