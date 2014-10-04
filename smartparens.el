@@ -2292,9 +2292,8 @@ are of zero length, or if point moved backwards."
 (defun sp-remove-active-pair-overlay ()
   "Deactivate the active overlay.  See `sp--get-active-overlay'."
   (interactive)
-  (let ((active-overlay (sp--get-active-overlay 'pair)))
-    (when active-overlay
-      (sp--remove-overlay active-overlay))))
+  (-when-let (active-overlay (sp--get-active-overlay 'pair))
+    (sp--remove-overlay active-overlay)))
 
 (defun sp--remove-overlay (overlay)
   "Remove OVERLAY."
@@ -2536,15 +2535,14 @@ see `sp-pair' for description."
       (when (and (not (eq sp-last-operation 'sp-insert-pair))
                  sp-last-inserted-pair)
         (let ((hooks (sp-get-pair sp-last-inserted-pair :post-handlers-cond)))
-          (when hooks
-            (--each hooks
-              (let ((fun (car it))
-                    (conds (cdr it)))
-                (when (or (--any? (eq this-command it) conds)
-                          (--any? (equal (single-key-description last-command-event) it) conds))
-                  (sp--run-function-or-insertion
-                   fun sp-last-inserted-pair 'insert
-                   (sp--get-handler-context :post-handlers)))))))
+          (--each hooks
+            (let ((fun (car it))
+                  (conds (cdr it)))
+              (when (or (--any? (eq this-command it) conds)
+                        (--any? (equal (single-key-description last-command-event) it) conds))
+                (sp--run-function-or-insertion
+                 fun sp-last-inserted-pair 'insert
+                 (sp--get-handler-context :post-handlers))))))
         (setq sp-last-inserted-pair nil))
 
       ;; Here we run the delayed insertion. Some details in issue #113
@@ -3948,8 +3946,8 @@ The expressions considered are those delimited by pairs on
                (close (substring-no-properties ms))
                (failure (funcall eof))
                (skip-match-pair-fns (->> possible-ops
-                                      (--mapcat (let ((smf (sp-get-pair it :skip-match)))
-                                                  (when smf (list (cons it smf) (cons (sp-get-pair it :close) smf))))))))
+                                      (--mapcat (-when-let (smf (sp-get-pair it :skip-match))
+                                                  (list (cons it smf) (cons (sp-get-pair it :close) smf)))))))
           (while (and (> depth 0) (not (funcall eof)))
             (sp--search-and-save-match search-fn needle b r mb me ms)
             (if r
@@ -4891,13 +4889,12 @@ Examples:
   (setq arg (or arg 1))
   (if (> arg 0)
       (if (= arg 1)
-          (let ((ok (sp-get-thing)))
-            (when ok
-              (if (= (point) (sp-get ok :beg))
-                  (progn (sp-forward-sexp 2)
-                         (sp-backward-sexp))
-                (goto-char (sp-get ok :beg))
-                ok)))
+          (-when-let (ok (sp-get-thing))
+            (if (= (point) (sp-get ok :beg))
+                (progn (sp-forward-sexp 2)
+                       (sp-backward-sexp))
+              (goto-char (sp-get ok :beg))
+              ok))
         (sp-forward-sexp arg)
         (sp-backward-sexp))
     (sp-backward-sexp (- arg))))
@@ -4922,13 +4919,12 @@ Examples:
   (setq arg (or arg 1))
   (if (> arg 0)
       (if (= arg 1)
-          (let ((ok (sp-get-thing t)))
-            (when ok
-              (if (= (point) (sp-get ok :end))
-                  (progn (sp-backward-sexp 2)
-                         (sp-forward-sexp))
-                (goto-char (sp-get ok :end))
-                ok)))
+          (-when-let (ok (sp-get-thing t))
+            (if (= (point) (sp-get ok :end))
+                (progn (sp-backward-sexp 2)
+                       (sp-forward-sexp))
+              (goto-char (sp-get ok :end))
+              ok))
         (sp-backward-sexp arg)
         (sp-forward-sexp))
     (sp-forward-sexp (- arg))))
@@ -4985,12 +4981,11 @@ Examples:
          (last-point -1))
     (if (and raw (= (abs arg) 16))
         ;; jump to the beginning/end of current list
-        (let ((enc (sp-get-enclosing-sexp)))
-          (when enc
-            (if (> arg 0)
-                (goto-char (sp-get enc :beg-in))
-              (goto-char (sp-get enc :end-in)))
-            (setq ok enc)))
+        (-when-let (enc (sp-get-enclosing-sexp))
+          (if (> arg 0)
+              (goto-char (sp-get enc :beg-in))
+            (goto-char (sp-get enc :end-in)))
+          (setq ok enc))
       ;; otherwise descend normally
       (while (and ok (> n 0))
         (setq ok (sp-get-sexp (< arg 0)))
@@ -6905,31 +6900,29 @@ Examples:
   (interactive "P")
   (cond
    ((equal arg '(4))
-    (let ((items (sp-get-list-items)))
-      (when items
-        (let ((op (sp-get (car items) :op))
-              (cl (sp-get (car items) :cl))
-              (beg (sp-get (car items) :beg))
-              (end (sp-get (car items) :end)))
-          (!cdr items)
-          (setq items (nreverse items))
-          (save-excursion
-            (goto-char end)
-            (delete-backward-char (length cl))
-            (while items
-              (sp-get (car items)
-                (goto-char :end)
-                (insert cl)
-                (goto-char :beg)
-                (insert op))
-              (!cdr items))
-            (goto-char beg)
-            (delete-char (length op)))))))
+    (-when-let (items (sp-get-list-items))
+      (let ((op (sp-get (car items) :op))
+            (cl (sp-get (car items) :cl))
+            (beg (sp-get (car items) :beg))
+            (end (sp-get (car items) :end)))
+        (!cdr items)
+        (setq items (nreverse items))
+        (save-excursion
+          (goto-char end)
+          (delete-backward-char (length cl))
+          (while items
+            (sp-get (car items)
+              (goto-char :end)
+              (insert cl)
+              (goto-char :beg)
+              (insert op))
+            (!cdr items))
+          (goto-char beg)
+          (delete-char (length op))))))
    (t
-    (let ((ok (sp-get-enclosing-sexp 1)))
-      (when ok
-        (forward-char (- (prog1 (sp-backward-whitespace t) (insert (sp-get ok :cl)))))
-        (save-excursion (sp-forward-whitespace) (insert (sp-get ok :op))))))))
+    (-when-let (ok (sp-get-enclosing-sexp 1))
+      (forward-char (- (prog1 (sp-backward-whitespace t) (insert (sp-get ok :cl)))))
+      (save-excursion (sp-forward-whitespace) (insert (sp-get ok :op)))))))
 
 (defun sp--join-sexp (prev next)
   "Join the expressions PREV and NEXT if they are of the same type.
@@ -7030,19 +7023,17 @@ not necessarily represent a valid balanced expression!"
               (error "No enclosing expression")
             (save-excursion
               (goto-char (sp-get enc :end-in))
-              (let ((ok (sp-get-thing t)))
-                (when ok
-                  (sp-get ok
-                    (setq end :end)
-                    (setq cl :cl)
-                    (setq suffix :suffix)))))))
+              (-when-let (ok (sp-get-thing t))
+                (sp-get ok
+                  (setq end :end)
+                  (setq cl :cl)
+                  (setq suffix :suffix))))))
         (unless point
-          (let ((ok (sp-get-thing)))
-            (when ok
-              (sp-get ok
-                (setq beg :beg)
-                (setq op :op)
-                (setq prefix :prefix))))))
+          (-when-let (ok (sp-get-thing))
+            (sp-get ok
+              (setq beg :beg)
+              (setq op :op)
+              (setq prefix :prefix)))))
        ;; select up until beg of list
        ((and raw (= arg -4))
         (let ((enc (sp-get-enclosing-sexp)))
@@ -7050,19 +7041,17 @@ not necessarily represent a valid balanced expression!"
               (error "No enclosing expression")
             (save-excursion
               (goto-char (sp-get enc :beg-in))
-              (let ((ok (sp-get-thing)))
-                (when ok
-                  (sp-get ok
-                    (setq beg :beg)
-                    (setq op :op)
-                    (setq prefix :prefix)))))))
+              (-when-let (ok (sp-get-thing))
+                (sp-get ok
+                  (setq beg :beg)
+                  (setq op :op)
+                  (setq prefix :prefix))))))
         (unless point
-          (let ((ok (sp-get-thing t)))
-            (when ok
-              (sp-get ok
-                (setq end :end)
-                (setq cl :cl)
-                (setq suffix :suffix))))))
+          (-when-let (ok (sp-get-thing t))
+            (sp-get ok
+              (setq end :end)
+              (setq cl :cl)
+              (setq suffix :suffix)))))
        ;; select the enclosing expression
        ((and raw (= (abs arg) 16))
         (let ((enc (sp-get-enclosing-sexp)))
@@ -7121,20 +7110,18 @@ not necessarily represent a valid balanced expression!"
               (error "No enclosing expression")
             (save-excursion
               (goto-char (sp-get enc :beg-in))
-              (let ((ok (sp-get-thing)))
-                (when ok
-                  (sp-get ok
-                    (setq beg :beg)
-                    (setq op :op)
-                    (setq prefix :prefix)))))
+              (-when-let (ok (sp-get-thing))
+                (sp-get ok
+                  (setq beg :beg)
+                  (setq op :op)
+                  (setq prefix :prefix))))
             (save-excursion
               (goto-char (sp-get enc :end-in))
-              (let ((ok (sp-get-thing t)))
-                (when ok
-                  (sp-get ok
-                    (setq end :end)
-                    (setq cl :cl)
-                    (setq suffix :suffix)))))))))
+              (-when-let (ok (sp-get-thing t))
+                (sp-get ok
+                  (setq end :end)
+                  (setq cl :cl)
+                  (setq suffix :suffix))))))))
       (list :beg beg :end end :op op :cl cl :prefix prefix :suffix suffix))))
 
 (defun sp-select-next-thing (&optional arg point)
@@ -7744,9 +7731,8 @@ support custom pairs."
 (defun sp-show--pair-enc-function (&optional thing)
   "Display the show pair overlays for enclosing expression."
   (when show-smartparens-mode
-    (let ((enc (or thing (sp-get-enclosing-sexp))))
-      (when enc
-        (sp-get enc (sp-show--pair-create-enc-overlays :beg :end :op-l :cl-l))))))
+    (-when-let (enc (or thing (sp-get-enclosing-sexp)))
+      (sp-get enc (sp-show--pair-create-enc-overlays :beg :end :op-l :cl-l)))))
 
 (defun sp-show--pair-create-overlays (start end olen clen)
   "Create the show pair overlays."
