@@ -1232,6 +1232,14 @@ insert the modes."
                                                      "\\>")
                                             (1 font-lock-keyword-face))))
 
+(defun sp--evil-normal-state-p ()
+  "Checks to see if the current `evil-state' is in normal mode."
+  (and (fboundp 'evil-normal-state-p) (evil-normal-state-p)))
+
+(defun sp--evil-visual-state-p ()
+  "Checks to see if the current `evil-state' is in visual mode."
+  (and (fboundp 'evil-visual-state-p) (evil-visual-state-p)))
+
 (defun sp--reverse-string (str)
   "Reverse the string STR."
   (concat (reverse (append str nil))))
@@ -7711,7 +7719,9 @@ support custom pairs."
           (cond
            ;; if we are in a situation "()|", we should highlight the
            ;; regular pair and not the string pair "from inside"
-           ((sp--looking-back (if sp-show-pair-from-inside allowed closing))
+           ((and (not (sp--evil-normal-state-p))
+                 (not (sp--evil-visual-state-p))
+                 (sp--looking-back (if sp-show-pair-from-inside allowed closing)))
             (create-backward (match-string 0)))
            ((or (sp--looking-at (if sp-show-pair-from-inside allowed opening))
                 (and (memq major-mode sp-navigate-consider-stringlike-sexp)
