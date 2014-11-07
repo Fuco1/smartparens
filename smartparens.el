@@ -7815,7 +7815,7 @@ support custom pairs."
 (defadvice ac-complete (after sp-auto-complete-advice activate)
   "If `smartparens-mode' is active, we check if the completed string
 has a pair definition.  If so, we insert the closing pair."
-  (when smartparens-mode
+  (when (and smartparens-mode ad-return-value) ; `ac-complete' returns nil if there are no completion candidates.
     (setq sp-recent-keys (reverse (split-string ad-return-value "")))
     (sp-insert-pair))
   ad-return-value)
