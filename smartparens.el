@@ -3304,8 +3304,6 @@ followed by word.  It is disabled by default.  See
                      (when pair (insert pair))
                      (and sp-autoinsert-pair
                           active-pair
-                          (not (and (eq sp-last-operation 'sp-skip-closing-pair)
-                                    (sp--get-active-overlay 'pair)))
                           (if (eq sp-autoskip-closing-pair 'always)
                               (or (not (equal open-pair close-pair))
                                   (not (sp-skip-closing-pair nil t)))
