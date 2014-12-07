@@ -5,7 +5,8 @@
   (cond
    ((not (boundp 'mode)) (emacs-lisp-mode))
    ((eq mode 'elisp) (emacs-lisp-mode))
-   ((eq mode 'c) (c-mode))))
+   ((eq mode 'c) (c-mode)))
+  (smartparens-mode 1))
 
 (defmacro sp-test-command (command examples)
   (declare (indent 1))
