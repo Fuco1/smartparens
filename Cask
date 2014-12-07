@@ -5,9 +5,7 @@
          "Automatic insertion, wrapping and paredit-like navigation with user defined pairs.")
 
 (depends-on "cl-lib" "0.3")
-(depends-on "dash" "2.6.0")
+(depends-on "dash" "2.10.0")
 
 (development
-  (depends-on "ruby-mode")
-  (depends-on "ecukes")
-  (depends-on "espuds"))
+  (depends-on "ruby-mode"))
