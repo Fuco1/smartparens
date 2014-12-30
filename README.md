@@ -10,7 +10,7 @@ For the complete documentation visit the [documentation wiki][wiki].
 
 # Default configuration
 
-Smartparents provides many options to customize most aspects of its working.  After loading `smartparens.el`, you can customize many of these options using the customization interface: `M-x customize-group RET smartparens RET`.  Smartparens also ships with additional recommended (default) configuration, which is separated in file `smartparens-config.el` to make the maintainance easier.  If you wish to load the default configuration, add:
+Smartparens provides many options to customize most aspects of its working.  After loading `smartparens.el`, you can customize many of these options using the customization interface: `M-x customize-group RET smartparens RET`.  Smartparens also ships with additional recommended (default) configuration, which is separated in file `smartparens-config.el` to make the maintainance easier.  If you wish to load the default configuration, add:
 
 ```scheme
 (require 'smartparens-config)
