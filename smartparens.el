@@ -514,8 +514,6 @@ You can enable pre-set bindings by customizing
   (if smartparens-mode
       (progn
         (sp--init)
-        (when (sp--delete-selection-p)
-          (sp--init-delete-selection-mode-emulation))
         (run-hooks 'smartparens-enabled-hook))
     (run-hooks 'smartparens-disabled-hook)))
 
@@ -1140,47 +1138,21 @@ mute. Integers specify the maximum width."
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Selection mode emulation
+;; Selection mode handling
 
 (defun sp--delete-selection-p ()
   "Return t if `delete-selection-mode' or `cua-delete-selection' is enabled."
   (or (and (boundp 'delete-selection-mode) delete-selection-mode)
       (and (boundp 'cua-delete-selection) cua-delete-selection cua-mode)))
 
-(defun sp--cua-replace-region (&optional arg)
-  "If `smartparens-mode' is on, emulate `self-insert-command',
-else call `cua-replace-region'"
-  (interactive "p")
-  (setq this-original-command 'self-insert-command)
-  (if smartparens-mode
-      (self-insert-command (or arg 1))
-    (cua-replace-region)))
+(defadvice cua-replace-region (around fix-sp-wrap activate)
+  (if (sp-wrap--can-wrap-p)
+      (cua--fallback)
+    ad-do-it))
 
-(defun sp--init-delete-selection-mode-emulation ()
-  "Initialize smartparens delete selection emulation.  The
-original hooks are removed and handled by sp's pre-command
-handler."
-  ;; make sure the `delete-selection-pre-hook' is not active and that
-  ;; delsel is actually loaded.  We need the delete-selection-pre-hook
-  ;; command!
-  (when delete-selection-mode
-    (remove-hook 'pre-command-hook 'delete-selection-pre-hook))
-  ;; if cua-mode is active, replace the `self-insert-command' binding
-  ;; and the cua--pre-command-handler hook.
-  (when cua-mode
-    (define-key cua--region-keymap [remap self-insert-command] 'sp--cua-replace-region)
-    (remove-hook 'pre-command-hook 'cua--pre-command-handler)))
-
-(defadvice cua-mode (after cua-mode-fix-selection activate)
-  (when (and cua-mode)
-    (define-key cua--region-keymap [remap self-insert-command] 'sp--cua-replace-region)
-    (define-key cua--region-keymap [remap sp-backward-delete-char] 'cua-delete-region)
-    (define-key cua--region-keymap [remap sp-delete-char] 'cua-delete-region)
-    (remove-hook 'pre-command-hook 'cua--pre-command-handler)))
-
-(defadvice delete-selection-mode (after delete-selection-mode-fix-selection activate)
-  (when (and delete-selection-mode)
-    (remove-hook 'pre-command-hook 'delete-selection-pre-hook)))
+(defadvice delete-selection-pre-hook (around fix-sp-wrap activate)
+  (unless (sp-wrap--can-wrap-p)
+    ad-do-it))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2662,51 +2634,11 @@ would execute if smartparens-mode were disabled."
 
 (add-hook 'pre-command-hook 'sp--save-pre-command-state)
 
-(defun sp--delete-selection-mode-handle (&optional from-wrap)
-  "Call the original `delete-selection-pre-hook'."
-  (if smartparens-mode
-      (cond
-       ;; try the cua-mode emulation with `cua-delete-selection'
-       ((and (boundp 'cua-mode) cua-mode
-             (or (not (sp--this-original-command-self-insert-p))
-                 (not sp-autowrap-region)))
-        ;; if sp-autowrap-region is disabled, we need to translate
-        ;; `sp--cua-replace-region' back to `self-insert-command'
-        ;; because this is *pre* command hook
-        ;; TODO: why do we need sp-cua-replace-region?
-        (when (and (not sp-autowrap-region)
-                   (eq this-command 'sp--cua-replace-region))
-          (setq this-command 'self-insert-command))
-        (cua--pre-command-handler))
-       ;; this handles the special case after `self-insert-command' if
-       ;; `sp-autowrap-region' is t.
-       ((and (boundp 'cua-mode) cua-mode from-wrap)
-        (setq this-command this-original-command)
-        (cua-replace-region))
-       ;; if not self-insert, just run the hook from
-       ;; `delete-selection-mode'
-       ((and (boundp 'delete-selection-mode) delete-selection-mode
-             (or from-wrap
-                 (not sp-autowrap-region)
-                 (not (sp--this-original-command-self-insert-p))))
-        (delete-selection-pre-hook)))
-    ;; this handles the callbacks properly if the smartparens mode is
-    ;; disabled.  Smartparens-mode adds advices on cua-mode and
-    ;; delete-selection-mode that automatically remove the callbacks
-    (cond
-     ((and (bound-and-true-p cua-mode)
-           (not (member 'cua--pre-command-handler pre-command-hook)))
-      (cua--pre-command-handler))
-     ((and (bound-and-true-p delete-selection-mode)
-           (not (member 'delete-selection-pre-hook pre-command-hook)))
-      (delete-selection-pre-hook)))))
-
 (defun sp--pre-command-hook-handler ()
   "Main handler of pre-command-hook.
 
 Handle the `delete-selection-mode' or `cua-delete-selection'
-stuff here."
-  (sp--delete-selection-mode-handle))
+stuff here.")
 
 (defun sp--get-recent-keys ()
   "Return 10 recent keys in reverse order (most recent first) as a string."
@@ -2810,24 +2742,20 @@ provided values."
     (set-marker-insertion-type e t)
     `(:beg ,b :end ,e :op ,open :cl ,close :prefix "")))
 
+;; TODO: is it safe to consider last-command-event? Still feels like a hack.
+(defun sp-wrap--can-wrap-p ()
+  (or (--any? (string-prefix-p (sp--single-key-description last-command-event) (car it)) (sp--get-pair-list-wrap))
+      (sp--get-active-tag (sp--single-key-description last-command-event))))
+
 (defun sp-wrap-region-init ()
   "Initialize the region wrapping."
   (when sp-autowrap-region
     ;; if we can't possibly form a wrap, just insert the char and do
-    ;; nothing.  If `sp--delete-selection-p' is true, run
-    ;; `sp--delete-selection-mode-handle' with t that means it was
-    ;; called from withing wrapping procedure
+    ;; nothing.
     (if (--none? (string-prefix-p (sp--single-key-description last-command-event) (car it)) (sp--get-pair-list-wrap))
         (let ((p (1- (point)))
               (m (mark)))
-          ;; test if we can at least start a tag wrapping.  If not,
-          ;; delete the region if apropriate
-          (unless (sp-wrap-tag-region-init)
-            (sp--delete-selection-mode-handle t)
-            (when (and (sp--delete-selection-p)
-                       (< m p)
-                       (= (length (sp--single-key-description last-command-event)) 1))
-              (insert (sp--single-key-description last-command-event)))))
+          (sp-wrap-tag-region-init))
       (let* ((p (1- (point))) ;; we want the point *before* the
              ;; insertion of the character
              (m (mark))
@@ -2836,7 +2764,6 @@ provided values."
              (last-keys (sp--get-recent-keys))
              ;;(last-keys "\"\"\"\"\"\"\"\"")
              (active-pair (--first (string-prefix-p (sp--reverse-string (car it)) last-keys) (sp--get-pair-list-wrap))))
-
         (deactivate-mark)
         ;; if we can wrap right away, do it without creating overlays,
         ;; we can save ourselves a lot of needless trouble :)
