@@ -85,7 +85,6 @@ better orientation."
                           sp--cua-replace-region
                           sp-wrap-cancel
                           sp-remove-active-pair-overlay
-                          sp--self-insert-command
                           sp-wrap-tag-beginning
                           sp-wrap-tag-end
                           sp-wrap-tag-done
@@ -1308,14 +1307,12 @@ beginning."
 (defun sp--this-command-self-insert-p ()
   "Return non-nil if `this-command' is some sort of `self-insert-command'."
   (memq this-command '(self-insert-command
-                       org-self-insert-command
-                       sp--self-insert-command)))
+                       org-self-insert-command)))
 
 (defun sp--this-original-command-self-insert-p ()
   "Return non-nil if `this-original-command' is some sort of `self-insert-command'."
   (memq this-original-command '(self-insert-command
-                                org-self-insert-command
-                                sp--self-insert-command)))
+                                org-self-insert-command)))
 
 (defun sp--signum (x)
   "Return 1 if X is positive, -1 if negative, 0 if zero."
@@ -2551,22 +2548,6 @@ see `sp-pair' for description."
   (declare (debug (form body)))
   `(unless action
      (setq action (progn ,@forms))))
-
-(defun sp--self-insert-command (arg)
-  "This command is a wrapper around `self-insert-command'.
-
-If the just-typed key is a possible trigger for any pair,
-`self-insert-command' is called and the special behaviours are
-handled in its advice provided by `smartparens-mode'.  If the
-just-typed key is not a trigger, fall back to the command that
-would execute if smartparens-mode were disabled."
-  (interactive "p")
-  (if (and (member (sp--single-key-description last-command-event) sp-trigger-keys)
-           (not buffer-read-only))
-      (progn
-        (setq this-command 'self-insert-command)
-        (self-insert-command arg))
-    (sp--call-fallback-command)))
 
 (defun sp--call-fallback-command ()
   "Call the command bound to last key sequence as if SP were disabled."
