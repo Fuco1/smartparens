@@ -6267,10 +6267,11 @@ Examples:
   |foo (bar (baz) quux) -> foo (bar (baz) quux|) ;; 4"
   (interactive "p")
   (setq arg (or arg 1))
-  (let ((n (abs arg))
-        (fw (> arg 0))
-        (open (sp--get-opening-regexp (sp--get-allowed-pair-list)))
-        (close (sp--get-closing-regexp (sp--get-allowed-pair-list))))
+  (let* ((n (abs arg))
+         (fw (> arg 0))
+         (allowed (sp--get-allowed-pair-list))
+         (open (sp--get-opening-regexp allowed))
+         (close (sp--get-closing-regexp allowed)))
     (if fw
         (while (> n 0)
           ;; First we need to get to the beginning of a symbol.  This means
@@ -6281,13 +6282,16 @@ Examples:
                   ((not (memq (char-syntax (following-char)) '(?w ?_)))
                    (forward-char)
                    t)
-                  ((sp--valid-initial-delimiter-p (sp--looking-at open))
+                  ;; if allowed is empty, the regexp matches anything
+                  ;; and we go into infinite loop, cf. Issue #400
+                  ((and allowed (sp--valid-initial-delimiter-p (sp--looking-at open)))
                    (goto-char (match-end 0)))
-                  ((sp--valid-initial-delimiter-p (sp--looking-at close))
+                  ((and allowed (sp--valid-initial-delimiter-p (sp--looking-at close)))
                    (goto-char (match-end 0)))))
           (while (and (not (eobp))
-                      (not (or (sp--valid-initial-delimiter-p (sp--looking-at open))
-                               (sp--valid-initial-delimiter-p (sp--looking-at close))))
+                      (or (not allowed)
+                          (not (or (sp--valid-initial-delimiter-p (sp--looking-at open))
+                                   (sp--valid-initial-delimiter-p (sp--looking-at close)))))
                       (memq (char-syntax (following-char)) '(?w ?_)))
             (forward-char))
           (setq n (1- n)))
