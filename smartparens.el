@@ -593,13 +593,6 @@ local variables that depend on the active `major-mode'."
   (unless sp-pair-list
     (sp--init)))
 
-(defun sp--keybinding-fallback (&optional key-sequence)
-  "Return the fall-back command as if `smartparens-mode' were disabled."
-  (let ((smartparens-mode nil)
-        (keys (or key-sequence (car sp-recent-keys))))
-    ;; HACK: why and when this happens, I can't figure it out!!!
-    (if keys (key-binding keys t) 'self-insert-command)))
-
 (defun sp--update-local-pairs ()
   "Update local pairs after removal or at mode initialization."
   (setq sp-local-pairs
@@ -2505,16 +2498,6 @@ see `sp-pair' for description."
   `(unless action
      (setq action (progn ,@forms))))
 
-(defun sp--call-fallback-command ()
-  "Call the command bound to last key sequence as if SP were disabled."
-  (let ((com (sp--keybinding-fallback
-              (when buffer-read-only
-                (single-key-description last-command-event))))
-        (smartparens-mode nil))
-    (when (and com (commandp com))
-      (setq this-original-command com)
-      (call-interactively com))))
-
 ;; TODO: this introduces a regression, where doing C-4 [ inserts [[[[]
 ;; figure out how to detect the argument to self-insert-command that
 ;; resulted to this insertion
@@ -2533,16 +2516,6 @@ see `sp-pair' for description."
        (t
         (sp--setaction action (sp-insert-pair))
         (sp--setaction action (sp-skip-closing-pair))
-        ;; try to call the fallback function bound to this key.
-        ;; That is a function that would normally run if SP was
-        ;; inactive. TODO: should this be customizable?
-        (when (not action)
-          (let ((fb-fun (sp--keybinding-fallback)))
-            (when (and (not (eq fb-fun 'self-insert-command))
-                       (lookup-key sp-keymap (vector last-command-event)))
-              (delete-char -1)
-              (sp--call-fallback-command)
-              (setq action t))))
         ;; if nothing happened, we just inserted a character, so
         ;; set the apropriate operation.  We also need to check
         ;; for `sp--self-insert-no-escape' not to overwrite
