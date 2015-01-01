@@ -746,17 +746,6 @@ instead."
           (const :tag "Insert the pair if opening and closing pair is the same and the containing expression is empty and always insert other pairs normally." 3))
   :group 'smartparens)
 
-(defcustom sp-autoinsert-if-followed-by-word t
-  "If non-nil, autoinsert the whole pair even if point is followed by word.
-
-For example |word followed by ( would produce (|)word.  If nil,
-it would produce (|word.
-
-This option is deprecated.  You should instead use the :when
-and :unless properties of `sp-pair'."
-  :type 'boolean
-  :group 'smartparens)
-
 (defcustom sp-autoinsert-quote-if-followed-by-closing-pair nil
   "If non-nil, autoinsert string quote pair even if the point is followed by closing pair.
 
@@ -3272,11 +3261,7 @@ setting `sp-autoinsert-pair' to nil.
 
 You can globally disable insertion of closing pair if point is
 followed by the matching opening pair.  It is disabled by
-default.  See `sp-autoinsert-if-followed-by-same' for more info.
-
-You can globally disable insertion of closing pair if point is
-followed by word.  It is disabled by default.  See
-`sp-autoinsert-if-followed-by-word' for more info."
+default.  See `sp-autoinsert-if-followed-by-same' for more info."
   (let* ((last-keys (or (and pair (sp--reverse-string pair)) (sp--get-recent-keys)))
          ;; (last-keys "\"\"\"\"\"\"\"\"\"\"\"\"")
          ;; we go through all the opening pairs and compare them to
@@ -3309,10 +3294,6 @@ followed by word.  It is disabled by default.  See
                                   (not (sp-skip-closing-pair nil t)))
                             t)
                           (sp--do-action-p open-pair 'insert t)
-                          (if sp-autoinsert-if-followed-by-word t
-                            (or (= (point) (point-max))
-                                (not (and (eq (char-syntax (following-char)) ?w)
-                                          (not (eq (following-char) ?\'))))))
                           (if sp-autoinsert-quote-if-followed-by-closing-pair t
                             (if (and (eq (char-syntax (preceding-char)) ?\")
                                      ;; this is called *after* the character is
