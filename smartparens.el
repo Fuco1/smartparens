@@ -593,40 +593,6 @@ local variables that depend on the active `major-mode'."
   (unless sp-pair-list
     (sp--init)))
 
-(defvar sp-trigger-keys nil
-  "List of trigger keys.")
-
-(defun sp--update-trigger-keys (&optional remove)
-  "Update the trigger keys in `sp-keymap'.
-
-Trigger key is any character present in any pair's opening or
-closing delimiter.  Each trigger key must map to
-`sp--self-insert-command'.
-
-The optional argument REMOVE is a string of trigger keys to
-remove.  If non-nil, remove the trigger keys defined by this
-string.  After the removal, all the pairs are re-checked."
-  (when remove
-    (--each (split-string remove "" t)
-      (define-key sp-keymap it nil)))
-
-  (setq sp-trigger-keys nil)
-  (dolist (mode-pairs sp-pairs)
-    (dolist (pair (cdr mode-pairs))
-      (let ((open (plist-get pair :open))
-            (close (plist-get pair :close)))
-        (when open
-          (setq sp-trigger-keys (append (split-string open "" t) sp-trigger-keys)))
-        (when close
-          (setq sp-trigger-keys (append (split-string close "" t) sp-trigger-keys))))))
-
-  (dolist (mode-tags sp-tags)
-    (dolist (tag (cdr mode-tags))
-      (let ((trig (plist-get tag :trigger)))
-        (setq sp-trigger-keys (append (split-string trig "" t) sp-trigger-keys)))))
-
-  (setq sp-trigger-keys (-distinct sp-trigger-keys)))
-
 (defun sp--keybinding-fallback (&optional key-sequence)
   "Return the fall-back command as if `smartparens-mode' were disabled."
   (let ((smartparens-mode nil)
@@ -1868,8 +1834,7 @@ modes, use this property on `sp-local-pair' instead."
                      (sp-get-pair-definition open t :open)
                      (sp-get-pair-definition open t :close)))
             (global-list (assq t sp-pairs)))
-        (setcdr global-list (--remove (equal (plist-get it :open) open) (cdr global-list)))
-        (sp--update-trigger-keys remove))
+        (setcdr global-list (--remove (equal (plist-get it :open) open) (cdr global-list))))
     (let ((pair nil))
       (setq pair (plist-put pair :open open))
       (when close (plist-put pair :close close))
@@ -1887,7 +1852,6 @@ modes, use this property on `sp-local-pair' instead."
                   (sp-get-pair-definition open t (car arg)))
           (plist-put pair (car arg) (eval (cdr arg)))))
       (sp--update-pair-list pair t))
-    (sp--update-trigger-keys)
     (when (or wrap bind) (global-set-key (read-kbd-macro (or wrap bind))
                                          `(lambda (&optional arg)
                                             (interactive "P")
@@ -1987,8 +1951,7 @@ addition, there is a global per major-mode option, see
           (let ((mode-pairs (assq m sp-pairs)))
             (setcdr mode-pairs
                     (--remove (equal (plist-get it :open) open)
-                              (cdr mode-pairs)))))
-        (sp--update-trigger-keys remove))
+                              (cdr mode-pairs))))))
     (dolist (m (-flatten (list modes)))
       (let* ((pair nil))
         (setq pair (plist-put pair :open open))
@@ -2015,8 +1978,7 @@ addition, there is a global per major-mode option, see
                                     (sp-wrap-with-pair ,open))))
           (when insert (define-key map
                          (kbd insert)
-                         `(lambda () (interactive) (sp-insert-pair ,open)))))))
-    (sp--update-trigger-keys))
+                         `(lambda () (interactive) (sp-insert-pair ,open))))))))
   (sp--update-local-pairs-everywhere (-flatten (list modes)))
   sp-pairs)
 
@@ -2083,8 +2045,7 @@ string and the action."
               (sp--update-pair tag new-tag)))
         ;; mode doesn't exist
         (when actions
-          (!cons (cons mode (list new-tag)) sp-tags)))))
-  (sp--update-trigger-keys))
+          (!cons (cons mode (list new-tag)) sp-tags))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -7673,7 +7634,6 @@ support custom pairs."
 
 
 ;; global initialization
-(sp--update-trigger-keys)
 (defadvice delete-backward-char (before sp-delete-pair-advice activate)
   (save-match-data
     (sp-delete-pair (ad-get-arg 0))))
