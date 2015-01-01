@@ -82,6 +82,8 @@
                                      (not (sp-point-in-string-or-comment))))
                                 (t (not (sp-point-in-string-or-comment)))))))
 
+(sp-local-pair 'emacs-lisp-mode "\\\\{" "}" :when '(sp-in-string-p))
+
 ;; NOTE: Normally, `sp-local-pair' accepts list of modes (or a single
 ;; mode) as a first argument.  The macro `sp-with-modes' adds this
 ;; automatically.  If you want to call sp-local-pair outside this
