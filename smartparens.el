@@ -770,18 +770,6 @@ followed by closing pair?\", t = yes."
   :type 'boolean
   :group 'smartparens)
 
-(defcustom sp-autoinsert-inhibit-functions nil
-  "List of functions to call before autoinserting a pair.
-
-If any of these return t, the pair is not inserted.  The
-functions take two arguments: current opening pair and a boolean
-value indicating if the point is inside string or comment.
-
-This option is deprecated.  You should instead use the :when
-and :unless properties of `sp-pair'."
-  :type 'hook
-  :group 'smartparens)
-
 (defcustom sp-autoskip-closing-pair 'always-end
   "If t, skip the following closing pair if the expression is
 active (that is right after insertion).  This is controlled by
@@ -3329,11 +3317,7 @@ default.  See `sp-autoinsert-if-followed-by-same' for more info."
                                      (save-excursion
                                        (backward-char (length trig))
                                        (sp--looking-back (sp--strict-regexp-quote open-pair))))
-                                (not (equal open-pair close-pair)))))
-                          (not (run-hook-with-args-until-success
-                                'sp-autoinsert-inhibit-functions
-                                open-pair
-                                (or sp-point-inside-string (sp-point-in-comment))))))
+                                (not (equal open-pair close-pair)))))))
                  (when pair (delete-char (- (length pair))))))
           ;; if this pair could not be inserted, we try the procedure
           ;; again with this pair removed from sp-pair-list to give
