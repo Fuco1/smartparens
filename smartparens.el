@@ -619,20 +619,14 @@ string.  After the removal, all the pairs are re-checked."
       (let ((open (plist-get pair :open))
             (close (plist-get pair :close)))
         (when open
-          (setq sp-trigger-keys (append (split-string open "" t) sp-trigger-keys))
-          (--each (split-string open "" t)
-            (define-key sp-keymap it 'sp--self-insert-command)))
+          (setq sp-trigger-keys (append (split-string open "" t) sp-trigger-keys)))
         (when close
-          (setq sp-trigger-keys (append (split-string close "" t) sp-trigger-keys))
-          (--each (split-string close "" t)
-            (define-key sp-keymap it 'sp--self-insert-command))))))
+          (setq sp-trigger-keys (append (split-string close "" t) sp-trigger-keys))))))
 
   (dolist (mode-tags sp-tags)
     (dolist (tag (cdr mode-tags))
       (let ((trig (plist-get tag :trigger)))
-        (setq sp-trigger-keys (append (split-string trig "" t) sp-trigger-keys))
-        (--each (split-string trig "" t)
-          (define-key sp-keymap it 'sp--self-insert-command)))))
+        (setq sp-trigger-keys (append (split-string trig "" t) sp-trigger-keys)))))
 
   (setq sp-trigger-keys (-distinct sp-trigger-keys)))
 
@@ -2612,57 +2606,61 @@ would execute if smartparens-mode were disabled."
       (setq this-original-command com)
       (call-interactively com))))
 
-(defadvice self-insert-command (around self-insert-command-adviced activate)
-  (setq sp-point-inside-string (sp-point-in-string))
-  (setq sp-buffer-modified-p (buffer-modified-p))
-
-  ad-do-it
-
+;; TODO: this introduces a regression, where doing C-4 [ inserts [[[[]
+;; figure out how to detect the argument to self-insert-command that
+;; resulted to this insertion
+(defun sp--post-self-insert-hook-handler ()
   (when smartparens-mode
     (setq sp-recent-keys (cons
                           (sp--single-key-description last-command-event)
                           (-take 19 sp-recent-keys)))
     (let (op action)
-      (if (= 1 (ad-get-arg 0))
-          (progn
-            (setq op sp-last-operation)
-            (cond
-             ((region-active-p)
-              (sp-wrap-region-init))
-             (sp-wrap-overlays
-              (sp-wrap-region))
-             (t
-              (sp--setaction action (sp-insert-pair))
-              (sp--setaction action (sp-skip-closing-pair))
-              ;; try to call the fallback function bound to this key.
-              ;; That is a function that would normally run if SP was
-              ;; inactive. TODO: should this be customizable?
-              (when (not action)
-                (let ((fb-fun (sp--keybinding-fallback)))
-                  (when (and (not (eq fb-fun 'self-insert-command))
-                             (lookup-key sp-keymap (vector last-command-event)))
-                    (delete-char -1)
-                    (sp--call-fallback-command)
-                    (setq action t))))
-              ;; if nothing happened, we just inserted a character, so
-              ;; set the apropriate operation.  We also need to check
-              ;; for `sp--self-insert-no-escape' not to overwrite
-              ;; it.  See `sp-autoinsert-quote-if-followed-by-closing-pair'.
-              (when (and (not action)
-                         (not (eq sp-last-operation 'sp-self-insert-no-escape)))
-                (setq sp-last-operation 'sp-self-insert))
-              ;; if it was a quote, escape it
-              (when (and (eq sp-last-operation 'sp-self-insert)
-                         sp-point-inside-string
-                         sp-autoescape-string-quote
-                         (or (and (eq (preceding-char) ?\")
-                                  (eq sp-point-inside-string ?\"))
-                             (and (eq (preceding-char) ?')
-                                  (eq sp-point-inside-string ?'))))
-                (save-excursion
-                  (backward-char 1)
-                  (insert sp-escape-char))))))
-        (setq sp-last-operation 'sp-self-insert)))))
+      (setq op sp-last-operation)
+      (cond
+       ((region-active-p)
+        (sp-wrap-region-init))
+       (sp-wrap-overlays
+        (sp-wrap-region))
+       (t
+        (sp--setaction action (sp-insert-pair))
+        (sp--setaction action (sp-skip-closing-pair))
+        ;; try to call the fallback function bound to this key.
+        ;; That is a function that would normally run if SP was
+        ;; inactive. TODO: should this be customizable?
+        (when (not action)
+          (let ((fb-fun (sp--keybinding-fallback)))
+            (when (and (not (eq fb-fun 'self-insert-command))
+                       (lookup-key sp-keymap (vector last-command-event)))
+              (delete-char -1)
+              (sp--call-fallback-command)
+              (setq action t))))
+        ;; if nothing happened, we just inserted a character, so
+        ;; set the apropriate operation.  We also need to check
+        ;; for `sp--self-insert-no-escape' not to overwrite
+        ;; it.  See `sp-autoinsert-quote-if-followed-by-closing-pair'.
+        (when (and (not action)
+                   (not (eq sp-last-operation 'sp-self-insert-no-escape)))
+          (setq sp-last-operation 'sp-self-insert))
+        ;; if it was a quote, escape it
+        (when (and (eq sp-last-operation 'sp-self-insert)
+                   sp-point-inside-string
+                   sp-autoescape-string-quote
+                   (or (and (eq (preceding-char) ?\")
+                            (eq sp-point-inside-string ?\"))
+                       (and (eq (preceding-char) ?')
+                            (eq sp-point-inside-string ?'))))
+          (save-excursion
+            (backward-char 1)
+            (insert sp-escape-char))))))))
+
+(add-hook 'post-self-insert-hook 'sp--post-self-insert-hook-handler)
+
+;; TODO: get rid of this ugly state tracking
+(defun sp--save-pre-command-state ()
+  (setq sp-point-inside-string (sp-point-in-string))
+  (setq sp-buffer-modified-p (buffer-modified-p)))
+
+(add-hook 'pre-command-hook 'sp--save-pre-command-state)
 
 (defun sp--delete-selection-mode-handle (&optional from-wrap)
   "Call the original `delete-selection-pre-hook'."
