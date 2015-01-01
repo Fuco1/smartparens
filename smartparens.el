@@ -1275,11 +1275,6 @@ beginning."
   (memq this-command '(self-insert-command
                        org-self-insert-command)))
 
-(defun sp--this-original-command-self-insert-p ()
-  "Return non-nil if `this-original-command' is some sort of `self-insert-command'."
-  (memq this-original-command '(self-insert-command
-                                org-self-insert-command)))
-
 (defun sp--signum (x)
   "Return 1 if X is positive, -1 if negative, 0 if zero."
   (cond ((> x 0) 1) ((< x 0) -1) (t 0)))
