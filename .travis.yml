@@ -2,7 +2,6 @@ language: emacs-lisp
 env:
   matrix:
     - EMACS=emacs24
-    - EMACS=emacs-snapshot
 before_install:
   # PPA for stable Emacs packages
   - sudo add-apt-repository -y ppa:cassou/emacs
