@@ -1144,6 +1144,12 @@ mute. Integers specify the maximum width."
                  (integer :tag "Max width"))
   :group 'smartparens)
 
+(defcustom sp-use-subword nil
+  "If non-nill, `sp-kill-word' and `sp-backward-kill-word' only
+  kill \"subwords\" when `subword-mode' is active."
+  :type 'boolean
+  :group 'smartparens)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Selection mode emulation
@@ -7377,6 +7383,33 @@ If BACK is non-nil, delete backward."
       (skip-syntax-forward syntax))
     (delete-region p (point))))
 
+(defun sp--use-subword ()
+  "Return non-nil if word killing commands should kill subwords.
+This is the case if `subword-mode' is enabled and
+`sp-use-subword' is non-nil."
+  (and sp-use-subword (bound-and-true-p subword-mode)))
+
+(defun sp--kill-word (&optional n)
+  "Kill N words or subwords."
+  (let ((n (or n 1)))
+    (if (sp--use-subword)
+        (subword-kill n)
+      (kill-word n))))
+
+(defun sp--forward-word (&optional n)
+  "Move forward N words or subwords."
+  (let ((n (or n 1)))
+    (if (sp--use-subword)
+        (subword-forward n)
+      (forward-word n))))
+
+(defun sp--backward-word (&optional n)
+  "Move backward N words or subwords."
+  (let ((n (or n 1)))
+    (if (sp--use-subword)
+        (subword-backward n)
+      (backward-word n))))
+
 (defun sp-kill-symbol (&optional arg word)
   "Kill a symbol forward, skipping over any intervening delimiters.
 
@@ -7390,7 +7423,7 @@ See `sp-forward-symbol' for what constitutes a symbol."
   (if (> arg 0)
       (while (> arg 0)
         (if (and word (sp-point-in-symbol))
-            (kill-word 1)
+            (sp--kill-word 1)
           (let ((s (sp-get-symbol))
                 (p (point)))
             (when s
@@ -7398,12 +7431,12 @@ See `sp-forward-symbol' for what constitutes a symbol."
                 (let ((delims (buffer-substring :beg-prf p)))
                   (if (string-match-p "\\`\\(\\s.\\|\\s-\\)*\\'" delims)
                       (if word
-                          (kill-region p (save-excursion (forward-word) (point)))
+                          (kill-region p (save-excursion (sp--forward-word) (point)))
                         (kill-region p :end))
                     (let ((kill-from (if (> p :beg-prf) :beg :beg-prf)))
                       (goto-char kill-from)
                       (if word
-                          (kill-region kill-from (save-excursion (forward-word) (point)))
+                          (kill-region kill-from (save-excursion (sp--forward-word) (point)))
                         (kill-region kill-from :end)))))))))
         (sp--cleanup-after-kill)
         (setq arg (1- arg)))
@@ -7432,7 +7465,7 @@ See `sp-backward-symbol' for what constitutes a symbol."
   (if (> arg 0)
       (while (> arg 0)
         (if (and word (sp-point-in-symbol))
-            (kill-word -1)
+            (sp--kill-word -1)
           (let ((s (sp-get-symbol t))
                 (p (point)))
             (when s
@@ -7440,11 +7473,11 @@ See `sp-backward-symbol' for what constitutes a symbol."
                 (let ((delims (buffer-substring :end p)))
                   (if (string-match-p "\\`\\(\\s.\\|\\s-\\)*\\'" delims)
                       (if word
-                          (kill-region (save-excursion (backward-word) (point)) p)
+                          (kill-region (save-excursion (sp--backward-word) (point)) p)
                         (kill-region :beg-prf p))
                     (goto-char :end)
                     (if word
-                        (kill-region (save-excursion (backward-word) (point)) :end)
+                        (kill-region (save-excursion (sp--backward-word) (point)) :end)
                       (kill-region :beg-prf :end))))))))
         (sp--cleanup-after-kill)
         (setq arg (1- arg)))
