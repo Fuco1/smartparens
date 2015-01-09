@@ -49,7 +49,7 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl)) ; for `lexical-let'
 (require 'cl-lib)
 (require 'dash)
 (require 'thingatpt)
