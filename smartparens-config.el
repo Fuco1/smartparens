@@ -51,7 +51,7 @@
 ;; original definition of closing pair.
 (sp-pair "'" nil :unless '(sp-point-after-word-p))
 
-(defun sp-lisp-invalid-hyperlink-p (_ action _)
+(defun sp-lisp-invalid-hyperlink-p (_1 action _2)
   (when (eq action 'navigate)
     (or (and (looking-at "\\sw\\|\\s_")
              (save-excursion

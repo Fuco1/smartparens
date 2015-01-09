@@ -64,7 +64,7 @@
       (goto-char me)
       (looking-at-p "\\sw"))))
 
-(defun sp-latex-skip-double-quote (_ action _)
+(defun sp-latex-skip-double-quote (_1 action _2)
   (when (eq action 'insert)
     (when (looking-at-p "''''")
       (delete-char -2)
