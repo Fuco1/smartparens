@@ -7847,6 +7847,7 @@ has a pair definition.  If so, we insert the closing pair."
     )
   "A list of vars that need to be tracked on a per-cursor basis.")
 
+(defvar mc/cursor-specific-vars)
 (eval-after-load 'multiple-cursors
   '(dolist (it sp--mc/cursor-specific-vars)
      (add-to-list 'mc/cursor-specific-vars it)))
