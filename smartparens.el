@@ -7390,6 +7390,10 @@ This is the case if `subword-mode' is enabled and
 `sp-use-subword' is non-nil."
   (and sp-use-subword (bound-and-true-p subword-mode)))
 
+(declare-function subword-kill "subword")
+(declare-function subword-forward "subword")
+(declare-function subword-backward "subword")
+
 (defun sp--kill-word (&optional n)
   "Kill N words or subwords."
   (let ((n (or n 1)))
