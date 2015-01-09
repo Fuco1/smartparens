@@ -49,6 +49,7 @@
 
 ;;; Code:
 
+(eval-when-compile (require 'cl))
 (require 'cl-lib)
 (require 'dash)
 (require 'thingatpt)
@@ -4573,7 +4574,7 @@ This function is equivalent to doing:
 
 For example, you can restrict function `sp-forward-sexp' to just
 the pairs for easier navigation of blocks in C-like languages."
-  (letf (((symbol-value object) t))
+  (cl-letf (((symbol-value object) t))
     (call-interactively function)))
 
 ;; TODO: add shorter alias?
