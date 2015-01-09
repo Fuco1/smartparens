@@ -49,7 +49,7 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl)) ; for `lexical-let'
 (require 'cl-lib)
 (require 'dash)
 (require 'thingatpt)
@@ -2431,14 +2431,14 @@ value is used instead of a test."
 
 (defun sp--parse-insertion-spec (fun)
   "Parse the insertion specification FUN and return a form to evaluate."
-  (cl-labels ((push-non-empty
-               (what)
-               (unless (equal (cadr what) "")
-                 ;; relies on dynamic binding
-                 (push what spec))))
-    (let ((spec nil)
-          (after nil)
-          (last 1))
+  (let ((spec nil)
+        (after nil)
+        (last 1))
+    (cl-labels ((push-non-empty
+                 (what)
+                 (unless (equal (cadr what) "")
+                   ;; relies on dynamic binding
+                   (push what spec))))
       (with-temp-buffer
         (insert fun)
         (goto-char (point-min))
@@ -7390,6 +7390,10 @@ This is the case if `subword-mode' is enabled and
 `sp-use-subword' is non-nil."
   (and sp-use-subword (bound-and-true-p subword-mode)))
 
+(declare-function subword-kill "subword")
+(declare-function subword-forward "subword")
+(declare-function subword-backward "subword")
+
 (defun sp--kill-word (&optional n)
   "Kill N words or subwords."
   (let ((n (or n 1)))
@@ -7847,6 +7851,7 @@ has a pair definition.  If so, we insert the closing pair."
     )
   "A list of vars that need to be tracked on a per-cursor basis.")
 
+(defvar mc/cursor-specific-vars)
 (eval-after-load 'multiple-cursors
   '(dolist (it sp--mc/cursor-specific-vars)
      (add-to-list 'mc/cursor-specific-vars it)))
