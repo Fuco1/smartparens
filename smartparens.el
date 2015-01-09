@@ -6890,7 +6890,7 @@ Examples:
         (setq items (nreverse items))
         (save-excursion
           (goto-char end)
-          (delete-backward-char (length cl))
+          (delete-char (- (length cl)))
           (while items
             (sp-get (car items)
               (goto-char :end)
