@@ -3273,6 +3273,35 @@ shortest one."
   (-when-let ((property . pairs) (sp--all-pairs-to-insert))
     (car (--sort (< (length (plist-get it property)) (length (plist-get other property))) pairs))))
 
+(defun sp--longest-prefix-to-insert ()
+  "Return pair with the longest :open which can be inserted at point."
+  (-when-let (pairs (--filter (sp--looking-back-p (sp--strict-regexp-quote (plist-get it :open))) sp-local-pairs))
+    (car (--sort (> (length (plist-get it :open)) (length (plist-get other :open))) pairs))))
+
+(defun sp--pair-to-uninsert ()
+  "Return pair to uninsert.
+
+If the current to-be-inserted pair shares a prefix with
+another (shorter) pair, we must first remove the effect of
+inserting its closing pair before inserting the current one.
+
+The previously inserted pair must be the one with the longest
+common prefix excluding the current pair."
+  (-when-let (lp (sp--longest-prefix-to-insert))
+    (save-excursion
+      (backward-char (length (plist-get lp :open)))
+      (-when-let ((property . pairs) (sp--all-pairs-to-insert 'sp--looking-at-p))
+        (car (--sort (> (length (plist-get it property)) (length (plist-get other property)))
+                     ;; remove pairs whose open is longer than the
+                     ;; current longest possible prefix---otherwise
+                     ;; they would overflow to the closing pair
+                     ;; TODO: this ignores the possibility when lp is
+                     ;; inserted by trigger.  We assume triggers are
+                     ;; shorter than the openings and this situation,
+                     ;; if ever, should be very rare
+                     (--remove (>= (length (plist-get it :open))
+                                   (length (plist-get lp :open))) pairs)))))))
+
 (defun sp--insert-pair-get-pair-info (active-pair)
   "Get basic info about the to-be-inserted pair."
   (let ((open-pair (plist-get active-pair :open)))
@@ -3368,6 +3397,11 @@ default.  See `sp-autoinsert-if-followed-by-same' for more info."
           (unless pair (delete-char (- (length trig))))
           (insert open-pair)
           (sp--run-hook-with-args open-pair :pre-handlers 'insert)
+          (--when-let (sp--pair-to-uninsert)
+            (let ((cl (plist-get it :close)))
+              (when (and (sp--looking-at-p (sp--strict-regexp-quote cl))
+                         (not (string-prefix-p cl close-pair)))
+                (delete-char (length cl)))))
           (insert close-pair)
           (backward-char (length close-pair))
           (sp--pair-overlay-create (- (point) (length open-pair))
