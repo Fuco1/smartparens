@@ -434,7 +434,6 @@ Symbol is defined as a chunk of text recognized by
                          slime-repl-mode
                          monroe-mode
                          cider-repl-mode
-                         nrepl-repl-mode
                          clojure-mode
                          common-lisp-mode)
   "List of Lisp modes.")
