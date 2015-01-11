@@ -423,6 +423,7 @@ Symbol is defined as a chunk of text recognized by
 (defvar sp--lisp-modes '(emacs-lisp-mode
                          inferior-emacs-lisp-mode
                          inferior-lisp-mode
+                         inf-clojure-mode
                          lisp-interaction-mode
                          scheme-mode
                          scheme-interaction-mode
