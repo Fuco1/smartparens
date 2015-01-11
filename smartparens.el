@@ -3248,13 +3248,16 @@ include separate pair node."
 (defun sp--pair-to-insert ()
   "Return pair that can be inserted at point.
 
-Return nil if such pair does not exist."
-  (-if-let (trig (--first (and (plist-get it :trigger)
-                               (sp--looking-back-p (sp--strict-regexp-quote (plist-get it :trigger))))
-                          sp-local-pairs))
-      trig
-    (-when-let (pair (--first (sp--looking-back-p (sp--strict-regexp-quote (car it))) sp-pair-list))
-      (sp-get-pair (car pair)))))
+Return nil if such pair does not exist.
+
+If more triggers or opening pairs are possible select the
+shortest one."
+  (-if-let (trigs (--filter (and (plist-get it :trigger)
+                                 (sp--looking-back-p (sp--strict-regexp-quote (plist-get it :trigger))))
+                            sp-local-pairs))
+      (car (--sort (< (length (plist-get it :trigger)) (length (plist-get other :trigger))) trigs))
+    (-when-let (pairs (--filter (sp--looking-back-p (sp--strict-regexp-quote (car it))) sp-pair-list))
+      (sp-get-pair (caar (--sort (< (length (car it)) (length (car other))) pairs))))))
 
 (defun sp--insert-pair-get-pair-info (active-pair)
   "Get basic info about the to-be-inserted pair."
