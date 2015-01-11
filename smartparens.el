@@ -7826,7 +7826,6 @@ support custom pairs."
   "If `smartparens-mode' is active, we check if the completed string
 has a pair definition.  If so, we insert the closing pair."
   (when (and smartparens-mode ad-return-value) ; `ac-complete' returns nil if there are no completion candidates.
-    (setq sp-recent-keys (reverse (split-string ad-return-value "")))
     (sp-insert-pair))
   ad-return-value)
 
@@ -7834,13 +7833,11 @@ has a pair definition.  If so, we insert the closing pair."
   "If `smartparens-mode' is active, we check if the completed string
 has a pair definition.  If so, we insert the closing pair."
   (when smartparens-mode
-    (setq sp-recent-keys (reverse (split-string (ad-get-arg 0) "")))
     (sp-insert-pair))
   ad-return-value)
 
 (defadvice hippie-expand (after sp-auto-complete-advice activate)
   (when smartparens-mode
-    (setq sp-recent-keys (reverse (split-string (buffer-substring-no-properties he-string-beg he-string-end) "")))
     (sp-insert-pair)))
 
 (defvar sp--mc/cursor-specific-vars
