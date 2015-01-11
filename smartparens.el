@@ -3246,6 +3246,73 @@ include separate pair node."
   (and (equal (char-after (1+ (point))) delimeter)
        (equal (char-after (- (point) 2)) delimeter)))
 
+(defun sp--all-pairs-to-insert (&optional looking-fn)
+  "Return all pairs that can be inserted at point.
+
+Return nil if such pair does not exist.
+
+Pairs inserted using a trigger have higher priority over pairs
+without a trigger and only one or the other list is returned.
+
+In other words, if any pair can be inserted using a trigger, only
+pairs insertable by trigger are returned."
+  (setq looking-fn (or looking-fn 'sp--looking-back-p))
+  (-if-let (trigs (--filter (and (plist-get it :trigger)
+                                 (funcall looking-fn (sp--strict-regexp-quote (plist-get it :trigger))))
+                            sp-local-pairs))
+      (cons :trigger trigs)
+    (-when-let (pairs (--filter (funcall looking-fn (sp--strict-regexp-quote (plist-get it :open))) sp-local-pairs))
+      (cons :open pairs))))
+
+(defun sp--pair-to-insert ()
+  "Return pair that can be inserted at point.
+
+Return nil if such pair does not exist.
+
+If more triggers or opening pairs are possible select the
+shortest one."
+  (-when-let ((property . pairs) (sp--all-pairs-to-insert))
+    (car (--sort (< (length (plist-get it property)) (length (plist-get other property))) pairs))))
+
+(defun sp--longest-prefix-to-insert ()
+  "Return pair with the longest :open which can be inserted at point."
+  (-when-let (pairs (--filter (sp--looking-back-p (sp--strict-regexp-quote (plist-get it :open))) sp-local-pairs))
+    (car (--sort (> (length (plist-get it :open)) (length (plist-get other :open))) pairs))))
+
+(defun sp--pair-to-uninsert ()
+  "Return pair to uninsert.
+
+If the current to-be-inserted pair shares a prefix with
+another (shorter) pair, we must first remove the effect of
+inserting its closing pair before inserting the current one.
+
+The previously inserted pair must be the one with the longest
+common prefix excluding the current pair."
+  (-when-let (lp (sp--longest-prefix-to-insert))
+    (save-excursion
+      (backward-char (length (plist-get lp :open)))
+      (-when-let ((property . pairs) (sp--all-pairs-to-insert 'sp--looking-at-p))
+        (car (--sort (> (length (plist-get it property)) (length (plist-get other property)))
+                     ;; remove pairs whose open is longer than the
+                     ;; current longest possible prefix---otherwise
+                     ;; they would overflow to the closing pair
+                     ;; TODO: this ignores the possibility when lp is
+                     ;; inserted by trigger.  We assume triggers are
+                     ;; shorter than the openings and this situation,
+                     ;; if ever, should be very rare
+                     (--remove (>= (length (plist-get it :open))
+                                   (length (plist-get lp :open))) pairs)))))))
+
+(defun sp--insert-pair-get-pair-info (active-pair)
+  "Get basic info about the to-be-inserted pair."
+  (let ((open-pair (plist-get active-pair :open)))
+    (list
+     open-pair
+     (plist-get active-pair :close)
+     (-if-let (tr (plist-get active-pair :trigger))
+         (if (sp--looking-back-p (sp--strict-regexp-quote tr)) tr open-pair)
+       open-pair))))
+
 (defun sp-insert-pair (&optional pair)
   "Automatically insert the closing pair if it is allowed in current context.
 
@@ -3258,27 +3325,15 @@ setting `sp-autoinsert-pair' to nil.
 You can globally disable insertion of closing pair if point is
 followed by the matching opening pair.  It is disabled by
 default.  See `sp-autoinsert-if-followed-by-same' for more info."
-  (let* ((last-keys (or (and pair (sp--reverse-string pair)) (sp--get-recent-keys)))
-         ;; (last-keys "\"\"\"\"\"\"\"\"\"\"\"\"")
-         ;; we go through all the opening pairs and compare them to
-         ;; last-keys.  If the opair is a prefix of last-keys, insert
-         ;; the closing pair.  We also check the :trigger pair
-         ;; properties here.
-         (trig (--first (and (plist-get it :trigger)
-                             (string-prefix-p (sp--reverse-string (plist-get it :trigger)) last-keys))
-                        sp-local-pairs))
-         (active-pair (or (when trig (cons (plist-get trig :open) (plist-get trig :close)))
-                          (--first (string-prefix-p (sp--reverse-string (car it)) last-keys) sp-pair-list)))
-         (open-pair (car active-pair))
-         (close-pair (cdr active-pair)))
+  (-let* ((active-pair (sp--pair-to-insert))
+          ((open-pair close-pair trig) (sp--insert-pair-get-pair-info active-pair)))
     ;; Test "repeat last wrap" here.  If we wrap a region and then
     ;; type in a pair, wrap again around the last active region.  This
     ;; should probably be tested in the `self-insert-command'
     ;; advice... but we're lazy :D
-    (setq trig (or (and trig (plist-get trig :trigger)) open-pair))
     (if (and sp-autowrap-region
              active-pair
-             (sp--wrap-repeat-last active-pair))
+             (sp--wrap-repeat-last (cons open-pair close-pair)))
         sp-last-operation
       (if (not (unwind-protect
                    (progn
@@ -3343,6 +3398,11 @@ default.  See `sp-autoinsert-if-followed-by-same' for more info."
           (unless pair (delete-char (- (length trig))))
           (insert open-pair)
           (sp--run-hook-with-args open-pair :pre-handlers 'insert)
+          (--when-let (sp--pair-to-uninsert)
+            (let ((cl (plist-get it :close)))
+              (when (and (sp--looking-at-p (sp--strict-regexp-quote cl))
+                         (not (string-prefix-p cl close-pair)))
+                (delete-char (length cl)))))
           (insert close-pair)
           (backward-char (length close-pair))
           (sp--pair-overlay-create (- (point) (length open-pair))
@@ -7846,7 +7906,6 @@ support custom pairs."
   "If `smartparens-mode' is active, we check if the completed string
 has a pair definition.  If so, we insert the closing pair."
   (when (and smartparens-mode ad-return-value) ; `ac-complete' returns nil if there are no completion candidates.
-    (setq sp-recent-keys (reverse (split-string ad-return-value "")))
     (sp-insert-pair))
   ad-return-value)
 
@@ -7854,13 +7913,11 @@ has a pair definition.  If so, we insert the closing pair."
   "If `smartparens-mode' is active, we check if the completed string
 has a pair definition.  If so, we insert the closing pair."
   (when smartparens-mode
-    (setq sp-recent-keys (reverse (split-string (ad-get-arg 0) "")))
     (sp-insert-pair))
   ad-return-value)
 
 (defadvice hippie-expand (after sp-auto-complete-advice activate)
   (when smartparens-mode
-    (setq sp-recent-keys (reverse (split-string (buffer-substring-no-properties he-string-beg he-string-end) "")))
     (sp-insert-pair)))
 
 (defvar sp--mc/cursor-specific-vars
