@@ -86,7 +86,6 @@ better orientation."
                           sp--cua-replace-region
                           sp-wrap-cancel
                           sp-remove-active-pair-overlay
-                          sp--self-insert-command
                           sp-wrap-tag-beginning
                           sp-wrap-tag-end
                           sp-wrap-tag-done
@@ -516,8 +515,6 @@ You can enable pre-set bindings by customizing
   (if smartparens-mode
       (progn
         (sp--init)
-        (when (sp--delete-selection-p)
-          (sp--init-delete-selection-mode-emulation))
         (run-hooks 'smartparens-enabled-hook))
     (run-hooks 'smartparens-disabled-hook)))
 
@@ -597,53 +594,6 @@ local variables that depend on the active `major-mode'."
   "Initialize the buffer if it is not already initialized. See `sp--init'."
   (unless sp-pair-list
     (sp--init)))
-
-(defvar sp-trigger-keys nil
-  "List of trigger keys.")
-
-(defun sp--update-trigger-keys (&optional remove)
-  "Update the trigger keys in `sp-keymap'.
-
-Trigger key is any character present in any pair's opening or
-closing delimiter.  Each trigger key must map to
-`sp--self-insert-command'.
-
-The optional argument REMOVE is a string of trigger keys to
-remove.  If non-nil, remove the trigger keys defined by this
-string.  After the removal, all the pairs are re-checked."
-  (when remove
-    (--each (split-string remove "" t)
-      (define-key sp-keymap it nil)))
-
-  (setq sp-trigger-keys nil)
-  (dolist (mode-pairs sp-pairs)
-    (dolist (pair (cdr mode-pairs))
-      (let ((open (plist-get pair :open))
-            (close (plist-get pair :close)))
-        (when open
-          (setq sp-trigger-keys (append (split-string open "" t) sp-trigger-keys))
-          (--each (split-string open "" t)
-            (define-key sp-keymap it 'sp--self-insert-command)))
-        (when close
-          (setq sp-trigger-keys (append (split-string close "" t) sp-trigger-keys))
-          (--each (split-string close "" t)
-            (define-key sp-keymap it 'sp--self-insert-command))))))
-
-  (dolist (mode-tags sp-tags)
-    (dolist (tag (cdr mode-tags))
-      (let ((trig (plist-get tag :trigger)))
-        (setq sp-trigger-keys (append (split-string trig "" t) sp-trigger-keys))
-        (--each (split-string trig "" t)
-          (define-key sp-keymap it 'sp--self-insert-command)))))
-
-  (setq sp-trigger-keys (-distinct sp-trigger-keys)))
-
-(defun sp--keybinding-fallback (&optional key-sequence)
-  "Return the fall-back command as if `smartparens-mode' were disabled."
-  (let ((smartparens-mode nil)
-        (keys (or key-sequence (car sp-recent-keys))))
-    ;; HACK: why and when this happens, I can't figure it out!!!
-    (if keys (key-binding keys t) 'self-insert-command)))
 
 (defun sp--update-local-pairs ()
   "Update local pairs after removal or at mode initialization."
@@ -1154,47 +1104,21 @@ mute. Integers specify the maximum width."
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Selection mode emulation
+;; Selection mode handling
 
 (defun sp--delete-selection-p ()
   "Return t if `delete-selection-mode' or `cua-delete-selection' is enabled."
   (or (and (boundp 'delete-selection-mode) delete-selection-mode)
       (and (boundp 'cua-delete-selection) cua-delete-selection cua-mode)))
 
-(defun sp--cua-replace-region (&optional arg)
-  "If `smartparens-mode' is on, emulate `self-insert-command',
-else call `cua-replace-region'"
-  (interactive "p")
-  (setq this-original-command 'self-insert-command)
-  (if smartparens-mode
-      (self-insert-command (or arg 1))
-    (cua-replace-region)))
+(defadvice cua-replace-region (around fix-sp-wrap activate)
+  (if (sp-wrap--can-wrap-p)
+      (cua--fallback)
+    ad-do-it))
 
-(defun sp--init-delete-selection-mode-emulation ()
-  "Initialize smartparens delete selection emulation.  The
-original hooks are removed and handled by sp's pre-command
-handler."
-  ;; make sure the `delete-selection-pre-hook' is not active and that
-  ;; delsel is actually loaded.  We need the delete-selection-pre-hook
-  ;; command!
-  (when delete-selection-mode
-    (remove-hook 'pre-command-hook 'delete-selection-pre-hook))
-  ;; if cua-mode is active, replace the `self-insert-command' binding
-  ;; and the cua--pre-command-handler hook.
-  (when cua-mode
-    (define-key cua--region-keymap [remap self-insert-command] 'sp--cua-replace-region)
-    (remove-hook 'pre-command-hook 'cua--pre-command-handler)))
-
-(defadvice cua-mode (after cua-mode-fix-selection activate)
-  (when (and cua-mode)
-    (define-key cua--region-keymap [remap self-insert-command] 'sp--cua-replace-region)
-    (define-key cua--region-keymap [remap sp-backward-delete-char] 'cua-delete-region)
-    (define-key cua--region-keymap [remap sp-delete-char] 'cua-delete-region)
-    (remove-hook 'pre-command-hook 'cua--pre-command-handler)))
-
-(defadvice delete-selection-mode (after delete-selection-mode-fix-selection activate)
-  (when (and delete-selection-mode)
-    (remove-hook 'pre-command-hook 'delete-selection-pre-hook)))
+(defadvice delete-selection-pre-hook (around fix-sp-wrap activate)
+  (unless (sp-wrap--can-wrap-p)
+    ad-do-it))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1350,14 +1274,7 @@ beginning."
 (defun sp--this-command-self-insert-p ()
   "Return non-nil if `this-command' is some sort of `self-insert-command'."
   (memq this-command '(self-insert-command
-                       org-self-insert-command
-                       sp--self-insert-command)))
-
-(defun sp--this-original-command-self-insert-p ()
-  "Return non-nil if `this-original-command' is some sort of `self-insert-command'."
-  (memq this-original-command '(self-insert-command
-                                org-self-insert-command
-                                sp--self-insert-command)))
+                       org-self-insert-command)))
 
 (defun sp--signum (x)
   "Return 1 if X is positive, -1 if negative, 0 if zero."
@@ -1913,8 +1830,7 @@ modes, use this property on `sp-local-pair' instead."
                      (sp-get-pair-definition open t :open)
                      (sp-get-pair-definition open t :close)))
             (global-list (assq t sp-pairs)))
-        (setcdr global-list (--remove (equal (plist-get it :open) open) (cdr global-list)))
-        (sp--update-trigger-keys remove))
+        (setcdr global-list (--remove (equal (plist-get it :open) open) (cdr global-list))))
     (let ((pair nil))
       (setq pair (plist-put pair :open open))
       (when close (plist-put pair :close close))
@@ -1932,7 +1848,6 @@ modes, use this property on `sp-local-pair' instead."
                   (sp-get-pair-definition open t (car arg)))
           (plist-put pair (car arg) (eval (cdr arg)))))
       (sp--update-pair-list pair t))
-    (sp--update-trigger-keys)
     (when (or wrap bind) (global-set-key (read-kbd-macro (or wrap bind))
                                          `(lambda (&optional arg)
                                             (interactive "P")
@@ -2032,8 +1947,7 @@ addition, there is a global per major-mode option, see
           (let ((mode-pairs (assq m sp-pairs)))
             (setcdr mode-pairs
                     (--remove (equal (plist-get it :open) open)
-                              (cdr mode-pairs)))))
-        (sp--update-trigger-keys remove))
+                              (cdr mode-pairs))))))
     (dolist (m (-flatten (list modes)))
       (let* ((pair nil))
         (setq pair (plist-put pair :open open))
@@ -2060,8 +1974,7 @@ addition, there is a global per major-mode option, see
                                     (sp-wrap-with-pair ,open))))
           (when insert (define-key map
                          (kbd insert)
-                         `(lambda () (interactive) (sp-insert-pair ,open)))))))
-    (sp--update-trigger-keys))
+                         `(lambda () (interactive) (sp-insert-pair ,open))))))))
   (sp--update-local-pairs-everywhere (-flatten (list modes)))
   sp-pairs)
 
@@ -2128,8 +2041,7 @@ string and the action."
               (sp--update-pair tag new-tag)))
         ;; mode doesn't exist
         (when actions
-          (!cons (cons mode (list new-tag)) sp-tags)))))
-  (sp--update-trigger-keys))
+          (!cons (cons mode (list new-tag)) sp-tags))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2594,129 +2506,57 @@ see `sp-pair' for description."
   `(unless action
      (setq action (progn ,@forms))))
 
-(defun sp--self-insert-command (arg)
-  "This command is a wrapper around `self-insert-command'.
-
-If the just-typed key is a possible trigger for any pair,
-`self-insert-command' is called and the special behaviours are
-handled in its advice provided by `smartparens-mode'.  If the
-just-typed key is not a trigger, fall back to the command that
-would execute if smartparens-mode were disabled."
-  (interactive "p")
-  (if (and (member (sp--single-key-description last-command-event) sp-trigger-keys)
-           (not buffer-read-only))
-      (progn
-        (setq this-command 'self-insert-command)
-        (self-insert-command arg))
-    (sp--call-fallback-command)))
-
-(defun sp--call-fallback-command ()
-  "Call the command bound to last key sequence as if SP were disabled."
-  (let ((com (sp--keybinding-fallback
-              (when buffer-read-only
-                (single-key-description last-command-event))))
-        (smartparens-mode nil))
-    (when (and com (commandp com))
-      (setq this-original-command com)
-      (call-interactively com))))
-
-(defadvice self-insert-command (around self-insert-command-adviced activate)
-  (setq sp-point-inside-string (sp-point-in-string))
-  (setq sp-buffer-modified-p (buffer-modified-p))
-
-  ad-do-it
-
+;; TODO: this introduces a regression, where doing C-4 [ inserts [[[[]
+;; figure out how to detect the argument to self-insert-command that
+;; resulted to this insertion
+(defun sp--post-self-insert-hook-handler ()
   (when smartparens-mode
     (setq sp-recent-keys (cons
                           (sp--single-key-description last-command-event)
                           (-take 19 sp-recent-keys)))
     (let (op action)
-      (if (= 1 (ad-get-arg 0))
-          (progn
-            (setq op sp-last-operation)
-            (cond
-             ((region-active-p)
-              (sp-wrap-region-init))
-             (sp-wrap-overlays
-              (sp-wrap-region))
-             (t
-              (sp--setaction action (sp-insert-pair))
-              (sp--setaction action (sp-skip-closing-pair))
-              ;; try to call the fallback function bound to this key.
-              ;; That is a function that would normally run if SP was
-              ;; inactive. TODO: should this be customizable?
-              (when (not action)
-                (let ((fb-fun (sp--keybinding-fallback)))
-                  (when (and (not (eq fb-fun 'self-insert-command))
-                             (lookup-key sp-keymap (vector last-command-event)))
-                    (delete-char -1)
-                    (sp--call-fallback-command)
-                    (setq action t))))
-              ;; if nothing happened, we just inserted a character, so
-              ;; set the apropriate operation.  We also need to check
-              ;; for `sp--self-insert-no-escape' not to overwrite
-              ;; it.  See `sp-autoinsert-quote-if-followed-by-closing-pair'.
-              (when (and (not action)
-                         (not (eq sp-last-operation 'sp-self-insert-no-escape)))
-                (setq sp-last-operation 'sp-self-insert))
-              ;; if it was a quote, escape it
-              (when (and (eq sp-last-operation 'sp-self-insert)
-                         sp-point-inside-string
-                         sp-autoescape-string-quote
-                         (or (and (eq (preceding-char) ?\")
-                                  (eq sp-point-inside-string ?\"))
-                             (and (eq (preceding-char) ?')
-                                  (eq sp-point-inside-string ?'))))
-                (save-excursion
-                  (backward-char 1)
-                  (insert sp-escape-char))))))
-        (setq sp-last-operation 'sp-self-insert)))))
-
-(defun sp--delete-selection-mode-handle (&optional from-wrap)
-  "Call the original `delete-selection-pre-hook'."
-  (if smartparens-mode
+      (setq op sp-last-operation)
       (cond
-       ;; try the cua-mode emulation with `cua-delete-selection'
-       ((and (boundp 'cua-mode) cua-mode
-             (or (not (sp--this-original-command-self-insert-p))
-                 (not sp-autowrap-region)))
-        ;; if sp-autowrap-region is disabled, we need to translate
-        ;; `sp--cua-replace-region' back to `self-insert-command'
-        ;; because this is *pre* command hook
-        ;; TODO: why do we need sp-cua-replace-region?
-        (when (and (not sp-autowrap-region)
-                   (eq this-command 'sp--cua-replace-region))
-          (setq this-command 'self-insert-command))
-        (cua--pre-command-handler))
-       ;; this handles the special case after `self-insert-command' if
-       ;; `sp-autowrap-region' is t.
-       ((and (boundp 'cua-mode) cua-mode from-wrap)
-        (setq this-command this-original-command)
-        (cua-replace-region))
-       ;; if not self-insert, just run the hook from
-       ;; `delete-selection-mode'
-       ((and (boundp 'delete-selection-mode) delete-selection-mode
-             (or from-wrap
-                 (not sp-autowrap-region)
-                 (not (sp--this-original-command-self-insert-p))))
-        (delete-selection-pre-hook)))
-    ;; this handles the callbacks properly if the smartparens mode is
-    ;; disabled.  Smartparens-mode adds advices on cua-mode and
-    ;; delete-selection-mode that automatically remove the callbacks
-    (cond
-     ((and (bound-and-true-p cua-mode)
-           (not (member 'cua--pre-command-handler pre-command-hook)))
-      (cua--pre-command-handler))
-     ((and (bound-and-true-p delete-selection-mode)
-           (not (member 'delete-selection-pre-hook pre-command-hook)))
-      (delete-selection-pre-hook)))))
+       ((region-active-p)
+        (sp-wrap-region-init))
+       (sp-wrap-overlays
+        (sp-wrap-region))
+       (t
+        (sp--setaction action (sp-insert-pair))
+        (sp--setaction action (sp-skip-closing-pair))
+        ;; if nothing happened, we just inserted a character, so
+        ;; set the apropriate operation.  We also need to check
+        ;; for `sp--self-insert-no-escape' not to overwrite
+        ;; it.  See `sp-autoinsert-quote-if-followed-by-closing-pair'.
+        (when (and (not action)
+                   (not (eq sp-last-operation 'sp-self-insert-no-escape)))
+          (setq sp-last-operation 'sp-self-insert))
+        ;; if it was a quote, escape it
+        (when (and (eq sp-last-operation 'sp-self-insert)
+                   sp-point-inside-string
+                   sp-autoescape-string-quote
+                   (or (and (eq (preceding-char) ?\")
+                            (eq sp-point-inside-string ?\"))
+                       (and (eq (preceding-char) ?')
+                            (eq sp-point-inside-string ?'))))
+          (save-excursion
+            (backward-char 1)
+            (insert sp-escape-char))))))))
+
+(add-hook 'post-self-insert-hook 'sp--post-self-insert-hook-handler)
+
+;; TODO: get rid of this ugly state tracking
+(defun sp--save-pre-command-state ()
+  (setq sp-point-inside-string (sp-point-in-string))
+  (setq sp-buffer-modified-p (buffer-modified-p)))
+
+(add-hook 'pre-command-hook 'sp--save-pre-command-state)
 
 (defun sp--pre-command-hook-handler ()
   "Main handler of pre-command-hook.
 
 Handle the `delete-selection-mode' or `cua-delete-selection'
-stuff here."
-  (sp--delete-selection-mode-handle))
+stuff here.")
 
 (defun sp--get-recent-keys ()
   "Return 10 recent keys in reverse order (most recent first) as a string."
@@ -2820,24 +2660,20 @@ provided values."
     (set-marker-insertion-type e t)
     `(:beg ,b :end ,e :op ,open :cl ,close :prefix "")))
 
+;; TODO: is it safe to consider last-command-event? Still feels like a hack.
+(defun sp-wrap--can-wrap-p ()
+  (or (--any? (string-prefix-p (sp--single-key-description last-command-event) (car it)) (sp--get-pair-list-wrap))
+      (sp--get-active-tag (sp--single-key-description last-command-event))))
+
 (defun sp-wrap-region-init ()
   "Initialize the region wrapping."
   (when sp-autowrap-region
     ;; if we can't possibly form a wrap, just insert the char and do
-    ;; nothing.  If `sp--delete-selection-p' is true, run
-    ;; `sp--delete-selection-mode-handle' with t that means it was
-    ;; called from withing wrapping procedure
+    ;; nothing.
     (if (--none? (string-prefix-p (sp--single-key-description last-command-event) (car it)) (sp--get-pair-list-wrap))
         (let ((p (1- (point)))
               (m (mark)))
-          ;; test if we can at least start a tag wrapping.  If not,
-          ;; delete the region if apropriate
-          (unless (sp-wrap-tag-region-init)
-            (sp--delete-selection-mode-handle t)
-            (when (and (sp--delete-selection-p)
-                       (< m p)
-                       (= (length (sp--single-key-description last-command-event)) 1))
-              (insert (sp--single-key-description last-command-event)))))
+          (sp-wrap-tag-region-init))
       (let* ((p (1- (point))) ;; we want the point *before* the
              ;; insertion of the character
              (m (mark))
@@ -2846,7 +2682,6 @@ provided values."
              (last-keys (sp--get-recent-keys))
              ;;(last-keys "\"\"\"\"\"\"\"\"")
              (active-pair (--first (string-prefix-p (sp--reverse-string (car it)) last-keys) (sp--get-pair-list-wrap))))
-
         (deactivate-mark)
         ;; if we can wrap right away, do it without creating overlays,
         ;; we can save ourselves a lot of needless trouble :)
@@ -7890,7 +7725,6 @@ support custom pairs."
 
 
 ;; global initialization
-(sp--update-trigger-keys)
 (defadvice delete-backward-char (before sp-delete-pair-advice activate)
   (save-match-data
     (sp-delete-pair (ad-get-arg 0))))
