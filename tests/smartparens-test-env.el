@@ -9,7 +9,10 @@
       (:open "["   :close "]"   :actions (insert wrap autoskip navigate))
       (:open "{"   :close "}"   :actions (insert wrap autoskip navigate))
       (:open "\""  :close "\""  :actions (insert wrap autoskip navigate))
-      (:open "\\\""  :close "\\\""  :actions (insert wrap autoskip navigate))))))
+      (:open "\\\""  :close "\\\""  :actions (insert wrap autoskip navigate))
+      (:open "\\langle"  :close "\\rangle"  :actions (insert wrap autoskip navigate))
+      (:open "OPEN"  :close "CLOSE"  :actions (insert wrap autoskip navigate))
+      (:open "\\big("  :close "\\big)"  :actions (insert wrap autoskip navigate) :trigger "\\b")))))
 
 (defmacro sp-test-setup-paired-expression-env (pairs mode mode-hook &rest forms)
   (declare (indent 0))
@@ -49,6 +52,22 @@
 (defun sp-test-merge-pairs (extra)
   (list (cons t (append (-map 'identity (cdar sp--test-basic-pairs)) extra))))
 
-
+(defmacro sp-test-with-temp-buffer (initial &rest forms)
+  "Setup a new buffer with `emacs-lisp-mode' and `smartparens-mode' on, then run FORMS.
+
+If INITIAL contains | put point there as the initial position (the
+character is then removed)."
+  (declare (indent 1)
+           (debug (form body)))
+  `(save-window-excursion
+     (with-temp-buffer
+       (emacs-lisp-mode)
+       (smartparens-mode 1)
+       (pop-to-buffer (current-buffer))
+       (insert initial)
+       (goto-char (point-min))
+       (when (search-forward "|" nil t)
+         (delete-char -1))
+       ,@forms)))
 
 (provide 'smartparens-test-env)

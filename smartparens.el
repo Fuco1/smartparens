@@ -3245,6 +3245,17 @@ include separate pair node."
   (and (equal (char-after (1+ (point))) delimeter)
        (equal (char-after (- (point) 2)) delimeter)))
 
+(defun sp--pair-to-insert ()
+  "Return pair that can be inserted at point.
+
+Return nil if such pair does not exist."
+  (-if-let (trig (--first (and (plist-get it :trigger)
+                               (sp--looking-back-p (sp--strict-regexp-quote (plist-get it :trigger))))
+                          sp-local-pairs))
+      trig
+    (-when-let (pair (--first (sp--looking-back-p (sp--strict-regexp-quote (car it))) sp-pair-list))
+      (sp-get-pair (car pair)))))
+
 (defun sp-insert-pair (&optional pair)
   "Automatically insert the closing pair if it is allowed in current context.
 
@@ -3257,27 +3268,21 @@ setting `sp-autoinsert-pair' to nil.
 You can globally disable insertion of closing pair if point is
 followed by the matching opening pair.  It is disabled by
 default.  See `sp-autoinsert-if-followed-by-same' for more info."
-  (let* ((last-keys (or (and pair (sp--reverse-string pair)) (sp--get-recent-keys)))
-         ;; (last-keys "\"\"\"\"\"\"\"\"\"\"\"\"")
-         ;; we go through all the opening pairs and compare them to
-         ;; last-keys.  If the opair is a prefix of last-keys, insert
-         ;; the closing pair.  We also check the :trigger pair
-         ;; properties here.
-         (trig (--first (and (plist-get it :trigger)
-                             (string-prefix-p (sp--reverse-string (plist-get it :trigger)) last-keys))
-                        sp-local-pairs))
-         (active-pair (or (when trig (cons (plist-get trig :open) (plist-get trig :close)))
-                          (--first (string-prefix-p (sp--reverse-string (car it)) last-keys) sp-pair-list)))
-         (open-pair (car active-pair))
-         (close-pair (cdr active-pair)))
+  (let* ((active-pair (sp--pair-to-insert))
+         ;; TODO: abstract the plist
+         (open-pair (plist-get active-pair :open))
+         (close-pair (plist-get active-pair :close))
+         ;; TODO: abstract to some function
+         (trig (-if-let (tr (plist-get active-pair :trigger))
+                   (if (sp--looking-back-p (sp--strict-regexp-quote tr)) tr open-pair)
+                 open-pair)))
     ;; Test "repeat last wrap" here.  If we wrap a region and then
     ;; type in a pair, wrap again around the last active region.  This
     ;; should probably be tested in the `self-insert-command'
     ;; advice... but we're lazy :D
-    (setq trig (or (and trig (plist-get trig :trigger)) open-pair))
     (if (and sp-autowrap-region
              active-pair
-             (sp--wrap-repeat-last active-pair))
+             (sp--wrap-repeat-last (cons open-pair close-pair)))
         sp-last-operation
       (if (not (unwind-protect
                    (progn
