@@ -3245,6 +3245,24 @@ include separate pair node."
   (and (equal (char-after (1+ (point))) delimeter)
        (equal (char-after (- (point) 2)) delimeter)))
 
+(defun sp--all-pairs-to-insert (&optional looking-fn)
+  "Return all pairs that can be inserted at point.
+
+Return nil if such pair does not exist.
+
+Pairs inserted using a trigger have higher priority over pairs
+without a trigger and only one or the other list is returned.
+
+In other words, if any pair can be inserted using a trigger, only
+pairs insertable by trigger are returned."
+  (setq looking-fn (or looking-fn 'sp--looking-back-p))
+  (-if-let (trigs (--filter (and (plist-get it :trigger)
+                                 (funcall looking-fn (sp--strict-regexp-quote (plist-get it :trigger))))
+                            sp-local-pairs))
+      (cons :trigger trigs)
+    (-when-let (pairs (--filter (funcall looking-fn (sp--strict-regexp-quote (plist-get it :open))) sp-local-pairs))
+      (cons :open pairs))))
+
 (defun sp--pair-to-insert ()
   "Return pair that can be inserted at point.
 
@@ -3252,12 +3270,8 @@ Return nil if such pair does not exist.
 
 If more triggers or opening pairs are possible select the
 shortest one."
-  (-if-let (trigs (--filter (and (plist-get it :trigger)
-                                 (sp--looking-back-p (sp--strict-regexp-quote (plist-get it :trigger))))
-                            sp-local-pairs))
-      (car (--sort (< (length (plist-get it :trigger)) (length (plist-get other :trigger))) trigs))
-    (-when-let (pairs (--filter (sp--looking-back-p (sp--strict-regexp-quote (car it))) sp-pair-list))
-      (sp-get-pair (caar (--sort (< (length (car it)) (length (car other))) pairs))))))
+  (-when-let ((property . pairs) (sp--all-pairs-to-insert))
+    (car (--sort (< (length (plist-get it property)) (length (plist-get other property))) pairs))))
 
 (defun sp--insert-pair-get-pair-info (active-pair)
   "Get basic info about the to-be-inserted pair."
