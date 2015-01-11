@@ -3256,6 +3256,16 @@ Return nil if such pair does not exist."
     (-when-let (pair (--first (sp--looking-back-p (sp--strict-regexp-quote (car it))) sp-pair-list))
       (sp-get-pair (car pair)))))
 
+(defun sp--insert-pair-get-pair-info (active-pair)
+  "Get basic info about the to-be-inserted pair."
+  (let ((open-pair (plist-get active-pair :open)))
+    (list
+     open-pair
+     (plist-get active-pair :close)
+     (-if-let (tr (plist-get active-pair :trigger))
+         (if (sp--looking-back-p (sp--strict-regexp-quote tr)) tr open-pair)
+       open-pair))))
+
 (defun sp-insert-pair (&optional pair)
   "Automatically insert the closing pair if it is allowed in current context.
 
@@ -3268,14 +3278,8 @@ setting `sp-autoinsert-pair' to nil.
 You can globally disable insertion of closing pair if point is
 followed by the matching opening pair.  It is disabled by
 default.  See `sp-autoinsert-if-followed-by-same' for more info."
-  (let* ((active-pair (sp--pair-to-insert))
-         ;; TODO: abstract the plist
-         (open-pair (plist-get active-pair :open))
-         (close-pair (plist-get active-pair :close))
-         ;; TODO: abstract to some function
-         (trig (-if-let (tr (plist-get active-pair :trigger))
-                   (if (sp--looking-back-p (sp--strict-regexp-quote tr)) tr open-pair)
-                 open-pair)))
+  (-let* ((active-pair (sp--pair-to-insert))
+          ((open-pair close-pair trig) (sp--insert-pair-get-pair-info active-pair)))
     ;; Test "repeat last wrap" here.  If we wrap a region and then
     ;; type in a pair, wrap again around the last active region.  This
     ;; should probably be tested in the `self-insert-command'
