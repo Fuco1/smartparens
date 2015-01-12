@@ -7427,10 +7427,20 @@ of the point."
               nil)))
       (progn (pop sp-navigate-consider-stringlike-sexp) nil))))
 
+;;; Taken from subr-x.el
+(defsubst string-trim-right (string)
+  "Remove trailing whitespace from STRING."
+  (if (string-match "[ \t\n\r]+\\'" string)
+      (replace-match "" t t string)
+    string))
+
 (defun sp-region-ok-p (start end)
-  (save-excursion
-    (save-restriction
-      (narrow-to-region start end)
+  (let ((region (string-trim-right (buffer-substring-no-properties start end))))
+    (with-temp-buffer
+      (insert region)
+      (-when-let (bounds (and (sp-point-in-comment)
+                              (sp-get-comment-bounds)))
+        (delete-region (first bounds) (second bound)))
       (goto-char (point-min))
       (cond
        ((sp--unbalanced-string-after-point-p) nil)
