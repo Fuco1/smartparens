@@ -120,6 +120,12 @@ executing `sp-skip-closing-pair'."
 (ert-deftest sp-test-region-ok-balanced-parens ()
   (should (sp-test--string-valid-p "(foo)")))
 
+(ert-deftest sp-test-region-ok-trailing-ws ()
+  (should (sp-test--string-valid-p "(foo)	  \n")))
+
+(ert-deftest sp-test-region-ok-trailing-comment ()
+  (should (sp-test--string-valid-p "(foo) ; foo")))
+
 (defun sp-test-run-tests ()
   (interactive)
   (ert "sp-test-*"))
