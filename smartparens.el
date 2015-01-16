@@ -7415,38 +7415,52 @@ of the point."
       (sp--back-to-indentation column indentation))))
 
 
-(defun sp--unbalanced-string-after-point-p ()
+(defun sp--unbalanced-string-after-point-p (end)
   (push major-mode sp-navigate-consider-stringlike-sexp)
-  (save-excursion
+  (let (unbalanced-string-p str)
     (unwind-protect
-        (let ((str (ignore-errors (sp-get-string))))
-          (when str
-            (goto-char (plist-get str :beg))
-            (sp-down-sexp)
-            (if (= (point) (save-excursion (sp-up-sexp) (point)))
-                t
-              nil)))
-      (progn (pop sp-navigate-consider-stringlike-sexp) nil))))
+        (save-restriction
+          (narrow-to-region (point) end)
+          (save-excursion
+            (while (and (not unbalanced-string-p)
+                        (re-search-forward (sp--get-stringlike-regexp) nil :noerror))
+              (setq str (ignore-errors (sp-get-string)) ; sometimes returns for a single open
+                    unbalanced-string-p t)
+              (when str
+                (when (and (= (1- (point)) (plist-get str :beg))
+                           ;; test if 'string' is actually just a single open
+                           (< (point) (save-excursion (sp-up-sexp) (point))))
+                  (setq unbalanced-string-p nil))
+                (goto-char (plist-get str :end))))))
+      (pop sp-navigate-consider-stringlike-sexp))
+    unbalanced-string-p))
 
 (defun sp-region-ok-p (start end)
-  (save-excursion
-    (save-restriction
-      (narrow-to-region start end)
-      (goto-char (point-min))
-      (cond
-       ((sp--unbalanced-string-after-point-p) nil)
-       ;; A region without any pairs is trivially ok
-       ((and (not (save-excursion
-                    (re-search-forward (sp--get-opening-regexp (sp--get-pair-list-context))
-                                       nil :noerror)))
-             (not (save-excursion
-                    (re-search-forward (sp--get-closing-regexp (sp--get-pair-list-context))
-                                       nil :noerror))))
-        t)
-       (t (let ((r t))
-            (while (and r (not (eobp)))
-              (setq r (sp-forward-sexp)))
-            r))))))
+  (let* ((region (buffer-substring-no-properties start end))
+         (pairs (sp--get-allowed-regexp))
+         (unbalanced-string-p (sp--unbalanced-string-after-point-p end)))
+    (if  (and (not (string-match pairs region))
+              (not unbalanced-string-p))
+        t
+      (unless unbalanced-string-p
+        (save-restriction
+          (save-excursion
+            (narrow-to-region start end)
+            ;; Ignore trailing noise
+            (goto-char (point-max))
+            (while (not (or (= (point) (point-min))
+                            (looking-back pairs)))
+              (narrow-to-region start (cl-decf end)))
+            (-when-let (bounds (and (sp-point-in-comment)
+                                    (sp-get-comment-bounds)))
+              (narrow-to-region start (first bounds)))
+
+            ;; try to walk remaining sexps
+            (goto-char (point-min))
+            (let ((r t))
+              (while (and r (not (eobp)))
+                (setq r (sp-forward-sexp)))
+              r)))))))
 
 (defun sp-newline ()
   "Insert a newline and indent it.
