@@ -3117,6 +3117,18 @@ pairs insertable by trigger are returned."
     (-when-let (pairs (--filter (funcall looking-fn (sp--strict-regexp-quote (plist-get it :open))) sp-local-pairs))
       (cons :open pairs))))
 
+(defun sp--pair-to-insert-comparator (prop a b)
+  (cond
+   ;; in case of triggers shorter always wins
+   ((eq prop :trigger)
+    (< (length (plist-get a :trigger)) (length (plist-get b :trigger))))
+   ;; shorter wins only if the shorter's closing is a prefix of the
+   ;; longer's closing
+   (t
+    (if (< (length (plist-get a :open)) (length (plist-get b :open)))
+        (string-prefix-p (plist-get a :close) (plist-get b :close))
+      (not (string-prefix-p (plist-get b :close) (plist-get a :close)))))))
+
 (defun sp--pair-to-insert ()
   "Return pair that can be inserted at point.
 
@@ -3125,7 +3137,7 @@ Return nil if such pair does not exist.
 If more triggers or opening pairs are possible select the
 shortest one."
   (-when-let ((property . pairs) (sp--all-pairs-to-insert))
-    (car (--sort (< (length (plist-get it property)) (length (plist-get other property))) pairs))))
+    (car (--sort (sp--pair-to-insert-comparator property it other) pairs))))
 
 (defun sp--longest-prefix-to-insert ()
   "Return pair with the longest :open which can be inserted at point."

@@ -16,7 +16,8 @@
     (sp-test-insertion "|" '("\\" "l" "a" "n" "g" "l" "e") "\\langle\\rangle")
     (sp-test-insertion "|" '("f" "o" "o" " " "\\" "l" "a" "n" "g" "l" "e") "foo \\langle\\rangle")
     (sp-test-insertion "foo |" '("\\" "b" ) "foo \\big(\\big)")
-    (sp-test-insertion "|" '("[" "[" "]" "[") "[[][]]"))
+    (sp-test-insertion "|" '("[" "[" "]" "[") "[[][]]")
+    (sp-test-insertion "|" '("\\" "{") "\\{\\}"))
   (let ((sp-pairs '((t . ((:open "`" :close "'" :actions (insert wrap autoskip navigate))
                           (:open "``" :close "''" :actions (insert wrap autoskip navigate)))))))
     (sp-test-insertion "|" '("`") "`'")
@@ -41,11 +42,15 @@
     (should (equal (buffer-string) result))))
 
 (ert-deftest sp-test-latex-insertion nil
-  (let ((sp-pairs '((t . ((:open "$" :close "$" :actions (insert wrap autoskip navigate)))))))
+  (let ((sp-pairs '((t . ((:open "$" :close "$" :actions (insert wrap autoskip navigate))
+                          (:open "\\[" :close "\\]" :actions (insert wrap autoskip navigate))
+                          (:open "\\bigl(" :close "\\bigr)" :actions (insert wrap autoskip navigate)))))))
     (sp-test-latex-insertion "|" "$" "$$")
     (sp-test-latex-insertion "|" "$$" "$$")
     (sp-test-latex-insertion "|" "$$$" "$$$$")
-    (sp-test-latex-insertion "foo |" "$" "foo $$")))
+    (sp-test-latex-insertion "foo |" "$" "foo $$")
+    (sp-test-latex-insertion "|" "\\[" "\\[\\]")
+    (sp-test-latex-insertion "foo | bar" "\\bigl(" "foo \\bigl(\\bigr) bar")))
 
 (defun sp-test--pair-to-insert (initial expected)
   (let ((sp-pairs sp--test-basic-pairs))
