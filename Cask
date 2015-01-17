@@ -8,4 +8,5 @@
 (depends-on "dash" "2.10.0")
 
 (development
-  (depends-on "ruby-mode"))
+  (depends-on "ruby-mode")
+  (depends-on "auctex"))

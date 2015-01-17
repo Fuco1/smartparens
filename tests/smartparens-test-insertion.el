@@ -2,17 +2,9 @@
 (require 'smartparens-config)
 
 (defun sp-test-insertion (initial keys result)
-  (save-window-excursion
-    (with-temp-buffer
-      (emacs-lisp-mode)
-      (smartparens-mode 1)
-      (pop-to-buffer (current-buffer))
-      (insert initial)
-      (goto-char (point-min))
-      (search-forward "|")
-      (delete-char -1)
-      (-each keys 'execute-kbd-macro)
-      (should (equal (buffer-string) result)))))
+  (sp-test-with-temp-elisp-buffer initial
+    (-each keys 'execute-kbd-macro)
+    (should (equal (buffer-string) result))))
 
 (ert-deftest sp-test-basic-insertion nil
   (let ((sp-pairs sp--test-basic-pairs))
@@ -41,9 +33,23 @@
     (sp-test-insertion "{-|-}" '("-") "{----}")
     (sp-test-insertion "|" '("{" "-" "-") "{----}")))
 
+(defun sp-test-latex-insertion (initial keys result)
+  (load "auctex-autoloads")
+  (sp-test-with-temp-buffer initial
+      (latex-mode)
+    (execute-kbd-macro keys)
+    (should (equal (buffer-string) result))))
+
+(ert-deftest sp-test-latex-insertion nil
+  (let ((sp-pairs '((t . ((:open "$" :close "$" :actions (insert wrap autoskip navigate)))))))
+    (sp-test-latex-insertion "|" "$" "$$")
+    (sp-test-latex-insertion "|" "$$" "$$")
+    (sp-test-latex-insertion "|" "$$$" "$$$$")
+    (sp-test-latex-insertion "foo |" "$" "foo $$")))
+
 (defun sp-test--pair-to-insert (initial expected)
   (let ((sp-pairs sp--test-basic-pairs))
-    (sp-test-with-temp-buffer initial
+    (sp-test-with-temp-elisp-buffer initial
       (let* ((actual (sp--pair-to-insert))
              (r (and actual (cons (plist-get actual :open) (plist-get actual :close)))))
         (should (equal r expected))))))

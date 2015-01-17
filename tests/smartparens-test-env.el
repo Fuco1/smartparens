@@ -52,16 +52,22 @@
 (defun sp-test-merge-pairs (extra)
   (list (cons t (append (-map 'identity (cdar sp--test-basic-pairs)) extra))))
 
-(defmacro sp-test-with-temp-buffer (initial &rest forms)
-  "Setup a new buffer with `emacs-lisp-mode' and `smartparens-mode' on, then run FORMS.
+(defmacro sp-test-with-temp-buffer (initial initform &rest forms)
+  "Setup a new buffer, then run FORMS.
 
-If INITIAL contains | put point there as the initial position (the
-character is then removed)."
-  (declare (indent 1)
-           (debug (form body)))
+First, INITFORM are run in the newly created buffer.
+
+Then `smartparens-mode' is turned on.  Then INITIAL is
+inserted (it is expected to evaluate to string).  If INITIAL
+contains | put point there as the initial position (the character
+is then removed).
+
+Finally, FORMS are run."
+  (declare (indent 2)
+           (debug (form form body)))
   `(save-window-excursion
      (with-temp-buffer
-       (emacs-lisp-mode)
+       ,initform
        (smartparens-mode 1)
        (pop-to-buffer (current-buffer))
        (insert initial)
@@ -69,5 +75,15 @@ character is then removed)."
        (when (search-forward "|" nil t)
          (delete-char -1))
        ,@forms)))
+
+(defmacro sp-test-with-temp-elisp-buffer (initial &rest forms)
+  "Setup a new `emacs-lisp-mode' test buffer.
+
+See `sp-test-with-temp-buffer'."
+  (declare (indent 1)
+           (debug (form body)))
+  `(sp-test-with-temp-buffer ,initial
+       (emacs-lisp-mode)
+     ,@forms))
 
 (provide 'smartparens-test-env)

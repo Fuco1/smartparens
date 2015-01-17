@@ -2422,6 +2422,8 @@ see `sp-pair' for description."
 ;; funcions" like `my-wrap-with-paren'.
 (defun sp--post-command-hook-handler ()
   "Handle the situation after some command has executed."
+  (when (member this-command sp--special-self-insert-commands)
+    (sp--post-self-insert-hook-handler))
   (ignore-errors
     (when smartparens-mode
       ;; handle the wrap overlays
@@ -2544,7 +2546,22 @@ see `sp-pair' for description."
             (backward-char 1)
             (insert sp-escape-char))))))))
 
+;; Unfortunately, some modes rebind "inserting" keys to their own
+;; handlers but do not hand over the insertion back to
+;; `self-insert-command', rather, they insert via `insert'.
+;; Therefore, we need to call this handler in `post-command-hook' too.
+;; The list below specifies which commands to handle specially.
+;; TODO: do not use psih at all and just catch various self-inserts in
+;; post command hook?
 (add-hook 'post-self-insert-hook 'sp--post-self-insert-hook-handler)
+
+(defvar sp--special-self-insert-commands
+  '(TeX-insert-dollar)
+   "Commands which are handled as if they were self-insert-commands.
+
+The `sp--post-self-insert-hook-handler' is called in the
+`post-command-hook' for these commands.")
+
 
 ;; TODO: get rid of this ugly state tracking
 (defun sp--save-pre-command-state ()
