@@ -668,37 +668,6 @@ MODES."
   :type 'boolean
   :group 'smartparens)
 
-(defcustom sp-autoinsert-if-followed-by-same 3
-  "Customizes behaviour of pair insertion if the point is followed by
-the same opening pair as currently inserted pair.
-
-The first option does not change the insertion behaviour and pairs are
-inserted normally.  For example |() followed by ( would produce (|)().
-
-The second option inserts the pair only if the opening pair
-following point is not the same as currently inserted pair.  For
-example |() followed by ( would produce (|().  If next character
-isn't part of any pair, insert normally.
-
-The third option behaves as second, but if the opening and closing
-pairs are the same, and we are looking at the closing pair, insert the
-whole pair.  For example \"|\" followed by \" produce \"\"|\"\".  This
-is useful in modes where pairs of same characters have special
-meaning, such as `markdown-mode' and * for italics and ** for bold.
-
-The forth option is a combination of first and third.  The pairs
-where opening and closing pair are different are always inserted
-normally.  The pairs with same opening and closing delimiter are
-only inserted if the enclosing expression is empty (for nested
-quotations etc.), otherwise the closing delimiter is skipped
-instead."
-  :type '(radio
-          (const :tag "Insert the pair normally" 0)
-          (const :tag "Insert the pair only if not followed by same" 1)
-          (const :tag "Insert the pair only if not followed by same, but if the closing pair is the same as opening, insert new pair (useful for nested quote insertion)" 2)
-          (const :tag "Insert the pair if opening and closing pair is the same and the containing expression is empty and always insert other pairs normally." 3))
-  :group 'smartparens)
-
 (defcustom sp-autoinsert-quote-if-followed-by-closing-pair nil
   "If non-nil, autoinsert string quote pair even if the point is followed by closing pair.
 
@@ -3189,7 +3158,7 @@ setting `sp-autoinsert-pair' to nil.
 
 You can globally disable insertion of closing pair if point is
 followed by the matching opening pair.  It is disabled by
-default.  See `sp-autoinsert-if-followed-by-same' for more info."
+default."
   (-let* ((active-pair (sp--pair-to-insert))
           ((open-pair close-pair trig) (sp--insert-pair-get-pair-info active-pair)))
     ;; Test "repeat last wrap" here.  If we wrap a region and then
@@ -3226,26 +3195,15 @@ default.  See `sp-autoinsert-if-followed-by-same' for more info."
                                       (progn (setq sp-last-operation 'sp-self-insert-no-escape) nil)
                                     t))
                               t))
-                          (cond
-                           ((eq sp-autoinsert-if-followed-by-same 0) t)
-                           ((eq sp-autoinsert-if-followed-by-same 1)
-                            (not (sp--looking-at (sp--strict-regexp-quote open-pair))))
-                           ((eq sp-autoinsert-if-followed-by-same 2)
-                            (or (not (sp--looking-at (sp--strict-regexp-quote open-pair)))
-                                (and (equal open-pair close-pair)
-                                     (eq sp-last-operation 'sp-insert-pair)
-                                     (save-excursion
-                                       (backward-char 1)
-                                       (sp--looking-back (sp--strict-regexp-quote open-pair))))))
-                           ((eq sp-autoinsert-if-followed-by-same 3)
-                            (or (not (sp--get-active-overlay 'pair))
-                                (not (sp--looking-at (sp--strict-regexp-quote open-pair)))
-                                (and (equal open-pair close-pair)
-                                     (eq sp-last-operation 'sp-insert-pair)
-                                     (save-excursion
-                                       (backward-char (length trig))
-                                       (sp--looking-back (sp--strict-regexp-quote open-pair))))
-                                (not (equal open-pair close-pair)))))))
+                          ;; was sp-autoinsert-if-followed-by-same
+                          (or (not (sp--get-active-overlay 'pair))
+                              (not (sp--looking-at (sp--strict-regexp-quote open-pair)))
+                              (and (equal open-pair close-pair)
+                                   (eq sp-last-operation 'sp-insert-pair)
+                                   (save-excursion
+                                     (backward-char (length trig))
+                                     (sp--looking-back (sp--strict-regexp-quote open-pair))))
+                              (not (equal open-pair close-pair)))))
                  (when pair (delete-char (- (length pair))))))
           ;; if this pair could not be inserted, we try the procedure
           ;; again with this pair removed from sp-pair-list to give
