@@ -1241,10 +1241,43 @@ beginning."
        ,@body
        (sp--back-to-indentation ,c ,i))))
 
-(defun sp--this-command-self-insert-p ()
+;; Please contribute these if you come across some!
+(defvar sp--self-insert-commands
+  '(self-insert-command
+    org-self-insert-command
+    LaTeX-insert-left-brace)
+   "List of commands that are some sort of `self-insert-command'.
+
+Many modes rebind \"self-inserting\" keys to \"smart\" versions
+which do some additional processing before delegating the
+insertion to `self-insert-command'.  Smartparens needs to be able
+to distinguish these to properly handle insertion and reinsertion
+of pairs and wraps.")
+
+;; Please contribute these if you come across some!
+(defvar sp--special-self-insert-commands
+  '(TeX-insert-dollar)
+   "List of commands which are handled as if they were `self-insert-command's.
+
+Some modes redefine \"self-inserting\" keys to \"smart\" versions
+which do some additional processing but do _not_ delegate the
+insertion to `self-insert-command', instead inserting via
+`insert'.  Smartparens needs to be able to distinguish these to
+properly handle insertion and reinsertion of pairs and wraps.
+
+The `sp--post-self-insert-hook-handler' is called in the
+`post-command-hook' for these commands.")
+
+(defun sp--self-insert-command-p ()
   "Return non-nil if `this-command' is some sort of `self-insert-command'."
-  (memq this-command '(self-insert-command
-                       org-self-insert-command)))
+  (memq this-command sp--self-insert-commands))
+
+(defun sp--special-self-insert-command-p ()
+  "Return non-nil if `this-command' is \"special\" self insert command.
+
+A special self insert command is one that inserts a character but
+does not trigger `post-self-insert-hook'."
+  (memq this-command sp--special-self-insert-commands))
 
 (defun sp--signum (x)
   "Return 1 if X is positive, -1 if negative, 0 if zero."
@@ -2391,7 +2424,7 @@ see `sp-pair' for description."
 ;; funcions" like `my-wrap-with-paren'.
 (defun sp--post-command-hook-handler ()
   "Handle the situation after some command has executed."
-  (when (member this-command sp--special-self-insert-commands)
+  (when (sp--special-self-insert-command-p)
     (sp--post-self-insert-hook-handler))
   (ignore-errors
     (when smartparens-mode
@@ -2456,12 +2489,13 @@ see `sp-pair' for description."
       (when (eq sp-last-operation 'sp-insert-pair-delayed)
         (setq sp-last-operation nil))
 
-      (unless (sp--this-command-self-insert-p)
+      (unless (or (sp--self-insert-command-p)
+                  (sp--special-self-insert-command-p))
         ;; unless the last command was a self-insert, remove the
         ;; information about the last wrapped region.  It is only used
         ;; for: 1. deleting the wrapping immediately after the wrap,
         ;; 2. re-wrapping region immediatelly after a sucessful wrap.
-        ;; Therefore,t he deletion should have no ill-effect.  If the
+        ;; Therefore, the deletion should have no ill-effect.  If the
         ;; necessity will arise, we can add a different flag.
         (setq sp-last-wrapped-region nil)
         (setq sp-last-operation nil)
@@ -2519,18 +2553,9 @@ see `sp-pair' for description."
 ;; handlers but do not hand over the insertion back to
 ;; `self-insert-command', rather, they insert via `insert'.
 ;; Therefore, we need to call this handler in `post-command-hook' too.
-;; The list below specifies which commands to handle specially.
-;; TODO: do not use psih at all and just catch various self-inserts in
-;; post command hook?
+;; The list `sp--special-self-insert-commands' specifies which
+;; commands to handle specially.
 (add-hook 'post-self-insert-hook 'sp--post-self-insert-hook-handler)
-
-(defvar sp--special-self-insert-commands
-  '(TeX-insert-dollar)
-   "Commands which are handled as if they were self-insert-commands.
-
-The `sp--post-self-insert-hook-handler' is called in the
-`post-command-hook' for these commands.")
-
 
 ;; TODO: get rid of this ugly state tracking
 (defun sp--save-pre-command-state ()
