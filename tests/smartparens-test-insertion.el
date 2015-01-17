@@ -1,3 +1,6 @@
+;; These are _interactive_ insertion tests and handle both insertion
+;; and wrapping.
+;; TODO: add proper headers and organize tests a bit better
 (require 'dash)
 (require 'smartparens-config)
 
@@ -35,21 +38,24 @@
     (sp-test-insertion "|" '("{" "-" "-") "{----}")))
 
 (defun sp-test-latex-insertion (initial keys result)
-  (load "auctex-autoloads")
   (sp-test-with-temp-buffer initial
       (latex-mode)
     (execute-kbd-macro keys)
     (should (equal (buffer-string) result))))
 
 (ert-deftest sp-test-latex-insertion nil
+  (load "auctex-autoloads")
   (let ((sp-pairs '((t . ((:open "$" :close "$" :actions (insert wrap autoskip navigate))
                           (:open "\\[" :close "\\]" :actions (insert wrap autoskip navigate))
-                          (:open "\\bigl(" :close "\\bigr)" :actions (insert wrap autoskip navigate)))))))
+                          (:open "\\bigl(" :close "\\bigr)" :actions (insert wrap autoskip navigate))
+                          (:open "[" :close "]" :actions (insert wrap autoskip navigate)))))))
     (sp-test-latex-insertion "|" "$" "$$")
-    (sp-test-latex-insertion "|" "$$" "$$")
-    (sp-test-latex-insertion "|" "$$$" "$$$$")
+    (sp-test-latex-insertion "|" "$$" "$$$$")
+    (sp-test-latex-insertion "|" "$foo$$foo" "$foo$$foo$")
     (sp-test-latex-insertion "foo |" "$" "foo $$")
     (sp-test-latex-insertion "|" "\\[" "\\[\\]")
+    (sp-test-latex-insertion "\\|" "[" "\\[\\]")
+    (sp-test-latex-insertion "|" "[" "[]")
     (sp-test-latex-insertion "foo | bar" "\\bigl(" "foo \\bigl(\\bigr) bar")))
 
 (defun sp-test--pair-to-insert (initial expected)
