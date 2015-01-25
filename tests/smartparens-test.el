@@ -103,6 +103,7 @@ executing `sp-skip-closing-pair'."
 (defun sp-test--string-valid-p (str)
   (with-temp-buffer
     (insert str)
+    (emacs-lisp-mode)
     (sp-region-ok-p (point-min) (point-max))))
 
 (ert-deftest sp-test-region-ok-unbalanced-paren ()
@@ -116,6 +117,9 @@ executing `sp-skip-closing-pair'."
 
 (ert-deftest sp-test-region-ok-balanced-parens ()
   (should (sp-test--string-valid-p "(foo)")))
+
+(ert-deftest sp-test-region-ok-with-trailing-garbage ()
+  (should (sp-test--string-valid-p "(foo) asdf!$#$^")))
 
 (defun sp-test-run-tests ()
   (interactive)

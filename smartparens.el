@@ -2629,12 +2629,12 @@ extra boundary conditions depending on parens."
   "Like regexp-opt, but with extra boundary conditions to ensure
 that the strings are not matched in-symbol."
   (--> strings
-    (-group-by (lambda (string)
-                 (list (and (string-match-p "\\`\\<" string) t)
-                       (and (string-match-p "\\>\\'" string) t)))
-               it)
-    (mapconcat (lambda (g) (apply 'sp--regexp-for-group g)) it "\\|")
-    (concat "\\(?:" it "\\)")))
+       (-group-by (lambda (string)
+                    (list (and (string-match-p "\\`\\<" string) t)
+                          (and (string-match-p "\\>\\'" string) t)))
+                  it)
+       (mapconcat (lambda (g) (apply 'sp--regexp-for-group g)) it "\\|")
+       (concat "\\(?:" it "\\)")))
 
 (defun sp--strict-regexp-quote (string)
   "Like regexp-quote, but make sure that the string is not
@@ -3828,8 +3828,8 @@ The expressions considered are those delimited by pairs on
                (close (substring-no-properties ms))
                (failure (funcall eof))
                (skip-match-pair-fns (->> possible-ops
-                                      (--mapcat (-when-let (smf (sp-get-pair it :skip-match))
-                                                  (list (cons it smf) (cons (sp-get-pair it :close) smf)))))))
+                                         (--mapcat (-when-let (smf (sp-get-pair it :skip-match))
+                                                     (list (cons it smf) (cons (sp-get-pair it :close) smf)))))))
           (while (and (> depth 0) (not (funcall eof)))
             (sp--search-and-save-match search-fn needle b r mb me ms)
             (if r
@@ -7421,39 +7421,22 @@ of the point."
         (indent-sexp))
       (sp--back-to-indentation column indentation))))
 
-
-(defun sp--unbalanced-string-after-point-p ()
-  (push major-mode sp-navigate-consider-stringlike-sexp)
-  (save-excursion
-    (unwind-protect
-        (let ((str (ignore-errors (sp-get-string))))
-          (when str
-            (goto-char (plist-get str :beg))
-            (sp-down-sexp)
-            (if (= (point) (save-excursion (sp-up-sexp) (point)))
-                t
-              nil)))
-      (progn (pop sp-navigate-consider-stringlike-sexp) nil))))
-
-(defun sp-region-ok-p (start end)
-  (save-excursion
-    (save-restriction
+(cl-defun sp-region-ok-p (start end)
+  (save-restriction
+    (save-excursion
       (narrow-to-region start end)
-      (goto-char (point-min))
-      (cond
-       ((sp--unbalanced-string-after-point-p) nil)
-       ;; A region without any pairs is trivially ok
-       ((and (not (save-excursion
-                    (re-search-forward (sp--get-opening-regexp (sp--get-pair-list-context))
-                                       nil :noerror)))
-             (not (save-excursion
-                    (re-search-forward (sp--get-closing-regexp (sp--get-pair-list-context))
-                                       nil :noerror))))
-        t)
-       (t (let ((r t))
-            (while (and r (not (eobp)))
-              (setq r (sp-forward-sexp)))
-            r))))))
+      (when (ignore-errors (scan-sexps (point-min) (point-max)) t)
+        (let ((count 0))
+          (dolist (pairs (sp--get-allowed-pair-list))
+            (goto-char (point-min))
+            (while (re-search-forward (sp--strict-regexp-quote (car pairs)) end :noerror)
+              (incf count))
+            (goto-char (point-min))
+            (while (re-search-forward (sp--strict-regexp-quote (cdr pairs)) end :noerror)
+              (decf count))
+            (unless (= count 0)
+              (cl-return-from sp-region-ok-p)))
+          t)))))
 
 (defun sp-newline ()
   "Insert a newline and indent it.
