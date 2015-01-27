@@ -3788,7 +3788,10 @@ The expressions considered are those delimited by pairs on
                      (sp-point-in-string-or-comment)))
               (-if-let (bounds (sp--get-string-or-comment-bounds))
                   (let ((jump-to (if back (1- (car bounds)) (1+ (cdr bounds)))))
-                    (goto-char jump-to))
+                    (goto-char jump-to)
+                    ;; Can't move out of comment because eob, #427
+                    (when (eobp)
+                      (setq done t)))
                 (setq done t))
             (setq done t))))
       (when r
