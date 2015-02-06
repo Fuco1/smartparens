@@ -121,6 +121,9 @@ executing `sp-skip-closing-pair'."
 (ert-deftest sp-test-region-ok-with-trailing-garbage ()
   (should (sp-test--string-valid-p "(foo) asdf!$#$^")))
 
+(ert-deftest sp-test-region-ok-unbalanced-paren-in-string ()
+  (should (sp-test--string-valid-p "(foo \")\")")))
+
 (defun sp-test-run-tests ()
   (interactive)
   (ert "sp-test-*"))
