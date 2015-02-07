@@ -5,6 +5,7 @@
 (require 'smartparens)
 (require 'smartparens-test-env)
 (require 'smartparens-test-insertion)
+(require 'smartparens-test-wrapping)
 (require 'smartparens-test-get-paired-expression)
 (require 'smartparens-test-get-stringlike-expression)
 (require 'smartparens-test-ruby-mode)
