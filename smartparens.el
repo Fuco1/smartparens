@@ -843,6 +843,7 @@ variable `sp-wrap-entire-symbol'."
   "If non-nil, autoescape string quotes if typed inside string."
   :type 'boolean
   :group 'smartparens)
+(make-obsolete-variable 'sp-autoescape-string-quote "smartparens' global autoescape system was removed." "2015-02-07")
 
 (defcustom sp-autoescape-string-quote-if-empty '(
                                                  python-mode
@@ -855,6 +856,7 @@ less annoying (that is, three times pressing \" would insert
 \"\"\"|\"\"\" instead of \"\\\"\\\"|\\\"\\\"\")."
   :type '(repeat symbol)
   :group 'smartparens)
+(make-obsolete-variable 'sp-autoescape-string-quote-if-empty "smartparens' global autoescape system was removed." "2015-02-07")
 
 ;; navigation & manip custom
 (defcustom sp-navigate-consider-sgml-tags '(
@@ -2561,18 +2563,7 @@ see `sp-pair' for description."
         ;; it.  See `sp-autoinsert-quote-if-followed-by-closing-pair'.
         (when (and (not action)
                    (not (eq sp-last-operation 'sp-self-insert-no-escape)))
-          (setq sp-last-operation 'sp-self-insert))
-        ;; if it was a quote, escape it
-        (when (and (eq sp-last-operation 'sp-self-insert)
-                   sp-point-inside-string
-                   sp-autoescape-string-quote
-                   (or (and (eq (preceding-char) ?\")
-                            (eq sp-point-inside-string ?\"))
-                       (and (eq (preceding-char) ?')
-                            (eq sp-point-inside-string ?'))))
-          (save-excursion
-            (backward-char 1)
-            (insert sp-escape-char))))))))
+          (setq sp-last-operation 'sp-self-insert)))))))
 
 ;; Unfortunately, some modes rebind "inserting" keys to their own
 ;; handlers but do not hand over the insertion back to
@@ -2835,41 +2826,6 @@ programatically.  Use `sp-wrap-with-pair' instead."
     close))
 (make-obsolete 'sp-match-sgml-tags "do not use this function as the tag system has been removed." "2015-02-07")
 
-(defun sp--wrap-region-autoescape (strbound)
-  "If we wrap a region with \"\" quotes, and the whole region was
-inside a string, automatically escape the enclosing quotes.  If
-we wrap a region that wasn't a string, automatically quote any
-string quotes inside it.
-
-This is internal function and should be only called after a
-wrapping."
-  (when sp-autoescape-string-quote
-    (let ((b (sp-get sp-last-wrapped-region :beg))
-          (e (sp-get sp-last-wrapped-region :end))
-          was-beg)
-      (cond
-       ((and strbound
-             (> b (car strbound))
-             (< e (cdr strbound)))
-        ;; the wrapped region is inside a string, escape the enclosing
-        ;; quotes
-        (save-excursion
-          (goto-char b)
-          (insert sp-escape-char)
-          (goto-char (1- e))
-          (insert sp-escape-char))
-        ;; update the sp-last-wrapped-region info to \" pair
-        (setq sp-last-wrapped-region
-              (sp--get-last-wraped-region b e "\\\"" "\\\"")))
-       (t
-        (setq was-beg (< (point) e))
-        (goto-char b)
-        (while (sp--search-forward-regexp "\\([^\\]\\)\"" (1- e) t)
-          (replace-match "\\1\\\\\"" t))
-        (setq sp-last-wrapped-region
-              (sp--get-last-wraped-region b e "\"" "\""))
-        (if was-beg (goto-char (1+ b)) (goto-char e)))))))
-
 (defun sp--is-number-cons (c)
   (and (consp c) (numberp (car c)) (numberp (cdr c))))
 
@@ -3073,36 +3029,6 @@ default."
         (sp--pair-overlay-create (- (point) (length open-pair))
                                  (+ (point) (length close-pair))
                                  open-pair)
-
-        ;; we only autoescape if the pair is a single character string
-        ;; delimiter.  More elaborate pairs are probably already
-        ;; escaped.  We leave the responsibility to the user, since
-        ;; it's not that common and the usecases might vary -> there's
-        ;; no good "default" case.
-        (when (and sp-autoescape-string-quote
-                   sp-point-inside-string
-                   (or
-                    (and (equal open-pair "\"") (equal close-pair "\"")
-                         (eq sp-point-inside-string ?\"))
-                    (and (equal open-pair "'") (equal close-pair "'")
-                         (eq sp-point-inside-string ?')))
-                   (or (not (memq major-mode sp-autoescape-string-quote-if-empty))
-                       ;; Test if the string is empty here, by which
-                       ;; we mean the point is surrounded by the
-                       ;; string delimiters.  This enables us to
-                       ;; write e.g. """""" in python docs.
-                       (cl-labels ((check-quote (delimiter)
-                                                (and (equal (char-after (1+ (point))) delimiter)
-                                                     (equal (char-before (1- (point))) delimiter))))
-                         (not (or (check-quote ?\")
-                                  (check-quote ?'))))))
-          (save-excursion
-            (backward-char 1)
-            (insert sp-escape-char)
-            (forward-char 1)
-            (insert sp-escape-char))
-          (overlay-put (sp--get-active-overlay 'pair) 'pair-id "\\\""))
-
         (when sp-undo-pairs-separately
           (sp--split-last-insertion-undo (+ (length open-pair) (length close-pair)))
           ;; TODO: abc\{abc\} undo undo \{asd\} . next undo removes the
