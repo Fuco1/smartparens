@@ -2250,6 +2250,17 @@ are of zero length, or if point moved backwards."
   "Return t if point is inside string or comment, nil otherwise."
   (eq context 'string))
 
+(defun sp-in-docstring-p (id action context)
+  "Return t if point is inside elisp docstring, nil otherwise."
+  (and (eq context 'string)
+       (save-excursion
+         (goto-char (car (sp-get-quoted-string-bounds)))
+         (ignore-errors (backward-sexp 3))
+         (looking-at (regexp-opt '("defun" "defmacro"
+                                   "cl-defun" "cl-defmacro"
+                                   "defun*" "defmacro*"
+                                   "lambda" "-lambda"))))))
+
 (defun sp-in-code-p (id action context)
   "Return t if point is inside code, nil otherwise."
   (eq context 'code))
