@@ -82,7 +82,11 @@
                                      (not (sp-point-in-string-or-comment))))
                                 (t (not (sp-point-in-string-or-comment)))))))
 
-(sp-local-pair 'emacs-lisp-mode "\\\\{" "}" :when '(sp-in-string-p))
+;; TODO: this should only be active in docstring, otherwise we want
+;; the regexp completion \\{\\}.  To handle this feature, we must
+;; allow multiple pairs on same opening (therefore, the unique ID must
+;; become the opening and closing pair)
+(sp-local-pair 'emacs-lisp-mode "\\\\{" "}" :when '(sp-in-docstring-p))
 
 ;; NOTE: Normally, `sp-local-pair' accepts list of modes (or a single
 ;; mode) as a first argument.  The macro `sp-with-modes' adds this
