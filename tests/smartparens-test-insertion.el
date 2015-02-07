@@ -1,41 +1,39 @@
-;; These are _interactive_ insertion tests and handle both insertion
-;; and wrapping.
 ;; TODO: add proper headers and organize tests a bit better
 (require 'dash)
 (require 'smartparens-config)
 
 (defun sp-test-insertion (initial keys result)
   (sp-test-with-temp-elisp-buffer initial
-    (-each keys 'execute-kbd-macro)
+    (execute-kbd-macro keys)
     (should (equal (buffer-string) result))))
 
-(ert-deftest sp-test-basic-insertion nil
+(ert-deftest sp-test-insertion-basic nil
   (let ((sp-pairs sp--test-basic-pairs))
-    (sp-test-insertion "|" '("(" "(") "(())")
-    (sp-test-insertion "|" '("(" "(" ")" "(") "(()())")
-    (sp-test-insertion "|" '("[" "[") "[[]]")
-    (sp-test-insertion "|" '("[" "[" "]" "[") "[[][]]")
-    (sp-test-insertion "|" '("O" "P" "E" "N") "OPENCLOSE")
-    (sp-test-insertion "|" '("\\" "l" "a" "n" "g" "l" "e") "\\langle\\rangle")
-    (sp-test-insertion "|" '("f" "o" "o" " " "\\" "l" "a" "n" "g" "l" "e") "foo \\langle\\rangle")
-    (sp-test-insertion "foo |" '("\\" "b" ) "foo \\big(\\big)")
-    (sp-test-insertion "|" '("[" "[" "]" "[") "[[][]]")
-    (sp-test-insertion "|" '("\\" "{") "\\{\\}"))
+    (sp-test-insertion "|" "((" "(())")
+    (sp-test-insertion "|" "(()(" "(()())")
+    (sp-test-insertion "|" "[[" "[[]]")
+    (sp-test-insertion "|" "[[][" "[[][]]")
+    (sp-test-insertion "|" "OPEN" "OPENCLOSE")
+    (sp-test-insertion "|" "\\langle" "\\langle\\rangle")
+    (sp-test-insertion "|" "foo \\langle" "foo \\langle\\rangle")
+    (sp-test-insertion "foo |" "\\b" "foo \\big(\\big)")
+    (sp-test-insertion "|" "[[][" "[[][]]")
+    (sp-test-insertion "|" "\\{" "\\{\\}"))
   (let ((sp-pairs '((t . ((:open "`" :close "'" :actions (insert wrap autoskip navigate))
                           (:open "``" :close "''" :actions (insert wrap autoskip navigate)))))))
-    (sp-test-insertion "|" '("`") "`'")
-    (sp-test-insertion "|" '("`" "`") "``''")
-    (sp-test-insertion "|" '("`" "`" "`") "```'''")
-    (sp-test-insertion "|" '("`" "`" "`" "`") "````''''")
-    (sp-test-insertion "`|'" '("`") "``''")
-    (sp-test-insertion "```|'''" '("`") "````''''"))
+    (sp-test-insertion "|" "`" "`'")
+    (sp-test-insertion "|" "``" "``''")
+    (sp-test-insertion "|" "```" "```'''")
+    (sp-test-insertion "|" "````" "````''''")
+    (sp-test-insertion "`|'" "`" "``''")
+    (sp-test-insertion "```|'''" "`" "````''''"))
   (let ((sp-pairs '((t . ((:open "{" :close "}" :actions (insert wrap autoskip navigate))
                           (:open "{-" :close "-}" :actions (insert wrap autoskip navigate))
                           (:open "{--" :close "--}" :actions (insert wrap autoskip navigate) :trigger "a"))))))
-    (sp-test-insertion "|" '("{") "{}")
-    (sp-test-insertion "|" '("{" "-") "{--}")
-    (sp-test-insertion "{-|-}" '("-") "{----}")
-    (sp-test-insertion "|" '("{" "-" "-") "{----}")))
+    (sp-test-insertion "|" "{" "{}")
+    (sp-test-insertion "|" "{-" "{--}")
+    (sp-test-insertion "{-|-}" "-" "{----}")
+    (sp-test-insertion "|" "{--" "{----}")))
 
 (defun sp-test-latex-insertion (initial keys result)
   (sp-test-with-temp-buffer initial
@@ -43,7 +41,7 @@
     (execute-kbd-macro keys)
     (should (equal (buffer-string) result))))
 
-(ert-deftest sp-test-latex-insertion nil
+(ert-deftest sp-test-insertion-latex nil
   (load "auctex-autoloads")
   (let ((sp-pairs '((t . ((:open "$" :close "$" :actions (insert wrap autoskip navigate))
                           (:open "\\[" :close "\\]" :actions (insert wrap autoskip navigate))
@@ -65,7 +63,7 @@
              (r (and actual (cons (plist-get actual :open) (plist-get actual :close)))))
         (should (equal r expected))))))
 
-(ert-deftest sp-test-pair-to-insert nil
+(ert-deftest sp-test-insertion-pair-to-insert nil
   (sp-test--pair-to-insert "[|" (cons "[" "]"))
   (sp-test--pair-to-insert "[|]" (cons "[" "]"))
   (sp-test--pair-to-insert "foo [|] bar" (cons "[" "]"))
