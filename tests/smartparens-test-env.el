@@ -60,17 +60,24 @@ First, INITFORM are run in the newly created buffer.
 Then `smartparens-mode' is turned on.  Then INITIAL is
 inserted (it is expected to evaluate to string).  If INITIAL
 contains | put point there as the initial position (the character
-is then removed).
+is then removed).  If it contains M, put mark there (the
+character is then removed).
 
 Finally, FORMS are run."
   (declare (indent 2)
            (debug (form form body)))
   `(save-window-excursion
      (with-temp-buffer
+       (set-input-method nil)
        ,initform
        (smartparens-mode 1)
        (pop-to-buffer (current-buffer))
-       (insert initial)
+       (insert ,initial)
+       (goto-char (point-min))
+       (when (search-forward "M" nil t)
+         (delete-char -1)
+         (set-mark (point))
+         (activate-mark))
        (goto-char (point-min))
        (when (search-forward "|" nil t)
          (delete-char -1))
