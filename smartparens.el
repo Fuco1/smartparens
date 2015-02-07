@@ -86,9 +86,6 @@ better orientation."
                           sp--cua-replace-region
                           sp-wrap-cancel
                           sp-remove-active-pair-overlay
-                          sp-wrap-tag-beginning
-                          sp-wrap-tag-end
-                          sp-wrap-tag-done
                           sp-splice-sexp-killing-around ;; is aliased to `sp-raise-sexp'
                           show-smartparens-mode
                           show-smartparens-global-mode
@@ -2106,12 +2103,6 @@ works again as usual.")
   "Keymap for the wrap overlays.")
 (define-key sp-wrap-overlay-keymap (kbd "C-g") 'sp-wrap-cancel)
 
-(defvar sp-wrap-tag-overlay-keymap (make-sparse-keymap)
-  "Keymap for the wrap tag overlays.")
-(define-key sp-wrap-tag-overlay-keymap (kbd "C-g") 'sp-wrap-tag-done)
-(define-key sp-wrap-tag-overlay-keymap (kbd "C-a") 'sp-wrap-tag-beginning)
-(define-key sp-wrap-tag-overlay-keymap (kbd "C-e") 'sp-wrap-tag-end)
-
 (defun sp--overlays-at (&optional pos)
   "Simple wrapper of `overlays-at' to get only overlays from
 smartparens.  Smartparens functions must use this function
@@ -2836,193 +2827,13 @@ programatically.  Use `sp-wrap-with-pair' instead."
      (t
       (sp-wrap-cancel)))))
 
-;; TODO: get rid of this tag nonsense
-(defun sp--get-active-tag (recent)
-  "Return the first tag that matches its trigger to
-the prefix of RECENT and is allowed in current mode.  Such a tag
-should be unique."
-  ;; extract all the triggers that are prefix of the "recent"
-  ;; vector, then sort them by length and return the shortest one.
-  (let* ((tag-list (assq major-mode sp-tags))
-         (triggers-list (--map (plist-get it :trigger) (cdr tag-list)))
-         (triggers (--filter (string-prefix-p recent it) triggers-list)))
-    (setq triggers (sort triggers (lambda (x y) (< (length x) (length y)))))
-    (when (car triggers)
-      (--first (equal (car triggers) (plist-get it :trigger)) (cdr tag-list)))))
-
-(defun sp-wrap-tag-region-init ()
-  "Init a region wrapping with a tag pair.
-This is called from `sp-wrap-region-init' or
-`sp-wrap-region' (usually on failure) to see if the currently
-entered \"wrap\" can be extended as a tag.  The tag always gets
-priority from the regular wrap."
-  (when sp-autowrap-region
-    ;; we can either enter tagwrapping from already present wrap or
-    ;; from nothing (if the wrap-init failed to find any usable wrap)
-    ;; or at failure (the entered wrap doesn't match any pair)
-    (if sp-wrap-overlays ;; called from within the wrap-mode
-        (let* ((oleft (car sp-wrap-overlays))
-               (oright (cdr sp-wrap-overlays))
-               (active-tag (sp--get-active-tag sp-last-inserted-characters)))
-          (when active-tag
-            ;; if we've found a tag trigger, enter the tag editing mode
-            (if (eq (length sp-last-inserted-characters) (length (plist-get active-tag :trigger)))
-                (progn
-                  (delete-region (overlay-start oright) (overlay-end oright))
-                  (sp--wrap-tag-create-overlays active-tag
-                                                (overlay-start oleft)
-                                                (-
-                                                 (overlay-start oright)
-                                                 (sp--get-overlay-length oleft)))
-                  (delete-overlay oleft)
-                  (delete-overlay oright)
-                  (setq sp-wrap-overlays nil)
-                  (setq sp-previous-point -1)) ;; do we need this?
-              t) ;; return t as it is possible to extend current wrap
-            ;; into a tag insertion mode
-            ))
-      ;; here we need to look at the last inserted character
-      (let* ((p (1- (point)))
-             (m (mark))
-             (ostart (if (> p m) m p))
-             (oend (if (> p m) p m))
-             (active-tag (sp--get-active-tag
-                          (sp--single-key-description last-command-event))))
-        (when active-tag
-          (setq sp-last-inserted-characters (sp--single-key-description last-command-event))
-          (setq sp-wrap-point p)
-          (setq sp-wrap-mark m)
-          (when (> p m)
-            (delete-char (- 1))
-            (goto-char ostart)
-            (insert sp-last-inserted-characters))
-          (when (> m p) (setq oend (1- oend)))
-          (if (= 1 (length (plist-get active-tag :trigger)))
-              ;; the tag is only 1 character long, we can enter
-              ;; insertion mode right away
-              (sp--wrap-tag-create-overlays active-tag ostart oend)
-            ;; we don't have a wrap, but we can maybe start a tag
-            ;; wrap.  So just init the wrapping overlays as usual, and
-            ;; let `sp-wrap-region' handle it
-            (let* ((oleft (make-overlay ostart (1+ ostart) nil nil t))
-                   (oright (make-overlay oend oend nil nil t)))
-              (setq sp-wrap-overlays (cons oleft oright))
-              (when sp-highlight-wrap-overlay
-                (overlay-put oleft 'face 'sp-wrap-overlay-face)
-                (overlay-put oright 'face 'sp-wrap-overlay-face))
-              (overlay-put oleft 'priority 100)
-              (overlay-put oright 'priority 100)
-              (overlay-put oleft 'keymap sp-wrap-overlay-keymap)
-              (overlay-put oleft 'type 'wrap)
-              (goto-char (1+ ostart)))))))))
-
-(defun sp--wrap-tag-create-overlays (tag ostart oend &optional no-cleanup)
-  "Create the wrap tag overlays.
-
-TAG is the tag definition from `sp-tags'.
-
-OSTART is the start of the modified area, including the pair
-trigger string.
-
-OEND is the end of the modified area, that is the end of the
-wrapped region, exluding any existing possible wrap."
-  (let* ((tag-open (sp--split-string (plist-get tag :open) "_"))
-         (tag-close (sp--split-string (plist-get tag :close) "_"))
-         (o (apply #'+ (mapcar #'length tag-open)))
-         (c (apply #'+ (mapcar #'length tag-close))))
-    ;; setup the wrap pairs
-    ;; opening one
-    (goto-char ostart)
-    (unless no-cleanup (delete-char (length (plist-get tag :trigger))))
-    (insert (apply #'concat tag-open))
-    (backward-char (length (cadr tag-open)))
-
-    ;; closing one
-    (save-excursion
-      (goto-char (+ oend o))
-      (insert (apply #'concat tag-close)))
-
-    (if (cdr (split-string (plist-get tag :open) "_"))
-        (let ((oleft (make-overlay
-                      (+ ostart (length (car tag-open)))
-                      (+ ostart (length (car tag-open)))
-                      nil nil t))
-              (oright (make-overlay
-                       (+ oend o (length (car tag-close)))
-                       (+ oend o (length (car tag-close)))
-                       nil nil t)))
-          (setq sp-wrap-tag-overlays (cons oleft oright))
-          (when sp-highlight-wrap-tag-overlay
-            (overlay-put oleft 'face 'sp-wrap-tag-overlay-face)
-            (overlay-put oright 'face 'sp-wrap-tag-overlay-face))
-          (overlay-put oleft 'priority 100)
-          (overlay-put oright 'priority 100)
-          (overlay-put oleft 'keymap sp-wrap-tag-overlay-keymap)
-          (overlay-put oleft 'type 'wrap-tag)
-          (overlay-put oleft 'active-tag tag)
-          (overlay-put oleft 'modification-hooks '(sp--wrap-tag-update))
-          (overlay-put oleft 'insert-in-front-hooks '(sp--wrap-tag-update))
-          (overlay-put oleft 'insert-behind-hooks '(sp--wrap-tag-update))
-          (add-hook 'post-command-hook 'sp--wrap-tag-post-command-handler))
-      ;; if the tag didn't have any substitution, that means we only
-      ;; insert the "brackets" and not enter the tag-insertion mode.
-      ;; Therefore we move the point to the original position, so it
-      ;; behaves just like normal wrap
-      (if (> sp-wrap-mark sp-wrap-point)
-          (goto-char (+ sp-wrap-point o))
-        (goto-char (+ sp-wrap-point o c)))
-      (let ((post-handlers (plist-get tag :post-handlers)))
-        (run-hook-with-args 'post-handlers (plist-get tag :trigger) 'wrap)))
-    (setq sp-last-operation 'sp-wrap-tag)))
-
-(defun sp--wrap-tag-update (overlay after? beg end &optional length)
-  "Called after any modification inside wrap tag overlay."
-  (let* ((oleft (car sp-wrap-tag-overlays))
-         (oright (cdr sp-wrap-tag-overlays))
-         (active-tag (overlay-get oleft 'active-tag))
-         (transform (plist-get active-tag :transform))
-         (open (buffer-substring (overlay-start oleft) (overlay-end oleft))))
-    (when (string-match-p "_" (plist-get active-tag :close))
-      (save-excursion
-        (delete-region (overlay-start oright) (overlay-end oright))
-        (goto-char (overlay-start oright))
-        (insert (funcall transform open))))))
-
-(defun sp--wrap-tag-post-command-handler ()
-  "Terminate the tag insertion mode if the point jumps out of the tag overlay."
-  (if (or (not sp-wrap-tag-overlays)
-          (< (point) (overlay-start (car sp-wrap-tag-overlays)))
-          (> (point) (overlay-end (car sp-wrap-tag-overlays))))
-      (sp-wrap-tag-done)))
-
+;; kept to not break people's config... remove later
 (defun sp-match-sgml-tags (tag)
   "Split the html tag TAG at the first space and return its name."
   (let* ((split (split-string tag " "))
          (close (car split)))
     close))
-
-(defun sp-wrap-tag-beginning ()
-  "Move point to the beginning of the wrap tag editation area."
-  (interactive)
-  (goto-char (overlay-start (car sp-wrap-tag-overlays))))
-
-(defun sp-wrap-tag-end ()
-  "Move point to the end of the wrap tag editation area."
-  (interactive)
-  (goto-char (overlay-end (car sp-wrap-tag-overlays))))
-
-(defun sp-wrap-tag-done ()
-  "Finish editing of tag."
-  (interactive)
-  (let* ((oleft (car sp-wrap-tag-overlays))
-         (oright (cdr sp-wrap-tag-overlays))
-         (active-tag (overlay-get oleft 'active-tag))
-         (post-handlers (plist-get active-tag :post-handlers)))
-    (delete-overlay oleft)
-    (delete-overlay oright)
-    (setq sp-wrap-tag-overlays nil)
-    (remove-hook 'post-command-hook 'sp--wrap-tag-post-command-handler)
-    (run-hook-with-args 'post-handlers (plist-get active-tag :trigger) 'wrap)))
+(make-obsolete 'sp-match-sgml-tags "do not use this function as the tag system has been removed." "2015-02-07")
 
 (defun sp--wrap-region-autoescape (strbound)
   "If we wrap a region with \"\" quotes, and the whole region was
@@ -6258,15 +6069,7 @@ Examples:
       (setq ev (read-event (format "Rewrap with: %s" pair) t))
       (setq pair (concat pair (format-kbd-macro (vector ev))))
       (setq ac (--first (equal pair (car it)) (sp--get-pair-list-context)))
-      (setq at (sp--get-active-tag pair))
-      (cond
-       ((and (/= (prefix-numeric-value arg) 0)
-             (eq (length pair) (length (plist-get at :trigger))))
-        (setq done t)
-        (let ((enc (sp-get-enclosing-sexp)))
-          (sp--unwrap-sexp enc t)
-          (sp-get enc (sp--wrap-tag-create-overlays at :beg-prf (- :end :op-l :cl-l :prefix-l) t))))
-       (ac
+      (when ac
         (setq done t)
         (let ((enc (sp-get-enclosing-sexp)))
           (when enc
@@ -6280,7 +6083,7 @@ Examples:
                 (goto-char :beg)
                 (insert (car ac))
                 (unless raw
-                  (delete-char :op-l)))))))))))
+                  (delete-char :op-l))))))))))
 
 (defun sp-swap-enclosing-sexp (&optional arg)
   "Swap the enclosing delimiters of this and the parent expression.
