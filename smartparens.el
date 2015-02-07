@@ -323,6 +323,7 @@ Maximum length of opening or closing pair is
   "Symbol holding the last successful operation.")
 (make-variable-buffer-local 'sp-last-operation)
 
+;; TODO: get rid of this
 (defvar sp-previous-point -1
   "Location of point before last command.
 
@@ -330,6 +331,7 @@ This is only updated when some pair-overlay is active.  Do not
 rely on the value of this variable anywhere else!")
 (make-variable-buffer-local 'sp-previous-point)
 
+;; TODO: get rid of this
 (defvar sp-wrap-point nil
   "Save the value of point before attemt to wrap a region.
 
@@ -337,6 +339,7 @@ Used for restoring the original state if the wrapping is
 cancelled.")
 (make-variable-buffer-local 'sp-wrap-point)
 
+;; TODO: get rid of this
 (defvar sp-wrap-mark nil
   "Save the value of mark before attemt to wrap a region.
 
@@ -416,9 +419,6 @@ Pairs are defined as expressions delimited by pairs from
 
 Symbol is defined as a chunk of text recognized by
 `sp-forward-symbol'.")
-
-(defvar sp-recent-keys nil
-  "Last 20 typed keys, registered via `self-insert-command'.")
 
 (defvar sp--lisp-modes '(emacs-lisp-mode
                          inferior-emacs-lisp-mode
@@ -780,9 +780,12 @@ In the description, we consider more than one space
 
 ;; wrap custom
 (defcustom sp-autowrap-region t
-  "If non-nil, wrap the active region with pair.
+  "If non-nil, wrap the active region with pair."
+  :type 'boolean
+  :group 'smartparens)
 
-See `sp-wrap-region' and `sp-wrap-region-init'."
+(defcustom sp-wrap-show-possible-pairs t
+  "If non-nil, show possible pairs which can complete the wrapping."
   :type 'boolean
   :group 'smartparens)
 
@@ -2061,6 +2064,18 @@ string and the action."
   "The face used to highlight wrap overlays."
   :group 'smartparens)
 
+(defface sp-wrap-overlay-opening-pair
+  '((t (:inherit sp-wrap-overlay-face
+        :foreground "green")))
+  "The face used to highlight wrap overlays."
+  :group 'smartparens)
+
+(defface sp-wrap-overlay-closing-pair
+  '((t (:inherit sp-wrap-overlay-face
+        :foreground "red")))
+  "The face used to highlight wrap overlays."
+  :group 'smartparens)
+
 (defface sp-wrap-tag-overlay-face
   '((t (:inherit sp-pair-overlay-face)))
   "The face used to highlight wrap tag overlays."
@@ -2138,29 +2153,27 @@ boundaries of the overlay, ID is the id of the pair."
     (sp--pair-overlay-fix-highlight)
     (add-hook 'post-command-hook 'sp--pair-overlay-post-command-handler nil t)))
 
-(defun sp-wrap-cancel (&optional can-delete)
-  "Cancel the active wrapping.
-
-If optional argument CAN-DELETE is non-nil the
-`sp-last-inserted-characters' string is inserted at `sp-wrap-point'."
+(defun sp-wrap-cancel ()
+  "Cancel the active wrapping."
   (interactive)
-  (let ((oleft (car sp-wrap-overlays))
-        (oright (cdr sp-wrap-overlays)))
-    ;; kill the insides of the "pair" if `delete-selection-mode'
-    ;; emulation is enabled
-    (when (and (sp--delete-selection-p) can-delete)
-      (kill-region (overlay-end oleft) (overlay-start oright))
-      (setq sp-wrap-point (overlay-start oleft)))
-    (delete-region (overlay-start oleft) (overlay-end oleft))
-    (delete-region (overlay-start oright) (overlay-end oright))
-    (delete-overlay oleft)
-    (delete-overlay oright)
-    (setq sp-wrap-overlays nil)
-    (setq sp-previous-point -1)
+  (unwind-protect
+      (-let (((obeg . oend) sp-wrap-overlays))
+        (when (and (not (called-interactively-p))
+                   (sp--delete-selection-p))
+          (kill-region (overlay-end obeg) (overlay-start oend)))
+        (delete-region (overlay-start oend) (overlay-end oend))
+        (when (> sp-wrap-point sp-wrap-mark)
+          (let ((beg (delete-and-extract-region (overlay-start obeg) (overlay-end obeg))))
+            (goto-char (overlay-start oend))
+            (insert beg))))
+    (sp-wrap--clean-overlays)))
 
-    (goto-char sp-wrap-point)
-    (when can-delete
-      (insert sp-last-inserted-characters))))
+(defun sp-wrap--clean-overlays ()
+  "Delete wrap overlays."
+  (-let [(obeg . oend) sp-wrap-overlays]
+    (delete-overlay obeg)
+    (delete-overlay oend)
+    (setq sp-wrap-overlays nil)))
 
 (defun sp--pair-overlay-fix-highlight ()
   "Fix highlighting of the pair overlays.  Only the active overlay
@@ -2217,6 +2230,17 @@ are of zero length, or if point moved backwards."
     (setq sp-previous-point -1))
   (delete-overlay overlay)
   (sp--pair-overlay-fix-highlight))
+
+(defun sp--replace-overlay-text (o string)
+  "Replace text inside overlay O with STRING."
+  (save-excursion
+    (goto-char (overlay-start o))
+    (insert string)
+    (delete-region (point) (overlay-end o))))
+
+(defun sp--get-overlay-text (o)
+  "Get text inside overlay O."
+  (buffer-substring (overlay-start o) (overlay-end o)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2482,7 +2506,6 @@ see `sp-pair' for description."
             ;; no auto-escape here? Should be fairly safe
             (sp--run-hook-with-args open-pair :post-handlers 'insert)
             (setq sp-last-inserted-pair open-pair)
-            (setq sp-recent-keys nil)
             (setq sp-last-operation 'sp-insert-pair)))
         (setq sp-delayed-pair nil))
 
@@ -2498,8 +2521,7 @@ see `sp-pair' for description."
         ;; Therefore, the deletion should have no ill-effect.  If the
         ;; necessity will arise, we can add a different flag.
         (setq sp-last-wrapped-region nil)
-        (setq sp-last-operation nil)
-        (setq sp-recent-keys nil))
+        (setq sp-last-operation nil))
 
       (when show-smartparens-mode
         (if (member this-command sp-show-enclosing-pair-commands)
@@ -2517,17 +2539,15 @@ see `sp-pair' for description."
 ;; resulted to this insertion
 (defun sp--post-self-insert-hook-handler ()
   (when smartparens-mode
-    (setq sp-recent-keys (cons
-                          (sp--single-key-description last-command-event)
-                          (-take 19 sp-recent-keys)))
     (let (op action)
       (setq op sp-last-operation)
+      (when (region-active-p)
+        (sp-wrap--initialize))
       (cond
-       ((region-active-p)
-        (sp-wrap-region-init))
        (sp-wrap-overlays
-        (sp-wrap-region))
+        (sp-wrap))
        (t
+        ;; TODO: this does not pick correct pair!! it uses insert and not wrapping code
         (sp--setaction action (-when-let ((&keys :open open :close close)
                                           (sp--pair-to-insert))
                                 (sp--wrap-repeat-last (cons open close))))
@@ -2572,10 +2592,6 @@ see `sp-pair' for description."
 
 Handle the `delete-selection-mode' or `cua-delete-selection'
 stuff here.")
-
-(defun sp--get-recent-keys ()
-  "Return 10 recent keys in reverse order (most recent first) as a string."
-  (apply #'concat sp-recent-keys))
 
 (defun sp--get-pair-list ()
   "Return all pairs that are recognized in this
@@ -2675,161 +2691,141 @@ provided values."
     (set-marker-insertion-type e t)
     `(:beg ,b :end ,e :op ,open :cl ,close :prefix "")))
 
-;; TODO: is it safe to consider last-command-event? Still feels like a hack.
+;; Wrapping is basically the same thing as insertion, only the closing
+;; pair is placed at a distance.
+
+;; However, we want to be able to insert the *closing* delimiter and
+;; go to the end of block.  This will only work with delimiters which
+;; are unique wrt their opening one.  For more complex wrapping, there
+;; will probably be an IDO/minibuffer interface.  Openings are checked
+;; first.
+
+;; Inserting the opening delimiter should put the point wherever it
+;; was when we started insertion.
+
 (defun sp-wrap--can-wrap-p ()
-  (or (--any? (string-prefix-p (sp--single-key-description last-command-event) (car it)) (sp--get-pair-list-wrap))
-      (sp--get-active-tag (sp--single-key-description last-command-event))))
+  "Return non-nil if we can wrap a region.
 
-(defun sp-wrap-region-init ()
-  "Initialize the region wrapping."
-  (when sp-autowrap-region
-    ;; if we can't possibly form a wrap, just insert the char and do
-    ;; nothing.
-    (if (--none? (string-prefix-p (sp--single-key-description last-command-event) (car it)) (sp--get-pair-list-wrap))
-        (let ((p (1- (point)))
-              (m (mark)))
-          (sp-wrap-tag-region-init))
-      (let* ((p (1- (point))) ;; we want the point *before* the
-             ;; insertion of the character
-             (m (mark))
-             (ostart (if (> p m) m p))
-             (oend (if (> p m) p m))
-             (last-keys (sp--get-recent-keys))
-             ;;(last-keys "\"\"\"\"\"\"\"\"")
-             (active-pair (--first (string-prefix-p (sp--reverse-string (car it)) last-keys) (sp--get-pair-list-wrap))))
-        (deactivate-mark)
-        ;; if we can wrap right away, do it without creating overlays,
-        ;; we can save ourselves a lot of needless trouble :)
-        (if active-pair
-            (unless (sp-wrap-tag-region-init)
-              (let* ((len (+ (length (car active-pair)) (length (cdr active-pair))))
-                     (strbound))
-                (if (< p m)
-                    (progn
-                      ;; we delete the opening here to determine the
-                      ;; string bounds... not pretty, but there's
-                      ;; probably no better solution.
-                      (delete-char -1)
-                      (setq strbound (sp-get-quoted-string-bounds))
-                      ;; and insert it right back
-                      (insert (car active-pair))
-                      (save-excursion
-                        (goto-char m)
-                        (insert (cdr active-pair))))
-                  (delete-char (- 1))
-                  (setq strbound (sp-get-quoted-string-bounds))
-                  (insert (cdr active-pair))
-                  (goto-char m)
-                  (insert (car active-pair))
-                  (goto-char (+ len p)))
-                (setq sp-last-operation 'sp-wrap-region)
-                (setq sp-last-wrapped-region
-                      (if (< p m)
-                          (sp--get-last-wraped-region
-                           p (+ len m -1)
-                           (car active-pair) (cdr active-pair))
-                        (sp--get-last-wraped-region
-                         m (+ len p)
-                         (car active-pair) (cdr active-pair))))
-                ;; only autoescape "" pair, so it has to be one-char
-                ;; length, therefore we can handle it here
-                (when (and (equal (car active-pair) "\"")
-                           (equal (cdr active-pair) "\""))
-                  (sp--wrap-region-autoescape strbound))
-                sp-last-wrapped-region)
+This is used in advices on various pre-command-hooks from
+\"selection deleting\" modes to intercept their actions."
+  (--any? (or (string-prefix-p (sp--single-key-description last-command-event) (car it))
+              (string-prefix-p (sp--single-key-description last-command-event) (cdr it)))
+          (sp--get-pair-list-wrap)))
 
-              (sp--run-hook-with-args (car active-pair) :post-handlers 'wrap))
+(defun sp--pair-to-wrap-comparator (prop a b)
+  "Comparator for wrapping pair selection.
 
-          ;; save the position and point so we can restore it on cancel.
-          (setq sp-wrap-point p)
-          (setq sp-wrap-mark m)
+PROP specifies wrapping-end.  A and B are pairs to be compared."
+  (let ((rprop (if (eq prop :open) :close :open)))
+    (if (< (length (plist-get it prop)) (length (plist-get other prop)))
+        (string-prefix-p (plist-get it rprop) (plist-get other rprop))
+      (not (string-prefix-p (plist-get other rprop) (plist-get it rprop))))))
 
-          ;; We need to remember what was removed in case wrap is
-          ;; cancelled.  Then these characters are re-inserted.
-          (setq sp-last-inserted-characters (sp--single-key-description last-command-event))
+(defun sp--pair-to-wrap (&optional prefix)
+  "Return information about possible wrapping pairs.
 
-          ;; if point > mark, we need to remove the character at the end and
-          ;; insert it to the front.
-          (when (> p m)
-            (delete-char (- 1))
-            (goto-char ostart)
-            (insert sp-last-inserted-characters)
-            (setq oend (1+ oend)))
+If optional PREFIX is non-nil, this is used to determine the
+possible wrapping pairs instead of the text in the wrapping
+overlay."
+  (let* ((working-pairs
+          ;; TODO: abstract this into a new "sp--get-..." hierarchy
+          (--filter (sp--do-action-p (plist-get it :open) 'wrap) sp-local-pairs))
+         (obeg (car sp-wrap-overlays))
+         (prefix (or prefix (sp--get-overlay-text obeg)))
+         (opening-pairs (--filter (string-prefix-p prefix (plist-get it :open)) working-pairs))
+         (closing-pairs (--filter (string-prefix-p prefix (plist-get it :close)) working-pairs))
+         (open (car (--sort (sp--pair-to-wrap-comparator :open it other) opening-pairs)))
+         ;; TODO: do we need the special sorting here?
+         (close (car (--sort (sp--pair-to-wrap-comparator :close it other) closing-pairs))))
+    (list :open open
+          :close close
+          :opening opening-pairs
+          :closing closing-pairs)))
 
-          (let* ((oleft (make-overlay ostart (1+ ostart) nil nil t))
-                 (oright (make-overlay oend oend nil nil t)))
+(defun sp-wrap--initialize ()
+  "Initialize wrapping."
+  (when (and sp-autowrap-region
+             (sp-wrap--can-wrap-p))
+    ;; TODO: get rid of the following variables
+    (setq sp-wrap-point (1- (point)))
+    (setq sp-wrap-mark (mark))
+    ;; if point > mark, we need to move point to mark and reinsert the
+    ;; just inserted character.
+    (when (> (point) (mark))
+      (let ((char (delete-and-extract-region (1- (point)) (point))))
+        (exchange-point-and-mark)
+        (insert char)))
+    (let* ((oleft (make-overlay (1- (region-beginning)) (region-beginning) nil nil t))
+           (oright (make-overlay (region-end) (region-end) nil nil t)))
+      (setq sp-wrap-overlays (cons oleft oright))
+      (when sp-highlight-wrap-overlay
+        (overlay-put oleft 'face 'sp-wrap-overlay-face)
+        (overlay-put oright 'face 'sp-wrap-overlay-face))
+      (overlay-put oleft 'priority 100)
+      (overlay-put oright 'priority 100)
+      (overlay-put oleft 'keymap sp-wrap-overlay-keymap)
+      (overlay-put oleft 'type 'wrap)
+      (goto-char (1+ (overlay-start oleft))))))
 
-            ;; insert the possible pair into end overlay
-            (let ((close-pair (cdr (--last (string-prefix-p
-                                            sp-last-inserted-characters
-                                            (car it))
-                                           (sp--get-pair-list-wrap)))))
-              (when close-pair
-                (save-excursion
-                  (goto-char oend)
-                  (insert close-pair))))
+(defun sp-wrap--finalize (wrapping-end open close)
+  "Finalize a successful wrapping.
 
-            (setq sp-wrap-overlays (cons oleft oright))
-            (when sp-highlight-wrap-overlay
-              (overlay-put oleft 'face 'sp-wrap-overlay-face)
-              (overlay-put oright 'face 'sp-wrap-overlay-face))
-            (overlay-put oleft 'priority 100)
-            (overlay-put oright 'priority 100)
-            (overlay-put oleft 'keymap sp-wrap-overlay-keymap)
-            (overlay-put oleft 'type 'wrap)
+WRAPPING-END specifies the wrapping end.  If we wrapped using
+opening delimiter it is :open.  If we wrapped using closing
+delimiter it is :close.  Position of point after wrapping depends
+on this value---if :open, go where the wrapping was initalized,
+if :close, go after the newly-formed sexp.
 
-            (goto-char (1+ ostart))))))))
+OPEN and CLOSE are the delimiters."
+  (-let (((obeg . oend) sp-wrap-overlays))
+    (sp--replace-overlay-text obeg open)
+    (sp--replace-overlay-text oend close)
+    (setq sp-last-operation 'sp-wrap-region)
+    (setq sp-last-wrapped-region
+          (sp--get-last-wraped-region
+           (overlay-start obeg) (overlay-end oend)
+           open close))
+    (cond
+     ((eq wrapping-end :open)
+      (when (> sp-wrap-point sp-wrap-mark)
+        (goto-char (overlay-end oend))))
+     ((eq wrapping-end :close)
+      (goto-char (overlay-end oend))))
+    (sp-wrap--clean-overlays)
+    (sp--run-hook-with-args open :post-handlers 'wrap)))
 
-(defun sp-wrap-region ()
-  "Wrap region."
-  ;; this method is only called if there's an active region.  It should
-  ;; never be called manually!
-  (when sp-autowrap-region
-    (let* ((oleft (car sp-wrap-overlays))
-           (oright (cdr sp-wrap-overlays)))
-      (setq sp-last-inserted-characters
-            (concat sp-last-inserted-characters
-                    (sp--single-key-description last-command-event)))
-      (let* ((active-pair (--last (string-prefix-p
-                                   sp-last-inserted-characters
-                                   (car it))
-                                  (sp--get-pair-list-wrap)))
-             (open-pair (car active-pair))
-             (close-pair (cdr active-pair)))
+(defun sp-wrap ()
+  "Try to wrap the active region with some pair.
 
-        ;; call sp-wrap-tag-region-init here.  See if we can extend the
-        ;; current wrap-beginning into a tag
-        (unless (sp-wrap-tag-region-init)
-          ;; update the close pair
-          (if close-pair
-              (save-excursion
-                (delete-region (overlay-start oright) (overlay-end oright))
-                (goto-char (overlay-start oright))
-                (insert close-pair))
-            ;; if we don't have any, it means there is no way to
-            ;; complete the pair...  abort
-            (sp-wrap-cancel t))
+This function is not ment to be used to wrap sexps with pairs
+programatically.  Use `sp-wrap-with-pair' instead."
+  (-let* (((&plist :open open :close close
+                   :opening opening-pairs
+                   :closing closing-pairs) (sp--pair-to-wrap))
+          ((obeg . oend) sp-wrap-overlays))
+    (cond
+     (open
+      (-let (((&plist :open open :close close) open))
+        (when sp-wrap-show-possible-pairs
+          (overlay-put
+           oend 'after-string
+           (mapconcat (lambda (x)
+                        (if sp-highlight-wrap-overlay
+                            (concat
+                             (propertize (plist-get x :open) 'face 'sp-wrap-overlay-opening-pair)
+                             (propertize (plist-get x :close) 'face 'sp-wrap-overlay-closing-pair))
+                          (concat (plist-get x :open) (plist-get x :close))))
+                      opening-pairs " ")))
+        (when (equal (sp--get-overlay-text obeg) open)
+          (sp-wrap--finalize :open open close))))
+     ((and close (= 1 (length closing-pairs)))
+      (-let (((&plist :open open :close close) close))
+        (when (equal (sp--get-overlay-text obeg) close)
+          (sp-wrap--finalize :close open close))))
+     (t
+      (sp-wrap-cancel)))))
 
-          ;; we've completed a pairing!
-          (when (equal sp-last-inserted-characters open-pair)
-            (let ((s (overlay-start oleft))
-                  (e (overlay-end oright))
-                  (oplen (length open-pair))
-                  (cplen (length close-pair)))
-              (delete-overlay oleft)
-              (delete-overlay oright)
-              (setq sp-wrap-overlays nil)
-              (setq sp-previous-point -1)
-              (if (< sp-wrap-point sp-wrap-mark)
-                  (goto-char (+ sp-wrap-point oplen))
-                (goto-char (+ sp-wrap-point oplen cplen)))
-              ;; update info for possible following delete
-              (setq sp-last-operation 'sp-wrap-region)
-              (setq sp-last-wrapped-region
-                    (sp--get-last-wraped-region s e open-pair close-pair))
-
-              (sp--run-hook-with-args open-pair :post-handlers 'wrap))))))))
-
+;; TODO: get rid of this tag nonsense
 (defun sp--get-active-tag (recent)
   "Return the first tag that matches its trigger to
 the prefix of RECENT and is allowed in current mode.  Such a tag
@@ -3107,12 +3103,15 @@ without a trigger and only one or the other list is returned.
 In other words, if any pair can be inserted using a trigger, only
 pairs insertable by trigger are returned."
   (setq looking-fn (or looking-fn 'sp--looking-back-p))
-  (-if-let (trigs (--filter (and (plist-get it :trigger)
-                                 (funcall looking-fn (sp--strict-regexp-quote (plist-get it :trigger))))
-                            sp-local-pairs))
-      (cons :trigger trigs)
-    (-when-let (pairs (--filter (funcall looking-fn (sp--strict-regexp-quote (plist-get it :open))) sp-local-pairs))
-      (cons :open pairs))))
+  (let ((working-pairs
+         ;; TODO: abstract this into a new "sp--get-..." hierarchy
+         (--filter (sp--do-action-p (plist-get it :open) 'insert) sp-local-pairs)))
+    (-if-let (trigs (--filter (and (plist-get it :trigger)
+                                   (funcall looking-fn (sp--strict-regexp-quote (plist-get it :trigger))))
+                              working-pairs))
+        (cons :trigger trigs)
+      (-when-let (pairs (--filter (funcall looking-fn (sp--strict-regexp-quote (plist-get it :open))) working-pairs))
+        (cons :open pairs)))))
 
 (defun sp--pair-to-insert-comparator (prop a b)
   (cond
@@ -3192,6 +3191,7 @@ default."
     (if (not (unwind-protect
                  (progn
                    (when pair (insert pair))
+                   ;; TODO: all these tests must go into `sp--pair-to-insert'
                    (and sp-autoinsert-pair
                         active-pair
                         (if (eq sp-autoskip-closing-pair 'always)
@@ -3291,7 +3291,6 @@ default."
           (push nil buffer-undo-list))
         (sp--run-hook-with-args open-pair :post-handlers 'insert)
         (setq sp-last-inserted-pair open-pair)
-        (setq sp-recent-keys nil)
         (setq sp-last-operation 'sp-insert-pair)))))
 
 (defun sp--wrap-repeat-last (active-pair)
@@ -3310,14 +3309,10 @@ active region."
                (cond
                 ((= 1 sp-wrap-repeat-last)
                  (equal (car active-pair) op))
-                ((= 2 sp-wrap-repeat-last) t))
+                (= 2 sp-wrap-repeat-last))
                (memq sp-last-operation '(sp-self-insert sp-wrap-region))
                (or (= (point) (+ b oplen acolen))
                    (= (point) e)))
-          ;; TODO: this does not handle escaping of "double quote", that
-          ;; is if we repeat quote wrap after quote wrap.  I think it is
-          ;; reasonable to assume this will never happen, or very very
-          ;; rarely. (same goes for option 2)
           (delete-char (- acolen))
           (if (< (point) e)
               (progn (goto-char (+ b oplen))
@@ -6222,6 +6217,7 @@ Examples:
           (setq n (1- n)))
       (sp-forward-symbol n))))
 
+;; TODO: read the rewrap pair as interactive arg
 (defun sp-rewrap-sexp (&optional arg)
   "Rewrap the enclosing expression with a different pair.
 
