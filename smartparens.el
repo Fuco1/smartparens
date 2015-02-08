@@ -309,7 +309,7 @@ See `sp-base-key-bindings'."
   "List of pairs for autoinsertion or wrapping.
 
 Maximum length of opening or closing pair is
-`sp-max-pair-length-c' characters.")
+`sp-max-pair-length' characters.")
 (make-variable-buffer-local 'sp-pair-list)
 
 (defvar sp-local-pairs nil
@@ -376,7 +376,7 @@ run.")
   "Non-nil if buffer was modified before the advice on
 `self-insert-command' executed.")
 
-(defconst sp-max-pair-length-c 10
+(defconst sp-max-pair-length 10
   "Maximum length of an opening or closing delimiter.
 
 Only the pairs defined by `sp-pair' are considered.  Tag pairs
@@ -397,7 +397,7 @@ can be of any length.")
   "List of pair definitions.
 
 Maximum length of opening or closing pair is
-`sp-max-pair-length-c' characters.")
+`sp-max-pair-length' characters.")
 
 (defvar sp-tags nil
   "List of tag definitions.  See `sp-local-tag' for more information.")
@@ -3315,11 +3315,11 @@ is remove the just added wrapping."
   "Return non-nil if text before point matches regular expression REGEXP.
 
 With optional argument LIMIT search only that many characters
-backward.  If LIMIT is nil, default to `sp-max-pair-length-c'.
+backward.  If LIMIT is nil, default to `sp-max-pair-length'.
 
 If optional argument NON-GREEDY is t search for any matching
 sequence, not necessarily the longest possible."
-  (setq limit (or limit sp-max-pair-length-c))
+  (setq limit (or limit sp-max-pair-length))
   (let ((case-fold-search nil)
         (from (max 1 (- (point) limit)))
         (to (point))
