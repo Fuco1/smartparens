@@ -100,6 +100,7 @@
 (eval-after-load "lua-mode"      '(require 'smartparens-lua))
 (eval-after-load "ruby-mode"     '(require 'smartparens-ruby))
 (eval-after-load "enh-ruby-mode" '(require 'smartparens-ruby))
+(eval-after-load "python-mode"   '(require 'smartparens-python))
 
 (provide 'smartparens-config)
 
