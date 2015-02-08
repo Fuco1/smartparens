@@ -2249,10 +2249,10 @@ are of zero length, or if point moved backwards."
        (save-excursion
          (goto-char (car (sp-get-quoted-string-bounds)))
          (ignore-errors (backward-sexp 3))
-         (looking-at (regexp-opt '("defun" "defmacro"
-                                   "cl-defun" "cl-defmacro"
-                                   "defun*" "defmacro*"
-                                   "lambda" "-lambda"))))))
+         (looking-at-p (regexp-opt '("defun" "defmacro"
+                                     "cl-defun" "cl-defmacro"
+                                     "defun*" "defmacro*"
+                                     "lambda" "-lambda"))))))
 
 (defun sp-in-code-p (id action context)
   "Return t if point is inside code, nil otherwise."
@@ -2271,48 +2271,48 @@ are of zero length, or if point moved backwards."
   "Return t if point is followed by optional white spaces and end of line, nil otherwise.
 This predicate is only tested on \"insert\" action."
   (when (eq action 'insert)
-    (looking-at "\\s-*$")))
+    (sp--looking-at-p "\\s-*$")))
 
 (defun sp-point-after-bol-p (id action context)
   "Return t if point follows beginning of line and possibly white spaces, nil otherwise.
 This predicate is only tested on \"insert\" action."
   (when (eq action 'insert)
-    (looking-back (concat "^\\s-*" (regexp-quote id)))))
+    (sp--looking-back-p (concat "^\\s-*" (regexp-quote id)))))
 
 (defun sp-point-at-bol-p (id action context)
   "Return t if point is at the beginning of line, nil otherwise.
 This predicate is only tested on \"insert\" action."
   (when (eq action 'insert)
-    (looking-back (concat "^" (regexp-quote id)))))
+    (sp--looking-back-p (concat "^" (regexp-quote id)))))
 
 (defun sp-point-before-symbol-p (id action context)
   "Return t if point is followed by a symbol, nil otherwise.
 This predicate is only tested on \"insert\" action."
   (when (eq action 'insert)
-    (looking-at "\\s_")))
+    (sp--looking-at-p "\\s_")))
 
 (defun sp-point-before-word-p (id action context)
   "Return t if point is followed by a word, nil otherwise.
 This predicate is only tested on \"insert\" action."
   (when (eq action 'insert)
-    (looking-at "\\sw\\|\\s_")))
+    (sp--looking-at-p "\\sw\\|\\s_")))
 
 (defun sp-point-after-word-p (id action context)
   "Return t if point is after a word, nil otherwise.
 This predicate is only tested on \"insert\" action."
   (when (eq action 'insert)
-    (looking-back (concat "\\(\\sw\\|\\s_\\)" (regexp-quote id)))))
+    (sp--looking-back-p (concat "\\(\\sw\\|\\s_\\)" (regexp-quote id)))))
 
 (defun sp-point-before-same-p (id action context)
   "Return t if point is followed by ID, nil otherwise.
 This predicate is only tested on \"insert\" action."
   (when (eq action 'insert)
-    (sp--looking-at (regexp-quote id))))
+    (sp--looking-at-p (regexp-quote id))))
 
 (defun sp-point-in-empty-line-p (id action context)
   "Return t if point is on an empty line, nil otherwise"
-  (and (looking-at "\\s-*$")
-       (looking-back (concat "^\\s-*" (regexp-quote id)))))
+  (and (sp--looking-at-p "\\s-*$")
+       (sp--looking-back-p (concat "^\\s-*" (regexp-quote id)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
