@@ -7470,13 +7470,6 @@ support custom pairs."
 (sp--set-base-key-bindings)
 (sp--update-override-key-bindings)
 
-(defadvice ac-complete (after sp-auto-complete-advice activate)
-  "If `smartparens-mode' is active, we check if the completed string
-has a pair definition.  If so, we insert the closing pair."
-  (when (and smartparens-mode ad-return-value) ; `ac-complete' returns nil if there are no completion candidates.
-    (sp-insert-pair))
-  ad-return-value)
-
 (defadvice company--insert-candidate (after sp-company--insert-candidate activate)
   "If `smartparens-mode' is active, we check if the completed string
 has a pair definition.  If so, we insert the closing pair."
