@@ -1511,6 +1511,7 @@ The list OLD-PAIR must not be nil."
       (:prefix (plist-put old-pair :prefix new-val))
       (:suffix (plist-put old-pair :suffix new-val))
       (:skip-match (plist-put old-pair :skip-match new-val))
+      (:mirror (plist-put old-pair :mirror new-val))
       (:trigger (plist-put old-pair :trigger new-val))
       ((:actions :when :unless :pre-handlers :post-handlers)
        (cl-case (car new-val)
@@ -1876,7 +1877,8 @@ modes, use this property on `sp-local-pair' instead."
                          insert
                          prefix
                          suffix
-                         skip-match)
+                         skip-match
+                         mirror)
   "Add a local pair definition or override a global definition.
 
 MODES can be a single mode or a list of modes where these settings
@@ -1942,7 +1944,24 @@ can use this to skip over expressions that serve multiple
 functions, such as if/end pair or unary if in Ruby or * in
 markdown when it signifies list item instead of emphasis.  In
 addition, there is a global per major-mode option, see
-`sp-navigate-skip-match'."
+`sp-navigate-skip-match'.
+
+SNIPPET, if non-nil, specifies a pattern to be inserted, with
+possible slots which are filled interactively.  It is a string.
+
+If a region is wrapped or a pair with SNIPPET is inserted, a
+special mirroring mode is entered.  User now fills in the places
+marked by special tokens.
+
+The places are marked $1, $2, $3... Special place $0 marks the
+final spot (optional).  This format is the same as the format
+used by `yasnipet'.  If multiple places are marked by the same
+token, this is replicated.
+
+With special syntax ${n:default-value} you can insert default
+value. With special syntax ${n:$(...)} the sexp after $ is
+evaluated with `sp-text' bound to the text of the first
+field---this way you can transform the input."
   (if (eq actions :rem)
       (let ((remove ""))
         (dolist (m (-flatten (list modes)))
@@ -1961,6 +1980,7 @@ addition, there is a global per major-mode option, see
         (when prefix (plist-put pair :prefix prefix))
         (when suffix (plist-put pair :suffix suffix))
         (when skip-match (plist-put pair :skip-match skip-match))
+        (when mirror (plist-put pair :mirror mirror))
         (when (and (not (sp-get-pair-definition open t))
                    (equal actions '(:add)))
           (setq actions '(wrap insert autoskip navigate)))
@@ -2787,6 +2807,71 @@ OPEN and CLOSE are the delimiters."
     (sp-wrap--clean-overlays)
     (sp--run-hook-with-args open :post-handlers 'wrap)))
 
+(defun sp--string-get-matching-positions (regexp string)
+  "Return positions of all matches of REGEXP in STRING."
+  (save-match-data
+    (let ((positions ())
+          (i 0))
+      (while (and (< i (length string))
+                  (string-match regexp string i))
+        (setq i (1+ (match-beginning 0)))
+        (push i positions))
+      (nreverse positions))))
+
+(defvar sp-wrap--mirror-overlays nil
+  "Mirror overlays.
+
+A list of lists of overlays, each list corresponding to one
+mirror slot.")
+
+(defun sp-wrap--mirror-update (&rest _)
+  "Update mirrors."
+  (-let* (((main . mirrors) (car sp-wrap--mirror-overlays))
+          (source-text (sp--get-overlay-text main))
+          (target-text (funcall (overlay-get main 'transformer) source-text)))
+    (--each mirrors (sp--replace-overlay-text it target-text))))
+
+(defun sp-wrap--mirror-clean-overlays ()
+  "Delete and reset mirror overlays."
+  (--map (when (overlayp it) (delete-overlay it)) (-flatten sp-wrap--mirror-overlays))
+  (setq sp-wrap--mirror-overlays nil))
+
+(defun sp-wrap--mirror-create-overlay ()
+  "Create a mirror overlay at point.
+
+Sets all required properties."
+  (let ((ov (make-overlay (point) (point))))
+    (overlay-put ov 'modification-hooks '(sp-wrap--mirror-update))
+    (overlay-put ov 'insert-in-front-hooks '(sp-wrap--mirror-update))
+    (overlay-put ov 'insert-behind-hooks '(sp-wrap--mirror-update))
+    ov))
+
+;; TODO: add support for multiple mirrors
+(defun sp-wrap--mirror (open close)
+  "Initialize wrap mirroring."
+  (sp-wrap--mirror-clean-overlays)
+  (-let* (((obeg . oend) sp-wrap-overlays)
+          ((omirror cmirror . mirrors) (sp-get-pair open :mirror))
+          (mirrors (--map (if (stringp it) (cons it 'identity) it) mirrors)))
+    ;; place matching overlays
+    (-each mirrors
+      (-lambda ((pattern . transformer))
+        ;; 1- because buffer indices start at 0, while string at 1
+        (let ((start (-map '1- (sp--string-get-matching-positions (regexp-quote pattern) omirror)))
+              (end (-map '1- (sp--string-get-matching-positions (regexp-quote pattern) cmirror)))
+              (ovs nil))
+          (--each start
+            (goto-char (overlay-start obeg))
+            (forward-char it)
+            (push (sp-wrap--mirror-create-overlay) ovs))
+          (--each end
+            (goto-char (overlay-start oend))
+            (forward-char it)
+            (push (sp-wrap--mirror-create-overlay) ovs))
+          (push (nreverse ovs) sp-wrap--mirror-overlays)
+          (overlay-put (caar sp-wrap--mirror-overlays) 'transformer transformer))))
+    (setq sp-wrap--mirror-overlays (nreverse sp-wrap--mirror-overlays))))
+
 (defun sp-wrap ()
   "Try to wrap the active region with some pair.
 
@@ -2810,7 +2895,9 @@ programatically.  Use `sp-wrap-with-pair' instead."
                           (concat (plist-get x :open) (plist-get x :close))))
                       opening-pairs " ")))
         (when (equal (sp--get-overlay-text obeg) open)
-          (sp-wrap--finalize :open open close))))
+          (sp-wrap--finalize :open open close)
+          (sp-wrap--mirror open close)
+          )))
      ((and close (= 1 (length closing-pairs)))
       (-let (((&plist :open open :close close) close))
         (when (equal (sp--get-overlay-text obeg) close)
