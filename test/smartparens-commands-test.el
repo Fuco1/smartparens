@@ -657,3 +657,14 @@ be."
       (delete-char -1)
       (insert (current-kill 0) "|")
       (should (equal (buffer-string) "(baz)|(bar)")))))
+
+;; test for #452
+(ert-deftest sp-test-sp-kill-hybrid-sexp-excessive-whitespace-kill nil
+  (let ((sp-hybrid-kill-excessive-whitespace 'kill))
+    (sp-test-with-temp-elisp-buffer "|(baz)\n\n\n\n(bar)"
+      (call-interactively 'sp-kill-hybrid-sexp)
+      (insert "|")
+      (should (equal (buffer-string) "|(bar)"))
+      (delete-char -1)
+      (insert (current-kill 0) "|")
+      (should (equal (buffer-string) "(baz)\n\n\n\n|(bar)")))))
