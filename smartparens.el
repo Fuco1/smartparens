@@ -5135,11 +5135,15 @@ t.  All the special prefix arguments work the same way."
 
 (defun sp-clone-sexp ()
   (interactive)
-  (-when-let (ok (sp-get-thing))
+  (-when-let (ok (or (sp-get-enclosing-sexp)
+                     (sp-get-sexp)))
     (sp-get ok
-      (goto-char :end-suf)
-      (sp-newline)
-      (insert (buffer-substring-no-properties :beg-prf :end-suf)))))
+      (save-excursion
+        (undo-boundary)
+        (goto-char :beg-prf)
+        (insert-buffer-substring-no-properties
+         (current-buffer) :beg-prf :end-suf)
+        (newline-and-indent)))))
 
 (defun sp-kill-hybrid-sexp (arg)
   "Kill a line as if with `kill-line', but respecting delimiters.
