@@ -5189,15 +5189,14 @@ Examples:
                      (sp-point-in-symbol))
             (sp-backward-sexp))
           (sp-get hl
-            (kill-region (point) (min (point-max) (if (looking-at "[ \t]*$") (1+ :end-suf) :end-suf)))
-            (when sp-hybrid-kill-excessive-whitespace
-              (cond
-               ((sp-point-in-blank-line)
-                (while (and (not (eobp))
-                            (sp-point-in-blank-line))
-                  (delete-region (line-beginning-position) (min (point-max) (1+ (line-end-position))))))
-               ((looking-at "[ \t]*$")
-                (delete-blank-lines)))))))
+            (let ((end (min (point-max)(if (looking-at "[ \t]*$")
+                                           (1+ :end-suf) :end-suf))))
+              (when sp-hybrid-kill-excessive-whitespace
+                (save-excursion (goto-char end)
+                  (skip-chars-forward "\n\t\r\s")
+                  (setq end (point))))
+              (back-to-indentation)
+              (kill-region (point) end)))))
       (sp--cleanup-after-kill)
       ;; if we've killed the entire line, do *not* contract the indent
       ;; to just one space
