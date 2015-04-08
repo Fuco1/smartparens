@@ -1008,10 +1008,14 @@ by specifying its :suffix property."
 
 ;; hybrid lines
 (defcustom sp-hybrid-kill-excessive-whitespace nil
-  "If non-nil, `sp-kill-hybrid-sexp' will kill all whitespace up
-until next hybrid sexp if the point is at the end of line or on a
-blank line."
-  :type 'boolean
+  "If non-nil, `sp-kill-hybrid-sexp' will delete all whitespace
+up until next hybrid sexp if the point is at the end of line or
+on a blank line. When argument is 'kill whitespace will meld to
+deleted sexp in kill ring."
+  :type '(choice
+          (const :tag "On" t)
+          (const :tag "Kill" kill)
+          (const :tag "Off" nil))
   :group 'smartparens)
 
 (defcustom sp-hybrid-kill-entire-symbol nil
@@ -5194,8 +5198,10 @@ Examples:
               (when sp-hybrid-kill-excessive-whitespace
                 (save-excursion (goto-char end)
                   (skip-chars-forward "\n\t\r\s")
-                  (setq end (point))))
-              (back-to-indentation)
+                  (cond ((eq 'kill sp-hybrid-kill-excessive-whitespace)
+                         (setq end (point)))
+                        (t (delete-region end (point)))))
+                (back-to-indentation))
               (kill-region (point) end)))))
       (sp--cleanup-after-kill)
       ;; if we've killed the entire line, do *not* contract the indent
