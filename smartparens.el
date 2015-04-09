@@ -5201,8 +5201,7 @@ Examples:
                   (skip-chars-forward "\n\t\r\s")
                   (cond ((eq 'kill sp-hybrid-kill-excessive-whitespace)
                          (setq end (point)))
-                        (t (delete-region end (point)))))
-                (back-to-indentation))
+                        (t (delete-region end (point))))))
               (kill-region (point) end)))))
       (sp--cleanup-after-kill)
       ;; if we've killed the entire line, do *not* contract the indent
