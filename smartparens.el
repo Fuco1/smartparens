@@ -5193,8 +5193,9 @@ Examples:
                      (sp-point-in-symbol))
             (sp-backward-sexp))
           (sp-get hl
-            (let ((end (min (point-max)(if (looking-at "[ \t]*$")
-                                           (1+ :end-suf) :end-suf))))
+            (let ((end (min (point-max) (if (looking-at "[ \t]*$")
+                                            (1+ :end-suf)
+                                          :end-suf))))
               (when sp-hybrid-kill-excessive-whitespace
                 (save-excursion (goto-char end)
                   (skip-chars-forward "\n\t\r\s")
