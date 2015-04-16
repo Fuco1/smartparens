@@ -156,6 +156,21 @@ better orientation."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Variables
 
+(defvar-local sp-forward-bound-fn nil
+  "Function to restrict the forward search")
+
+(defvar-local sp-backward-bound-fn nil
+  "Function to restrict the backward search")
+
+(defun sp--get-forward-bound ()
+  "Get the bound to limit the forward search for looking for pairs."
+  (and sp-forward-bound-fn (funcall sp-forward-bound-fn)))
+
+(defun sp--get-backward-bound ()
+  "Get the bound to limit the backward search for looking for pairs."
+  (and sp-backward-bound-fn (funcall sp-backward-bound-fn)))
+
+
 ;;;###autoload
 (defvar sp-keymap (make-sparse-keymap)
   "Keymap used for `smartparens-mode'.")
@@ -3352,6 +3367,7 @@ longest possible match.  That means that searching for
 This is an internal function.  Only use this for searching for
 pairs!"
   (setq count (or count 1))
+  (setq bound (or bound (sp--get-forward-bound)))
   (let ((case-fold-search nil) r)
     (while (> count 0)
       (when (search-backward-regexp regexp bound noerror)
@@ -3363,6 +3379,7 @@ pairs!"
 
 (defun sp--search-forward-regexp (regexp &optional bound noerror count)
   "Just like `search-forward-regexp', but always case sensitive."
+  (setq bound (or bound (sp--get-backward-bound)))
   (let ((case-fold-search nil))
     (search-forward-regexp regexp bound noerror count)))
 
