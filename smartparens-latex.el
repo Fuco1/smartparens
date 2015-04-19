@@ -87,6 +87,7 @@ This predicate is only tested on \"insert\" action."
                  latex-mode
                  )
   (sp-local-pair "`" "'"
+                 :actions '(:rem autoskip)
                  :skip-match 'sp-latex-skip-match-apostrophe
                  :unless '(sp-latex-point-after-backslash))
   ;; math modes, yay.  The :actions are provided automatically if
