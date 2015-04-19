@@ -14,6 +14,14 @@
       (:open "OPEN"  :close "CLOSE"  :actions (insert wrap autoskip navigate))
       (:open "\\big("  :close "\\big)"  :actions (insert wrap autoskip navigate) :trigger "\\b")))))
 
+(defun sp-test-merge-pairs (extra)
+  (list (cons t (append (-map 'identity (cdar sp--test-basic-pairs)) extra))))
+
+(defvar sp--test-latex-pairs
+  (sp-test-merge-pairs '((:open "``"   :close "''" :actions (insert wrap autoskip navigate))
+                         (:open "`"   :close "'" :actions (insert wrap autoskip navigate))
+                         (:open "$"   :close "$" :actions (insert wrap autoskip navigate)))))
+
 (defmacro sp-test-setup-paired-expression-env (pairs mode mode-hook &rest forms)
   (declare (indent 0))
   `(with-temp-buffer
@@ -48,9 +56,6 @@
 
 (defun sp-test-make-pair (b e o c p s)
   (list :beg b :end e :op o :cl c :prefix p :suffix s))
-
-(defun sp-test-merge-pairs (extra)
-  (list (cons t (append (-map 'identity (cdar sp--test-basic-pairs)) extra))))
 
 (defmacro sp-test-with-temp-buffer (initial initform &rest forms)
   "Setup a new buffer, then run FORMS.

@@ -181,5 +181,38 @@
      ,@forms))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; latex pairs
+
+(defvar sp-test-get-paired-expression-latex
+  '(("``''" 1 5 "``" "''" "" "")
+    ("foo ``bar'' baz" 5 12 "``" "''" "" "")
+
+    ("`'" 1 3 "`" "'" "" "")
+    ("foo `bar' baz" 5 10 "`" "'" "" "")
+    ))
+
+(ert-deftest sp-test-get-paired-expression-latex ()
+  "Test basic paired expressions in `latex-mode'."
+  (sp-test-setup-paired-expression-env-latex
+   (--each sp-test-get-paired-expression
+     (sp-test-paired-sexp (car it) (apply 'sp-test-make-pair (cdr it)) nil nil))
+   (--each sp-test-get-paired-expression-latex
+     (sp-test-paired-sexp (car it) (apply 'sp-test-make-pair (cdr it)) nil nil))))
+
+(ert-deftest sp-test-get-paired-expression-latex-backward ()
+  (sp-test-setup-paired-expression-env-latex
+   (--each sp-test-get-paired-expression
+     (sp-test-paired-sexp (car it) (apply 'sp-test-make-pair (cdr it)) t nil))
+   (--each sp-test-get-paired-expression-latex
+     (sp-test-paired-sexp (car it) (apply 'sp-test-make-pair (cdr it)) t nil))))
+
+(defmacro sp-test-setup-paired-expression-env-latex (&rest forms)
+  `(sp-test-setup-paired-expression-env
+     sp--test-latex-pairs
+     latex-mode
+     latex-mode-hook
+     ,@forms))
+
 
 (provide 'smartparens-test-get-paired-expression)

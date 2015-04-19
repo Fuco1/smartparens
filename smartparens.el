@@ -2652,13 +2652,20 @@ extra boundary conditions depending on parens."
 (defun sp--strict-regexp-opt (strings &optional ignored)
   "Like regexp-opt, but with extra boundary conditions to ensure
 that the strings are not matched in-symbol."
-  (--> strings
-       (-group-by (lambda (string)
-                    (list (and (string-match-p "\\`\\<" string) t)
-                          (and (string-match-p "\\>\\'" string) t)))
-                  it)
-       (mapconcat (lambda (g) (apply 'sp--regexp-for-group g)) it "\\|")
-       (concat "\\(?:" it "\\)")))
+  (with-syntax-table
+      ;; HACK: this is a terrible hack to make ' be treated as a
+      ;; punctuation.  Many text modes set it as word character which
+      ;; messes up the regexps
+      (let ((table (make-syntax-table (syntax-table))))
+        (modify-syntax-entry ?' "." table)
+        table)
+    (--> strings
+      (-group-by (lambda (string)
+                   (list (and (string-match-p "\\`\\<" string) t)
+                         (and (string-match-p "\\>\\'" string) t)))
+                 it)
+      (mapconcat (lambda (g) (apply 'sp--regexp-for-group g)) it "\\|")
+      (concat "\\(?:" it "\\)"))))
 
 (defun sp--strict-regexp-quote (string)
   "Like regexp-quote, but make sure that the string is not

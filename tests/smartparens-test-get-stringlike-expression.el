@@ -97,9 +97,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; latex pairs
 
-(defvar sp--test-latex-pairs
-  (sp-test-merge-pairs '((:open "$"   :close "$" :actions (insert wrap autoskip navigate)))))
-
 (defvar sp-test-get-stringlike-expression-latex
   '(("foo $bar$ baz $quux$ bux" 1 5 10 "$" "$" "" "")
     ("foo $bar$ baz $quux$ bux" 5 5 10 "$" "$" "" "")
