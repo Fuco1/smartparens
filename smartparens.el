@@ -172,9 +172,10 @@ better orientation."
 
 
 ;;;###autoload
-(defvar sp-keymap (make-sparse-keymap)
+(defvar smartparens-mode-map (make-sparse-keymap)
   "Keymap used for `smartparens-mode'.")
-(defvaralias 'smartparens-mode-map 'sp-keymap)
+(defvaralias 'sp-keymap 'smartparens-mode-map)
+(make-obsolete-variable 'sp-keymap 'smartparens-mode-map "2015-01-01")
 
 (defvar sp-paredit-bindings '(
                               ("C-M-f" . sp-forward-sexp) ;; navigation
@@ -201,13 +202,13 @@ better orientation."
 smartparens functions.")
 
 (defun sp--populate-keymap (bindings)
-  "Populates the `sp-keymap' from the BINDINGS alist."
+  "Populates the `smartparens-mode-map' from the BINDINGS alist."
   (--each bindings
-    (define-key sp-keymap (read-kbd-macro (car it)) (cdr it))))
+    (define-key smartparens-mode-map (read-kbd-macro (car it)) (cdr it))))
 
 ;;;###autoload
 (defun sp-use-paredit-bindings ()
-  "Initiate `sp-keymap' with paredit-compatible bindings for
+  "Initiate `smartparens-mode-map' with paredit-compatible bindings for
 corresponding functions provided by smartparens.  See variable
 `sp-paredit-bindings'."
   (interactive)
@@ -245,7 +246,7 @@ corresponding functions provided by smartparens.  See variable
 
 ;;;###autoload
 (defun sp-use-smartparens-bindings ()
-  "Initiate `sp-keymap' with smartparens bindings for navigation functions.
+  "Initiate `smartparens-mode-map' with smartparens bindings for navigation functions.
 See variable `sp-smartparens-bindings'."
   (interactive)
   (sp--populate-keymap sp-smartparens-bindings))
@@ -518,13 +519,13 @@ default, which should be the most verbose option available.")
 
 You can enable pre-set bindings by customizing
 `sp-base-key-bindings' variable.  The current content of
-`sp-keymap' is:
+`smartparens-mode-map' is:
 
- \\{sp-keymap}"
+ \\{smartparens-mode-map}"
   :init-value nil
   :lighter (" SP" (:eval (if smartparens-strict-mode "/s" "")))
   :group 'smartparens
-  :keymap sp-keymap
+  :keymap smartparens-mode-map
   (if smartparens-mode
       (progn
         (sp--init)
