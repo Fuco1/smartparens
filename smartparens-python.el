@@ -50,7 +50,8 @@
 ;; Python has no sexp suffices.  This fixes slurping
 ;; (|sys).path.append---the dot should not travel with the closing
 ;; paren
-(add-to-list 'sp-sexp-suffix (list 'python-mode 'regexp ""))
+(--each '(python-mode inferior-python-mode)
+  (add-to-list 'sp-sexp-suffix (list it 'regexp "")))
 
 (provide 'smartparens-python)
 ;;; smartparens-python.el ends here
