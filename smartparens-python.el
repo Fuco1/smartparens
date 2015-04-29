@@ -51,7 +51,7 @@
 ;; (|sys).path.append---the dot should not travel with the closing
 ;; paren
 (--each '(python-mode inferior-python-mode)
-  (add-to-list 'sp-sexp-suffix (list it 'regexp ""))
+  (add-to-list 'sp-sexp-suffix (list it 'regexp "")))
 
 (provide 'smartparens-python)
 ;;; smartparens-python.el ends here
