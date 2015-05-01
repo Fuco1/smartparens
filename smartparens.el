@@ -3809,7 +3809,14 @@ counting (stack) algorithm."
                     (when (and back (eq type :open)) (forward-char 1)))
                   (let ((other-end (point)))
                     (when (sp--find-next-textmode-stringlike-delimiter needle search-fn)
-                      (let* ((this-end (if (eq type :open) (max (point-min) (1- (point))) (min (point-max) (1+ (point)))))
+                      ;; Beware, we also need to test the beg/end of
+                      ;; buffer, because we have that variant in the
+                      ;; regexp.  In that case the match does not
+                      ;; consume anything and we needn't do any
+                      ;; correction.
+                      (let* ((this-end (if (eq type :open)
+                                           (max (point-min) (if (eobp) (point) (1- (point))))
+                                         (min (point-max) (if (bobp) (point) (1+ (point))))))
                              (b (min this-end other-end))
                              (e (max this-end other-end)))
                         (setq re (list :beg b

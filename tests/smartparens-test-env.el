@@ -54,6 +54,15 @@
           (should (equal pair expected))))
     (erase-buffer)))
 
+(defun sp-test-textmode-stringlike-sexp (string expected start back fail)
+  (unwind-protect
+      (progn
+        (insert string)
+        (goto-char start)
+        (let ((pair (sp-get-textmode-stringlike-expression back)))
+          (should (equal pair expected))))
+    (erase-buffer)))
+
 (defun sp-test-make-pair (b e o c p s)
   (list :beg b :end e :op o :cl c :prefix p :suffix s))
 

@@ -118,6 +118,15 @@
    (--each sp-test-get-stringlike-expression-latex
      (sp-test-stringlike-sexp (car it) (apply 'sp-test-make-pair (cddr it)) (cadr it) nil nil))))
 
+(ert-deftest sp-test-get-textmode-stringlike-expression-latex ()
+  "Test basic stringlike expressions in `latex-mode'."
+  (sp-test-setup-stringlike-expression-env-latex
+   (--each sp-test-get-stringlike-expression
+     (when (sp-get-pair (nth 4 it))
+       (sp-test-stringlike-sexp (car it) (apply 'sp-test-make-pair (cddr it)) (cadr it) nil nil)))
+   (--each sp-test-get-stringlike-expression-latex
+     (sp-test-textmode-stringlike-sexp (car it) (apply 'sp-test-make-pair (cddr it)) (cadr it) nil nil))))
+
 (defvar sp-test-get-stringlike-expression-latex-backward
   '(("foo $bar$ baz $quux$ bux" 14 5 10 "$" "$" "" "")
     ("foo $bar$ baz $quux$ bux" 10 5 10 "$" "$" "" "")
@@ -133,6 +142,13 @@
      (sp-test-stringlike-sexp (car it) (apply 'sp-test-make-pair (cddr it)) (cadr it) t nil))
    (--each sp-test-get-stringlike-expression-latex-backward
      (sp-test-stringlike-sexp (car it) (apply 'sp-test-make-pair (cddr it)) (cadr it) t nil))))
+
+(ert-deftest sp-test-get-textmode-stringlike-expression-latex-backward ()
+  (sp-test-setup-stringlike-expression-env-latex
+   (--each sp-test-get-stringlike-expression-backward
+     (sp-test-textmode-stringlike-sexp (car it) (apply 'sp-test-make-pair (cddr it)) (cadr it) t nil))
+   (--each sp-test-get-stringlike-expression-latex-backward
+     (sp-test-textmode-stringlike-sexp (car it) (apply 'sp-test-make-pair (cddr it)) (cadr it) t nil))))
 
 (defvar sp-test-get-stringlike-expression-latex-fail
   '(("foo $bar$ baz $ boo" 14)
