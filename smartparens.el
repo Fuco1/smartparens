@@ -3801,11 +3801,11 @@ counting (stack) algorithm."
                   (setq restart-from (point))
                   ;; this adjustments are made because elisp regexp
                   ;; can't do lookahead assertions... so we match and
-                  ;; then back up
+                  ;; then back up.
                   (ignore-errors
-                    (when (and (not back) (eq type :open)) (backward-char 2))
+                    (when (and (not back) (eq type :open)) (backward-char (1+ (length delim))))
                     (when (and (not back) (eq type :close)) (backward-char 1))
-                    (when (and back (eq type :close)) (forward-char 2))
+                    (when (and back (eq type :close)) (forward-char (1+ (length delim))))
                     (when (and back (eq type :open)) (forward-char 1)))
                   (let ((other-end (point)))
                     (when (sp--find-next-textmode-stringlike-delimiter needle search-fn)
