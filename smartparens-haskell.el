@@ -49,6 +49,29 @@
 (sp-with-modes '(haskell-mode haskell-interactive-mode)
   (sp-local-pair "{-#" "#-}"))
 
+(defun sp--inferior-haskell-mode-backward-bound-fn ()
+  "Limit the backward search to the prompt if point is on prompt."
+  (when comint-last-prompt-overlay
+    (let ((limit (overlay-end comint-last-prompt-overlay)))
+      (when (> (point) limit) limit))))
+
+(defun sp--inferior-haskell-mode-forward-bound-fn ()
+  "Limit the forward search to exclude the prompt if point is before prompt."
+  (when comint-last-prompt-overlay
+    (let ((limit (overlay-start comint-last-prompt-overlay)))
+      (when (< (point) limit) limit))))
+
+(defun sp--setup-inferior-haskell-mode-search-bounds ()
+  "Setup the search bound.
+
+If the point is after the last prompt, limit the backward search
+only for the propmt.
+
+If the point is before the last prompt, limit the forward search up until the prompt start."
+  (setq sp-forward-bound-fn 'sp--inferior-haskell-mode-forward-bound-fn)
+  (setq sp-backward-bound-fn 'sp--inferior-haskell-mode-backward-bound-fn))
+
+(add-hook 'inferior-haskell-mode-hook 'sp--setup-inferior-haskell-mode-search-bounds)
 
 (provide 'smartparens-haskell)
 
