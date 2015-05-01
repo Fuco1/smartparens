@@ -3741,11 +3741,11 @@ If DIRECTION is nil, create a regexp matching both directions."
          (re (concat
               (if (or (not direction)
                       (eq direction :open))
-                  (concat "\\(?:" "\\(?:\\`\\|[[:space:]]\\)" "\\(" delims "\\)" "[^[:space:]]\\)") "")
+                  (concat "\\(?:" "\\(?:\\`\\|[ \t\n\r]\\)" "\\(" delims "\\)" "[^ \t\n\r]\\)") "")
               (if (not direction) "\\|" "")
               (if (or (not direction)
                       (eq direction :close))
-                  (concat "\\(?:[^[:space:]]" "\\(" delims "\\)" "\\(?:[[:space:][:punct:]]\\|\\'\\)" "\\)") ""))))
+                  (concat "\\(?:[^ \t\n\r]" "\\(" delims "\\)" "\\(?:[ \t\n\r[:punct:]]\\|\\'\\)" "\\)") ""))))
     re))
 
 (defun sp--find-next-textmode-stringlike-delimiter (needle search-fn-f &optional limit)
