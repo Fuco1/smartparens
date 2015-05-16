@@ -1,4 +1,9 @@
-# Smartparens [![Build Status](https://travis-ci.org/Fuco1/smartparens.png?branch=master)](https://travis-ci.org/Fuco1/smartparens) [![Paypal logo](https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CEYP5YVHDRX8C)
+# Smartparens
+[![MELPA](http://melpa.org/packages/smartparens-badge.svg)](http://melpa.org/#/smartparens)
+[![MELPA Stable](http://stable.melpa.org/packages/smartparens-badge.svg)](http://stable.melpa.org/#/smartparens)
+[![Build Status](https://travis-ci.org/Fuco1/smartparens.png?branch=master)](https://travis-ci.org/Fuco1/smartparens)
+[![Gratipay](http://img.shields.io/gratipay/Fuco1.svg)](https://www.gratipay.com/Fuco1/)
+[![Paypal logo](https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CEYP5YVHDRX8C)
 
 Smartparens is minor mode for Emacs that *deals with parens pairs and tries to be smart about it*. It started as a unification effort to combine functionality of several existing packages in a single, compatible and extensible way to deal with parentheses, delimiters, tags and the like. Some of these packages include [autopair](https://github.com/capitaomorte/autopair), [textmate](http://code.google.com/p/emacs-textmate/), [wrap-region](https://github.com/rejeep/wrap-region), [electric-pair-mode](http://www.emacswiki.org/emacs/ElectricPair), [paredit](http://emacswiki.org/emacs/ParEdit) and others. With the basic features found in other packages it also brings many improvements as well as completely new features. [Here's][wiki-what] a highlight of some features, for a complete list and detailed documentation look in the [manual][wiki-new].
 
