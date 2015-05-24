@@ -7385,9 +7385,10 @@ comment."
   "Insert the comment character and adjust hanging sexps such
   that it doesn't break structure."
   (interactive)
-  (if (sp-point-in-comment)
-      (when (= 1 (length (single-key-description last-command-event))) ;; pretty hacky
-        (insert (single-key-description last-command-event)))
+  (if (sp-point-in-string-or-comment)
+      (if (= 1 (length (single-key-description last-command-event))) ;; pretty hacky
+          (insert (single-key-description last-command-event))
+        (insert comment-start))
     (let ((old-point (point))
           (column (current-column))
           (indentation (sp--current-indentation))
