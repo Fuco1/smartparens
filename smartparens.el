@@ -1295,7 +1295,10 @@ of pairs and wraps.")
 
 ;; Please contribute these if you come across some!
 (defvar sp--special-self-insert-commands
-  '(TeX-insert-dollar)
+  '(
+    TeX-insert-dollar
+    TeX-insert-quote
+    )
    "List of commands which are handled as if they were `self-insert-command's.
 
 Some modes redefine \"self-inserting\" keys to \"smart\" versions
