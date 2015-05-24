@@ -334,4 +334,35 @@
     ("foo \\{|\\} bar" "foo | bar")
     (";;foo \\{|\\}\nbar" ";;foo |\nbar"))))
 
+(sp-test-command sp-comment
+  ((((sp-comment-string '(((emacs-lisp-mode) . ";; "))))
+    ;; don't do magic inside strings or commends
+    (";; | asd" ";; ;| asd")
+    (";; (asd|\nbar)" ";; (asd;|\nbar)")
+    ("\"| asd\"" "\";| asd\"")
+    ("\"(asd|\nbar)\"" "\"(asd;|\nbar)\"")
+
+    ("|asd" ";; |asd")
+    ("|(asd asd)" ";; |(asd asd)")
+    ("(asd| asd)" "(asd ;; | asd\n )")
+    ("(asd |asd)" "(asd ;; |asd\n )")
+
+    ("|(foo\n bar)" ";; |\n(foo\n bar)")
+    ("(foo|\n bar)" "(foo ;; |\n bar)")
+    ("(foo\n bar|)" "(foo\n bar ;; |\n )")
+    ("(foo\n bar| )" "(foo\n bar ;; |\n )")
+    ("(foo\n bar | )" "(foo\n bar ;; |\n )")
+
+    ("(foo\n |(bar ) )" "(foo\n ;; |(bar )\n )")
+    ("(foo\n (bar| ) )" "(foo\n (bar ;; |\n  ) )")
+    ("(foo\n (bar |) )" "(foo\n (bar ;; |\n  ) )")
+    ("(foo\n (bar )| )" "(foo\n (bar ) ;; |\n )")
+    ("(foo\n (bar ) |)" "(foo\n (bar ) ;; |\n )")
+
+    ;; clean up hanging whitespace
+    ("(foo\n |bar (baz\n      qux))" "(foo\n ;; |bar\n (baz\n  qux))")
+    ("(foo\n bar| (baz\n      qux))" "(foo\n bar ;; |\n (baz\n  qux))")
+    ("(foo\n bar |(baz\n      qux))" "(foo\n bar ;; |\n (baz\n  qux))")
+    ("(foo\n bar (baz\n      |qux))" "(foo\n bar (baz\n      ;; |qux\n      ))"))))
+
 (provide 'smartparens-test-commands)

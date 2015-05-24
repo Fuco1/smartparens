@@ -7396,12 +7396,15 @@ comment."
           (hsexp (sp-get-hybrid-sexp))
           (newline-inserted 0))
       (goto-char (sp-get hsexp :end))
-      (if (sp--looking-at (sp--get-closing-regexp))
+      (if (and (sp--looking-at-p (concat "\\s-*" (sp--get-closing-regexp)))
+               (= old-line (line-number-at-pos)))
           (progn
+            (setq old-point (point))
             (newline)
             (setq newline-inserted (1+ (- (line-end-position) (point)))))
         (when (/= old-line (line-number-at-pos))
           (sp-backward-sexp)
+          (setq old-point (+ old-point (skip-syntax-backward " ")))
           (newline)
           (setq newline-inserted (- (line-end-position) (point)))))
       ;; @{ indenting madness
@@ -7411,6 +7414,9 @@ comment."
       ;; @}
       (let ((comment-delim (or (cdr (--first (memq major-mode (car it)) sp-comment-string))
                                comment-start)))
+        (when (and (/= 0 (current-column))
+                   (not (sp--looking-back-p "\\s-")))
+          (insert " "))
         (insert comment-delim)
         (when (/= newline-inserted 0)
           (save-excursion
