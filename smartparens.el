@@ -668,7 +668,18 @@ MODES."
 
 ;;;###autoload
 (defun turn-on-smartparens-mode ()
-  "Turn on `smartparens-mode'."
+  "Turn on `smartparens-mode'.
+
+This function is used to turn on `smartparens-global-mode'.
+
+By default `smartparens-global-mode' ignores buffers with
+`mode-class' set to special, but only if they are also not comint
+buffers.
+
+Additionally, buffers on `sp-ignore-modes-list' are ignored.
+
+You can still turn on smartparens in these mode manually (or
+in mode's startup-hook etc.) by calling `smartparens-mode'."
   (interactive)
   (unless (or (member major-mode sp-ignore-modes-list)
               (and (not (derived-mode-p 'comint-mode))
