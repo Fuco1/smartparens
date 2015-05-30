@@ -4639,7 +4639,7 @@ Examples: (prefix arg in comment)
   (|foo bar baz)   -> (foo bar| baz) ;; 2
 
   (foo (bar baz|)) -> (foo (bar baz)|)"
-  (interactive "p")
+  (interactive "^p")
   (setq arg (or arg 1))
   (if (< arg 0)
       (sp-backward-sexp (- arg))
@@ -4650,6 +4650,8 @@ Examples: (prefix arg in comment)
         (setq n (1- n))
         (when ok (goto-char (sp-get ok :end))))
       ok)))
+
+(put 'sp-forward-sexp  'CUA 'move)
 
 (defun sp-backward-sexp (&optional arg)
   "Move backward across one balanced expression (sexp).
@@ -4671,7 +4673,7 @@ Examples: (prefix arg in comment)
   (foo bar| baz)   -> (|foo bar baz) ;; 2
 
   (|(foo bar) baz) -> ((|foo bar) baz)"
-  (interactive "p")
+  (interactive "^p")
   (setq arg (or arg 1))
   (if (< arg 0)
       (sp-forward-sexp (- arg))
@@ -4682,6 +4684,8 @@ Examples: (prefix arg in comment)
         (setq n (1- n))
         (when ok (goto-char (sp-get ok :beg))))
       ok)))
+
+(put 'sp-backward-sexp 'CUA 'move)
 
 (defun sp-next-sexp (&optional arg)
   "Move forward to the beginning of next balanced expression.
