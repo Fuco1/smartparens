@@ -4639,7 +4639,7 @@ Examples: (prefix arg in comment)
   (|foo bar baz)   -> (foo bar| baz) ;; 2
 
   (foo (bar baz|)) -> (foo (bar baz)|)"
-  (interactive "p")
+  (interactive "^p")
   (setq arg (or arg 1))
   (if (< arg 0)
       (sp-backward-sexp (- arg))
@@ -4671,7 +4671,7 @@ Examples: (prefix arg in comment)
   (foo bar| baz)   -> (|foo bar baz) ;; 2
 
   (|(foo bar) baz) -> ((|foo bar) baz)"
-  (interactive "p")
+  (interactive "^p")
   (setq arg (or arg 1))
   (if (< arg 0)
       (sp-forward-sexp (- arg))
@@ -4699,7 +4699,7 @@ Examples:
   ((foo) |bar (baz quux)) -> ((foo) bar |(baz quux))
 
   ((foo) bar |(baz quux)) -> |((foo) bar (baz quux))"
-  (interactive "p")
+  (interactive "^p")
   (setq arg (or arg 1))
   (if (> arg 0)
       (if (= arg 1)
@@ -4729,7 +4729,7 @@ Examples:
   ((foo) bar| (baz quux)) -> ((foo)| bar (baz quux))
 
   ((foo)| bar (baz quux)) -> ((foo) bar (baz quux))|"
-  (interactive "p")
+  (interactive "^p")
   (setq arg (or arg 1))
   (if (> arg 0)
       (if (= arg 1)
@@ -4787,7 +4787,7 @@ Examples:
   (foo (bar baz) |quux) -> (|foo (bar baz) quux)
 
   (blab foo |(bar baz) quux) -> (|blab foo (bar baz) quux) ;; \\[universal-argument] \\[universal-argument]"
-  (interactive "P")
+  (interactive "^P")
   (let* ((raw (sp--raw-argument-p arg))
          (arg (prefix-numeric-value arg))
          (n (abs arg))
@@ -4843,7 +4843,7 @@ Examples:
   (foo| (bar baz) quux) -> (foo (bar baz) quux|)
 
   (foo (bar baz) |quux blab) -> (foo (bar baz) quux blab|) ;; \\[universal-argument] \\[universal-argument]"
-  (interactive "P")
+  (interactive "^P")
   (sp-down-sexp (sp--negate-argument arg)))
 
 (defun sp-beginning-of-sexp (&optional arg)
@@ -4876,7 +4876,7 @@ Examples:
   (foo bar) (baz) (quux|) -> (|foo bar) (baz) (quux) ;; -3
 
   ((foo bar) (baz |quux) blab) -> (|(foo bar) (baz quux) blab) ;; \\[universal-argument]"
-  (interactive "P")
+  (interactive "^P")
   (let* ((raw (sp--raw-argument-p arg))
          (arg (prefix-numeric-value arg))
          (re (cond
@@ -4926,7 +4926,7 @@ Examples:
   (foo bar) (baz) (quux|) -> (foo bar|) (baz) (quux) ;; -3
 
   ((foo |bar) (baz quux) blab) -> ((foo bar) (baz quux) blab|) ;; \\[universal-argument]"
-  (interactive "P")
+  (interactive "^P")
   (let* ((raw (sp--raw-argument-p arg))
          (arg (prefix-numeric-value arg))
          (re (cond
@@ -4957,7 +4957,7 @@ Examples:
   (f|oo) (bar) (baz) -> (foo) (|bar) (baz)
 
   (f|oo) (bar) (baz) -> (foo) (bar) (|baz) ;; 2"
-  (interactive "P")
+  (interactive "^P")
   (if (sp--raw-argument-p arg)
       (sp-beginning-of-sexp arg)
     (let ((arg (prefix-numeric-value arg)))
@@ -4976,7 +4976,7 @@ Examples:
   (foo) (b|ar) (baz) -> (|foo) (bar) (baz)
 
   (foo) (bar) (b|az) -> (|foo) (bar) (baz) ;; 2"
-  (interactive "P")
+  (interactive "^P")
   (if (sp--raw-argument-p arg)
       (sp-beginning-of-sexp (sp--negate-argument arg))
     (let ((arg (prefix-numeric-value arg)))
@@ -4995,7 +4995,7 @@ Examples:
   (f|oo) (bar) (baz) -> (foo) (bar|) (baz)
 
   (f|oo) (bar) (baz) -> (foo) (bar) (baz|) ;; 2"
-  (interactive "P")
+  (interactive "^P")
   (if (sp--raw-argument-p arg)
       (sp-end-of-sexp arg)
     (let ((arg (prefix-numeric-value arg)))
@@ -5014,7 +5014,7 @@ Examples:
   (foo) (b|ar) (baz) -> (foo|) (bar) (baz)
 
   (foo) (bar) (b|az) -> (foo|) (bar) (baz) ;; 2"
-  (interactive "P")
+  (interactive "^P")
   (if (sp--raw-argument-p arg)
       (sp-end-of-sexp (sp--negate-argument arg))
     (let ((arg (prefix-numeric-value arg)))
@@ -5047,7 +5047,7 @@ Examples:
 ​   )
 
   (foo  |(bar baz)           -> (foo)| (bar baz) ;; close unbalanced expr."
-  (interactive "p\np")
+  (interactive "^p\np")
   (setq arg (or arg 1))
   (let ((ok (sp-get-enclosing-sexp (abs arg))))
     (if ok
@@ -5124,7 +5124,7 @@ Examples:
 
   (                  -> |(foo bar baz)
 ​    foo |bar baz)"
-  (interactive "p\np")
+  (interactive "^p\np")
   (setq arg (or arg 1))
   (sp-up-sexp (- arg) interactive))
 
@@ -6023,7 +6023,7 @@ Examples:
   foo|   bar -> foo   |bar
 
   foo|   [bar baz] -> foo   |[bar baz]"
-  (interactive)
+  (interactive "^")
   (sp--skip-to-symbol-1 t))
 
 (defun sp-skip-backward-to-symbol (&optional stop-at-string stop-after-string stop-inside-string)
@@ -6040,7 +6040,7 @@ Examples:
   foo   |bar -> foo|   bar
 
   [bar baz]   |foo -> [bar baz]|   foo"
-  (interactive)
+  (interactive "^")
   (sp--skip-to-symbol-1 nil))
 
 (defun sp-skip-into-string (&optional back)
@@ -6077,7 +6077,7 @@ Examples:
   |foo (bar (baz))      -> foo (bar| (baz)) ;; 2
 
   |foo (bar (baz) quux) -> foo (bar (baz) quux|) ;; 4"
-  (interactive "p")
+  (interactive "^p")
   (setq arg (or arg 1))
   (let* ((n (abs arg))
          (fw (> arg 0))
@@ -6130,7 +6130,7 @@ Examples:
   ((foo bar) baz)|        -> ((foo |bar) baz) ;; 2
 
   (quux ((foo) bar) baz)| -> (|quux ((foo) bar) baz) ;; 4"
-  (interactive "p")
+  (interactive "^p")
   (setq arg (or arg 1))
   (let ((n (abs arg))
         (fw (> arg 0))
@@ -6685,14 +6685,14 @@ expressions up until the start of enclosing list."
 (defun sp-forward-whitespace (&optional arg)
   "Skip forward past the whitespace characters.
 With non-nil ARG return number of characters skipped."
-  (interactive "P")
+  (interactive "^P")
   (let ((rel-move (skip-chars-forward " \t\n")))
     (if arg rel-move (point))))
 
 (defun sp-backward-whitespace (&optional arg)
   "Skip backward past the whitespace characters.
 With non-nil ARG return number of characters skipped."
-  (interactive "P")
+  (interactive "^P")
   (let ((rel-move (skip-chars-backward " \t\n")))
     (if arg rel-move (point))))
 
