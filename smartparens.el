@@ -4639,7 +4639,7 @@ Examples: (prefix arg in comment)
   (|foo bar baz)   -> (foo bar| baz) ;; 2
 
   (foo (bar baz|)) -> (foo (bar baz)|)"
-  (interactive "p")
+  (interactive "^p")
   (setq arg (or arg 1))
   (if (< arg 0)
       (sp-backward-sexp (- arg))
@@ -4650,6 +4650,8 @@ Examples: (prefix arg in comment)
         (setq n (1- n))
         (when ok (goto-char (sp-get ok :end))))
       ok)))
+
+(put 'sp-forward-sexp 'CUA 'move)
 
 (defun sp-backward-sexp (&optional arg)
   "Move backward across one balanced expression (sexp).
@@ -4671,7 +4673,7 @@ Examples: (prefix arg in comment)
   (foo bar| baz)   -> (|foo bar baz) ;; 2
 
   (|(foo bar) baz) -> ((|foo bar) baz)"
-  (interactive "p")
+  (interactive "^p")
   (setq arg (or arg 1))
   (if (< arg 0)
       (sp-forward-sexp (- arg))
@@ -4682,6 +4684,8 @@ Examples: (prefix arg in comment)
         (setq n (1- n))
         (when ok (goto-char (sp-get ok :beg))))
       ok)))
+
+(put 'sp-backward-sexp 'CUA 'move)
 
 (defun sp-next-sexp (&optional arg)
   "Move forward to the beginning of next balanced expression.
@@ -4699,7 +4703,7 @@ Examples:
   ((foo) |bar (baz quux)) -> ((foo) bar |(baz quux))
 
   ((foo) bar |(baz quux)) -> |((foo) bar (baz quux))"
-  (interactive "p")
+  (interactive "^p")
   (setq arg (or arg 1))
   (if (> arg 0)
       (if (= arg 1)
@@ -4712,6 +4716,8 @@ Examples:
         (sp-forward-sexp arg)
         (sp-backward-sexp))
     (sp-backward-sexp (- arg))))
+
+(put 'sp-next-sexp 'CUA 'move)
 
 (defun sp-previous-sexp (&optional arg)
   "Move backward to the end of previous balanced expression.
@@ -4729,7 +4735,7 @@ Examples:
   ((foo) bar| (baz quux)) -> ((foo)| bar (baz quux))
 
   ((foo)| bar (baz quux)) -> ((foo) bar (baz quux))|"
-  (interactive "p")
+  (interactive "^p")
   (setq arg (or arg 1))
   (if (> arg 0)
       (if (= arg 1)
@@ -4742,6 +4748,8 @@ Examples:
         (sp-backward-sexp arg)
         (sp-forward-sexp))
     (sp-forward-sexp (- arg))))
+
+(put 'sp-previous-sexp 'CUA 'move)
 
 (defun sp--raw-argument-p (arg)
   "Return t if ARG represents raw argument, that is a non-empty list."
@@ -4787,7 +4795,7 @@ Examples:
   (foo (bar baz) |quux) -> (|foo (bar baz) quux)
 
   (blab foo |(bar baz) quux) -> (|blab foo (bar baz) quux) ;; \\[universal-argument] \\[universal-argument]"
-  (interactive "P")
+  (interactive "^P")
   (let* ((raw (sp--raw-argument-p arg))
          (arg (prefix-numeric-value arg))
          (n (abs arg))
@@ -4816,6 +4824,8 @@ Examples:
             (goto-char (sp-get ok :beg-in))))))
     ok))
 
+(put 'sp-down-sexp 'CUA 'move)
+
 (defun sp-backward-down-sexp (&optional arg)
   "Move backward down one level of sexp.
 
@@ -4843,8 +4853,10 @@ Examples:
   (foo| (bar baz) quux) -> (foo (bar baz) quux|)
 
   (foo (bar baz) |quux blab) -> (foo (bar baz) quux blab|) ;; \\[universal-argument] \\[universal-argument]"
-  (interactive "P")
+  (interactive "^P")
   (sp-down-sexp (sp--negate-argument arg)))
+
+(put 'sp-backward-down-sexp 'CUA 'move)
 
 (defun sp-beginning-of-sexp (&optional arg)
   "Jump to beginning of the sexp the point is in.
@@ -4876,7 +4888,7 @@ Examples:
   (foo bar) (baz) (quux|) -> (|foo bar) (baz) (quux) ;; -3
 
   ((foo bar) (baz |quux) blab) -> (|(foo bar) (baz quux) blab) ;; \\[universal-argument]"
-  (interactive "P")
+  (interactive "^P")
   (let* ((raw (sp--raw-argument-p arg))
          (arg (prefix-numeric-value arg))
          (re (cond
@@ -4895,6 +4907,8 @@ Examples:
                (sp-down-sexp)))))
     (sp--run-hook-with-args (sp-get re :op) :post-handlers 'beginning-of-sexp)
     re))
+
+(put 'sp-beginning-of-sexp 'CUA 'move)
 
 (defun sp-end-of-sexp (&optional arg)
   "Jump to end of the sexp the point is in.
@@ -4926,7 +4940,7 @@ Examples:
   (foo bar) (baz) (quux|) -> (foo bar|) (baz) (quux) ;; -3
 
   ((foo |bar) (baz quux) blab) -> ((foo bar) (baz quux) blab|) ;; \\[universal-argument]"
-  (interactive "P")
+  (interactive "^P")
   (let* ((raw (sp--raw-argument-p arg))
          (arg (prefix-numeric-value arg))
          (re (cond
@@ -4946,6 +4960,8 @@ Examples:
     (sp--run-hook-with-args (sp-get re :op) :post-handlers 'end-of-sexp)
     re))
 
+(put 'sp-end-of-sexp 'CUA 'move)
+
 (defun sp-beginning-of-next-sexp (&optional arg)
   "Jump to the beginning of next sexp on the same depth.
 
@@ -4957,13 +4973,15 @@ Examples:
   (f|oo) (bar) (baz) -> (foo) (|bar) (baz)
 
   (f|oo) (bar) (baz) -> (foo) (bar) (|baz) ;; 2"
-  (interactive "P")
+  (interactive "^P")
   (if (sp--raw-argument-p arg)
       (sp-beginning-of-sexp arg)
     (let ((arg (prefix-numeric-value arg)))
       (if (> arg 0)
           (sp-beginning-of-sexp (1+ arg))
         (sp-beginning-of-sexp (1- arg))))))
+
+(put 'sp-beginning-of-next-sexp 'CUA 'move)
 
 (defun sp-beginning-of-previous-sexp (&optional arg)
   "Jump to the beginning of previous sexp on the same depth.
@@ -4976,13 +4994,15 @@ Examples:
   (foo) (b|ar) (baz) -> (|foo) (bar) (baz)
 
   (foo) (bar) (b|az) -> (|foo) (bar) (baz) ;; 2"
-  (interactive "P")
+  (interactive "^P")
   (if (sp--raw-argument-p arg)
       (sp-beginning-of-sexp (sp--negate-argument arg))
     (let ((arg (prefix-numeric-value arg)))
       (if (> arg 0)
           (sp-beginning-of-sexp (- (1+ arg)))
         (sp-beginning-of-sexp (- (1- arg)))))))
+
+(put 'sp-beginning-of-previous-sexp 'CUA 'move)
 
 (defun sp-end-of-next-sexp (&optional arg)
   "Jump to the end of next sexp on the same depth.
@@ -4995,13 +5015,15 @@ Examples:
   (f|oo) (bar) (baz) -> (foo) (bar|) (baz)
 
   (f|oo) (bar) (baz) -> (foo) (bar) (baz|) ;; 2"
-  (interactive "P")
+  (interactive "^P")
   (if (sp--raw-argument-p arg)
       (sp-end-of-sexp arg)
     (let ((arg (prefix-numeric-value arg)))
       (if (> arg 0)
           (sp-end-of-sexp (1+ arg))
         (sp-end-of-sexp (1- arg))))))
+
+(put 'sp-end-of-next-sexp 'CUA 'move)
 
 (defun sp-end-of-previous-sexp (&optional arg)
   "Jump to the end of previous sexp on the same depth.
@@ -5014,13 +5036,15 @@ Examples:
   (foo) (b|ar) (baz) -> (foo|) (bar) (baz)
 
   (foo) (bar) (b|az) -> (foo|) (bar) (baz) ;; 2"
-  (interactive "P")
+  (interactive "^P")
   (if (sp--raw-argument-p arg)
       (sp-end-of-sexp (sp--negate-argument arg))
     (let ((arg (prefix-numeric-value arg)))
       (if (> arg 0)
           (sp-end-of-sexp (- (1+ arg)))
         (sp-end-of-sexp (- (1- arg)))))))
+
+(put 'sp-end-of-previous-sexp 'CUA 'move)
 
 (defun sp-up-sexp (&optional arg interactive)
   "Move forward out of one level of parentheses.
@@ -5047,7 +5071,7 @@ Examples:
 ​   )
 
   (foo  |(bar baz)           -> (foo)| (bar baz) ;; close unbalanced expr."
-  (interactive "p\np")
+  (interactive "^p\np")
   (setq arg (or arg 1))
   (let ((ok (sp-get-enclosing-sexp (abs arg))))
     (if ok
@@ -5103,6 +5127,8 @@ Examples:
             (insert (cdr active-pair))))))
     ok))
 
+(put 'sp-up-sexp 'CUA 'move)
+
 (defun sp-backward-up-sexp (&optional arg interactive)
   "Move backward out of one level of parentheses.
 
@@ -5124,9 +5150,11 @@ Examples:
 
   (                  -> |(foo bar baz)
 ​    foo |bar baz)"
-  (interactive "p\np")
+  (interactive "^p\np")
   (setq arg (or arg 1))
   (sp-up-sexp (- arg) interactive))
+
+(put 'sp-backward-up-sexp 'CUA 'move)
 
 (defvar sp-last-kill-whitespace nil
   "Save the whitespace cleaned after the last kill.
@@ -6023,8 +6051,10 @@ Examples:
   foo|   bar -> foo   |bar
 
   foo|   [bar baz] -> foo   |[bar baz]"
-  (interactive)
+  (interactive "^")
   (sp--skip-to-symbol-1 t))
+
+(put 'sp-skip-forward-to-symbol 'CUA 'move)
 
 (defun sp-skip-backward-to-symbol (&optional stop-at-string stop-after-string stop-inside-string)
   "Skip whitespace and comments moving backward.
@@ -6040,8 +6070,10 @@ Examples:
   foo   |bar -> foo|   bar
 
   [bar baz]   |foo -> [bar baz]|   foo"
-  (interactive)
+  (interactive "^")
   (sp--skip-to-symbol-1 nil))
+
+(put 'sp-skip-backward-to-symbol 'CUA 'move)
 
 (defun sp-skip-into-string (&optional back)
   "Move the point into the next string.
@@ -6077,7 +6109,7 @@ Examples:
   |foo (bar (baz))      -> foo (bar| (baz)) ;; 2
 
   |foo (bar (baz) quux) -> foo (bar (baz) quux|) ;; 4"
-  (interactive "p")
+  (interactive "^p")
   (setq arg (or arg 1))
   (let* ((n (abs arg))
          (fw (> arg 0))
@@ -6109,6 +6141,8 @@ Examples:
           (setq n (1- n)))
       (sp-backward-symbol n))))
 
+(put 'sp-forward-symbol 'CUA 'move)
+
 (defun sp-backward-symbol (&optional arg)
   "Move point to the next position that is the beginning of a symbol.
 
@@ -6130,7 +6164,7 @@ Examples:
   ((foo bar) baz)|        -> ((foo |bar) baz) ;; 2
 
   (quux ((foo) bar) baz)| -> (|quux ((foo) bar) baz) ;; 4"
-  (interactive "p")
+  (interactive "^p")
   (setq arg (or arg 1))
   (let ((n (abs arg))
         (fw (> arg 0))
@@ -6154,6 +6188,8 @@ Examples:
             (backward-char))
           (setq n (1- n)))
       (sp-forward-symbol n))))
+
+(put 'sp-backward-symbol 'CUA 'move)
 
 ;; TODO: read the rewrap pair as interactive arg
 (defun sp-rewrap-sexp (&optional arg)
@@ -6685,16 +6721,20 @@ expressions up until the start of enclosing list."
 (defun sp-forward-whitespace (&optional arg)
   "Skip forward past the whitespace characters.
 With non-nil ARG return number of characters skipped."
-  (interactive "P")
+  (interactive "^P")
   (let ((rel-move (skip-chars-forward " \t\n")))
     (if arg rel-move (point))))
+
+(put 'sp-forward-whitespace 'CUA 'move)
 
 (defun sp-backward-whitespace (&optional arg)
   "Skip backward past the whitespace characters.
 With non-nil ARG return number of characters skipped."
-  (interactive "P")
+  (interactive "^P")
   (let ((rel-move (skip-chars-backward " \t\n")))
     (if arg rel-move (point))))
+
+(put 'sp-backward-whitespace 'CUA 'move)
 
 (defun sp-split-sexp (arg)
   "Split the list or string the point is on into two.
