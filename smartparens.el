@@ -3859,6 +3859,18 @@ counting (stack) algorithm."
     (or (--any? (eq major-mode it) modes)
         (apply 'derived-mode-p derived))))
 
+(defun sp-get-stringlike-or-textmode-expression (&optional back)
+  "Return a stringlike expression using stringlike or textmode parser."
+  (if (sp-use-textmode-stringlike-parser-p)
+      (sp-get-textmode-stringlike-expression back)
+    ;; performance hack. If the delimiter is a character in
+    ;; syntax class 34, grab the string-like expression using
+    ;; `sp-get-string'
+    (if (and (= (length (match-string 0)) 1)
+             (eq (char-syntax (string-to-char (match-string 0))) 34))
+        (sp-get-string back)
+      (sp-get-stringlike-expression back))))
+
 (defun sp-get-expression (&optional back)
   "Find the nearest balanced expression of any kind.
 
@@ -3877,18 +3889,44 @@ By default, this is enabled in all modes derived from
             (ss (if back (1- (point-min)) (1+ (point-max)))))
         (setq ps (or (save-excursion (funcall search-fn pre nil t)) ps))
         (setq ss (or (save-excursion (funcall search-fn sre nil t)) ss))
-        (if (or (and (not back) (< ps ss))
-                (and back (> ps ss)))
-            (sp-get-paired-expression back)
-          ;; performance hack. If the delimiter is a character in
-          ;; syntax class 34, grab the string-like expression using
-          ;; `sp-get-string'
-          (if (sp-use-textmode-stringlike-parser-p)
-              (sp-get-textmode-stringlike-expression back)
-            (if (and (= (length (match-string 0)) 1)
-                     (eq (char-syntax (string-to-char (match-string 0))) 34))
-                (sp-get-string back)
-              (sp-get-stringlike-expression back)))))
+        ;; TODO: simplify this logic somehow... (this really depends
+        ;; on a rewrite of the core parser logic: separation of "find
+        ;; the valid opening" and "parse it")
+
+        ;; Here, we sacrifice readability for performance.  Because we
+        ;; only use regexp to look forward for the closest pair, it
+        ;; might occasionally happen that what we picked in fact
+        ;; *can't* form a pair and it returns error (for example, it
+        ;; is an unclosed pair or a quote between words like'so, which
+        ;; doesn't form a pair).  In such a case, or when the pair
+        ;; found is further than the other possible pair type (for
+        ;; example, we think we should parse stringlike, but we skip
+        ;; the first occurrence and the next one is only after a
+        ;; regular pair, which we should've picked instead), we must
+        ;; try the other parser as well.
+        (-let (((type . re) (if (or (and (not back) (< ps ss))
+                                    (and back (> ps ss)))
+                                (cons :regular (sp-get-paired-expression back))
+                              (cons :string (sp-get-stringlike-or-textmode-expression back)))))
+          (if re
+            (sp-get re
+              (cond
+               ;; If the returned sexp is regular, but the
+               ;; to-be-tried-string-expression is before it, we try
+               ;; to parse it as well, it might be a complete sexp in
+               ;; which case it should be returned.
+               ((and (eq type :regular)
+                     (or (and (not back) (< ss :beg))
+                         (and back (> ss :end))))
+                (or (sp-get-stringlike-or-textmode-expression back) re))
+               ((and (eq type :string)
+                     (or (and (not back) (< ps :beg))
+                         (and back (> ps :end))))
+                (or (sp-get-paired-expression back) re))
+               (t re)))
+            (if (eq type :regular)
+                (sp-get-stringlike-or-textmode-expression back)
+              (sp-get-paired-expression back)))))
     (sp-get-paired-expression back)))
 
 (defun sp-get-sexp (&optional back)
