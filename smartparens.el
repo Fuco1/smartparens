@@ -7594,19 +7594,18 @@ support custom pairs."
   "Display the show pair overlays."
   (when show-smartparens-mode
     (save-match-data
-      (cl-labels ((create-forward
-                   (match)
+      (cl-labels ((scan-and-place-overlays
+                   (match &optional back)
                    ;; we can use `sp-get-thing' here because we *are* at some
                    ;; pair opening, and so only the tag or the sexp can trigger.
-                   (-if-let (ok (sp-get-thing))
-                       (sp-get ok (sp-show--pair-create-overlays :beg :end :op-l :cl-l))
-                     (sp-show--pair-create-mismatch-overlay (point) (length match))))
-                  (create-backward
-                   (match)
-                   (-if-let (ok (sp-get-thing t))
-                       (sp-get ok (sp-show--pair-create-overlays :beg :end :op-l :cl-l))
-                     (sp-show--pair-create-mismatch-overlay (- (point) (length match))
-                                                            (length match)))))
+                   (-if-let (ok (sp-get-thing back))
+                       (sp-get ok
+                         (when (and (<= :beg (point)) (<= (point) :end))
+                           (sp-show--pair-create-overlays :beg :end :op-l :cl-l)))
+                     (if back
+                         (sp-show--pair-create-mismatch-overlay (- (point) (length match))
+                                                                (length match))
+                       (sp-show--pair-create-mismatch-overlay (point) (length match))))))
         (let* ((pair-list (sp--get-allowed-pair-list))
                (opening (sp--get-opening-regexp pair-list))
                (closing (sp--get-closing-regexp pair-list))
@@ -7618,19 +7617,19 @@ support custom pairs."
            ((and (not (sp--evil-normal-state-p))
                  (not (sp--evil-visual-state-p))
                  (sp--looking-back (if sp-show-pair-from-inside allowed closing)))
-            (create-backward (match-string 0)))
+            (scan-and-place-overlays (match-string 0) :back))
            ((or (sp--looking-at (if sp-show-pair-from-inside allowed opening))
                 (and (memq major-mode sp-navigate-consider-stringlike-sexp)
                      (looking-at (sp--get-stringlike-regexp)))
                 (and (memq major-mode sp-navigate-consider-sgml-tags)
                      (looking-at "<")))
-            (create-forward (match-string 0)))
+            (scan-and-place-overlays (match-string 0)))
            ((or (sp--looking-back (if sp-show-pair-from-inside allowed closing))
                 (and (memq major-mode sp-navigate-consider-stringlike-sexp)
                      (sp--looking-back (sp--get-stringlike-regexp)))
                 (and (memq major-mode sp-navigate-consider-sgml-tags)
                      (sp--looking-back ">")))
-            (create-backward (match-string 0)))
+            (scan-and-place-overlays (match-string 0) :back))
            (sp-show-pair-overlays
             (sp-show--pair-delete-overlays))))))))
 
