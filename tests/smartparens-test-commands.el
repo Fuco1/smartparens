@@ -270,6 +270,26 @@
     ("  (foo ((bar\n         b|az)\n        quux)\n zot)"
      "(foo (bar\n      b|az\n        quux)\n zot)"))))
 
+(sp-test-command sp-splice-sexp-killing-backward
+  ((nil
+    ("(\n    ;; foo bar\n asd\n as\n ;; asds (asdasd asd hgujirjf) asd\n a|sd\n )" "|asd\n")
+
+    ;; if we are in front of a comment which is on a separate line,
+    ;; keep it as it most likely pertains to the line after
+    ("(\n    ;; foo bar\n asd\n as\n |;; asds (asdasd asd hgujirjf) asd\n asd\n )" "|;; asds (asdasd asd hgujirjf) asd\nasd\n")
+    ("(\n    ;; foo bar\n asd\n as\n ;; as|ds (asdasd asd hgujirjf) asd\n asd\n )" "|;; asds (asdasd asd hgujirjf) asd\nasd\n")
+
+    ;; valid sexps inside comments should be treated as such
+    ("(\n    ;; foo bar\n asd\n as\n ;; asds (asdasd asd |hgujirjf) asd\n asd\n )" "(\n    ;; foo bar\n asd\n as\n ;; asds |hgujirjf asd\n asd\n )")
+
+    ;; if first "form" is a comment, keep it
+    ("(\n  |  ;; foo bar\n asd\n as\n ;; asds (asdasd asd hgujirjf) asd\n asd\n )" "|;; foo bar\nasd\nas\n;; asds (asdasd asd hgujirjf) asd\nasd\n")
+
+    ;; keep comment before the form from which we are splicing if it is on a separate line
+    ("(\n    ;; foo bar\n |asd\n as\n ;; asds (asdasd asd hgujirjf) asd\n asd\n )" "|;; foo bar\nasd\nas\n;; asds (asdasd asd hgujirjf) asd\nasd\n")
+    ("(\n    ;; foo bar\n asd\n as\n ;; asds (asdasd asd hgujirjf) asd\n |asd\n )" "|;; asds (asdasd asd hgujirjf) asd\nasd\n")
+    )))
+
 (sp-test-command sp-split-sexp
   ((nil
     ("(foo |bar baz)" "(foo) |(bar baz)")
