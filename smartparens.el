@@ -1841,10 +1841,10 @@ A special syntax for conditional execution of hooks is also
 supported.  If the added item is a list (function command1
 command2...), where funciton is a 3 argument function described
 above and command(s) can be either name of a command or a string
-representing an event.  If the last command the event as
-described by `single-key-description' matches any on the list,
-the hook will be executed.  This means these hooks are run not
-after the insertion, but after the *next* command is executed.
+representing an event.  If the last command or event as described
+by `single-key-description' matches any on the list, the hook
+will be executed.  This means these hooks are run not after the
+insertion, but after the *next* command is executed.
 
 Example:
   ((lambda (id act con)
