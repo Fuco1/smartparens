@@ -190,7 +190,8 @@
     (should (equal (sp-get-sexp) result))))
 
 (ert-deftest sp-test-sexp-parse nil
-  (let ((sp-pairs '((t . ((:open "=" :close "=" :actions (insert wrap autoskip navigate))
+  (let ((sp-navigate-consider-stringlike-sexp '(org-mode))
+        (sp-pairs '((t . ((:open "=" :close "=" :actions (insert wrap autoskip navigate))
                           (:open "'" :close "'" :actions (insert wrap autoskip navigate))
                           (:open "/" :close "/" :actions (insert wrap autoskip navigate))
                           (:open "[" :close "]" :actions (insert wrap autoskip navigate)))))))
