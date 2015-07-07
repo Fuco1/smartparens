@@ -2450,7 +2450,9 @@ value is used instead of a test."
                      (fun-spec (buffer-substring-no-properties p fun-end))
                      (instruction (cond
                                    ((equal fun-spec "i")
-                                    '(indent-according-to-mode)))))
+                                    '(indent-according-to-mode))
+                                   ((equal (aref fun-spec 0) ?d)
+                                    `(delete-char ,(string-to-number (substring fun-spec 1)))))))
                 (when instruction (push instruction spec)))))
            ((equal (match-string 0) "|")
             (cond
