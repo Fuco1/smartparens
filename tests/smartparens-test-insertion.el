@@ -43,10 +43,14 @@
 
 (ert-deftest sp-test-insertion-latex nil
   (load "auctex-autoloads")
-  (let ((sp-pairs '((t . ((:open "$" :close "$" :actions (insert wrap autoskip navigate))
-                          (:open "\\[" :close "\\]" :actions (insert wrap autoskip navigate))
-                          (:open "\\bigl(" :close "\\bigr)" :actions (insert wrap autoskip navigate))
-                          (:open "[" :close "]" :actions (insert wrap autoskip navigate)))))))
+  (let ((sp-undo-pairs-separately nil)
+        (sp-pairs '((latex-mode
+                     (:open "$" :close "$" :actions (insert wrap autoskip navigate))
+                     (:open "\\[" :close "\\]" :actions (insert wrap autoskip navigate))
+                     (:open "\\bigl(" :close "\\bigr)" :actions (insert wrap autoskip navigate))
+                     (:open "[" :close "]" :actions (insert wrap autoskip navigate))
+                     (:open "``" :close "''" :trigger "\"" :actions (insert wrap autoskip navigate))
+                     (:open "`" :close "'" :actions (insert wrap autoskip navigate))))))
     (sp-test-latex-insertion "|" "$" "$$")
     (sp-test-latex-insertion "|" "$$" "$$$$")
     (sp-test-latex-insertion "|" "$foo$$foo" "$foo$$foo$")
@@ -54,7 +58,10 @@
     (sp-test-latex-insertion "|" "\\[" "\\[\\]")
     (sp-test-latex-insertion "\\|" "[" "\\[\\]")
     (sp-test-latex-insertion "|" "[" "[]")
-    (sp-test-latex-insertion "foo | bar" "\\bigl(" "foo \\bigl(\\bigr) bar")))
+    (sp-test-latex-insertion "foo | bar" "\\bigl(" "foo \\bigl(\\bigr) bar")
+    (sp-test-latex-insertion "foo | bar" "``" "foo ``'' bar")
+    (sp-test-latex-insertion "foo | bar" "\"" "foo ``'' bar")
+    ))
 
 (defun sp-test--pair-to-insert (initial expected)
   (let ((sp-pairs sp--test-basic-pairs))

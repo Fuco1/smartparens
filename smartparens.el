@@ -2954,12 +2954,15 @@ pairs insertable by trigger are returned."
    ;; in case of triggers shorter always wins
    ((eq prop :trigger)
     (< (length (plist-get a :trigger)) (length (plist-get b :trigger))))
-   ;; shorter wins only if the shorter's closing is a prefix of the
-   ;; longer's closing
+   ;; Shorter wins only if the shorter's closing is a prefix of the
+   ;; longer's closing.  In other words, if we are looking at
+   ;; shorter's closing and we are trying to nest it.
    (t
     (if (< (length (plist-get a :open)) (length (plist-get b :open)))
-        (string-prefix-p (plist-get a :close) (plist-get b :close))
-      (not (string-prefix-p (plist-get b :close) (plist-get a :close)))))))
+        (and (string-prefix-p (plist-get a :close) (plist-get b :close))
+             (sp--looking-at-p (plist-get a :close)))
+      (not (and (string-prefix-p (plist-get b :close) (plist-get a :close))
+                (sp--looking-at-p (plist-get b :close))))))))
 
 (defun sp--pair-to-insert ()
   "Return pair that can be inserted at point.
