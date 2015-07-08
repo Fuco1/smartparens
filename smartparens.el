@@ -436,6 +436,11 @@ Symbol is defined as a chunk of text recognized by
                          common-lisp-mode)
   "List of Lisp modes.")
 
+(defvar sp--no-reindent-after-kill-modes '(
+                                           coffee-mode
+                                           js2-mode)
+  "List of modes that should not reindent after kill.")
+
 (defvar sp--html-modes '(
                          sgml-mode
                          html-mode
@@ -5438,15 +5443,16 @@ Note: prefix argument is shown after the example in
                   (buffer-substring-no-properties bdel edel)
                 "")))
       (delete-region bdel edel)))
-  (if (memq major-mode sp--lisp-modes)
-      (indent-according-to-mode)
-    (save-excursion
-      (indent-region (line-beginning-position) (line-end-position)))
-    (when (> (save-excursion
-               (back-to-indentation)
-               (current-indentation))
-             (current-column))
-      (back-to-indentation))))
+  (unless (memq major-mode sp--no-reindent-after-kill-modes)
+    (if (memq major-mode sp--lisp-modes)
+        (indent-according-to-mode)
+      (save-excursion
+        (indent-region (line-beginning-position) (line-end-position)))
+      (when (> (save-excursion
+                 (back-to-indentation)
+                 (current-indentation))
+               (current-column))
+        (back-to-indentation)))))
 
 (defun sp-backward-kill-sexp (&optional arg dont-kill)
   "Kill the balanced expression preceding point.
