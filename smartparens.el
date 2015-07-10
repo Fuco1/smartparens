@@ -440,7 +440,9 @@ Symbol is defined as a chunk of text recognized by
                                              coffee-mode
                                              js2-mode
                                              )
-  "List of modes that should not reindent after kill.")
+  "List of modes that should not reindent after kill."
+  :type '(repeat symbol)
+  :group 'smartparens)
 
 (defvar sp--html-modes '(
                          sgml-mode
