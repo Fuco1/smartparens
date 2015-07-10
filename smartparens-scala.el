@@ -1,10 +1,10 @@
 ;;; smartparens-scala.el --- Additional configuration for Scala based modes.
 
-;; Copyright (C) 2015 Matus Goljer
+;; Copyright (C) 2015 Greg Nwosu
 
-;; Author: Matus Goljer <matus.goljer@gmail.com>
-;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
-;; Created: 8 February 2015
+;; Author: Greg Nwosu <greg.nwosu@gmail.com>
+;; Maintainer: Greg Nwosu <greg.nwosu@gmail.com>
+;; Created: 8 July 2015
 ;; Keywords: abbrev convenience editing
 ;; URL: https://github.com/Fuco1/smartparens
 
@@ -48,7 +48,7 @@
 (require 'smartparens)
 
 ;; Scala has no sexp suffices.  This fixes slurping
-;; (|sys).path.append---the dot should not travel with the closing
+;; import scala.mutable{|} ListBuffer, Set ---the comma should not travel with the closing
 ;; paren
 (--each '(scala-mode inferior-scala-mode)
   (add-to-list 'sp-sexp-suffix (list it 'regexp "")))
