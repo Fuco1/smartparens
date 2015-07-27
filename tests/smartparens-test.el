@@ -85,7 +85,13 @@ executing `sp-skip-closing-pair'."
                       (insert "b")))))
   (should (equal (sp--parse-insertion-spec "[i]")
                  '(progn
-                    (indent-according-to-mode)))))
+                    (indent-according-to-mode))))
+  (should (equal (sp--parse-insertion-spec "[d3]")
+                 '(progn
+                    (delete-char 3))))
+  (should (equal (sp--parse-insertion-spec "[d12]")
+                 '(progn
+                    (delete-char 12)))))
 
 (ert-deftest sp-test-sp-autoescape-string-quote-if-empty ()
   (let ((python-indent-offset 4))
