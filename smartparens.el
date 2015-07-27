@@ -7340,7 +7340,8 @@ string delimiter enclosing this string."
              (save-excursion (forward-char) (not (sp-point-in-string)))
              (save-excursion (backward-char) (not (sp-point-in-string))))
     (save-excursion
-      (let ((c (char-to-string (nth 3 (syntax-ppss pos)))))
+      (let* ((syntax (nth 3 (syntax-ppss pos)))
+             (c (char-to-string (if (eq syntax t) (following-char) syntax))))
         (cons c c)))))
 
 (defun sp-zap-syntax (syntax &optional back)
