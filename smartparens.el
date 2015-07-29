@@ -2500,11 +2500,12 @@ see `sp-pair' for description."
           (context (sp--get-handler-context type)))
       (if hook
           (--each hook (sp--run-function-or-insertion it id action context))
+        ;; TODO: WHAT THE FUCK IS THIS ???11?
         (let ((tag-hook (plist-get
                          (--first (string-match-p
                                    (replace-regexp-in-string "_" ".*?" (plist-get it :open))
                                    id)
-                                  (cdr (assq 'html-mode sp-tags)))
+                                  (cdr (assq 'html-mode sp-tags))) ;; REALLY?
                          type)))
           (run-hook-with-args 'tag-hook id action context))))))
 
@@ -3250,8 +3251,6 @@ achieve this by using `sp-pair' or `sp-local-pair' with
                                                     (match-beginning 0)
                                                     (match-end 0))))
                         (get-sexp))
-                       ;; here comes the feature when we're somewhere in the
-                       ;; middle of the sexp (or outside), if ever supported.
                        ((eq sp-autoskip-closing-pair 'always)
                         (get-enclosing-sexp))))))
           (when (and active-sexp
@@ -3278,6 +3277,8 @@ achieve this by using `sp-pair' or `sp-local-pair' with
               (unless (or test-only
                           sp-buffer-modified-p)
                 (set-buffer-modified-p nil))
+              (unless test-only
+                (sp--run-hook-with-args (sp-get active-sexp :op) :post-handlers 'skip-closing-pair))
               re)))))))
 
 (defun sp-delete-pair (&optional arg)
