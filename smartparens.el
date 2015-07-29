@@ -1075,6 +1075,52 @@ by specifying its :suffix property."
                 string))
   :group 'smartparens)
 
+(defcustom sp-split-sexp-always-split-as-string t
+  "Determine if sexp inside string is split.
+
+If the point is inside a sexp inside a string, the default
+behaviour is now to split the string, such that:
+
+  \"foo (|) bar\"
+
+becomes
+
+   \"foo (\"|\") bar\"
+
+instead of
+
+   \"foo ()|() bar\".
+
+Note: the old default behaviour was the reverse, it would split
+the sexp, but this is hardly ever what you want.
+
+You can add a post-handler on string pair and check for
+'split-string action to add concatenation operators of the
+language you work in (in each major-mode you can have a separate
+hook).
+
+For example, in PHP the string concatenation operator is a
+dot (.), so you would add:
+
+  (defun my-php-post-split-handler (_ action _)
+    (when (eq action 'split-sexp)
+      (just-one-space)
+      (insert \".  . \")
+      (backward-char 3)))
+
+  (sp-local-pair 'php-mode \"'\" nil
+   :post-handlers '(my-php-post-split-handler))
+
+Then
+
+  echo 'foo |baz';
+
+results in
+
+  echo 'foo' . | . 'baz';"
+  :type 'boolean
+  :group 'smartparens)
+
 ;; hybrid lines
 (defcustom sp-hybrid-kill-excessive-whitespace nil
   "If non-nil, `sp-kill-hybrid-sexp' will kill all whitespace up
@@ -6853,6 +6899,11 @@ If ARG is a raw prefix \\[universal-argument] split all the sexps in current exp
 in separate lists enclosed with delimiters of the current
 expression.
 
+See also setting `sp-split-sexp-always-split-as-string' which
+determines how sexps inside strings are treated and also for a
+discussion of how to automatically add concatenation operators to
+string splitting.
+
 Examples:
 
   (foo bar |baz quux)   -> (foo bar) |(baz quux)
@@ -6885,12 +6936,23 @@ Examples:
           (goto-char beg)
           (delete-char (length op))))))
    (t
-    (-when-let (ok (sp-get-enclosing-sexp 1))
-      (sp-get ok
-        (sp--run-hook-with-args :op :pre-handlers 'split-sexp)
-        (forward-char (- (prog1 (sp-backward-whitespace t) (insert :cl))))
-        (save-excursion (sp-forward-whitespace) (insert :op))
-        (sp--run-hook-with-args :op :post-handlers 'split-sexp))))))
+    (let ((should-split-as-string
+           (and sp-split-sexp-always-split-as-string
+                (sp-point-in-string))))
+      (-when-let (ok (if should-split-as-string
+                         (save-excursion
+                           (goto-char (1- (cdr (sp-get-quoted-string-bounds))))
+                           (sp-get-enclosing-sexp 1))
+                       (sp-get-enclosing-sexp 1)))
+        (sp-get ok
+          (sp--run-hook-with-args :op :pre-handlers 'split-sexp)
+          (if should-split-as-string
+              (progn
+                (insert :cl)
+                (save-excursion (insert :op)))
+            (forward-char (- (prog1 (sp-backward-whitespace t) (insert :cl))))
+            (save-excursion (sp-forward-whitespace) (insert :op)))
+          (sp--run-hook-with-args :op :post-handlers 'split-sexp)))))))
 
 (defun sp--join-sexp (prev next)
   "Join the expressions PREV and NEXT if they are of the same type.
