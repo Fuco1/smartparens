@@ -6873,8 +6873,11 @@ Examples:
           (delete-char (length op))))))
    (t
     (-when-let (ok (sp-get-enclosing-sexp 1))
-      (forward-char (- (prog1 (sp-backward-whitespace t) (insert (sp-get ok :cl)))))
-      (save-excursion (sp-forward-whitespace) (insert (sp-get ok :op)))))))
+      (sp-get ok
+        (sp--run-hook-with-args :op :pre-handlers 'split-sexp)
+        (forward-char (- (prog1 (sp-backward-whitespace t) (insert :cl))))
+        (save-excursion (sp-forward-whitespace) (insert :op))
+        (sp--run-hook-with-args :op :post-handlers 'split-sexp)))))
 
 (defun sp--join-sexp (prev next)
   "Join the expressions PREV and NEXT if they are of the same type.
