@@ -6890,7 +6890,7 @@ Examples:
         (sp--run-hook-with-args :op :pre-handlers 'split-sexp)
         (forward-char (- (prog1 (sp-backward-whitespace t) (insert :cl))))
         (save-excursion (sp-forward-whitespace) (insert :op))
-        (sp--run-hook-with-args :op :post-handlers 'split-sexp)))))
+        (sp--run-hook-with-args :op :post-handlers 'split-sexp))))))
 
 (defun sp--join-sexp (prev next)
   "Join the expressions PREV and NEXT if they are of the same type.
