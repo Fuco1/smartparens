@@ -6472,9 +6472,10 @@ Examples:
   (-when-let (ok (sp-get-enclosing-sexp arg))
     (if (equal ";" (sp-get ok :prefix))
         (sp-get ok
-          (goto-char :beg)
-          (-when-let (enc (sp-get-enclosing-sexp arg))
-            (sp--unwrap-sexp enc)))
+          (save-excursion
+            (goto-char :beg)
+            (-when-let (enc (sp-get-enclosing-sexp arg))
+              (sp--unwrap-sexp enc))))
       (sp--unwrap-sexp ok))))
 
 (defun sp--splice-sexp-do-killing (beg end expr &optional jump-end)
