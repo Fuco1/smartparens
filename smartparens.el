@@ -1524,6 +1524,7 @@ replacement of all the keywords with actual calls to sp-get."
 ;; exposed by the sp-get macro.  This way, we can later change the
 ;; internal representation without much trouble.
 
+;; TODO: rewrite this in terms of `symbol-macrolet' ??
 (defmacro sp-get (struct &rest forms)
   "Get a property from a structure.
 
@@ -6493,10 +6494,6 @@ the point after the re-inserted text."
       (setq p (point)))
     (when (eq jump-end 'end) (goto-char p))))
 
-;; The following two functions could be very simply implemented using
-;; `sp-splice-sexp-killing-around' but these are more efficient
-;; implementations.  With sufficiently big lists the difference is
-;; noticable.
 (defun sp-splice-sexp-killing-backward (&optional arg)
   "Unwrap the current list and kill all the expressions
 between start of this list and the point.
@@ -6521,62 +6518,10 @@ delimiters you can use \\[universal-argument] \\[sp-backward-kill-sexp].
 See `sp-backward-kill-sexp' for more information."
   (interactive "p")
   (while (> arg 0)
-    (let (inside-comment-inside-sexp)
-      (-if-let (ok (save-excursion
-                     ;; If the point is inside a comment, we want to
-                     ;; operate on the sexp that contains it.  However,
-                     ;; if we are inside a sexp inside a comment, we
-                     ;; should operate on that instead.
-                     (if (sp-point-in-comment)
-                         (let ((enc (sp-get-enclosing-sexp 1))
-                               (cb (sp-get-comment-bounds)))
-                           (if (> (sp-get enc :beg) (car cb))
-                               (progn
-                                 (setq inside-comment-inside-sexp t)
-                                 enc)
-                             (goto-char (cdr cb))
-                             (skip-chars-forward "\t\n ")
-                             (sp-get-enclosing-sexp 1)))
-                       (sp-get-enclosing-sexp 1))))
-          (let* ((next (sp-get-thing))
-                 (from (cond
-                        ((and (sp-point-in-comment)
-                              (not inside-comment-inside-sexp))
-                         (car (sp-get-comment-bounds)))
-                        ((and (sp-point-in-comment)
-                              inside-comment-inside-sexp)
-                         (sp-get next :beg-prf))
-                        ;; If we are splicing before a comment, the
-                        ;; comment might be connected to the sexp
-                        ;; after it, so we better don't kill it.  Only
-                        ;; do that if the comment is on its own line
-                        ;; though, otherwise it is connected to the
-                        ;; sexp before it.
-                        ((save-excursion
-                           (skip-chars-forward "\t\n ")
-                           (when (and (sp-point-in-comment)
-                                      (save-excursion
-                                        (skip-chars-backward "\t ")
-                                        (looking-back "^")))
-                             (point))))
-                        ;; similarly, if there is a comment before
-                        ;; this sexp, keep it.
-                        ((save-excursion
-                           (sp-backward-symbol)
-                           (when (and (sp-point-in-comment)
-                                      (goto-char (car (sp-get-comment-bounds)))
-                                      (save-excursion
-                                        (skip-chars-backward "\t ")
-                                        (looking-back "^")))
-                             (point))))
-                        (t (sp-get next :beg-prf))))
-                 (to (sp-get ok :end-in)))
-            (if (sp-compare-sexps next ok)
-                (sp-kill-sexp '(16))
-              (sp--splice-sexp-do-killing from to ok)))
-        (setq arg -1)))
+    (sp-splice-sexp-killing-around '(4))
     (setq arg (1- arg))))
 
+;; TODO: write in terms of `sp-splice-sexp-killing-around'.
 (defun sp-splice-sexp-killing-forward (&optional arg)
   "Unwrap the current list and kill all the expressions between
 the point and the end of this list.
@@ -6638,23 +6583,84 @@ Examples:
   (foo (bar |baz) quux) -> |(bar baz) ;; with arg = \\[universal-argument] \\[universal-argument]"
   (interactive "P")
   (cond
-   ((equal arg '(4))
-    (sp-splice-sexp-killing-backward 1))
    ((equal arg '(-4))
     (sp-splice-sexp-killing-forward 1))
    (t
     (if (equal arg '(16))
         (progn
           (sp-backward-up-sexp)
-          (setq arg 1))
-      (setq arg (prefix-numeric-value arg)))
-    (let ((ok (sp-get-enclosing-sexp)) str)
+          (setq arg 1)))
+    (let* (inside-comment-inside-sexp
+           (num-arg (prefix-numeric-value arg))
+           (ok ;; (sp-get-enclosing-sexp 1)
+            (save-excursion
+              (sp-skip-backward-to-symbol)
+              ;; if the point is inside a comment, we want to
+              ;; operate on the sexp that contains it.  however,
+              ;; if we are inside a sexp inside a comment, we
+              ;; should operate on that instead.
+              (if (sp-point-in-comment)
+                  (let ((enc (sp-get-enclosing-sexp 1))
+                        (cb (sp-get-comment-bounds)))
+                    (if (> (sp-get enc :beg) (car cb))
+                        (progn
+                          (setq inside-comment-inside-sexp t)
+                          enc)
+                      (goto-char (cdr cb))
+                      ;; todo: replace with something more
+                      ;; abstract
+                      (skip-chars-forward "\t\n ")
+                      (sp-get-enclosing-sexp 1)))
+                (sp-get-enclosing-sexp 1))))
+           str)
       (when ok
-        (sp-select-next-thing-exchange arg)
-        (sp--splice-sexp-do-killing
-         (region-beginning)
-         (region-end)
-         ok (if (> arg 0) nil 'end)))))))
+        (when (and (sp-point-in-comment)
+                   (not inside-comment-inside-sexp))
+          (let ((cb (sp-get-comment-bounds)))
+            (goto-char (if (> num-arg 0) (car cb) (cdr cb)))))
+        (sp-skip-backward-to-symbol)
+        (-let* ((next (sp--next-thing-selection arg))
+                ((from . to)
+                 (cond
+                  ((and (sp-point-in-comment)
+                        (not inside-comment-inside-sexp))
+                   (if (> num-arg 0)
+                       ;; only extends to keep the comment if raising
+                       ;; towards the end.
+                       (cons (car (sp-get-comment-bounds))
+                             (sp-get next :end-suf))
+                     (sp-get next (cons :beg-prf :end-suf))))
+                  ((and (sp-point-in-comment)
+                        inside-comment-inside-sexp)
+                   (sp-get next (cons :beg-prf :end-suf)))
+                  ;; If we are splicing before a comment, the
+                  ;; comment might be connected to the sexp
+                  ;; after it, so we better don't kill it.  Only
+                  ;; do that if the comment is on its own line
+                  ;; though, otherwise it is connected to the
+                  ;; sexp before it.
+                  ((save-excursion
+                     (skip-chars-forward "\t\n ")
+                     (when (and (> num-arg 0)
+                                (sp-point-in-comment)
+                                (save-excursion
+                                  (skip-chars-backward "\t ")
+                                  (looking-back "^")))
+                       (cons (point) (sp-get next :end-suf)))))
+                  ;; similarly, if there is a comment before
+                  ;; this sexp, keep it.
+                  ((save-excursion
+                     (sp-backward-symbol)
+                     (when (and (> num-arg 0)
+                                (sp-point-in-comment)
+                                (goto-char (car (sp-get-comment-bounds)))
+                                (save-excursion
+                                  (skip-chars-backward "\t ")
+                                  (looking-back "^")))
+                       (cons (point) (sp-get next :end-suf)))))
+                  (t (sp-get next (cons :beg-prf :end-suf))))))
+          (sp--splice-sexp-do-killing from to
+                                      ok (if (> num-arg 0) nil 'end))))))))
 
 (defalias 'sp-raise-sexp 'sp-splice-sexp-killing-around)
 
