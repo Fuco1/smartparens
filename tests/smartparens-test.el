@@ -131,6 +131,30 @@ executing `sp-skip-closing-pair'."
 (ert-deftest sp-test-region-ok-unbalanced-paren-in-string ()
   (should (sp-test--string-valid-p "(foo \")\")")))
 
+(ert-deftest sp-test-get-prefix ()
+  ;; #488
+  (let ((sp-sexp-prefix '((emacs-lisp-mode regexp "#?[`',]@?"))))
+    (sp-test-with-temp-elisp-buffer "#'(fo|o)"
+      (should (equal (sp--get-prefix 3 "(") "#'")))
+    (sp-test-with-temp-elisp-buffer "'(fo|o)"
+      (should (equal (sp--get-prefix 2 "(") "'")))
+    (sp-test-with-temp-elisp-buffer "ad(fo|o)"
+      (should (equal (sp--get-prefix 3 "(") "")))
+    (sp-test-with-temp-elisp-buffer "(fo|o)"
+      (should (equal (sp--get-prefix 1 "(") "")))))
+
+(ert-deftest sp-test-get-suffix ()
+  ;; #488
+  (let ((sp-sexp-suffix '((emacs-lisp-mode regexp "'-?"))))
+    (sp-test-with-temp-elisp-buffer "(foo)'"
+      (should (equal (sp--get-suffix 6 "(") "'")))
+    (sp-test-with-temp-elisp-buffer "(foo)'-"
+      (should (equal (sp--get-suffix 6 "(") "'-")))
+    (sp-test-with-temp-elisp-buffer "(foo)-"
+      (should (equal (sp--get-suffix 6 "(") "")))
+    (sp-test-with-temp-elisp-buffer "(foo)"
+      (should (equal (sp--get-suffix 6 "(") "")))))
+
 (defun sp-test-run-tests ()
   (interactive)
   (ert "sp-test-*"))
