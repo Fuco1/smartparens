@@ -315,8 +315,18 @@
     ("(foo |bar baz)" "(foo) |(bar baz)")
     ("(foo bar|)" "(foo bar)|()")
 
+    ("\"foo |bar baz\"" "\"foo \"|\"bar baz\"")
+    ("\"foo bar|\"" "\"foo bar\"|\"\"")
+
+    ("\"(foo |bar) baz\"" "\"(foo \"|\"bar) baz\"")
+    )
+
+   (((sp-split-sexp-always-split-as-string nil))
     ("\"foo |bar baz\"" "\"foo\" |\"bar baz\"")
-    ("\"foo bar|\"" "\"foo bar\"|\"\""))
+    ("\"foo bar|\"" "\"foo bar\"|\"\"")
+
+    ("\"(foo |bar) baz\"" "\"(foo) |(bar) baz\"")
+    )
 
    (((current-prefix-arg '(4)))
     ("(foo |bar baz)" "(foo) |(bar) (baz)")
