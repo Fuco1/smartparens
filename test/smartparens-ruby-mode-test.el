@@ -1,4 +1,3 @@
-(require 'smartparens-test-env)
 (require 'smartparens-ruby)
 
 (defun sp-ruby-eq-ignore-indent (a b)
@@ -8,17 +7,18 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; basic pairs
 (defun sp-ruby-test-slurp-assert (n in _ expected)
-  (with-temp-buffer
-    (ruby-mode)
-    (smartparens-mode +1)
-    (save-excursion
-      (insert in))
-    (goto-char (search-forward (regexp-quote "X")))
-    (delete-char -1)
-    (sp-forward-slurp-sexp n)
-    (delete-trailing-whitespace)
-    (should
-     (sp-ruby-eq-ignore-indent (buffer-string) expected))))
+  (shut-up
+    (with-temp-buffer
+      (ruby-mode)
+      (smartparens-mode +1)
+      (save-excursion
+        (insert in))
+      (goto-char (search-forward (regexp-quote "X")))
+      (delete-char -1)
+      (sp-forward-slurp-sexp n)
+      (delete-trailing-whitespace)
+      (should
+       (sp-ruby-eq-ignore-indent (buffer-string) expected)))))
 
 (ert-deftest sp-test-ruby-slurp-forward ()
   (sp-ruby-test-slurp-assert 1 "
@@ -467,17 +467,18 @@ end
   )
 
 (defun sp-ruby-test-barf-assert (n in _ expected)
-  (with-temp-buffer
-    (ruby-mode)
-    (smartparens-mode +1)
-    (save-excursion
-      (insert in))
-    (goto-char (search-forward (regexp-quote "X")))
-    (delete-char -1)
-    (sp-forward-barf-sexp n)
-    (delete-trailing-whitespace)
-    (should
-     (sp-ruby-eq-ignore-indent (buffer-string) expected))))
+  (shut-up
+    (with-temp-buffer
+      (ruby-mode)
+      (smartparens-mode +1)
+      (save-excursion
+        (insert in))
+      (goto-char (search-forward (regexp-quote "X")))
+      (delete-char -1)
+      (sp-forward-barf-sexp n)
+      (delete-trailing-whitespace)
+      (should
+       (sp-ruby-eq-ignore-indent (buffer-string) expected)))))
 
 (ert-deftest sp-test-ruby-barf-forward ()
   (sp-ruby-test-barf-assert 1 "
@@ -688,17 +689,18 @@ foo = if true
   )
 
 (defun sp-ruby-test-splice-assert (n in _ expected)
-  (with-temp-buffer
-    (ruby-mode)
-    (smartparens-mode +1)
-    (save-excursion
-      (insert in))
-    (goto-char (search-forward (regexp-quote "X")))
-    (delete-char -1)
-    (sp-splice-sexp n)
-    (delete-trailing-whitespace)
-    (should
-     (sp-ruby-eq-ignore-indent (buffer-string) expected))))
+  (shut-up
+    (with-temp-buffer
+      (ruby-mode)
+      (smartparens-mode +1)
+      (save-excursion
+        (insert in))
+      (goto-char (search-forward (regexp-quote "X")))
+      (delete-char -1)
+      (sp-splice-sexp n)
+      (delete-trailing-whitespace)
+      (should
+       (sp-ruby-eq-ignore-indent (buffer-string) expected)))))
 
 (ert-deftest sp-test-ruby-splice ()
   (sp-ruby-test-splice-assert 1 "
@@ -876,7 +878,3 @@ foo.send(\"#{object}\").
 ")
 
   )
-
-
-
-(provide 'smartparens-test-ruby-mode)
