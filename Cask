@@ -8,5 +8,8 @@
 (depends-on "dash" "2.10.0")
 
 (development
+  (depends-on "f")
+  (depends-on "ert-runner")
+  (depends-on "shut-up")
   (depends-on "ruby-mode")
   (depends-on "auctex"))
