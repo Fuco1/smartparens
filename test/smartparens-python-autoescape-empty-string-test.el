@@ -1,0 +1,13 @@
+(ert-deftest sp-test-sp-autoescape-string-quote-if-empty ()
+  (let ((python-indent-offset 4))
+    (with-temp-buffer
+      (python-mode)
+      (smartparens-mode 1)
+      (insert "def foo():\n    ")
+      (pop-to-buffer (current-buffer))
+      (let ((sp-autoescape-string-quote-if-empty '(python-mode))
+            (sp-autoescape-string-quote t)
+            (sp-autoskip-closing-pair 'always)
+            (sp-undo-pairs-separately nil))
+        (execute-kbd-macro "\"\"\""))
+      (should (equal (buffer-string) "def foo():\n    \"\"\"\"\"\"")))))
