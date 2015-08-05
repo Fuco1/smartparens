@@ -452,22 +452,25 @@ Pairs are defined as expressions delimited by pairs from
 Symbol is defined as a chunk of text recognized by
 `sp-forward-symbol'.")
 
-(defvar sp--lisp-modes '(emacs-lisp-mode
+(defvar sp--lisp-modes '(cider-repl-mode
+                         clojure-mode
+                         clojurec-mode
+                         clojurescript-mode
+                         clojurex-mode
+                         common-lisp-mode
+                         emacs-lisp-mode
+                         eshell-mode
+                         geiser-repl-mode
+                         inf-clojure-mode
                          inferior-emacs-lisp-mode
                          inferior-lisp-mode
-                         inf-clojure-mode
-                         lisp-interaction-mode
-                         scheme-mode
-                         scheme-interaction-mode
                          inferior-scheme-mode
-                         geiser-repl-mode
+                         lisp-interaction-mode
                          lisp-mode
-                         eshell-mode
-                         slime-repl-mode
                          monroe-mode
-                         cider-repl-mode
-                         clojure-mode
-                         common-lisp-mode)
+                         scheme-interaction-mode
+                         scheme-mode
+                         slime-repl-mode)
   "List of Lisp modes.")
 
 (defcustom sp-no-reindent-after-kill-modes '(
