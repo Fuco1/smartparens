@@ -6,8 +6,7 @@ ECUKES ?= ecukes
 test: unit-tests #ecukes-features
 
 unit-tests: elpa
-	${CASK} exec ${EMACS} -Q -batch -L . -L test \
-		-l test/smartparens-test.el -f ert-run-tests-batch-and-exit
+	${CASK} exec ert-runner
 
 ecukes-features: elpa
 	${CASK} exec ${ECUKES} --no-win
