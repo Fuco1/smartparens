@@ -1,4 +1,4 @@
-(require 'smartparens-test-env)
+(require 'test-helper)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; basic pairs
