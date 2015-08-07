@@ -1,4 +1,3 @@
-(require 'dash)
 (require 'smartparens-config)
 
 (defun sp-test-wrapping (initial keys result)
@@ -41,5 +40,3 @@
   (let ((sp-pairs sp--test-basic-pairs))
     (sp-test-wrapping "|aM" "[[" "[[|a]]")
     (sp-test-wrapping "Ma|" "[[" "[[a]]|")))
-
-(provide 'smartparens-test-wrapping)

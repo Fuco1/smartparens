@@ -1,5 +1,3 @@
-(require 'test-helper)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; basic pairs
 
@@ -213,6 +211,3 @@
      latex-mode
      latex-mode-hook
      ,@forms))
-
-
-(provide 'smartparens-test-get-paired-expression)

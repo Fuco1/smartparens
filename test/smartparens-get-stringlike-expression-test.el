@@ -1,5 +1,3 @@
-(require 'test-helper)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; basic pairs
 
@@ -199,5 +197,3 @@
     (sp-test-sexp-parse-in-org "foo /bar/ n'est pas [a|sd] asd /baz/" '(:beg 21 :end 26 :op "[" :cl "]" :prefix "" :suffix ""))
     (sp-test-sexp-parse-in-org "foo /bar/ n'est pas [asd] |asd /baz/" '(:beg 31 :end 36 :op "/" :cl "/" :prefix "" :suffix ""))
     (sp-test-sexp-parse-in-org "|foo [bar /baz/ asd" '(:beg 10 :end 15 :op "/" :cl "/" :prefix "" :suffix ""))))
-
-(provide 'smartparens-test-get-stringlike-expression)

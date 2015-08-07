@@ -1,4 +1,3 @@
-(require 'dash)
 (require 'smartparens-config)
 
 (defun sp-test-command-setup ()
@@ -20,23 +19,24 @@
 
 (defun sp--test-command (command examples)
   "Run the test for COMMAND."
-  (cl-dolist (example examples)
-    (let ((before (car example)))
-      (cl-dolist (expected (cdr example))
-        (with-temp-buffer
-          (sp-test-command-setup)
-          (insert before)
-          (goto-char (point-min))
-          (search-forward "|")
-          (delete-char -1)
-          (call-interactively command)
-          (insert "|")
-          (cond
-           ((eq expected 'error)
-            (should (equal before (buffer-string))))
-           ((stringp expected)
-            (should (equal expected (buffer-string)))))
-          (setq before expected))))))
+  (shut-up
+    (cl-dolist (example examples)
+      (let ((before (car example)))
+        (cl-dolist (expected (cdr example))
+          (with-temp-buffer
+            (sp-test-command-setup)
+            (insert before)
+            (goto-char (point-min))
+            (search-forward "|")
+            (delete-char -1)
+            (call-interactively command)
+            (insert "|")
+            (cond
+             ((eq expected 'error)
+              (should (equal before (buffer-string))))
+             ((stringp expected)
+              (should (equal expected (buffer-string)))))
+            (setq before expected)))))))
 
 (sp-test-command sp-forward-sexp
   ((nil
@@ -414,5 +414,3 @@
     ("(foo\n bar| (baz\n      qux))" "(foo\n bar ;; |\n (baz\n  qux))")
     ("(foo\n bar |(baz\n      qux))" "(foo\n bar ;; |\n (baz\n  qux))")
     ("(foo\n bar (baz\n      |qux))" "(foo\n bar (baz\n      ;; |qux\n      ))"))))
-
-(provide 'smartparens-test-commands)

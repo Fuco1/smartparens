@@ -1,5 +1,4 @@
 ;; TODO: add proper headers and organize tests a bit better
-(require 'dash)
 (require 'smartparens-config)
 
 (defun sp-test-insertion (initial keys result)
@@ -91,5 +90,3 @@
   (sp-test--pair-to-insert "foo \\langle|" (cons "\\langle" "\\rangle"))
   ;; test trigger
   (sp-test--pair-to-insert "foo \\b|" (cons "\\big(" "\\big)")))
-
-(provide 'smartparens-test-insertion)
