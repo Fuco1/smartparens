@@ -110,6 +110,7 @@
 (eval-after-load "haskell-interactive-mode"     '(require 'smartparens-haskell))
 (--each '("python-mode" "python")
   (eval-after-load it '(require 'smartparens-python)))
+(eval-after-load "scala-mode" '(require 'smartparens-scala))
 
 (provide 'smartparens-config)
 
