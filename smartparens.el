@@ -2477,7 +2477,7 @@ If USE-INSIDE-STRING is non-nil, use value of
   (let ((in-string (cl-case type
                      (:pre-handlers
                       (save-excursion
-                        (backward-char 1)
+                        (unless (bobp) (backward-char 1))
                         (sp-point-in-string-or-comment)))
                      (:post-handlers
                       (sp-point-in-string-or-comment)))))
