@@ -89,7 +89,7 @@ begin
 end
 ")
 
-  (sp-ruby-test-slurp-assert 5 "
+  (sp-ruby-test-slurp-assert (if (version<= emacs-version "24.3") 5 4) "
 beginX
 end
 test ? a : b
@@ -381,7 +381,7 @@ begin
 end
 ")
 
-  (sp-ruby-test-slurp-assert -5 "
+  (sp-ruby-test-slurp-assert (if (version<= emacs-version "24.3") -5 -4) "
 test ? a : b
 beginX
 end
@@ -615,7 +615,7 @@ begin
 end
 ")
 
-  (sp-ruby-test-barf-assert -5 "
+  (sp-ruby-test-barf-assert (if (version<= emacs-version "24.3") -5 -4) "
 begin
   test ? a : bX
 end
