@@ -59,7 +59,7 @@
 (defvar sp-test-get-paired-expression-elisp
   '(("'(foo)" 2 7 "(" ")" "'" "")
     ("`(foo)" 2 7 "(" ")" "`" "")
-    (",@(foo)" 3 8 "(" ")" ",@" "")
+    (",(foo)" 2 7 "(" ")" "," "")
     (",[vector foo (bar) lolz]" 2 25 "[" "]" "," "")
     ("(foo (bar) (baz) ((quux) (quo)) qua);;asdasdasd" 1 37 "(" ")" "" "")
     ("(foo (bar) (baz) ((quux) (quo)) qua) ;;asdasdasd" 1 37 "(" ")" "" "")
