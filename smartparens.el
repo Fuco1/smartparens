@@ -1288,7 +1288,20 @@ If optional argument P is present test this instead off point."
           ;; treated as whitespace
           (and (< p (point-max))
                (memq (char-syntax (char-after p)) '(?< ?>))
-               (not (eq (char-after p) ?\n)))))))
+               (not (eq (char-after p) ?\n)))
+          ;; we also need to test the special syntax flag for comment
+          ;; starters and enders, because `syntax-ppss' does not yet
+          ;; know if we are inside a comment or not (e.g. / can be a
+          ;; division or comment starter...).
+          (-when-let (s (car (syntax-after p)))
+            (or (and (/= 0 (logand (lsh 1 16) s))
+                     (nth 4 (syntax-ppss (+ p 2))))
+                (and (/= 0 (logand (lsh 1 17) s))
+                     (nth 4 (syntax-ppss (+ p 1))))
+                (and (/= 0 (logand (lsh 1 18) s))
+                     (nth 4 (syntax-ppss (- p 1))))
+                (and (/= 0 (logand (lsh 1 19) s))
+                     (nth 4 (syntax-ppss (- p 2))))))))))
 
 (defun sp-point-in-string-or-comment (&optional p)
   "Return non-nil if point is inside string, documentation string or a comment.
@@ -3541,10 +3554,20 @@ If the point is not inside a quoted string, return nil."
                                (or (sp-point-in-comment)
                                    (looking-at "[[:space:]]+\\s<")))
                      (forward-char 1))
-                   (when (not (or (eobp)
-                                  (or (sp-point-in-comment)
-                                      (looking-at "[[:space:]]+\\s<"))))
-                     (backward-char 1))
+                   (let ((pp (1- (point))))
+                     (when (not (or (eobp)
+                                   (sp-point-in-comment)
+                                   (looking-at "[[:space:]]+\\s<")
+                                   (and (eq (char-syntax
+                                             (char-after pp)) ?>)
+                                        (not (eq (char-after pp) ?\n)))
+                                   (/= (logand
+                                        (lsh 1 18)
+                                        (car (syntax-after pp))) 0)
+                                   (/= (logand
+                                        (lsh 1 19)
+                                        (car (syntax-after pp))) 0)))
+                      (backward-char 1)))
                    (point))))
       (cons open close))))
 
