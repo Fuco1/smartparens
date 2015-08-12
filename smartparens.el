@@ -1228,7 +1228,7 @@ insert the modes."
                                                      (regexp-opt '("sp-with-modes"
                                                                    "sp-get"
                                                                    "sp-compare-sexps") t)
-                                                     "\\>")
+                                                     "\\_>")
                                             (1 font-lock-keyword-face))))
 
 (defun sp--evil-normal-state-p ()
