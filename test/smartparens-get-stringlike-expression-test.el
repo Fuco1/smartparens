@@ -197,3 +197,25 @@
     (sp-test-sexp-parse-in-org "foo /bar/ n'est pas [a|sd] asd /baz/" '(:beg 21 :end 26 :op "[" :cl "]" :prefix "" :suffix ""))
     (sp-test-sexp-parse-in-org "foo /bar/ n'est pas [asd] |asd /baz/" '(:beg 31 :end 36 :op "/" :cl "/" :prefix "" :suffix ""))
     (sp-test-sexp-parse-in-org "|foo [bar /baz/ asd" '(:beg 10 :end 15 :op "/" :cl "/" :prefix "" :suffix ""))))
+
+(defun sp-test-get-textmode-stringlike-expression-in-org (initial result &optional back)
+  (sp-test-with-temp-buffer initial
+      (org-mode)
+    (should (equal (sp-get-textmode-stringlike-expression back) result))))
+
+
+(ert-deftest sp-test-get-textmode-stringlike-expression nil
+  (let ((sp-navigate-consider-stringlike-sexp '(org-mode))
+        (sp-pairs '((t . ((:open "=" :close "=" :actions (insert wrap autoskip navigate))
+                          (:open "'" :close "'" :actions (insert wrap autoskip navigate))
+                          (:open "/" :close "/" :actions (insert wrap autoskip navigate))
+                          (:open "~" :close "~" :actions (insert wrap autoskip navigate)))))))
+    (sp-test-get-textmode-stringlike-expression-in-org "|/bar/ asd /baz/" '(:beg 1 :end 6 :op "/" :cl "/" :prefix "" :suffix ""))
+    (sp-test-get-textmode-stringlike-expression-in-org "/b|ar/ asd /baz/" '(:beg 1 :end 6 :op "/" :cl "/" :prefix "" :suffix ""))
+    (sp-test-get-textmode-stringlike-expression-in-org "/bar|/ asd /baz/" '(:beg 1 :end 6 :op "/" :cl "/" :prefix "" :suffix ""))
+    (sp-test-get-textmode-stringlike-expression-in-org "/bar/| asd /baz/" '(:beg 1 :end 6 :op "/" :cl "/" :prefix "" :suffix "") t)
+    (sp-test-get-textmode-stringlike-expression-in-org "/bar/ asd |/baz/" '(:beg 11 :end 16 :op "/" :cl "/" :prefix "" :suffix ""))
+    (sp-test-get-textmode-stringlike-expression-in-org "/bar/ asd /b|az/" '(:beg 11 :end 16 :op "/" :cl "/" :prefix "" :suffix ""))
+    (sp-test-get-textmode-stringlike-expression-in-org "/bar/ asd /baz|/" '(:beg 11 :end 16 :op "/" :cl "/" :prefix "" :suffix ""))
+    (sp-test-get-textmode-stringlike-expression-in-org "/bar/ asd /baz/|" '(:beg 11 :end 16 :op "/" :cl "/" :prefix "" :suffix "") t)
+    (sp-test-get-textmode-stringlike-expression-in-org "/bar/ asd ~a|sd~" '(:beg 11 :end 16 :op "~" :cl "~" :prefix "" :suffix ""))))

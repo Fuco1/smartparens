@@ -3918,9 +3918,9 @@ counting (stack) algorithm."
                   ;; then back up.
                   (ignore-errors
                     (when (and (not back) (eq type :open)) (backward-char (1+ (length delim))))
-                    (when (and (not back) (eq type :close)) (backward-char 1))
+                    (when (and (not back) (eq type :close) (not (eobp))) (backward-char 1))
                     (when (and back (eq type :close)) (forward-char (1+ (length delim))))
-                    (when (and back (eq type :open)) (forward-char 1)))
+                    (when (and back (eq type :open) (not (bobp))) (forward-char 1)))
                   (let ((other-end (point)))
                     (when (sp--find-next-textmode-stringlike-delimiter needle search-fn)
                       ;; Beware, we also need to test the beg/end of
