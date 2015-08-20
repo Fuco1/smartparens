@@ -7,7 +7,7 @@
 
 Smartparens is minor mode for Emacs that *deals with parens pairs and tries to be smart about it*. It started as a unification effort to combine functionality of several existing packages in a single, compatible and extensible way to deal with parentheses, delimiters, tags and the like. Some of these packages include [autopair](https://github.com/capitaomorte/autopair), [textmate](http://code.google.com/p/emacs-textmate/), [wrap-region](https://github.com/rejeep/wrap-region), [electric-pair-mode](http://www.emacswiki.org/emacs/ElectricPair), [paredit](http://emacswiki.org/emacs/ParEdit) and others. With the basic features found in other packages it also brings many improvements as well as completely new features. [Here's][wiki-what] a highlight of some features, for a complete list and detailed documentation look in the [manual][wiki-new].
 
-For the complete documentation visit the [documentation wiki][wiki].
+[Rommel Martinez](https://github.com/ebzzry) wrote a [shortish introduction](https://ebzzry.github.io/emacs-pairs.html) with worked examples, for the complete documentation visit the [documentation wiki][wiki].
 
 [wiki]: https://github.com/Fuco1/smartparens/wiki
 [wiki-what]: https://github.com/Fuco1/smartparens/wiki#wiki-what-is-this-package-about?
