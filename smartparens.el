@@ -1248,6 +1248,10 @@ insert the modes."
   "Checks to see if the current `evil-state' is in normal mode."
   (and (fboundp 'evil-normal-state-p) (evil-normal-state-p)))
 
+(defun sp--evil-motion-state-p ()
+  "Checks to see if the current `evil-state' is in motion mode."
+  (and (fboundp 'evil-motion-state-p) (evil-motion-state-p)))
+
 (defun sp--evil-visual-state-p ()
   "Checks to see if the current `evil-state' is in visual mode."
   (and (fboundp 'evil-visual-state-p) (evil-visual-state-p)))
@@ -7915,10 +7919,15 @@ support custom pairs."
            ;; if we are in a situation "()|", we should highlight the
            ;; regular pair and not the string pair "from inside"
            ((and (not (sp--evil-normal-state-p))
+                 (not (sp--evil-motion-state-p))
                  (not (sp--evil-visual-state-p))
                  (sp--looking-back (if sp-show-pair-from-inside allowed closing)))
             (scan-and-place-overlays (match-string 0) :back))
-           ((or (sp--looking-at (if sp-show-pair-from-inside allowed opening))
+           ((or (and (or (sp--evil-normal-state-p)
+                         (sp--evil-motion-state-p)
+                         (sp--evil-visual-state-p))
+                     (sp--looking-at (sp--get-allowed-regexp)))
+                (sp--looking-at (if sp-show-pair-from-inside allowed opening))
                 (and (memq major-mode sp-navigate-consider-stringlike-sexp)
                      (looking-at (sp--get-stringlike-regexp)))
                 (and (memq major-mode sp-navigate-consider-sgml-tags)
