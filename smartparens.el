@@ -1392,6 +1392,10 @@ of pairs and wraps.")
   '(
     TeX-insert-dollar
     TeX-insert-quote
+    quack-insert-opening-paren
+    quack-insert-closing-paren
+    quack-insert-opening-bracket
+    quack-insert-closing-bracket
     )
    "List of commands which are handled as if they were `self-insert-command's.
 
