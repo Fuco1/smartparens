@@ -117,6 +117,43 @@
      emacs-lisp-mode-hook
      ,@forms))
 
+;; new-style tests
+(defun sp-test--paired-expression-parse-in-elisp (initial result &optional back)
+  (sp-test-with-temp-elisp-buffer initial
+    (should (equal (sp-get-paired-expression back) result))))
+
+(ert-deftest sp-test-paired-expression-parse-in-elisp nil
+  ;; #505 when jumping out of strings we can skip a valid delimiter
+  (sp-test--paired-expression-parse-in-elisp "(foo (|bar \"baz(\"))" '(:beg 6 :end 18 :op "(" :cl ")" :prefix "" :suffix ""))
+  (sp-test--paired-expression-parse-in-elisp "(foo (|bar \"baz(\" ))" '(:beg 6 :end 19 :op "(" :cl ")" :prefix "" :suffix ""))
+  (sp-test--paired-expression-parse-in-elisp "(|\"(asd\") (foo)" '(:beg 1 :end 9 :op "(" :cl ")" :prefix "" :suffix ""))
+  (sp-test--paired-expression-parse-in-elisp "(| \"(asd\") (foo)" '(:beg 1 :end 10 :op "(" :cl ")" :prefix "" :suffix ""))
+  (sp-test--paired-expression-parse-in-elisp "(|\"(asd\" ) (foo)" '(:beg 1 :end 10 :op "(" :cl ")" :prefix "" :suffix ""))
+  (sp-test--paired-expression-parse-in-elisp "(\"(asd\"|) (foo)" '(:beg 1 :end 9 :op "(" :cl ")" :prefix "" :suffix ""))
+  (sp-test--paired-expression-parse-in-elisp "(\"(asd\"| ) (foo)" '(:beg 1 :end 10 :op "(" :cl ")" :prefix "" :suffix ""))
+  (sp-test--paired-expression-parse-in-elisp "(\"(asd\" |) (foo)" '(:beg 1 :end 10 :op "(" :cl ")" :prefix "" :suffix ""))
+  (sp-test--paired-expression-parse-in-elisp "(foo) (\"(asd\"|)" '(:beg 7 :end 15 :op "(" :cl ")" :prefix "" :suffix "") t)
+  (sp-test--paired-expression-parse-in-elisp "(foo) ( \"(asd\"|)" '(:beg 7 :end 16 :op "(" :cl ")" :prefix "" :suffix "") t)
+  (sp-test--paired-expression-parse-in-elisp "(foo) ( \"(asd\" |)" '(:beg 7 :end 17 :op "(" :cl ")" :prefix "" :suffix "") t)
+  (sp-test--paired-expression-parse-in-elisp "(foo) ( \"(asd\" | )" '(:beg 7 :end 18 :op "(" :cl ")" :prefix "" :suffix "") t)
+
+  (sp-test--paired-expression-parse-in-elisp "(foo (|bar ;baz(\n      ))" '(:beg 6 :end 24 :op "(" :cl ")" :prefix "" :suffix ""))
+  )
+
+(defun sp-test--paired-expression-parse-in-c (initial result &optional back)
+  (sp-test-with-temp-buffer initial
+      (c-mode)
+    (should (equal (sp-get-paired-expression back) result))))
+
+(ert-deftest sp-test-paired-expression-parse-in-c nil
+  (let ((sp-pairs '((t . ((:open "(" :close ")" :actions (insert wrap autoskip navigate))
+                          (:open "{" :close "}" :actions (insert wrap autoskip navigate))
+                          (:open "[" :close "]" :actions (insert wrap autoskip navigate))
+                          (:open "/*" :close "*/" :actions (insert wrap autoskip navigate)))))))
+    (sp-test--paired-expression-parse-in-c "asd |/* adasdad */" '(:beg 5 :end 18 :op "/*" :cl "*/" :prefix "" :suffix ""))
+    (sp-test--paired-expression-parse-in-c "asd /* adasdad */|" '(:beg 5 :end 18 :op "/*" :cl "*/" :prefix "" :suffix "") t)
+    ))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ruby pairs
