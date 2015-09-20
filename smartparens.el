@@ -3680,9 +3680,16 @@ The expressions considered are those delimited by pairs on
                                    (if back bw-bound fw-bound)
                                    r mb me ms)
         (unless (sp--skip-match-p ms mb me :global-skip global-skip-fn)
-          (when (not (if (not back)
-                         (sp-point-in-string-or-comment (1- (point)))
-                       (sp-point-in-string-or-comment)))
+          (unless (if back
+                      ;; When searching back, the point lands on the
+                      ;; first character of whatever pair we've found
+                      ;; and it is in the proper context, for example
+                      ;; "|(foo)"
+                      (sp-point-in-string-or-comment)
+                    ;; However, when searching forward, the point
+                    ;; lands after the last char of the pair so to get
+                    ;; its context we must back up one character
+                    (sp-point-in-string-or-comment (1- (point))))
             (setq in-string-or-comment nil))
           ;; if the point originally wasn't inside of a string or comment
           ;; but now is, jump out of the string/comment and only search
