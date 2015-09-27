@@ -1927,7 +1927,7 @@ needs.
 
 A special syntax for conditional execution of hooks is also
 supported.  If the added item is a list (function command1
-command2...), where funciton is a 3 argument function described
+command2...), where function is a 3 argument function described
 above and command(s) can be either name of a command or a string
 representing an event.  If the last command or event as described
 by `single-key-description' matches any on the list, the hook
@@ -4244,7 +4244,7 @@ enclosing list boundaries or line boundaries."
 (defun sp-get-enclosing-sexp (&optional arg)
   "Return the balanced expression that wraps point at the same level.
 
-With ARG, ascend that many times.  This funciton expect positive
+With ARG, ascend that many times.  This function expect positive
 argument."
   (setq arg (or arg 1))
   (save-excursion
@@ -4429,7 +4429,7 @@ This function simply transforms BOUNDS, which is a cons (BEG
 
 This also means if the point is inside a string, this string is
 returned.  If there are another symbols between point and the
-string, nil is returned.  That means that this funciton only
+string, nil is returned.  That means that this function only
 return non-nil if the string is the very next meaningful
 expression.
 
