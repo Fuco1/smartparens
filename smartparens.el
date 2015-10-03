@@ -1396,6 +1396,9 @@ of pairs and wraps.")
     quack-insert-closing-paren
     quack-insert-opening-bracket
     quack-insert-closing-bracket
+    racket-insert-closing-paren
+    racket-insert-closing-bracket
+    racket-insert-closing-brace
     )
    "List of commands which are handled as if they were `self-insert-command's.
 
