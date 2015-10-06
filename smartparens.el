@@ -895,6 +895,19 @@ variable `sp-wrap-entire-symbol'."
   :type 'boolean
   :group 'smartparens)
 
+(defcustom sp-wrap-respect-direction nil
+  "When non-nil respect the wrap direction.
+
+When non-nil, wrapping with opening pair always jumps to the
+beginning of the region and wrapping with closing pair always
+jumps to the end of the region.
+
+When nil, closing pair places the point at the end of the region
+and the opening pair leaves the point at its original
+position (before or after the region)."
+  :type 'boolean
+  :group 'smartparens)
+
 ;; escaping custom
 (defcustom sp-autoescape-string-quote t
   "If non-nil, autoescape string quotes if typed inside string."
@@ -2932,8 +2945,10 @@ OPEN and CLOSE are the delimiters."
            open close))
     (cond
      ((eq wrapping-end :open)
-      (when (> sp-wrap-point sp-wrap-mark)
-        (goto-char (overlay-end oend))))
+      (if sp-wrap-respect-direction
+          (goto-char (overlay-start obeg))
+        (when (> sp-wrap-point sp-wrap-mark)
+          (goto-char (overlay-end oend)))))
      ((eq wrapping-end :close)
       (goto-char (overlay-end oend))))
     (sp-wrap--clean-overlays)
