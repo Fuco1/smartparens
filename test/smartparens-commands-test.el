@@ -296,6 +296,10 @@
     ("(asdad asd (some-func) asdasd  |  )" "|")
     ("foo (asdad asd (some-func) asdasd|)" "foo |")
     ("foo (asdad asd (some-func) asdasd|) bar" "foo | bar")
+
+    ;; when there is a comment before the parent sexp and we are at
+    ;; the beginning, the comment shouldn't play any role
+    (";; foo bar\n\n(|foo bar baz)" ";; foo bar\n\n|foo bar baz")
     )))
 
 (sp-test-command sp-splice-sexp-killing-around

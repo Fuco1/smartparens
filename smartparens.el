@@ -6735,6 +6735,7 @@ Examples:
                      (when (and (> num-arg 0)
                                 (sp-point-in-comment)
                                 (goto-char (car (sp-get-comment-bounds)))
+                                (> (point) (sp-get ok :beg))
                                 (save-excursion
                                   (skip-chars-backward "\t ")
                                   (looking-back "^")))
