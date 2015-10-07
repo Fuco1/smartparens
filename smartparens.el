@@ -7145,13 +7145,17 @@ not necessarily represent a valid balanced expression!"
                 (sp-get ok
                   (setq end :end)
                   (setq cl :cl)
-                  (setq suffix :suffix))))))
-        (unless point
-          (-when-let (ok (sp-get-thing))
-            (sp-get ok
-              (setq beg :beg)
-              (setq op :op)
-              (setq prefix :prefix)))))
+                  (setq suffix :suffix)))))
+          (unless point
+            (-when-let (ok (sp-get-thing))
+              (if (sp-compare-sexps ok enc)
+                  (progn
+                    (setq beg end)
+                    (setq end (sp-get enc :end-in)))
+                (sp-get ok
+                  (setq beg :beg)
+                  (setq op :op)
+                  (setq prefix :prefix)))))))
        ;; select up until beg of list
        ((and raw (= arg -4))
         (let ((enc (sp-get-enclosing-sexp)))
