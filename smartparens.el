@@ -3605,7 +3605,8 @@ If the point is not inside a quoted string, return nil."
      (when ,res
        (setq ,beg (match-beginning 0))
        (setq ,end (match-end 0))
-       (setq ,str (match-string 0)))))
+       (setq ,str (match-string 0)))
+     ,res))
 
 (cl-defun sp--skip-match-p (ms mb me
                                &key
