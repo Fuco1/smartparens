@@ -12,4 +12,5 @@
   (depends-on "ert-runner")
   (depends-on "shut-up")
   (depends-on "ruby-mode")
+  (depends-on "racket-mode")
   (depends-on "auctex"))

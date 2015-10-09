@@ -4346,6 +4346,9 @@ prefix\" syntax class.  You can also specify a set of syntax code
 characters or a regexp for a specific major mode.  See
 `sp-sexp-prefix'.
 
+The point is expected to be at the opening delimiter of the sexp
+and the prefix is searched backwards.
+
 If the prefix property is defined for OP, the associated regexp
 is used to retrieve the prefix instead of the global setting."
   (let ((pref (sp-get-pair op :prefix)))
@@ -4791,16 +4794,27 @@ expressions are considered."
              ;; sexp.  We should skip a symbol forward and check if it
              ;; is a sexp, and then maybe readjust the output.
              (t (let* ((sym (sp-get-symbol nil))
-                       (sym-string (and sym (sp-get sym (buffer-substring-no-properties :beg :end)))))
+                       (sym-string (and sym (sp-get sym (buffer-substring-no-properties :beg :end))))
+                       (point-before-prefix (point)))
                   (when sym-string
-                    (goto-char (sp-get sym :end))
-                    (if (sp--looking-at (sp--get-opening-regexp))
+                    (if (sp--valid-initial-delimiter-p (sp--search-forward-regexp (sp--get-opening-regexp (sp--get-allowed-pair-list)) nil t))
                         (let* ((ms (match-string 0))
-                               (pref (sp--get-prefix (point) ms)))
+                               (pref (progn
+                                       ;; need to move before the
+                                       ;; opening, so (point) evals
+                                       ;; there.
+                                       (backward-char (length ms))
+                                       (sp--get-prefix (point) ms))))
+                          ;; We use >= because the first skip to
+                          ;; symbol might have skipped some prefix
+                          ;; chars which make prefix of the symbol
+                          ;; which together make prefix of a sexp.
+                          ;; For example \foo{} in latex, where \ is
+                          ;; prefix of symbol foo and \foo is prefix
+                          ;; of {
                           (if (and pref
-                                   (string-prefix-p
-                                    (sp--reverse-string sym-string)
-                                    (sp--reverse-string pref)))
+                                   (not (equal pref ""))
+                                   (>= point-before-prefix (- (point) (length pref))))
                               (sp-get-sexp nil)
                             sym))
                       sym)))))))))))))

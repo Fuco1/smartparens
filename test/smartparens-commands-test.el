@@ -1,4 +1,5 @@
 (require 'smartparens-config)
+(require 'racket-mode)
 
 (defun sp-test-command-setup ()
   (cond
@@ -172,7 +173,10 @@
    (((mode 'c))
     ("int funct() { int |foo =} bar;" "int funct() { int |foo = bar;}")
     ("int funct() { int |foo =}; bar" "int funct() { int |foo = bar};")
-    ("int funct() { int |foo =}; bar;" "int funct() { int |foo = bar;};"))))
+    ("int funct() { int |foo =}; bar;" "int funct() { int |foo = bar;};"))
+   (((mode 'racket)
+     (sp-sexp-prefix '((racket-mode regexp "#?['`,]@?"))))
+    ("(f|oo)  #'(bar)" "(f|oo  #'(bar))"))))
 
 (sp-test-command sp-backward-slurp-sexp
   ((nil
@@ -192,7 +196,11 @@
      "(f|oo)\nbar ;; baz (foo) baz\n(quux)")
 
     ("(foo)\nbar ;; baz (f|oo baz)\n(quux)"
-     "(foo)\nbar ;; baz (f|oo) baz\n(quux)"))))
+     "(foo)\nbar ;; baz (f|oo) baz\n(quux)"))
+
+   (((mode 'racket)
+     (sp-sexp-prefix '((racket-mode regexp "#?['`,]@?"))))
+    ("(f|oo  #'(bar))" "(f|oo)  #'(bar)"))))
 
 (sp-test-command sp-backward-barf-sexp
   ((nil
