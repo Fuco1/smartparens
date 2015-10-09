@@ -3719,13 +3719,14 @@ The expressions considered are those delimited by pairs on
            (bw-bound (if in-string-or-comment (car string-bounds) (point-min)))
            s e active-pair forward mb me ms r done
            possible-pairs possible-interfering-pairs possible-ops possible-cls)
-      (while (not done)
+      (while (and (not done)
+                  (sp--search-and-save-match
+                   search-fn
+                   (sp--get-allowed-regexp)
+                   (if back bw-bound fw-bound)
+                   r mb me ms))
         ;; search for the first opening pair.  Here, only consider tags
         ;; that are allowed in the current context.
-        (sp--search-and-save-match search-fn
-                                   (sp--get-allowed-regexp)
-                                   (if back bw-bound fw-bound)
-                                   r mb me ms)
         (unless (sp--skip-match-p ms mb me :global-skip global-skip-fn)
           ;; if the point originally wasn't inside of a string or comment
           ;; but now is, jump out of the string/comment and only search
