@@ -47,7 +47,9 @@
 (require 'smartparens)
 
 (sp-with-modes '(haskell-mode haskell-interactive-mode)
-  (sp-local-pair "{-#" "#-}"))
+  (sp-local-pair "{-#" "#-}")
+  (sp-local-pair "'" nil :unless '(sp-point-after-word-p))
+  (sp-local-pair "\\(" nil :actions nil))
 
 (defun sp--inferior-haskell-mode-backward-bound-fn ()
   "Limit the backward search to the prompt if point is on prompt."
