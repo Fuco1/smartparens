@@ -1,13 +1,15 @@
 (require 'smartparens-config)
-(require 'racket-mode)
 
 (defun sp-test-command-setup ()
   (cond
    ((not (boundp 'mode)) (emacs-lisp-mode))
    ((eq mode 'elisp) (emacs-lisp-mode))
+   ((eq mode 'racket) (racket-mode))
    ((eq mode 'c) (c-mode)))
   (smartparens-mode 1))
 
+;; TODO: don't use this, simply define the tests manually.  Gives more
+;; control and less magic
 (defmacro sp-test-command (command examples)
   (declare (indent 1))
   `(ert-deftest ,(intern (concat "sp-test-command-"
@@ -20,24 +22,28 @@
 
 (defun sp--test-command (command examples)
   "Run the test for COMMAND."
-  (shut-up
-    (cl-dolist (example examples)
-      (let ((before (car example)))
-        (cl-dolist (expected (cdr example))
-          (with-temp-buffer
-            (sp-test-command-setup)
-            (insert before)
-            (goto-char (point-min))
-            (search-forward "|")
-            (delete-char -1)
-            (call-interactively command)
-            (insert "|")
-            (cond
-             ((eq expected 'error)
-              (should (equal before (buffer-string))))
-             ((stringp expected)
-              (should (equal expected (buffer-string)))))
-            (setq before expected)))))))
+  ;; TODO: get rid of this
+  (unless (and (boundp 'mode)
+               (eq mode 'racket)
+               (version<= "24.3" emacs-version))
+    (shut-up
+      (cl-dolist (example examples)
+        (let ((before (car example)))
+          (cl-dolist (expected (cdr example))
+            (with-temp-buffer
+              (sp-test-command-setup)
+              (insert before)
+              (goto-char (point-min))
+              (search-forward "|")
+              (delete-char -1)
+              (call-interactively command)
+              (insert "|")
+              (cond
+               ((eq expected 'error)
+                (should (equal before (buffer-string))))
+               ((stringp expected)
+                (should (equal expected (buffer-string)))))
+              (setq before expected))))))))
 
 (sp-test-command sp-forward-sexp
   ((nil
