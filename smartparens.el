@@ -6511,8 +6511,9 @@ represent a valid object in a buffer!"
           (let ((b (bounds-of-thing-at-point 'line)))
             (delete-region (car b) (cdr b))))
         (setq indent-from (point)))
-      (sp--keep-indentation
-        (indent-region indent-from indent-to)))))
+      (unless (memq major-mode sp-no-reindent-after-kill-modes)
+        (sp--keep-indentation
+          (indent-region indent-from indent-to))))))
 
 (defun sp-unwrap-sexp (&optional arg)
   "Unwrap the following expression.
