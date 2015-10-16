@@ -411,6 +411,9 @@ run.")
   "Non-nil if buffer was modified before the advice on
 `self-insert-command' executed.")
 
+(defvar sp-pre-command-point nil
+  "Position of `point' before `this-command' gets executed.")
+
 (defconst sp-max-pair-length 10
   "Maximum length of an opening or closing delimiter.
 
@@ -2735,9 +2738,11 @@ see `sp-pair' for description."
 ;; commands to handle specially.
 (add-hook 'post-self-insert-hook 'sp--post-self-insert-hook-handler)
 
-;; TODO: get rid of this ugly state tracking
+;; TODO: make a proper data structure for state tracking and describe
+;; why we need each of these.
 (defun sp--save-pre-command-state ()
   (setq sp-point-inside-string (sp-point-in-string))
+  (setq sp-pre-command-point (point))
   (setq sp-buffer-modified-p (buffer-modified-p)))
 
 (add-hook 'pre-command-hook 'sp--save-pre-command-state)
@@ -2908,26 +2913,32 @@ overlay."
   "Initialize wrapping."
   (when (and sp-autowrap-region
              (sp-wrap--can-wrap-p))
-    ;; TODO: get rid of the following variables
-    (setq sp-wrap-point (1- (point)))
-    (setq sp-wrap-mark (mark))
-    ;; if point > mark, we need to move point to mark and reinsert the
-    ;; just inserted character.
-    (when (> (point) (mark))
-      (let ((char (delete-and-extract-region (1- (point)) (point))))
-        (exchange-point-and-mark)
-        (insert char)))
-    (let* ((oleft (make-overlay (1- (region-beginning)) (region-beginning) nil nil t))
-           (oright (make-overlay (region-end) (region-end) nil nil t)))
-      (setq sp-wrap-overlays (cons oleft oright))
-      (when sp-highlight-wrap-overlay
-        (overlay-put oleft 'face 'sp-wrap-overlay-face)
-        (overlay-put oright 'face 'sp-wrap-overlay-face))
-      (overlay-put oleft 'priority 100)
-      (overlay-put oright 'priority 100)
-      (overlay-put oleft 'keymap sp-wrap-overlay-keymap)
-      (overlay-put oleft 'type 'wrap)
-      (goto-char (1+ (overlay-start oleft))))))
+    ;; This is the length of string which was inserted by the last
+    ;; "self-insert" action.  Typically this is 1, but sometimes a
+    ;; single key inserts two or more characters, such as " in latex
+    ;; where it translates into `` or ''.
+    (let ((inserted-string-length (- (point) sp-pre-command-point)))
+      ;; TODO: get rid of the following variables
+      (setq sp-wrap-point (- (point) inserted-string-length))
+      (setq sp-wrap-mark (mark))
+      ;; if point > mark, we need to move point to mark and reinsert the
+      ;; just inserted character.
+      (when (> (point) (mark))
+        (let ((char (delete-and-extract-region (- (point) inserted-string-length) (point))))
+          (exchange-point-and-mark)
+          (insert char)))
+      (let* ((oleft (make-overlay (- (region-beginning) inserted-string-length)
+                                  (region-beginning) nil nil t))
+             (oright (make-overlay (region-end) (region-end) nil nil t)))
+        (setq sp-wrap-overlays (cons oleft oright))
+        (when sp-highlight-wrap-overlay
+          (overlay-put oleft 'face 'sp-wrap-overlay-face)
+          (overlay-put oright 'face 'sp-wrap-overlay-face))
+        (overlay-put oleft 'priority 100)
+        (overlay-put oright 'priority 100)
+        (overlay-put oleft 'keymap sp-wrap-overlay-keymap)
+        (overlay-put oleft 'type 'wrap)
+        (goto-char (1+ (overlay-start oleft)))))))
 
 (defun sp-wrap--finalize (wrapping-end open close)
   "Finalize a successful wrapping.
