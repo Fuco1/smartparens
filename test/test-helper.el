@@ -20,6 +20,9 @@
 (let ((sp-dir (f-parent (f-dirname (f-this-file)))))
   (add-to-list 'load-path sp-dir))
 (require 'smartparens-config)
+;; preload latex-mode settings
+(with-temp-buffer
+  (latex-mode))
 
 (defvar sp--test-basic-pairs
   '((t
