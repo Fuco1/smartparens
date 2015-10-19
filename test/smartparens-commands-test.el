@@ -1,5 +1,3 @@
-(require 'smartparens-config)
-
 (defun sp-test-command-setup ()
   (cond
    ((not (boundp 'mode)) (emacs-lisp-mode))

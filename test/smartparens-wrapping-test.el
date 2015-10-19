@@ -1,5 +1,3 @@
-(require 'smartparens-config)
-
 (defun sp-test-wrapping (initial keys result)
   (sp-test-with-temp-elisp-buffer initial
     (-each (-list keys) 'execute-kbd-macro)

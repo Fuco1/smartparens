@@ -19,7 +19,7 @@
 
 (let ((sp-dir (f-parent (f-dirname (f-this-file)))))
   (add-to-list 'load-path sp-dir))
-(require 'smartparens)
+(require 'smartparens-config)
 
 (defvar sp--test-basic-pairs
   '((t

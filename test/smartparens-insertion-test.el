@@ -1,5 +1,4 @@
 ;; TODO: add proper headers and organize tests a bit better
-(require 'smartparens-config)
 
 (defun sp-test-insertion (initial keys result)
   (sp-test-with-temp-elisp-buffer initial
