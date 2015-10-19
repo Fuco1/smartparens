@@ -54,6 +54,10 @@
                      (:open "``" :close "''" :trigger "\"" :actions (insert wrap autoskip navigate))
                      (:open "`" :close "'" :actions (insert wrap autoskip navigate))))))
     (sp-test-wrapping-latex "|fooM" "`" "`|foo'")
+    (sp-test-wrapping-latex "|fooM" "``" "``|foo''")
+
+    (sp-test-wrapping-latex "Mfoo|" "`" "`foo'|")
+    (sp-test-wrapping-latex "Mfoo|" "``" "``foo''|")
 
     (sp-test-wrapping-latex "Mfoo|" "\"" "``foo''|")
     (sp-test-wrapping-latex "|fooM" "\"" "``|foo''")))

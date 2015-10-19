@@ -2717,9 +2717,12 @@ see `sp-pair' for description."
         (sp-wrap))
        (t
         ;; TODO: this does not pick correct pair!! it uses insert and not wrapping code
-        (sp--setaction action (-when-let ((&keys :open open :close close)
-                                          (sp--pair-to-insert))
-                                (sp--wrap-repeat-last (cons open close))))
+        (sp--setaction action (-when-let ((_ . open-pairs) (sp--all-pairs-to-insert))
+                                (catch 'done
+                                  (-each open-pairs
+                                    (-lambda ((&keys :open open :close close))
+                                      (--when-let (sp--wrap-repeat-last (cons open close))
+                                        (throw 'done it)))))))
         (sp--setaction action (sp-insert-pair))
         (sp--setaction action (sp-skip-closing-pair))
         ;; if nothing happened, we just inserted a character, so
