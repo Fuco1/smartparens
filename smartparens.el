@@ -3152,7 +3152,18 @@ setting `sp-autoinsert-pair' to nil.
 You can globally disable insertion of closing pair if point is
 followed by the matching opening pair.  It is disabled by
 default."
-  (-let* ((active-pair (sp--pair-to-insert))
+  (-let* ((active-pair (unwind-protect
+                           ;; This fake insertion manufactures proper
+                           ;; context for the tests below... in effect
+                           ;; we must make it look as if the user
+                           ;; typed in the opening part themselves
+                           ;; TODO: it is duplicated in the test
+                           ;; below, maybe it wouldn't hurt to
+                           ;; restructure this function a bit
+                           (progn
+                             (when pair (insert pair))
+                             (sp--pair-to-insert))
+                         (when pair (delete-char (- (length pair))))))
           ((open-pair close-pair trig) (sp--insert-pair-get-pair-info active-pair)))
     (if (not (unwind-protect
                  (progn
