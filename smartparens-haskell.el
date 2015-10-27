@@ -53,15 +53,21 @@
 
 (defun sp--inferior-haskell-mode-backward-bound-fn ()
   "Limit the backward search to the prompt if point is on prompt."
-  (when comint-last-prompt-overlay
-    (let ((limit (overlay-end comint-last-prompt-overlay)))
-      (when (> (point) limit) limit))))
+  (-when-let (limit (cond ((bound-and-true-p comint-last-prompt)
+                           (marker-position (cdr comint-last-prompt)))
+                          ((bound-and-true-p comint-last-prompt-overlay)
+                           (overlay-end comint-last-prompt-overlay))
+                          (t nil)))
+    (and (> (point) limit) limit)))
 
 (defun sp--inferior-haskell-mode-forward-bound-fn ()
   "Limit the forward search to exclude the prompt if point is before prompt."
-  (when comint-last-prompt-overlay
-    (let ((limit (overlay-start comint-last-prompt-overlay)))
-      (when (< (point) limit) limit))))
+  (-when-let (limit (cond ((bound-and-true-p comint-last-prompt)
+                           (marker-position (car comint-last-prompt)))
+                          ((bound-and-true-p comint-last-prompt-overlay)
+                           (overlay-start comint-last-prompt-overlay))
+                          (t nil)))
+    (and (< (point) limit) limit)))
 
 (defun sp--setup-inferior-haskell-mode-search-bounds ()
   "Setup the search bound.
