@@ -111,6 +111,7 @@
 (--each '("python-mode" "python")
   (eval-after-load it '(require 'smartparens-python)))
 (eval-after-load "scala-mode" '(require 'smartparens-scala))
+(eval-after-load "racket-mode" '(require 'smartparens-racket))
 
 (provide 'smartparens-config)
 
