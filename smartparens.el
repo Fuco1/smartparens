@@ -473,7 +473,9 @@ Symbol is defined as a chunk of text recognized by
                          monroe-mode
                          scheme-interaction-mode
                          scheme-mode
-                         slime-repl-mode)
+                         slime-repl-mode
+                         racket-mode
+                         racket-repl-mode)
   "List of Lisp modes.")
 
 (defcustom sp-no-reindent-after-kill-modes '(
