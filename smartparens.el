@@ -5905,9 +5905,9 @@ triggers that `sp-forward-slurp-sexp' does."
               (goto-char :end-in)
               (insert (buffer-substring-no-properties
                        :beg-in
-		       (+ :beg-in (save-excursion
-				    (goto-char :beg-in)
-				    (skip-syntax-forward " ")))))))
+                       (+ :beg-in (save-excursion
+                                    (goto-char :beg-in)
+                                    (skip-syntax-forward " ")))))))
           (unless (or (looking-at "[ \t]*$")
                       (looking-at (sp--get-stringlike-regexp))
                       (looking-at (sp--get-closing-regexp)))
@@ -6832,8 +6832,8 @@ We want to move the `while' before the `let'.
                                      :end)))
            (inner-raise (sp-get enc (delete-and-extract-region
                                      :beg-prf
-				     (save-excursion
-				       (sp-forward-whitespace)))))
+                                     (save-excursion
+                                       (sp-forward-whitespace)))))
            (whitespace (sp-get enc
                          ;; this happens when the entire inside sexp was removed.
                          (when (= old-buffer-size (+ (buffer-size) :len))
