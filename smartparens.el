@@ -1233,7 +1233,9 @@ mute. Integers specify the maximum width."
 (defun sp--indent-region (start end &optional column)
   "Call `indent-region' unless `aggressive-indent-mode' is enabled."
   (unless (bound-and-true-p aggressive-indent-mode)
-    (indent-region start end column)))
+    ;; Don't issue "Indenting region..." message.
+    (cl-letf (((symbol-function 'message) #'ignore))
+      (indent-region start end column))))
 
 (defmacro sp-with-modes (arg &rest forms)
   "Add ARG as first argument to each form in FORMS.
