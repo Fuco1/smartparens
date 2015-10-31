@@ -393,12 +393,31 @@
 (sp-test-command sp-up-sexp
   ((nil
     ("(;; foo\n b|ar\n baz\n )" "(;; foo\n bar\n baz)|")
-    ("(;; foo\n b|ar\n baz\n ;; foo\n )" "(;; foo\n bar\n baz\n ;; foo\n )|"))
+    ("(;; foo\n b|ar\n baz\n ;; foo\n )" "(;; foo\n bar\n baz\n ;; foo\n )|")
+
+    ;; #446
+    ("(define-key sp-keymap (kbd | \"C-(\") 'sp-down-sexp)" "(define-key sp-keymap (kbd  \"C-(\")| 'sp-down-sexp)" )
+    ("(define-key sp-keymap (kbd | \"C-[\") 'sp-up-sexp)" "(define-key sp-keymap (kbd  \"C-[\")| 'sp-up-sexp)" )
+    ("(define-key sp-keymap (kbd | \"C-{\") 'sp-beginning-of-next-sexp)" "(define-key sp-keymap (kbd  \"C-{\")| 'sp-beginning-of-next-sexp)" ))
    (((current-prefix-arg -1))
     ("(\n b|ar\n baz)" "|(bar\n baz)")
     ("(;; foo\n b|ar\n baz)" "|(;; foo\n bar\n baz)")
     ("(`|(depends-on ,pkg))" "|(`(depends-on ,pkg))")
     ("(,@|(depends-on ,pkg))" "|(,@(depends-on ,pkg))"))))
+
+(sp-test-command sp-end-of-sexp
+  ((nil
+    ;; #446
+    ("(define-key sp-keymap (kbd | \"C-(\") 'sp-down-sexp)" "(define-key sp-keymap (kbd  \"C-(\"|) 'sp-down-sexp)" )
+    ("(define-key sp-keymap (kbd | \"C-[\") 'sp-up-sexp)" "(define-key sp-keymap (kbd  \"C-[\"|) 'sp-up-sexp)" )
+    ("(define-key sp-keymap (kbd | \"C-{\") 'sp-beginning-of-next-sexp)" "(define-key sp-keymap (kbd  \"C-{\"|) 'sp-beginning-of-next-sexp)" ))))
+
+(sp-test-command sp-beginning-of-sexp
+  ((nil
+    ;; #446
+    ("(define-key sp-keymap (kbd | \"C-(\") 'sp-down-sexp)" "(define-key sp-keymap (|kbd  \"C-(\") 'sp-down-sexp)" )
+    ("(define-key sp-keymap (kbd | \"C-[\") 'sp-up-sexp)" "(define-key sp-keymap (|kbd  \"C-[\") 'sp-up-sexp)" )
+    ("(define-key sp-keymap (kbd | \"C-{\") 'sp-beginning-of-next-sexp)" "(define-key sp-keymap (|kbd  \"C-{\") 'sp-beginning-of-next-sexp)" ))))
 
 (sp-test-command backward-delete-char
   ((nil
