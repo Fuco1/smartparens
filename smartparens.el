@@ -715,9 +715,16 @@ in mode's startup-hook etc.) by calling `smartparens-mode'."
 
 ;;;###autoload
 (defun turn-off-smartparens-mode ()
-  "Turn off `smartparens-mode'."
+  "Turn off `smartparens-mode'.
+See also `turn-off-smartparens-trict-mode'."
   (interactive)
   (smartparens-mode -1))
+
+;;;###autoload
+(defun turn-off-smartparens-strict-mode ()
+  "Turn off `smartparens-mode' and `smartparens-strict-mode'."
+  (interactive)
+  (smartparens-strict-mode -1))
 
 ;; insert custom
 (defcustom sp-autoinsert-pair t
