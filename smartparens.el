@@ -1232,6 +1232,13 @@ mute. Integers specify the maximum width."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Misc/Utility functions
 
+(defun sp--indent-region (start end &optional column)
+  "Call `indent-region' unless `aggressive-indent-mode' is enabled."
+  (unless (bound-and-true-p aggressive-indent-mode)
+    ;; Don't issue "Indenting region..." message.
+    (cl-letf (((symbol-function 'message) #'ignore))
+      (indent-region start end column))))
+
 (defmacro sp-with-modes (arg &rest forms)
   "Add ARG as first argument to each form in FORMS.
 
@@ -1847,8 +1854,8 @@ is wrapped instead.  This is useful with selection functions in
     (goto-char rb)
     (insert (car active-pair))
     (if (use-region-p)
-        (indent-region rb re)
-      (sp-get sel (indent-region :beg :end)))))
+        (sp--indent-region rb re)
+      (sp-get sel (sp--indent-region :beg :end)))))
 
 (cl-defun sp-pair (open
                    close
@@ -5547,7 +5554,7 @@ Note: prefix argument is shown after the example in
       (indent-according-to-mode)
     (unless (memq major-mode sp-no-reindent-after-kill-modes)
       (save-excursion
-        (indent-region (line-beginning-position) (line-end-position)))
+        (sp--indent-region (line-beginning-position) (line-end-position)))
       (when (> (save-excursion
                  (back-to-indentation)
                  (current-indentation))
@@ -5808,7 +5815,7 @@ handling of empty lines."
           (insert :cl)
           (goto-char :end-in)
           (delete-char :cl-l)))
-      (sp-get (sp-get-enclosing-sexp) (indent-region :beg :end))
+      (sp-get (sp-get-enclosing-sexp) (sp--indent-region :beg :end))
       (indent-according-to-mode)
       (sp--run-hook-with-args (sp-get prev-sexp :op) :post-handlers 'indent-adjust-sexp))))
 
@@ -5853,7 +5860,7 @@ handling of empty lines."
             (skip-syntax-forward " ")
             (skip-syntax-forward ".")
             (insert :cl)))
-        (sp-get enc (indent-region :beg :end))))
+        (sp-get enc (sp--indent-region :beg :end))))
     (indent-according-to-mode)
     (sp--run-hook-with-args (sp-get enc :op) :post-handlers 'dedent-adjust-sexp)))
 
@@ -5900,14 +5907,14 @@ triggers that `sp-forward-slurp-sexp' does."
               (goto-char :end-in)
               (insert (buffer-substring-no-properties
                        :beg-in
-                        (+ :beg-in (save-excursion
-                                     (goto-char :beg-in)
-                                     (skip-syntax-forward " ")))))))
+                       (+ :beg-in (save-excursion
+                                    (goto-char :beg-in)
+                                    (skip-syntax-forward " ")))))))
           (unless (or (looking-at "[ \t]*$")
                       (looking-at (sp--get-stringlike-regexp))
                       (looking-at (sp--get-closing-regexp)))
             (newline)))
-        (sp-get (sp--next-thing-selection -1) (indent-region :beg :end))
+        (sp-get (sp--next-thing-selection -1) (sp--indent-region :beg :end))
         ;; we need to call this again to get the new structure after
         ;; indent.
         (sp--next-thing-selection -1))
@@ -5964,7 +5971,7 @@ Examples:
                     (sp-get enc (insert :cl :suffix))
                     (goto-char (sp-get enc :end-suf))
                     (delete-char (sp-get enc (- (+ :cl-l :suffix-l))))
-                    (indent-region (sp-get enc :beg-prf) (sp-get next-thing :end))
+                    (sp--indent-region (sp-get enc :beg-prf) (sp-get next-thing :end))
                     (sp--run-hook-with-args (sp-get enc :op) :post-handlers 'slurp-forward)))
               (while (> n 0)
                 (goto-char (sp-get enc :end-suf))
@@ -5992,7 +5999,7 @@ Examples:
                         (goto-char (- (sp-get next-thing :end-suf) (sp-get ok (+ :cl-l :suffix-l)) ins-space))
                         (sp--run-hook-with-args (sp-get enc :op) :pre-handlers 'slurp-forward)
                         (sp-get ok (insert :cl :suffix))
-                        (indent-region (sp-get ok :beg-prf) (point))
+                        (sp--indent-region (sp-get ok :beg-prf) (point))
                         ;; HACK: update the "enc" data structure if ok==enc
                         (when (= (sp-get enc :beg) (sp-get ok :beg)) (plist-put enc :end (point)))
                         (sp--run-hook-with-args (sp-get enc :op) :post-handlers 'slurp-forward))
@@ -6045,7 +6052,7 @@ Examples:
                     (goto-char (sp-get next-thing :beg-in))
                     (sp--run-hook-with-args (sp-get enc :op) :pre-handlers 'slurp-backward)
                     (sp-get enc (insert :prefix :op))
-                    (indent-region (sp-get next-thing :beg-in) (sp-get enc :end))
+                    (sp--indent-region (sp-get next-thing :beg-in) (sp-get enc :end))
                     (sp--run-hook-with-args (sp-get enc :op) :post-handlers 'slurp-backward)))
               (while (> n 0)
                 (goto-char (sp-get enc :beg-prf))
@@ -6070,7 +6077,7 @@ Examples:
                         (goto-char (sp-get next-thing :beg-prf))
                         (sp--run-hook-with-args (sp-get enc :op) :pre-handlers 'slurp-backward)
                         (sp-get ok (insert :prefix :op))
-                        (indent-region (point) (sp-get ok :end))
+                        (sp--indent-region (point) (sp-get ok :end))
                         ;; HACK: update the "enc" data structure if ok==enc
                         (when (sp-compare-sexps enc ok) (plist-put enc :beg (- (point) (sp-get ok :op-l))))
                         (sp--run-hook-with-args (sp-get enc :op) :post-handlers 'slurp-backward))
@@ -6193,7 +6200,7 @@ Examples: (prefix arg in comment)
                 (sp--run-hook-with-args :op :pre-handlers 'barf-forward))
               (sp-get (sp-get-enclosing-sexp)
                 (sp-do-move-cl (point))
-                (indent-region :beg :end)
+                (sp--indent-region :beg :end)
                 (sp--run-hook-with-args :op :post-handlers 'barf-forward)))))
       (sp-backward-barf-sexp (sp--negate-argument old-arg)))))
 
@@ -6237,7 +6244,7 @@ Examples:
                 (sp--run-hook-with-args :op :pre-handlers 'barf-backward))
               (sp-get (sp-get-enclosing-sexp)
                 (sp-do-move-op (point))
-                (indent-region :beg :end)
+                (sp--indent-region :beg :end)
                 (sp--run-hook-with-args :op :post-handlers 'barf-backward)))))
       (sp-forward-barf-sexp (sp--negate-argument old-arg)))))
 
@@ -6540,7 +6547,7 @@ represent a valid object in a buffer!"
         (setq indent-from (point)))
       (unless (memq major-mode sp-no-reindent-after-kill-modes)
         (sp--keep-indentation
-          (indent-region indent-from indent-to))))))
+          (sp--indent-region indent-from indent-to))))))
 
 (defun sp-unwrap-sexp (&optional arg)
   "Unwrap the following expression.
@@ -6619,7 +6626,7 @@ the point after the re-inserted text."
     (delete-region (sp-get expr :beg-prf) (sp-get expr :end))
     (save-excursion
       (insert str)
-      (indent-region (sp-get expr :beg-prf) (point))
+      (sp--indent-region (sp-get expr :beg-prf) (point))
       (setq p (point)))
     (when (eq jump-end 'end) (goto-char p))))
 
@@ -6827,8 +6834,8 @@ We want to move the `while' before the `let'.
                                      :end)))
            (inner-raise (sp-get enc (delete-and-extract-region
                                      :beg-prf
-                                      (save-excursion
-                                        (sp-forward-whitespace)))))
+                                     (save-excursion
+                                       (sp-forward-whitespace)))))
            (whitespace (sp-get enc
                          ;; this happens when the entire inside sexp was removed.
                          (when (= old-buffer-size (+ (buffer-size) :len))
@@ -6844,7 +6851,7 @@ We want to move the `while' before the `let'.
         (goto-char :beg-prf)
         (insert inner-raise (if whitespace whitespace ""))
         (sp-get (sp-get-enclosing-sexp)
-          (indent-region :beg :end)))))
+          (sp--indent-region :beg :end)))))
   (indent-according-to-mode))
 
 (defun sp-absorb-sexp (&optional arg)
@@ -6949,7 +6956,7 @@ If the raw prefix is negative, this behaves as \\[universal-argument] `sp-backwa
             (sp-get whitespace (delete-region :beg :end))))
         (goto-char (sp-get enc :beg-prf))
         (insert save-text "\n")
-        (sp-get enc (indent-region :beg-prf :end)))
+        (sp-get enc (sp--indent-region :beg-prf :end)))
       ;; if we're at an empty line, remove it
       (when (string-match-p "^[\n\t ]+\\'" (thing-at-point 'line))
         (let ((b (bounds-of-thing-at-point 'line)))
@@ -6996,7 +7003,7 @@ expressions up until the start of enclosing list."
           (sp-get whitespace (setq dws (+ dws (- :end :beg))))))
       (sp-get enc (goto-char (- :end (length save-text) dws)))
       (insert "\n" save-text)
-      (sp-get enc (indent-region :beg-prf :end))
+      (sp-get enc (sp--indent-region :beg-prf :end))
       (setq e (point)))
     ;; if we're at an empty line, remove it
     (setq dws 0) ; variable reuse, ugly :/
@@ -7795,7 +7802,7 @@ comment."
           (setq newline-inserted (- (line-end-position) (point)))))
       ;; @{ indenting madness
       (goto-char old-point)
-      (sp-get hsexp (indent-region :beg (+ :end newline-inserted)))
+      (sp-get hsexp (sp--indent-region :beg (+ :end newline-inserted)))
       (sp--back-to-indentation column indentation)
       ;; @}
       (let ((comment-delim (or (cdr (--first (memq major-mode (car it)) sp-comment-string))
