@@ -53,16 +53,19 @@
 
 (defun sp-lisp-invalid-hyperlink-p (_1 action _2)
   (when (eq action 'navigate)
-    (or (and (looking-at "\\sw\\|\\s_")
-             (save-excursion
-               (backward-char 2)
-               (looking-at "\\sw\\|\\s_")))
-        (and (save-excursion
-               (backward-char 1)
-               (looking-at "\\sw\\|\\s_"))
-             (save-excursion
-               (forward-char 1)
-               (looking-at "\\sw\\|\\s_"))))))
+    ;; Ignore errors due to us being at the start or end of the
+    ;; buffer.
+    (ignore-errors
+      (or (and (looking-at "\\sw\\|\\s_")
+               (save-excursion
+                 (backward-char 2)
+                 (looking-at "\\sw\\|\\s_")))
+          (and (save-excursion
+                 (backward-char 1)
+                 (looking-at "\\sw\\|\\s_"))
+               (save-excursion
+                 (forward-char 1)
+                 (looking-at "\\sw\\|\\s_")))))))
 
 ;; emacs is lisp hacking enviroment, so we set up some most common
 ;; lisp modes too
