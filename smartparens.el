@@ -455,28 +455,32 @@ Pairs are defined as expressions delimited by pairs from
 Symbol is defined as a chunk of text recognized by
 `sp-forward-symbol'.")
 
-(defvar sp--lisp-modes '(cider-repl-mode
-                         clojure-mode
-                         clojurec-mode
-                         clojurescript-mode
-                         clojurex-mode
-                         common-lisp-mode
-                         emacs-lisp-mode
-                         eshell-mode
-                         geiser-repl-mode
-                         inf-clojure-mode
-                         inferior-emacs-lisp-mode
-                         inferior-lisp-mode
-                         inferior-scheme-mode
-                         lisp-interaction-mode
-                         lisp-mode
-                         monroe-mode
-                         scheme-interaction-mode
-                         scheme-mode
-                         slime-repl-mode
-                         racket-mode
-                         racket-repl-mode)
-  "List of Lisp modes.")
+(define-obsolete-variable-alias 'sp--lisp-modes 'sp-lisp-modes "2015-11-08")
+
+(defcustom sp-lisp-modes '(cider-repl-mode
+                           clojure-mode
+                           clojurec-mode
+                           clojurescript-mode
+                           clojurex-mode
+                           common-lisp-mode
+                           emacs-lisp-mode
+                           eshell-mode
+                           geiser-repl-mode
+                           inf-clojure-mode
+                           inferior-emacs-lisp-mode
+                           inferior-lisp-mode
+                           inferior-scheme-mode
+                           lisp-interaction-mode
+                           lisp-mode
+                           monroe-mode
+                           scheme-interaction-mode
+                           scheme-mode
+                           slime-repl-mode
+                           racket-mode
+                           racket-repl-mode)
+  "List of Lisp modes."
+  :type '(repeat symbol)
+  :group 'smartparens)
 
 (defcustom sp-no-reindent-after-kill-modes '(
                                              coffee-mode
@@ -996,7 +1000,7 @@ never automatically closed (see `sp-navigate-close-if-unbalanced')."
   :group 'smartparens)
 
 (defcustom sp-navigate-skip-match `(
-                                    (,sp--lisp-modes . sp--elisp-skip-match)
+                                    (,sp-lisp-modes . sp--elisp-skip-match)
                                     )
   "Alist of list of major-modes and a function used to skip over matches in
 `sp-get-paired-expression'.  This function takes three arguments:
@@ -1016,7 +1020,7 @@ use :skip-match option in `sp-local-pair'."
 
 (defcustom sp-navigate-reindent-after-up `(
                                            (interactive
-                                            ,@sp--lisp-modes
+                                            ,@sp-lisp-modes
                                             )
                                            )
   "Modes where sexps should be reindented after jumping out of them with `sp-up-sexp'.
@@ -5550,7 +5554,7 @@ Note: prefix argument is shown after the example in
                   (buffer-substring-no-properties bdel edel)
                 "")))
       (delete-region bdel edel)))
-  (if (memq major-mode sp--lisp-modes)
+  (if (memq major-mode sp-lisp-modes)
       (indent-according-to-mode)
     (unless (memq major-mode sp-no-reindent-after-kill-modes)
       (save-excursion

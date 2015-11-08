@@ -69,7 +69,7 @@
 
 ;; emacs is lisp hacking enviroment, so we set up some most common
 ;; lisp modes too
-(sp-with-modes sp--lisp-modes
+(sp-with-modes sp-lisp-modes
   ;; disable ', it's the quote character!
   (sp-local-pair "'" nil :actions nil)
   ;; also only use the pseudo-quote inside strings where it serve as
