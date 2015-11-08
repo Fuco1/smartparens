@@ -5601,16 +5601,40 @@ t.  All the special prefix arguments work the same way."
     (sp-kill-sexp (sp--negate-argument arg) t)))
 
 (defun sp-clone-sexp ()
+  "Clone sexp after or around point.
+
+If the form immediately after point is a sexp, clone it below the
+current one and put the point in front of it.
+
+Otherwise get the enclosing sexp and clone it below the current
+enclosing sexp."
   (interactive)
-  (-when-let (ok (or (sp-get-enclosing-sexp)
-                     (sp-get-sexp)))
+  (-when-let (ok (let ((sexp (sp-get-thing)))
+                   (if (not (equal (sp-get sexp :op) ""))
+                       sexp
+                     (sp-get-enclosing-sexp))))
     (sp-get ok
-      (save-excursion
-        (undo-boundary)
-        (goto-char :beg-prf)
-        (insert-buffer-substring-no-properties
-         (current-buffer) :beg-prf :end-suf)
-        (newline-and-indent)))))
+      (undo-boundary)
+      (if (< :beg-prf (point))
+          ;; this is the case where point is inside a sexp, we place
+          ;; the "clone" before the current enclosing sexp and move
+          ;; the old one below.  Note that the "net result" is the
+          ;; same as the other case, but the implementation must
+          ;; reflect different relative position of the point wrt
+          ;; "current" sexp.
+          (save-excursion
+            (goto-char :beg-prf)
+            (insert-buffer-substring-no-properties
+             (current-buffer) :beg-prf :end-suf)
+            (newline-and-indent))
+        ;; in this case we are in front, so we move after the current
+        ;; one, place the clone and move it below
+        (goto-char :end-suf)
+        (save-excursion
+          (insert-buffer-substring-no-properties
+           (current-buffer) :beg-prf :end-suf))
+        (newline-and-indent))
+      (sp-indent-defun))))
 
 (defun sp-kill-hybrid-sexp (arg)
   "Kill a line as if with `kill-line', but respecting delimiters.
@@ -7699,7 +7723,7 @@ backward direction."
   (interactive "p")
   (sp-backward-kill-symbol arg t))
 
-(defun sp-indent-defun (arg)
+(defun sp-indent-defun (&optional arg)
   "Reindent the current defun.
 
 If point is inside a string or comment, fill the current
