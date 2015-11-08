@@ -332,7 +332,12 @@
     ;; keep comment before the form from which we are splicing if it is on a separate line
     ("(\n    ;; foo bar\n |asd\n as\n ;; asds (asdasd asd hgujirjf) asd\n asd\n )" "|;; foo bar\nasd")
     ("(\n    ;; foo bar\n asd\n as\n ;; asds (asdasd asd hgujirjf) asd\n |asd\n )" "|;; asds (asdasd asd hgujirjf) asd\nasd")
-    )))
+    )
+   ;; from #243
+   (((sp-navigate-consider-stringlike-sexp '(emacs-lisp-mode)))
+    (";; \"quote\" here\nand \"|here\"" ";; \"quote\" here\nand |here")
+    (";; \"|quote\" here\nand here" ";; |quote here\nand here"))
+   ))
 
 (sp-test-command sp-split-sexp
   ((nil
