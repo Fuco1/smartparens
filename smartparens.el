@@ -3269,7 +3269,7 @@ active region."
                (cond
                 ((= 1 sp-wrap-repeat-last)
                  (equal (car active-pair) op))
-                (= 2 sp-wrap-repeat-last))
+                ((= 2 sp-wrap-repeat-last)))
                (memq sp-last-operation '(sp-self-insert sp-wrap-region))
                (or (= (point) (+ b oplen acolen))
                    (= (point) e)))
