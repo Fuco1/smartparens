@@ -109,6 +109,7 @@
 (eval-after-load "lua-mode"      '(require 'smartparens-lua))
 (eval-after-load "ruby-mode"     '(require 'smartparens-ruby))
 (eval-after-load "enh-ruby-mode" '(require 'smartparens-ruby))
+(eval-after-load "rust-mode"     '(require 'smartparens-rust))
 (eval-after-load "haskell-mode"     '(require 'smartparens-haskell))
 (eval-after-load "haskell-interactive-mode"     '(require 'smartparens-haskell))
 (--each '("python-mode" "python")
