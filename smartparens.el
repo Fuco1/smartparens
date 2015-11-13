@@ -483,6 +483,7 @@ Symbol is defined as a chunk of text recognized by
   :group 'smartparens)
 
 (defcustom sp-no-reindent-after-kill-modes '(
+                                             python-mode
                                              coffee-mode
                                              js2-mode
                                              )
