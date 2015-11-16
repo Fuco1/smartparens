@@ -4415,13 +4415,13 @@ is used to retrieve the prefix instead of the global setting."
 (cl-defun sp--get-suffix (&optional (p (point)) op)
   "Get the suffix of EXPR.
 
-Prefix is any continuous sequence of characters in \"punctuation
-prefix\" syntax class.  You can also specify a set of syntax code
-characters or a regexp for a specific major mode.  See
-`sp-sexp-suffix'.
+Suffix is any continuous sequence of characters in the
+\"punctuation suffix\" syntax class.  You can also specify a set
+of syntax code characters or a regexp for a specific major mode.
+See `sp-sexp-suffix'.
 
-If the prefix property is defined for OP, the associated regexp
-is used to retrieve the prefix instead of the global setting."
+If the suffix property is defined for OP, the associated regexp
+is used to retrieve the suffix instead of the global setting."
   (let ((suff (sp-get-pair op :suffix)))
     (save-excursion
       (goto-char p)
