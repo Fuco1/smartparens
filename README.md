@@ -25,6 +25,20 @@ in your configuration files (e.g. init.el) to load it.  There are also files wit
 
 *Note: `smartparens-config` automatically loads the core smartparens files, so you don't have to require those separately.*
 
+# Testing
+
+Smarparens uses [ert-runner](https://github.com/rejeep/ert-runner.el)
+for testing. To run all the tests, run:
+
+```
+$ make test
+```
+
+Alternatively, you can open the individual files in Emacs, then
+`M-x eval-buffer` `M-x ert`.
+
+There are also some ecukes tests, but these are deprecated.
+
 # Support the project
 
 If you want to support this project, you can do it in the following ways:
