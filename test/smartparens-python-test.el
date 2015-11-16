@@ -1,3 +1,5 @@
+(require 'smartparens)
+
 (ert-deftest sp-test-sp-autoescape-string-quote-if-empty ()
   (sp-test-with-temp-buffer "def foo():\n    |"
       (python-mode)
