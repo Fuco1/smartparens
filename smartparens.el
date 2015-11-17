@@ -6468,51 +6468,48 @@ Examples:
 
 (put 'sp-backward-symbol 'CUA 'move)
 
-;; TODO: read the rewrap pair as interactive arg
-(defun sp-rewrap-sexp (&optional arg)
+(defun sp-rewrap-sexp (pair &optional keep-old)
   "Rewrap the enclosing expression with a different pair.
 
-The new pair is specified in minibuffer by typing the *opening*
-delimiter, same way as with pair wrapping.
+PAIR is the new enclosing pair.
 
-With raw prefix argument \\[universal-argument] do not remove the
-old delimiters.
+If optional argument KEEP-OLD is set, keep old delimiter and wrap
+with PAIR on the outside of the current expression.
 
-With numeric prefix argument 0 (zero) ignore rewrapping with
-tags. This is sometimes useful because the tags always take
-precedence over regular pairs.
+When used interactively, the new pair is specified in minibuffer
+by typing the *opening* delimiter, same way as with pair
+wrapping.
+
+When used interactively with raw prefix argument \\[universal-argument], KEEP-OLD
+is set to non-nil.
 
 Examples:
 
   (foo |bar baz) -> [foo |bar baz]   ;; [
 
-  (foo |bar baz) -> [(foo |bar baz)] ;; \\[universal-argument] [
-
-  \"foo |bar\"     -> <|>foo bar</>    ;; < in `html-mode'"
-  (interactive "P")
-  (let ((raw (sp--raw-argument-p arg))
-        (pair "")
-        (done nil)
-        ev ac at)
-    (while (not done)
-      (setq ev (read-event (format "Rewrap with: %s" pair) t))
-      (setq pair (concat pair (format-kbd-macro (vector ev))))
-      (setq ac (--first (equal pair (car it)) (sp--get-pair-list-context)))
-      (when ac
-        (setq done t)
-        (let ((enc (sp-get-enclosing-sexp)))
-          (when enc
-            (save-excursion
-              (sp-get enc
-                (goto-char :end)
-                (unless raw
-                  (delete-char (- :cl-l))))
-              (insert (cdr ac))
-              (sp-get enc
-                (goto-char :beg)
-                (insert (car ac))
-                (unless raw
-                  (delete-char :op-l))))))))))
+  (foo |bar baz) -> [(foo |bar baz)] ;; \\[universal-argument] ["
+  (interactive (list
+                (let ((available-pairs (sp--get-pair-list-context))
+                      ev ac (pair-prefix ""))
+                  (while (not ac)
+                    (setq ev (read-event (format "Rewrap with: %s" pair-prefix) t))
+                    (setq pair-prefix (concat pair-prefix (format-kbd-macro (vector ev))))
+                    (unless (--any? (string-prefix-p pair-prefix (car it)) available-pairs)
+                      (user-error "Impossible pair prefix selected: %s" pair-prefix))
+                    (setq ac (--first (equal pair-prefix (car it)) available-pairs)))
+                  ac)
+                current-prefix-arg))
+  (-when-let (enc (sp-get-enclosing-sexp))
+    (save-excursion
+      (sp-get enc
+        (goto-char :end)
+        (unless keep-old
+          (delete-char (- :cl-l)))
+        (insert (cdr pair))
+        (goto-char :beg)
+        (insert (car pair))
+        (unless keep-old
+          (delete-char :op-l))))))
 
 (defun sp-swap-enclosing-sexp (&optional arg)
   "Swap the enclosing delimiters of this and the parent expression.

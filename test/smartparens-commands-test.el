@@ -462,3 +462,30 @@
     ("(foo\n bar| (baz\n      qux))" "(foo\n bar ;; |\n (baz\n  qux))")
     ("(foo\n bar |(baz\n      qux))" "(foo\n bar ;; |\n (baz\n  qux))")
     ("(foo\n bar (baz\n      |qux))" "(foo\n bar (baz\n      ;; |qux\n      ))"))))
+
+(defun sp--test-sp-rewrap-sexp (initial pair expected &optional keep)
+  (sp-test-with-temp-elisp-buffer initial
+    (sp-rewrap-sexp pair keep)
+    (insert "|")
+    (should (equal (buffer-string) expected))))
+
+(ert-deftest sp-test-command-sp-rewrap-sexp ()
+  (sp--test-sp-rewrap-sexp "[f|oo]" '("(" . ")") "(f|oo)")
+  (sp--test-sp-rewrap-sexp "{f|oo}" '("(" . ")") "(f|oo)")
+  (sp--test-sp-rewrap-sexp "\"f|oo\"" '("(" . ")") "(f|oo)")
+  (sp--test-sp-rewrap-sexp "(f|oo)" '("[" . "]") "[f|oo]")
+  (sp--test-sp-rewrap-sexp "(f|oo)" '("\\{" . "\\}") "\\{f|oo\\}")
+  (sp--test-sp-rewrap-sexp "(f|oo)" '("\"" . "\"") "\"f|oo\"")
+
+  (sp--test-sp-rewrap-sexp "[f|oo]" '("(" . ")") "([f|oo])" :keep)
+  (sp--test-sp-rewrap-sexp "(f|oo)" '("[" . "]") "[(f|oo)]" :keep)
+  (sp--test-sp-rewrap-sexp "\\{f|oo\\}" '("[" . "]") "[\\{f|oo\\}]" :keep)
+  (sp--test-sp-rewrap-sexp "[f|oo]" '("\\{" . "\\}") "\\{[f|oo]\\}" :keep))
+
+(ert-deftest sp-test-command-sp-rewrap-sexp-invalid-pair ()
+  (condition-case c
+      (sp-test-with-temp-elisp-buffer "(fo|o)"
+        (let ((unread-command-events (list ?\a)))
+          (call-interactively 'sp-rewrap-sexp))
+        (error "We should never get here"))
+    (user-error t)))
