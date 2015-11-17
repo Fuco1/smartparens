@@ -1,3 +1,5 @@
+(require 'smartparens)
+
 (ert-deftest sp-test-sp-autoescape-string-quote-if-empty ()
   (sp-test-with-temp-buffer "def foo():\n    |"
       (python-mode)
@@ -17,3 +19,15 @@ baz = biz.boz|"
     (should (equal (buffer-string) "if foo:
     bar()
 baz = biz."))))
+
+(ert-deftest sp-test-slurp-exclude-colon ()
+  (sp-test-with-temp-buffer "if bar(|)foo:"
+      (python-mode)
+    (sp-slurp-hybrid-sexp)
+    (should (equal (buffer-string) "if bar(foo):"))))
+
+(ert-deftest sp-test-slurp-include-dot ()
+  (sp-test-with-temp-buffer "(|foo).bar"
+      (python-mode)
+    (sp-slurp-hybrid-sexp)
+    (should (equal (buffer-string) "(foo.bar)"))))

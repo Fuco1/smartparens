@@ -5919,7 +5919,6 @@ triggers that `sp-forward-slurp-sexp' does."
           (when (sp-point-in-blank-line)
             (delete-region (line-beginning-position) (1+ (line-end-position))))
           (sp-forward-sexp)
-          (sp-get (sp-get-hybrid-sexp) (goto-char :end-suf))
           (insert :cl :suffix))
         ;; TODO: move to hook
         (sp-get (sp--next-thing-selection -1)
@@ -5938,11 +5937,7 @@ triggers that `sp-forward-slurp-sexp' does."
                        :beg-in
                        (+ :beg-in (save-excursion
                                     (goto-char :beg-in)
-                                    (skip-syntax-forward " ")))))))
-          (unless (or (looking-at "[ \t]*$")
-                      (looking-at (sp--get-stringlike-regexp))
-                      (looking-at (sp--get-closing-regexp)))
-            (newline)))
+                                    (skip-syntax-forward " "))))))))
         (sp-get (sp--next-thing-selection -1) (sp--indent-region :beg :end))
         ;; we need to call this again to get the new structure after
         ;; indent.
