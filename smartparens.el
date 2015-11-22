@@ -1041,6 +1041,15 @@ command was called programatically."
           :value-type (repeat symbol))
   :group 'smartparens)
 
+(defcustom sp-navigate-reindent-after-up-in-string t
+  "If non-nil, `sp-up-sexp' will reindent inside strings.
+
+If `sp-navigate-reindent-after-up' is enabled and the point is
+inside a string, this setting determines if smartparens should
+reindent the current (string) sexp or not."
+  :type 'boolean
+  :group 'smartparens)
+
 (defcustom sp-navigate-close-if-unbalanced nil
   "If non-nil, insert the closing pair of the un-matched pair on `sp-up-sexp'.
 
@@ -5335,7 +5344,13 @@ Examples:
                      (not (equal (sp-get ok :prefix) sp-comment-char))
                      (or (memq major-mode (assq 'always sp-navigate-reindent-after-up))
                          (and (memq major-mode (assq 'interactive sp-navigate-reindent-after-up))
-                              interactive)))
+                              interactive))
+                     (if sp-navigate-reindent-after-up-in-string
+                         t
+                       (save-excursion
+                         (sp-get ok
+                           (goto-char :end-in)
+                           (not (sp-point-in-string))))))
             ;; TODO: this needs different indent rules for different
             ;; modes.  Should we concern with such things?  Lisp rules are
             ;; funny in HTML... :/
