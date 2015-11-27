@@ -5921,49 +5921,58 @@ Because the structure is much looser in these languages, this
 command currently does not support all the prefix argument
 triggers that `sp-forward-slurp-sexp' does."
   (interactive)
-  (-if-let* ((enc (sp-get-enclosing-sexp))
-             (bsexp (save-excursion
-                      (sp-get enc (goto-char :end))
-                      (when (sp-compare-sexps (sp-forward-sexp) enc >)
-                        (sp-get-hybrid-sexp)))))
-      (save-excursion
-        (sp-get enc
-          (goto-char :end-suf)
-          (delete-char (- (+ :cl-l :suffix-l)))
+  (let ((start-line (line-number-at-pos))
+        slurped-within-line)
+    (-if-let* ((enc (sp-get-enclosing-sexp))
+               (bsexp (save-excursion
+                        (sp-get enc (goto-char :end))
+                        (when (sp-compare-sexps (sp-forward-sexp) enc >)
+                          (sp-get-hybrid-sexp)))))
+        (save-excursion
+          (sp-get enc
+            (goto-char :end-suf)
+            (delete-char (- (+ :cl-l :suffix-l)))
+            ;; TODO: move to hook
+            (when (sp-point-in-blank-line)
+              (delete-region (line-beginning-position) (1+ (line-end-position))))
+            (sp-forward-sexp)
+
+            (when (eq (line-number-at-pos) start-line)
+              (setq slurped-within-line t))
+            ;; If we're slurping over multiple lines, include the suffix on the next line.
+            ;; I.e. while () {|} -> while () {\n foo(); \n}
+            (unless slurped-within-line
+              (sp-get (sp-get-hybrid-sexp) (goto-char :end-suf)))
+            (insert :cl :suffix))
           ;; TODO: move to hook
-          (when (sp-point-in-blank-line)
-            (delete-region (line-beginning-position) (1+ (line-end-position))))
-          (sp-forward-sexp)
-          (sp-get (sp-get-hybrid-sexp) (goto-char :end-suf))
-          (insert :cl :suffix))
-        ;; TODO: move to hook
-        (sp-get (sp--next-thing-selection -1)
-          (save-excursion
-            (if (save-excursion
-                  (goto-char :beg-in)
-                  (looking-at "[ \t]*$"))
-                (progn
-                  (goto-char :end-in)
-                  (newline))
-              ;; copy the whitespace after opening delim and put it in
-              ;; front of the closing. This will ensure pretty { foo }
-              ;; or {foo}
-              (goto-char :end-in)
-              (insert (buffer-substring-no-properties
-                       :beg-in
-                       (+ :beg-in (save-excursion
-                                    (goto-char :beg-in)
-                                    (skip-syntax-forward " ")))))))
-          (unless (or (looking-at "[ \t]*$")
-                      (looking-at (sp--get-stringlike-regexp))
-                      (looking-at (sp--get-closing-regexp)))
-            (newline)))
-        (sp-get (sp--next-thing-selection -1) (sp--indent-region :beg :end))
-        ;; we need to call this again to get the new structure after
-        ;; indent.
-        (sp--next-thing-selection -1))
-    (sp-message :invalid-structure)
-    nil))
+          (sp-get (sp--next-thing-selection -1)
+            (save-excursion
+              (if (save-excursion
+                    (goto-char :beg-in)
+                    (looking-at "[ \t]*$"))
+                  (progn
+                    (goto-char :end-in)
+                    (newline))
+                ;; copy the whitespace after opening delim and put it in
+                ;; front of the closing. This will ensure pretty { foo }
+                ;; or {foo}
+                (goto-char :end-in)
+                (insert (buffer-substring-no-properties
+                         :beg-in
+                         (+ :beg-in (save-excursion
+                                      (goto-char :beg-in)
+                                      (skip-syntax-forward " ")))))))
+            (unless (or (looking-at "[ \t]*$")
+                        (looking-at (sp--get-stringlike-regexp))
+                        (looking-at (sp--get-closing-regexp))
+                        slurped-within-line)
+              (newline)))
+          (sp-get (sp--next-thing-selection -1) (sp--indent-region :beg :end))
+          ;; we need to call this again to get the new structure after
+          ;; indent.
+          (sp--next-thing-selection -1))
+      (sp-message :invalid-structure)
+      nil)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
