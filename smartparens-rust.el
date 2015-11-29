@@ -65,6 +65,10 @@ If we return nil, ' should be used for character literals."
 (sp-with-modes '(rust-mode)
   (sp-local-pair "'" "'" :unless '(sp-in-rust-lifetime-context)))
 
+;; Rust has no sexp suffices.  This fixes slurping
+;; (|foo).bar -> (foo.bar)
+(add-to-list 'sp-sexp-suffix (list #'rust-mode 'regexp ""))
+
 (provide 'smartparens-rust)
 
 ;;; smartparens-rust.el ends here

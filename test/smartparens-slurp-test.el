@@ -40,3 +40,9 @@ public:
   int a;
   int b = 7;
 };"))))
+
+(ert-deftest sp-test-rust-slurp-include-dot ()
+  (sp-test-with-temp-buffer "(foo|).bar"
+      (rust-mode)
+    (sp-slurp-hybrid-sexp)
+    (should (equal (buffer-string) "(foo.bar)"))))
