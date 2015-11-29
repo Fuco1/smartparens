@@ -48,10 +48,13 @@
   "Return t if point is in a Rust context where ' represents a lifetime.
 If we return nil, ' should be used for character literals."
   (or
-   ;; If point is just after a &', it's probably a &'foo.
-   (save-excursion
-     (backward-char 2)
-     (looking-at "&"))
+   (condition-case nil
+       ;; If point is just after a &', it's probably a &'foo.
+       (save-excursion
+         (backward-char 2)
+         (looking-at "&"))
+     ;; If we're at the beginning of the buffer, just carry on.
+     (beginning-of-buffer))
    ;; If point is inside < > it's probably a parameterised function.
    (let ((paren-pos (nth 1 (syntax-ppss))))
      (and paren-pos

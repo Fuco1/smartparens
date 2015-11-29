@@ -22,3 +22,10 @@
     (execute-kbd-macro "'a")
     (should (equal (buffer-string) "let x = 'a'"))))
 
+(ert-deftest sp-test-rust-kill-first-line ()
+  "Ensure we can kill words on the first line.
+Regression test."
+  (sp-test-with-temp-buffer "extern|"
+      (rust-mode)
+    (sp-backward-kill-word 1)
+    (should (equal (buffer-string) ""))))
