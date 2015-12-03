@@ -29,3 +29,13 @@ Regression test."
       (rust-mode)
     (sp-backward-kill-word 1)
     (should (equal (buffer-string) ""))))
+
+(ert-deftest sp-test-rust-forward-angle-bracket ()
+  "< and > are usually brackets in Rust."
+  (sp-test-with-temp-buffer "struct Foo {
+    baz: Baz|<T>
+}"
+      (rust-mode)
+    (sp-forward-sexp)
+    ;; We should have moved over the closing >.
+    (should (looking-at "\n"))))

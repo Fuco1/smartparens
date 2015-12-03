@@ -63,7 +63,8 @@ If we return nil, ' should be used for character literals."
             (looking-at "<"))))))
 
 (sp-with-modes '(rust-mode)
-  (sp-local-pair "'" "'" :unless '(sp-in-rust-lifetime-context)))
+  (sp-local-pair "'" "'" :unless '(sp-in-rust-lifetime-context))
+  (sp-local-pair "<" ">"))
 
 ;; Rust has no sexp suffices.  This fixes slurping
 ;; (|foo).bar -> (foo.bar)
