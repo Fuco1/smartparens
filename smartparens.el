@@ -4285,7 +4285,7 @@ See `sp-get-hybrid-sexp' for definition."
 
 (defun sp--get-hybrid-suffix (p)
   "Get the hybrid sexp suffix, which is any punctuation after
-the end, possibly preceeded by whitespace."
+the end, possibly preceded by whitespace."
   (save-excursion
     (goto-char p)
     (buffer-substring-no-properties
