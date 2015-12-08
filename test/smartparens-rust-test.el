@@ -46,3 +46,24 @@ Regression test."
     (sp-forward-sexp)
     ;; We should have moved over the closing >.
     (should (looking-at "\n"))))
+
+(ert-deftest sp-test-rust-less-than ()
+  "When using < to compare, don't insert >."
+  (sp-test-with-temp-buffer "if x |"
+      (rust-mode)
+    (execute-kbd-macro "<")
+    (should (equal (buffer-string) "if x <"))))
+
+(ert-deftest sp-test-rust-left-shift ()
+  "When using < to compare, don't insert >."
+  (sp-test-with-temp-buffer "if x <|"
+      (rust-mode)
+    (execute-kbd-macro "<")
+    (should (equal (buffer-string) "if x <<"))))
+
+(ert-deftest sp-test-rust-format-string ()
+  "Don't pair < when used in a format string."
+  (sp-test-with-temp-buffer "println!(\"{:0|}\", x);"
+      (rust-mode)
+    (execute-kbd-macro "<")
+    (should (equal (buffer-string) "println!(\"{:0<}\", x);"))))

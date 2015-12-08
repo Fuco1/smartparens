@@ -62,9 +62,19 @@ If we return nil, ' should be used for character literals."
             (goto-char paren-pos)
             (looking-at "<"))))))
 
+(defun sp-rust-could-be-parameterized (&rest args)
+  "Return t if we could add a <T> in this position.
+If nil, the user is probably using < for something else."
+  (and (apply #'sp-in-code-p args)
+       (condition-case nil
+           (save-excursion
+             (backward-char 1)
+             (looking-at (rx letter)))
+         (beginning-of-buffer))))
+
 (sp-with-modes '(rust-mode)
   (sp-local-pair "'" "'" :unless '(sp-in-comment-p sp-in-rust-lifetime-context))
-  (sp-local-pair "<" ">"))
+  (sp-local-pair "<" ">" :when '(sp-rust-could-be-parameterized)))
 
 ;; Rust has no sexp suffices.  This fixes slurping
 ;; (|foo).bar -> (foo.bar)
@@ -73,4 +83,3 @@ If we return nil, ' should be used for character literals."
 (provide 'smartparens-rust)
 
 ;;; smartparens-rust.el ends here
-
