@@ -22,6 +22,13 @@
     (execute-kbd-macro "'a")
     (should (equal (buffer-string) "let x = 'a'"))))
 
+(ert-deftest sp-test-rust-character-in-comment ()
+  "When inserting ' in a comment, don't bother matching it."
+  (sp-test-with-temp-buffer "// |"
+      (rust-mode)
+    (execute-kbd-macro "'")
+    (should (equal (buffer-string) "// '"))))
+
 (ert-deftest sp-test-rust-kill-first-line ()
   "Ensure we can kill words on the first line.
 Regression test."
