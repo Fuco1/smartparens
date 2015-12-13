@@ -46,3 +46,17 @@ public:
       (rust-mode)
     (sp-slurp-hybrid-sexp)
     (should (equal (buffer-string) "(foo.bar)"))))
+
+(ert-deftest sp-test-js-slurp-from-closing-paren ()
+  (sp-test-with-temp-buffer "if (foo) {
+    x = 1;
+|}
+y = baz();
+"
+      (js-mode)
+    (sp-slurp-hybrid-sexp)
+    (should (equal (buffer-string) "if (foo) {
+    x = 1;
+    y = baz();
+}
+"))))

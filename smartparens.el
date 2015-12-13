@@ -5921,8 +5921,7 @@ Because the structure is much looser in these languages, this
 command currently does not support all the prefix argument
 triggers that `sp-forward-slurp-sexp' does."
   (interactive)
-  (let ((start-line (line-number-at-pos))
-        slurped-within-line)
+  (let (slurped-within-line)
     (-if-let* ((enc (sp-get-enclosing-sexp))
                (bsexp (save-excursion
                         (sp-get enc (goto-char :end))
@@ -5937,7 +5936,8 @@ triggers that `sp-forward-slurp-sexp' does."
               (delete-region (line-beginning-position) (1+ (line-end-position))))
             (sp-forward-sexp)
 
-            (when (eq (line-number-at-pos) start-line)
+            (when (eq (line-number-at-pos :beg)
+                      (line-number-at-pos :end))
               (setq slurped-within-line t))
             ;; If we're slurping over multiple lines, include the suffix on the next line.
             ;; I.e. while () {|} -> while () {\n foo(); \n}
