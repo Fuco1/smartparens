@@ -66,11 +66,7 @@ If we return nil, ' should be used for character literals."
   "Return t if we could add a <T> in this position.
 If nil, the user is probably using < for something else."
   (and (apply #'sp-in-code-p args)
-       (condition-case nil
-           (save-excursion
-             (backward-char 1)
-             (looking-at (rx letter)))
-         (beginning-of-buffer))))
+       (looking-back (rx (or letter (seq letter "<"))))))
 
 (sp-with-modes '(rust-mode)
   (sp-local-pair "'" "'" :unless '(sp-in-comment-p sp-in-rust-lifetime-context))

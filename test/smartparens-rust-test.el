@@ -37,6 +37,15 @@ Regression test."
     (sp-backward-kill-word 1)
     (should (equal (buffer-string) ""))))
 
+(ert-deftest sp-test-rust-pair-angle-bracket ()
+  "When typing < we should insert the matching pair
+\(when appropriate\)."
+  (sp-test-with-temp-buffer "Option|"
+      (rust-mode)
+    (execute-kbd-macro "<")
+    ;; We should have inserted a pair.
+    (should (equal (buffer-string) "Option<>"))))
+
 (ert-deftest sp-test-rust-forward-angle-bracket ()
   "< and > are usually brackets in Rust."
   (sp-test-with-temp-buffer "struct Foo {
