@@ -55,7 +55,7 @@ Regression test."
     (should (equal (buffer-string) "if x <"))))
 
 (ert-deftest sp-test-rust-left-shift ()
-  "When using < to compare, don't insert >."
+  "When using << for a left shift, don't insert >."
   (sp-test-with-temp-buffer "if x <|"
       (rust-mode)
     (execute-kbd-macro "<")
