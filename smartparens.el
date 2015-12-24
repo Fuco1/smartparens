@@ -3712,7 +3712,7 @@ Non-nil return value means to skip the result."
          (sp--looking-back "\\\\" 1 t))))
 
 ;; TODO: since this function is used for all the navigation, we should
-;; optimaze it a lot! Get some elisp profiler! Also, we should split
+;; optimize it a lot! Get some elisp profiler! Also, we should split
 ;; this into smaller functions (esp. the "first expression search"
 ;; business)
 (defun sp-get-paired-expression (&optional back)
@@ -4316,7 +4316,7 @@ enclosing list boundaries or line boundaries."
 (defun sp-get-enclosing-sexp (&optional arg)
   "Return the balanced expression that wraps point at the same level.
 
-With ARG, ascend that many times.  This function expect positive
+With ARG, ascend that many times.  This function expects a positive
 argument."
   (setq arg (or arg 1))
   (save-excursion
