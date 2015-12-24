@@ -3,41 +3,12 @@ Feature: Autoinsert pairs
   As a user
   I want to insert pairs automatically
 
-  Scenario: Insert singlechar pairs using default setting
-    Given I turn on smartparens
-    When I type "("
-    Then I should see "()"
-    When I type "`"
-    Then I should see "``"
-    
-  Scenario: Insert singlechar pairs in special modes
-    Given I turn on latex-mode
-    And I turn on smartparens
-    When I type "`"
-    Then I should see "`'"
-    And I type "$"
-    Then I should see "$$"
-
   Scenario: Insert multichar pairs using default settings
     Given I turn on smartparens
     When I type "\{"
     Then I should see "\{\}"
     When I type "\\("
     Then I should see "\\(\\)"
-
-  Scenario: Insert multichar pairs in special modes
-    Given I turn on latex-mode
-    And I turn on smartparens
-    When I type "\["
-    Then I should see "\[\]"
-
-  Scenario: Insert a pair and skip closing
-    Given I turn on smartparens
-    When I type "("
-    And I type "abc"
-    And I type ")"
-    Then I should see "(abc)"
-    And the cursor should be at point "6"
 
   Scenario: Insert a pair and skip closing
     Given I turn on smartparens

@@ -1,5 +1,7 @@
 ;; TODO: add proper headers and organize tests a bit better
 
+(require 'smartparens)
+
 (defun sp-test-insertion (initial keys result)
   (sp-test-with-temp-elisp-buffer initial
     (execute-kbd-macro keys)
@@ -7,6 +9,7 @@
 
 (ert-deftest sp-test-insertion-basic nil
   (let ((sp-pairs sp--test-basic-pairs))
+    (sp-test-insertion "|" "(" "()")
     (sp-test-insertion "|" "((" "(())")
     (sp-test-insertion "|" "(()(" "(()())")
     (sp-test-insertion "|" "[[" "[[]]")
@@ -54,6 +57,7 @@
                      (:open "``" :close "''" :trigger "\"" :actions (insert wrap autoskip navigate))
                      (:open "`" :close "'" :actions (insert wrap autoskip navigate))))))
     (sp-test-latex-insertion "|" "$" "$$")
+    (sp-test-latex-insertion "|" "`" "`'")
     (when (version< "24.3" emacs-version)
       (sp-test-latex-insertion "|" "$$" "$$$$"))
     (sp-test-latex-insertion "|" "$foo$$foo" "$foo$$foo$")
@@ -89,3 +93,8 @@
   (sp-test--pair-to-insert "foo \\langle|" (cons "\\langle" "\\rangle"))
   ;; test trigger
   (sp-test--pair-to-insert "foo \\b|" (cons "\\big(" "\\big)")))
+
+(ert-deftest sp-test-insert-pair-skip-closing ()
+  "Typing ) should step over the closing paren."
+  (sp-test-insertion "|" "(abc)" "(abc)")
+  (should (eobp)))
