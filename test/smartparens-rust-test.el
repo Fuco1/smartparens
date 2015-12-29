@@ -76,3 +76,11 @@ Regression test."
       (rust-mode)
     (execute-kbd-macro "<")
     (should (equal (buffer-string) "println!(\"{:0<}\", x);"))))
+
+(ert-deftest sp-test-rust-pair-angle-bracket-in-function-call ()
+  "Pair < when parameterizing function calls."
+  (sp-test-with-temp-buffer "iterator.collect::|"
+      (rust-mode)
+    (execute-kbd-macro "<")
+    ;; We should have inserted a pair.
+    (should (equal (buffer-string) "iterator.collect::<>"))))
