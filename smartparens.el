@@ -3775,12 +3775,27 @@ The expressions considered are those delimited by pairs on
       (while (and (not done)
                   (sp--search-and-save-match
                    search-fn
-                   (sp--get-allowed-regexp)
+                   ;; #556 The regexp we use here might exclude or
+                   ;; include extra pairs in case the next match is in
+                   ;; a different context.  There's no way to know
+                   ;; beforehand where we land, so we need to consider
+                   ;; *all* pairs in the search and then re-check with
+                   ;; a regexp based on the context of the found pair
+                   (sp--get-allowed-regexp
+                    ;; use all the pairs!
+                    (sp--get-pair-list))
                    (if back bw-bound fw-bound)
                    r mb me ms))
         ;; search for the first opening pair.  Here, only consider tags
         ;; that are allowed in the current context.
-        (unless (sp--skip-match-p ms mb me :global-skip global-skip-fn)
+        (unless (or (not (save-excursion
+                           (if back
+                               (progn
+                                 (goto-char me)
+                                 (sp--looking-back-p (sp--get-allowed-regexp)))
+                             (goto-char mb)
+                             (sp--looking-at-p (sp--get-allowed-regexp)))))
+                    (sp--skip-match-p ms mb me :global-skip global-skip-fn))
           ;; if the point originally wasn't inside of a string or comment
           ;; but now is, jump out of the string/comment and only search
           ;; the code.  This ensures that the comments and strings are

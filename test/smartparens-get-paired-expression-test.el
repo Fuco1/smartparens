@@ -138,6 +138,11 @@
   (sp-test--paired-expression-parse-in-elisp "(foo) ( \"(asd\" | )" '(:beg 7 :end 18 :op "(" :cl ")" :prefix "" :suffix "") t)
 
   (sp-test--paired-expression-parse-in-elisp "(foo (|bar ;baz(\n      ))" '(:beg 6 :end 24 :op "(" :cl ")" :prefix "" :suffix ""))
+
+  ;; #556
+  (sp-test--paired-expression-parse-in-elisp "(f| ; ()\n  'x)" '(:beg 1 :end 14 :op "(" :cl ")" :prefix "" :suffix ""))
+  (sp-test--paired-expression-parse-in-elisp "(f ; ()\n  |'x)" '(:beg 1 :end 14 :op "(" :cl ")" :prefix "" :suffix ""))
+  (sp-test--paired-expression-parse-in-elisp "(f ; ()\n  '|x)" '(:beg 1 :end 14 :op "(" :cl ")" :prefix "" :suffix ""))
   )
 
 (defun sp-test--paired-expression-parse-in-c (initial result &optional back)
