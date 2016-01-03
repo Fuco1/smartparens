@@ -1,6 +1,6 @@
 ;;; smartparens-config.el --- Default configuration for smartparens package
 
-;; Copyright (C) 2013-2015 Matus Goljer
+;; Copyright (C) 2013-2016 Matus Goljer
 
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
