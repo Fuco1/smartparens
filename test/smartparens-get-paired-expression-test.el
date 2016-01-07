@@ -10,6 +10,11 @@
     ("[vector foo (bar) lolz]" 1 24 "[" "]" "" "")
     ))
 
+;; new-style tests
+(defun sp-test--paired-expression-parse-in-elisp (initial result &optional back)
+  (sp-test-with-temp-elisp-buffer initial
+    (should (equal (sp-get-paired-expression back) result))))
+
 (ert-deftest sp-test-get-paired-expression ()
   "Test basic paired expressions in `emacs-lisp-mode'."
   (sp-test-setup-paired-expression-env-basic
@@ -116,11 +121,6 @@
      emacs-lisp-mode
      emacs-lisp-mode-hook
      ,@forms))
-
-;; new-style tests
-(defun sp-test--paired-expression-parse-in-elisp (initial result &optional back)
-  (sp-test-with-temp-elisp-buffer initial
-    (should (equal (sp-get-paired-expression back) result))))
 
 (ert-deftest sp-test-paired-expression-parse-in-elisp nil
   ;; #505 when jumping out of strings we can skip a valid delimiter
