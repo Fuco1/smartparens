@@ -3761,11 +3761,12 @@ The expressions considered are those delimited by pairs on
                                      (let ((in-comment (sp-point-in-comment))
                                            (in-string (sp-point-in-string)))
                                        (save-excursion
-                                         (backward-char)
-                                         (cond
-                                          (in-comment (and in-comment (sp-point-in-comment)))
-                                          ((and (not in-comment) (sp-point-in-comment)) t)
-                                          ((or in-comment in-string)))))
+                                         (unless (= (point) (point-min))
+                                           (backward-char)
+                                           (cond
+                                            (in-comment (and in-comment (sp-point-in-comment)))
+                                            ((and (not in-comment) (sp-point-in-comment)) t)
+                                            ((or in-comment in-string))))))
                                    (sp-point-in-string-or-comment)))
            (string-bounds (and in-string-or-comment (sp--get-string-or-comment-bounds)))
            (fw-bound (if in-string-or-comment (cdr string-bounds) (point-max)))
