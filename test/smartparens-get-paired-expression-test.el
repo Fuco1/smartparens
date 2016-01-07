@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; basic pairs
+;; emacs lisp
 
 (defvar sp-test-get-paired-expression
   '(("(foo bar)" 1 10 "(" ")" "" "")
@@ -15,7 +15,7 @@
   (sp-test-with-temp-elisp-buffer initial
     (should (equal (sp-get-paired-expression back) result))))
 
-(ert-deftest sp-test-get-paired-expression ()
+(ert-deftest sp-test-get-paired-expression-elisp ()
   "Test basic paired expressions in `emacs-lisp-mode'."
   (sp-test--paired-expression-parse-in-elisp "|(foo bar)" '(:beg 1 :end 10 :op "(" :cl ")" :prefix "" :suffix ""))
   (sp-test--paired-expression-parse-in-elisp "(foo bar|)" '(:beg 1 :end 10 :op "(" :cl ")" :prefix "" :suffix ""))
@@ -31,9 +31,25 @@
 
   (sp-test--paired-expression-parse-in-elisp "|[vector foo (bar) lolz]" '(:beg 1 :end 24 :op "[" :cl "]" :prefix "" :suffix ""))
   (sp-test--paired-expression-parse-in-elisp "[vector foo (bar) lolz|]" '(:beg 1 :end 24 :op "[" :cl "]" :prefix "" :suffix ""))
+
+  (sp-test--paired-expression-parse-in-elisp "|'(foo)" '(:beg 2 :end 7 :op "(" :cl ")" :prefix "'" :suffix ""))
+  (sp-test--paired-expression-parse-in-elisp "|`(foo)" '(:beg 2 :end 7 :op "(" :cl ")" :prefix "`" :suffix ""))
+  (sp-test--paired-expression-parse-in-elisp "|,(foo)" '(:beg 2 :end 7 :op "(" :cl ")" :prefix "," :suffix ""))
+
+  (sp-test--paired-expression-parse-in-elisp "|,[vector foo (bar) lolz]" '(:beg 2 :end 25 :op "[" :cl "]" :prefix "," :suffix ""))
+
+  (sp-test--paired-expression-parse-in-elisp "|(foo (bar) (baz) ((quux) (quo)) qua);;asdasdasd" '(:beg 1 :end 37 :op "(" :cl ")" :prefix "" :suffix ""))
+  (sp-test--paired-expression-parse-in-elisp "|(foo (bar) (baz) ((quux) (quo)) qua) ;;asdasdasd" '(:beg 1 :end 37 :op "(" :cl ")" :prefix "" :suffix ""))
+
+  ;; ? is used as character escape, but \\ escapes the escape.
+  ;; Combinations of \ and ? can create "funny" effects
+  (sp-test--paired-expression-parse-in-elisp "|(#\\?)" '(:beg 1 :end 6 :op "(" :cl ")" :prefix "" :suffix ""))
+  (sp-test--paired-expression-parse-in-elisp "|(foo bar?)" '(:beg 1 :end 11 :op "(" :cl ")" :prefix "" :suffix ""))
+  (sp-test--paired-expression-parse-in-elisp "|(foo bar ?) baz)" '(:beg 1 :end 17 :op "(" :cl ")" :prefix "" :suffix ""))
+  (sp-test--paired-expression-parse-in-elisp "|(foo bar \\?)" '(:beg 1 :end 13 :op "(" :cl ")" :prefix "" :suffix ""))
   )
 
-(ert-deftest sp-test-get-paired-expression-backward ()
+(ert-deftest sp-test-get-paired-expression-elisp-backward ()
   "Test basic paired expressions in `emacs-lisp-mode' in backwards."
   (sp-test--paired-expression-parse-in-elisp "(|foo bar)" '(:beg 1 :end 10 :op "(" :cl ")" :prefix "" :suffix "") t)
   (sp-test--paired-expression-parse-in-elisp "(foo bar|)" '(:beg 1 :end 10 :op "(" :cl ")" :prefix "" :suffix "") t)
@@ -49,6 +65,22 @@
 
   (sp-test--paired-expression-parse-in-elisp "[vector foo (bar) lolz]|" '(:beg 1 :end 24 :op "[" :cl "]" :prefix "" :suffix "") t)
   (sp-test--paired-expression-parse-in-elisp "[|vector foo (bar) lolz]" '(:beg 1 :end 24 :op "[" :cl "]" :prefix "" :suffix "") t)
+
+  (sp-test--paired-expression-parse-in-elisp "'(foo)|" '(:beg 2 :end 7 :op "(" :cl ")" :prefix "'" :suffix "") t)
+  (sp-test--paired-expression-parse-in-elisp "`(foo)|" '(:beg 2 :end 7 :op "(" :cl ")" :prefix "`" :suffix "") t)
+  (sp-test--paired-expression-parse-in-elisp ",(foo)|" '(:beg 2 :end 7 :op "(" :cl ")" :prefix "," :suffix "") t)
+
+  (sp-test--paired-expression-parse-in-elisp ",[vector foo (bar) lolz]|" '(:beg 2 :end 25 :op "[" :cl "]" :prefix "," :suffix "") t)
+
+  (sp-test--paired-expression-parse-in-elisp "(foo (bar) (baz) ((quux) (quo)) qua)|;;asdasdasd" '(:beg 1 :end 37 :op "(" :cl ")" :prefix "" :suffix "") t)
+  (sp-test--paired-expression-parse-in-elisp "(foo (bar) (baz) ((quux) (quo)) qua) |;;asdasdasd" '(:beg 1 :end 37 :op "(" :cl ")" :prefix "" :suffix "") t)
+
+  ;; ? is used as character escape, but \\ escapes the escape.
+  ;; Combinations of \ and ? can create "funny" effects
+  (sp-test--paired-expression-parse-in-elisp "(#\\?)|" '(:beg 1 :end 6 :op "(" :cl ")" :prefix "" :suffix "") t)
+  (sp-test--paired-expression-parse-in-elisp "(foo bar?)|" '(:beg 1 :end 11 :op "(" :cl ")" :prefix "" :suffix "") t)
+  (sp-test--paired-expression-parse-in-elisp "(foo bar ?) baz)|" '(:beg 1 :end 17 :op "(" :cl ")" :prefix "" :suffix "") t)
+  (sp-test--paired-expression-parse-in-elisp "(foo bar \\?)|" '(:beg 1 :end 13 :op "(" :cl ")" :prefix "" :suffix "") t)
   )
 
 (defvar sp-test-get-paired-expression-fail
@@ -65,7 +97,7 @@
     "foo (bar) (baz) ((quux) (quo)) qua)"
     ))
 
-(ert-deftest sp-test-get-paired-expression-fail ()
+(ert-deftest sp-test-get-paired-expression-elisp-fail ()
   "Test that we fail on incomplete pairs."
   (sp-test--paired-expression-parse-in-elisp "|(foo bar" nil)
   (sp-test--paired-expression-parse-in-elisp "(foo |bar" nil)
@@ -76,9 +108,17 @@
 
   (sp-test--paired-expression-parse-in-elisp "|(()" nil)
   (sp-test--paired-expression-parse-in-elisp "|(foo (bar) (baz) ((quux) (quo)) qua" nil)
+
+  ;; prefixes
+  (sp-test--paired-expression-parse-in-elisp "|'(foo" nil)
+  (sp-test--paired-expression-parse-in-elisp "|`(foo" nil)
+  (sp-test--paired-expression-parse-in-elisp "|,@(foo" nil)
+  (sp-test--paired-expression-parse-in-elisp "|'foo)" nil)
+  (sp-test--paired-expression-parse-in-elisp "|`foo)" nil)
+  (sp-test--paired-expression-parse-in-elisp "|,@foo)" nil)
   )
 
-(ert-deftest sp-test-get-paired-expression-backward-fail ()
+(ert-deftest sp-test-get-paired-expression-elisp-backward-fail ()
   "Test that we fail on incomplete pairs parsing backwards."
   (sp-test--paired-expression-parse-in-elisp "foo| bar)" nil t)
   (sp-test--paired-expression-parse-in-elisp "foo bar)|" nil t)
@@ -90,65 +130,15 @@
 
   (sp-test--paired-expression-parse-in-elisp "foo| (bar) (baz) ((quux) (quo)) qua)" nil t)
   (sp-test--paired-expression-parse-in-elisp "foo (bar) (baz) ((quux) (quo)) qua)|" nil t)
+
+  ;; prefixes
+  (sp-test--paired-expression-parse-in-elisp "'(foo|" nil t)
+  (sp-test--paired-expression-parse-in-elisp "`(foo|" nil t)
+  (sp-test--paired-expression-parse-in-elisp ",@(foo|" nil t)
+  (sp-test--paired-expression-parse-in-elisp "'foo)|" nil t)
+  (sp-test--paired-expression-parse-in-elisp "`foo)|" nil t)
+  (sp-test--paired-expression-parse-in-elisp ",@foo)|" nil t)
   )
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; emacs lisp pairs
-
-(defvar sp-test-get-paired-expression-elisp
-  '(("'(foo)" 2 7 "(" ")" "'" "")
-    ("`(foo)" 2 7 "(" ")" "`" "")
-    (",(foo)" 2 7 "(" ")" "," "")
-    (",[vector foo (bar) lolz]" 2 25 "[" "]" "," "")
-    ("(foo (bar) (baz) ((quux) (quo)) qua);;asdasdasd" 1 37 "(" ")" "" "")
-    ("(foo (bar) (baz) ((quux) (quo)) qua) ;;asdasdasd" 1 37 "(" ")" "" "")
-    ("(#\\?)" 1 6 "(" ")" "" "")
-    ("(foo bar?)" 1 11 "(" ")" "" "")
-    ("(foo bar ?) baz)" 1 17 "(" ")" "" "")
-    ("(foo bar \\?)" 1 13 "(" ")" "" "")
-    ))
-
-(ert-deftest sp-test-get-paired-expression-elisp ()
-  "Test basic paired expressions in `elisp-mode'."
-  (sp-test-setup-paired-expression-env-elisp
-   (--each sp-test-get-paired-expression
-     (sp-test-paired-sexp (car it) (apply 'sp-test-make-pair (cdr it)) nil nil))
-   (--each sp-test-get-paired-expression-elisp
-     (sp-test-paired-sexp (car it) (apply 'sp-test-make-pair (cdr it)) nil nil))))
-
-(ert-deftest sp-test-get-paired-expression-elisp-backward ()
-  (sp-test-setup-paired-expression-env-elisp
-   (--each sp-test-get-paired-expression
-     (sp-test-paired-sexp (car it) (apply 'sp-test-make-pair (cdr it)) t nil))
-   (--each sp-test-get-paired-expression-elisp
-     (sp-test-paired-sexp (car it) (apply 'sp-test-make-pair (cdr it)) t nil))))
-
-(defvar sp-test-get-paired-expression-elisp-fail
-  '("'(foo"
-    "`(foo"
-    ",@(foo"
-    ))
-
-(defvar sp-test-get-paired-expression-elisp-backward-fail
-  '("'foo)"
-    "`foo)"
-    ",@foo)"
-    ))
-
-(ert-deftest sp-test-get-paired-expression-elisp-fail ()
-  (sp-test-setup-paired-expression-env-elisp
-   (--each sp-test-get-paired-expression-fail
-     (sp-test-paired-sexp it nil nil t))
-   (--each sp-test-get-paired-expression-elisp-fail
-     (sp-test-paired-sexp it nil nil t))))
-
-(ert-deftest sp-test-get-paired-expression-elisp-backward-fail ()
-  (sp-test-setup-paired-expression-env-elisp
-   (--each sp-test-get-paired-expression-backward-fail
-     (sp-test-paired-sexp it nil t t))
-   (--each sp-test-get-paired-expression-elisp-backward-fail
-     (sp-test-paired-sexp it nil t t))))
 
 (defmacro sp-test-setup-paired-expression-env-elisp (&rest forms)
   `(sp-test-setup-paired-expression-env
