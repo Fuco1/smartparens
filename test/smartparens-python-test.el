@@ -1,3 +1,4 @@
+(require 'ert)
 (require 'smartparens)
 
 (ert-deftest sp-test-sp-autoescape-string-quote-if-empty ()
@@ -18,3 +19,17 @@ baz = biz.boz|"
     (should (equal (buffer-string) "if foo:
     bar()
 baz = biz."))))
+
+(ert-deftest sp-test-python-slurp-whitespace ()
+  "Ensure we don't add unwanted whitespace when slurping."
+  (sp-test-with-temp-buffer "foo(|bar)(baz)"
+      (python-mode)
+    (sp-forward-slurp-sexp)
+    (should (equal (buffer-string) "foo(bar(baz))"))))
+
+(ert-deftest sp-test-python-square-bracket-whitespace ()
+  "Ensure we don't add unwanted whitespace when slurping."
+  (sp-test-with-temp-buffer "foo[|bar][baz]"
+      (python-mode)
+    (sp-forward-slurp-sexp)
+    (should (equal (buffer-string) "foo[bar[baz]]"))))
