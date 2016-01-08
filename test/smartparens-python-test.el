@@ -4,7 +4,6 @@
   (sp-test-with-temp-buffer "def foo():\n    |"
       (python-mode)
     (let ((sp-autoescape-string-quote-if-empty '(python-mode))
-          (sp-autoescape-string-quote t)
           (sp-autoskip-closing-pair 'always)
           (sp-undo-pairs-separately nil))
       (execute-kbd-macro "\"\"\""))
