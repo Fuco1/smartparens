@@ -53,5 +53,24 @@
 (--each '(python-mode inferior-python-mode)
   (add-to-list 'sp-sexp-suffix (list it 'regexp "")))
 
+(sp-local-pair 'python-mode
+               "(" nil
+               :pre-handlers '(sp-python-pre-slurp-handler))
+
+(sp-local-pair 'python-mode
+               "[" nil
+               :pre-handlers '(sp-python-pre-slurp-handler))
+
+(defun sp-python-pre-slurp-handler (id action context)
+  (when (eq action 'slurp-forward)
+    ;; If there was no space before, we shouldn't add on.
+    ;; ok = enclosing, next-thing one being slurped into
+    ;; (variables let-bound in `sp-forward-slurp-sexp').
+    (save-excursion
+      (when (and (= (sp-get ok :end) (sp-get next-thing :beg))
+                 (equal (sp-get ok :op) (sp-get next-thing :op)))
+        (goto-char (sp-get ok :end))
+        (when (looking-back " ")
+          (delete-char -1))))))
 (provide 'smartparens-python)
 ;;; smartparens-python.el ends here
