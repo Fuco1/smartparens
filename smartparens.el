@@ -6012,6 +6012,9 @@ If ARG is raw prefix \\[universal-argument], extend all the way to the end of th
 If both the current expression and the expression to be slurped
 are strings, they are joined together.
 
+See also `sp-slurp-hybrid-sexp' which is similar but handles
+C-style syntax better.
+
 Examples:
 
   (foo |bar) baz        -> (foo |bar baz)
