@@ -104,21 +104,22 @@ Finally, FORMS are run."
   (declare (indent 2)
            (debug (form form body)))
   `(save-window-excursion
-     (with-temp-buffer
-       (set-input-method nil)
-       ,initform
-       (smartparens-mode 1)
-       (pop-to-buffer (current-buffer))
-       (insert ,initial)
-       (goto-char (point-min))
-       (when (search-forward "M" nil t)
-         (delete-char -1)
-         (set-mark (point))
-         (activate-mark))
-       (goto-char (point-min))
-       (when (search-forward "|" nil t)
-         (delete-char -1))
-       ,@forms)))
+     (let ((case-fold-search nil))
+       (with-temp-buffer
+         (set-input-method nil)
+         ,initform
+         (smartparens-mode 1)
+         (pop-to-buffer (current-buffer))
+         (insert ,initial)
+         (goto-char (point-min))
+         (when (search-forward "M" nil t)
+           (delete-char -1)
+           (set-mark (point))
+           (activate-mark))
+         (goto-char (point-min))
+         (when (search-forward "|" nil t)
+           (delete-char -1))
+         ,@forms))))
 
 (defmacro sp-test-with-temp-elisp-buffer (initial &rest forms)
   "Setup a new `emacs-lisp-mode' test buffer.
