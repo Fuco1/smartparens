@@ -27,12 +27,6 @@
     ("foo \\\"bar\\\" baz bam \\\"quux\\\"" 25 21 29 "\\\"" "\\\"" "" "")
     ))
 
-(ert-deftest sp-test-get-stringlike-expression ()
-  "Test basic stringlike expressions in `emacs-lisp-mode'."
-  (sp-test-setup-stringlike-expression-env-basic
-    (--each sp-test-get-stringlike-expression
-      (sp-test-stringlike-sexp (car it) (apply 'sp-test-make-pair (cddr it)) (cadr it) nil nil))))
-
 (defvar sp-test-get-stringlike-expression-backward
   '(("foo \"bar\" baz \"quux\" bux" 15 5 10 "\"" "\"" "" "")
     ("foo \"bar\" baz \"quux\" bux" 12 5 10 "\"" "\"" "" "")
