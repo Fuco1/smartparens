@@ -72,5 +72,15 @@
         (goto-char (sp-get ok :end))
         (when (looking-back " ")
           (delete-char -1))))))
+
+(defadvice python-indent-dedent-line-backspace
+    (around sp-backward-delete-char-advice activate)
+  (if smartparens-strict-mode
+      (cl-letf (((symbol-function 'delete-backward-char)
+                 (lambda (arg &optional killp)
+                   (sp-backward-delete-char arg))))
+        ad-do-it)
+    ad-do-it))
+
 (provide 'smartparens-python)
 ;;; smartparens-python.el ends here

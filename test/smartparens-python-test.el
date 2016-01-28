@@ -33,3 +33,10 @@ baz = biz."))))
       (python-mode)
     (sp-forward-slurp-sexp)
     (should (equal (buffer-string) "foo[bar[baz]]"))))
+
+(ert-deftest sp-test-python-backspace-in-strict-mode ()
+  (sp-test-with-temp-buffer "def foo()|:"
+      (progn (python-mode)
+             (smartparens-strict-mode +1))
+    (execute-kbd-macro (kbd "DEL"))
+    (should (equal (buffer-string) "def foo():"))))
