@@ -457,7 +457,8 @@ Symbol is defined as a chunk of text recognized by
 
 (define-obsolete-variable-alias 'sp--lisp-modes 'sp-lisp-modes "2015-11-08")
 
-(defcustom sp-lisp-modes '(cider-repl-mode
+(defcustom sp-lisp-modes '(
+                           cider-repl-mode
                            clojure-mode
                            clojurec-mode
                            clojurescript-mode
@@ -473,11 +474,13 @@ Symbol is defined as a chunk of text recognized by
                            lisp-interaction-mode
                            lisp-mode
                            monroe-mode
+                           racket-mode
+                           racket-repl-mode
                            scheme-interaction-mode
                            scheme-mode
                            slime-repl-mode
-                           racket-mode
-                           racket-repl-mode)
+                           stumpwm-mode
+                           )
   "List of Lisp modes."
   :type '(repeat symbol)
   :group 'smartparens)
