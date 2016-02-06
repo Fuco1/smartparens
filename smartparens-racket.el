@@ -48,6 +48,7 @@
 (require 'smartparens)
 
 (sp-with-modes '(racket-mode racket-repl-mode)
+  (sp-local-pair "'" nil :actions nil)
   (sp-local-pair "`" nil :actions nil)
   (sp-local-pair "#|" "|#"))
 
