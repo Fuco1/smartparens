@@ -69,7 +69,7 @@ If nil, the user is probably using < for something else."
        (looking-back (rx (or letter (seq letter "<") (seq letter "::<"))))))
 
 (sp-with-modes '(rust-mode)
-  (sp-local-pair "'" "'" :unless '(sp-in-comment-p sp-in-rust-lifetime-context))
+  (sp-local-pair "'" "'" :unless '(sp-in-comment-p sp-in-string-p sp-in-rust-lifetime-context))
   (sp-local-pair "<" ">" :when '(sp-rust-could-be-parameterized)))
 
 ;; Rust has no sexp suffices.  This fixes slurping

@@ -29,6 +29,13 @@
     (execute-kbd-macro "'")
     (should (equal (buffer-string) "// '"))))
 
+(ert-deftest sp-test-rust-character-in-string ()
+  "When inserting ' in a string, don't insert a matched '."
+  (sp-test-with-temp-buffer "let x = \"|\";"
+      (rust-mode)
+    (execute-kbd-macro "'")
+    (should (equal (buffer-string) "let x = \"'\";"))))
+
 (ert-deftest sp-test-rust-kill-first-line ()
   "Ensure we can kill words on the first line.
 Regression test."
