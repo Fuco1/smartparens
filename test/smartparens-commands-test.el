@@ -336,7 +336,17 @@
    ;; from #243
    (((sp-navigate-consider-stringlike-sexp '(emacs-lisp-mode)))
     (";; \"quote\" here\nand \"|here\"" ";; \"quote\" here\nand |here")
-    (";; \"|quote\" here\nand here" ";; |quote here\nand here"))
+    (";; \"|quote\" here\nand here" ";; |quote here\nand here")
+
+    ;; from #569
+    ("(\" \" f|oo)" "|foo")
+    ("(\" \" |foo)" "|foo")
+    ("(\"x\" |foo)" "|foo"))
+   ;; TODO: this should also work without sp-navigate-consider-stringlike-sexp
+   ;; (nil
+   ;;  ("(\" \" f|oo)" "|foo")
+   ;;  ("(\" \" |foo)" "|foo")
+   ;;  ("(\"x\" |foo)" "|foo"))
    ))
 
 (sp-test-command sp-split-sexp
