@@ -54,6 +54,10 @@
   (add-to-list 'sp-sexp-suffix (list it 'regexp "")))
 
 (sp-local-pair 'python-mode
+               "'" "'"
+               :unless '(sp-in-comment-p sp-in-string-p))
+
+(sp-local-pair 'python-mode
                "(" nil
                :pre-handlers '(sp-python-pre-slurp-handler))
 

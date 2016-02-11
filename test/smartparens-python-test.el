@@ -40,3 +40,17 @@ baz = biz."))))
              (smartparens-strict-mode +1))
     (execute-kbd-macro (kbd "DEL"))
     (should (equal (buffer-string) "def foo():"))))
+
+(ert-deftest sp-test-python-apostrophe-in-string ()
+  "When inserting ' in a string, don't insert a matched '."
+  (sp-test-with-temp-buffer "\" | \""
+      (python-mode)
+    (execute-kbd-macro "'")
+    (should (equal (buffer-string) "\" ' \""))))
+
+(ert-deftest sp-test-python-apostrophe-in-comment ()
+  "When inserting ' in a comment, don't insert a matched '."
+  (sp-test-with-temp-buffer "# |"
+      (python-mode)
+    (execute-kbd-macro "'")
+    (should (equal (buffer-string) "# '"))))
