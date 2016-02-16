@@ -54,3 +54,10 @@ baz = biz."))))
       (python-mode)
     (execute-kbd-macro "'")
     (should (equal (buffer-string) "# '"))))
+
+(ert-deftest sp-test-python-apostrophe-in-code ()
+  "When inserting ' in code, insert a matching '."
+  (sp-test-with-temp-buffer ""
+      (python-mode)
+    (execute-kbd-macro "'")
+    (should (equal (buffer-string) "''"))))
