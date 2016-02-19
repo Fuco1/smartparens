@@ -55,19 +55,6 @@
        (smartparens-mode 1)
        ,@forms)))
 
-(defun sp-test-paired-sexp (string expected back fail)
-  (unwind-protect
-      (progn
-        (insert string)
-        (if back (progn
-                   (goto-char (point-max))
-                   (--when-let (car (sp-get-comment-bounds))
-                     (goto-char it)))
-          (goto-char (point-min)))
-        (let ((pair (sp-get-paired-expression back)))
-          (should (equal pair expected))))
-    (erase-buffer)))
-
 (defun sp-test-stringlike-sexp (string expected start back fail)
   (unwind-protect
       (progn
