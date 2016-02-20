@@ -3,7 +3,8 @@
    ((not (boundp 'mode)) (emacs-lisp-mode))
    ((eq mode 'elisp) (emacs-lisp-mode))
    ((eq mode 'racket) (racket-mode))
-   ((eq mode 'c) (c-mode)))
+   ((eq mode 'c) (c-mode))
+   ((eq mode 'python) (python-mode)))
   (smartparens-mode 1))
 
 ;; TODO: don't use this, simply define the tests manually.  Gives more
@@ -505,7 +506,10 @@ be."
    (((current-prefix-arg '(4)))
     ("(1 2 |   )" "(1 2|)"))
    (((current-prefix-arg 0))
-    ("(1 2 3 |4 5 6)" "(|)"))))
+    ("(1 2 3 |4 5 6)" "(|)"))
+   (((mode 'python)
+     (current-prefix-arg -1))
+    ("x - |" "|"))))
 
 (defun sp--test-sp-rewrap-sexp (initial pair expected &optional keep)
   (sp-test-with-temp-elisp-buffer initial

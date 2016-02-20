@@ -5511,7 +5511,7 @@ Note: prefix argument is shown after the example in
          (n (abs arg))
          (ok t)
          (b (point-max))
-         (e (point-min))
+         (e (point))
          (kill-fn (if dont-kill 'copy-region-as-kill 'kill-region)))
     (cond
      ;; kill to the end or beginning of list
