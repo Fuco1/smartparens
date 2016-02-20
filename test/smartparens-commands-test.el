@@ -9,6 +9,20 @@
 ;; TODO: don't use this, simply define the tests manually.  Gives more
 ;; control and less magic
 (defmacro sp-test-command (command examples)
+  "Define a series of tests for COMMAND using EXAMPLES.
+
+EXAMPLES is a list of (LETBINDINGS TESTCASES...)
+
+LETBINDINGS takes the same form as bindings to `let', but
+additionally the symbol mode can be used to set the major mode.
+
+TESTCASES is a list of strings:
+
+\(initial-state state-after-1-call state-after-2-calls...)
+
+that are used to test the resulting state after running the
+command. Each string may contain | to specify where point should
+be."
   (declare (indent 1))
   `(ert-deftest ,(intern (concat "sp-test-command-"
                                  (symbol-name command))) ()
@@ -472,6 +486,26 @@
     ("(foo\n bar| (baz\n      qux))" "(foo\n bar ;; |\n (baz\n  qux))")
     ("(foo\n bar |(baz\n      qux))" "(foo\n bar ;; |\n (baz\n  qux))")
     ("(foo\n bar (baz\n      |qux))" "(foo\n bar (baz\n      ;; |qux\n      ))"))))
+
+(sp-test-command sp-kill-sexp
+  ((nil
+    ("(foo |(abc) bar)" "(foo | bar)"))
+   (((current-prefix-arg 2))
+    ("(foo (bar) | baz)" "|"))
+   (((current-prefix-arg '(16)))
+    ("(foo |(bar) baz)" "|"))
+   (((current-prefix-arg '(4)))
+    ("(1 |2 3 4 5 6)" "(1|)"))
+   (((current-prefix-arg 3))
+    ("(1 |2 3 4 5 6)" "(1 | 5 6)"))
+   (((current-prefix-arg -2))
+    ("(1 2 3 4 5| 6)" "(1 2 3 | 6)"))
+   (((current-prefix-arg '(-4)))
+    ("(1 2 3 4| 5 6)" "(|5 6)"))
+   (((current-prefix-arg '(4)))
+    ("(1 2 |   )" "(1 2|)"))
+   (((current-prefix-arg 0))
+    ("(1 2 3 |4 5 6)" "(|)"))))
 
 (defun sp--test-sp-rewrap-sexp (initial pair expected &optional keep)
   (sp-test-with-temp-elisp-buffer initial
