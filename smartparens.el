@@ -420,6 +420,14 @@ run.")
 Only the pairs defined by `sp-pair' are considered.  Tag pairs
 can be of any length.")
 
+(defconst sp-max-prefix-length 100
+  "Maximum length of a pair prefix.
+
+Because prefixes for pairs can be specified using regular
+expressions, they can potentially be of arbitrary length.  This
+settings solves the problem where the parser would decide to
+backtrack the entire buffer which would lock up Emacs.")
+
 (defvar sp-pairs '((t
                     .
                     ((:open "\\\\(" :close "\\\\)" :actions (insert wrap autoskip navigate))
@@ -4427,7 +4435,7 @@ is used to retrieve the prefix instead of the global setting."
     (save-excursion
       (goto-char p)
       (if pref
-          (when (sp--looking-back pref)
+          (when (sp--looking-back pref sp-max-prefix-length)
             (match-string-no-properties 0))
         (-if-let (mmode-prefix (cdr (assoc major-mode sp-sexp-prefix)))
             (cond
