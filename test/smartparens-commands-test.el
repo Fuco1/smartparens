@@ -338,6 +338,9 @@
     (";; \"quote\" here\nand \"|here\"" ";; \"quote\" here\nand |here")
     (";; \"|quote\" here\nand here" ";; |quote here\nand here")
 
+    ;; from #580, should also work without sp-navigate-consider-stringlike-sexp
+    ("(foo \"|bar\")" "(foo |bar)")
+
     ;; from #569
     ("(\" \" f|oo)" "|foo")
     ("(\" \" |foo)" "|foo")
