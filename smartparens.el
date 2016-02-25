@@ -1846,7 +1846,7 @@ If PROP is non-nil, return the value of that property instead."
 (defun sp-wrap-with-pair (pair)
   "Wrap the following expression with PAIR.
 
-This function is non-interactive helper.  To use this function
+This function is a non-interactive helper.  To use this function
 interactively, bind the following lambda to a key:
 
  (lambda (&optional arg) (interactive \"P\") (sp-wrap-with-pair \"(\"))
