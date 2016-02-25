@@ -1482,7 +1482,7 @@ does not trigger `post-self-insert-hook'."
 
 (cl-eval-when (compile eval load)
   (defun sp--get-substitute (struct list)
-    "Only ever call this from sp-get!  This function do the
+    "Only ever call this from sp-get!  This function does the
 replacement of all the keywords with actual calls to sp-get."
     (if (listp list)
         (if (eq (car list) 'sp-get)
