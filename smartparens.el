@@ -7423,6 +7423,10 @@ considered balanced expressions."
          (b (sp-get selection :beg))
          (e (sp-get selection :end))
          contracted)
+    ;; Show a helpful error if we're trying to move beyond the
+    ;; beginning or end of the buffer.
+    (when (or (null b) (null e))
+      (user-error (if (bobp) "At beginning of buffer" "At end of buffer")))
     ;; if region is active and ready to use, check if this selection
     ;; == old selection.  If so, reselect the insides
     (when (region-active-p)
