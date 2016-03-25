@@ -22,7 +22,7 @@ TESTCASES is a list of strings:
 \(initial-state state-after-1-call state-after-2-calls...)
 
 that are used to test the resulting state after running the
-command. Each string may contain | to specify where point should
+command. Each string must contain | to specify where point should
 be."
   (declare (indent 1))
   `(ert-deftest ,(intern (concat "sp-test-command-"
