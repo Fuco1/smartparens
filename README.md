@@ -86,6 +86,8 @@ Alternatively, you can open the individual files in Emacs, then
 
 There are also some ecukes tests, but these are deprecated.
 
+You can learn more about how we test on the [testing](https://github.com/Fuco1/smartparens/wiki/Testing) wiki page.
+
 ### Language Support
 
 Smartparens has a default configuration that works well for most
