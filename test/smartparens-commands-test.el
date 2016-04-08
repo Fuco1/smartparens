@@ -1,3 +1,5 @@
+(require 'smartparens)
+
 (defun sp-test-command-setup ()
   (cond
    ((not (boundp 'mode)) (emacs-lisp-mode))
@@ -538,5 +540,13 @@ be."
       (sp-test-with-temp-elisp-buffer "(fo|o)"
         (let ((unread-command-events (list ?\a)))
           (call-interactively 'sp-rewrap-sexp))
+        (error "We should never get here"))
+    (user-error t)))
+
+(ert-deftest sp-test-command-sp-select-next-thing-empty-buffer ()
+  "Ensure we call user-error at buffer end."
+  (condition-case c
+      (sp-test-with-temp-elisp-buffer ""
+        (call-interactively 'sp-select-next-thing)
         (error "We should never get here"))
     (user-error t)))
