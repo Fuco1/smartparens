@@ -2978,6 +2978,7 @@ overlay."
         (overlay-put oright 'priority 100)
         (overlay-put oleft 'keymap sp-wrap-overlay-keymap)
         (overlay-put oleft 'type 'wrap)
+        (setq sp-previous-point (point))
         (goto-char (1+ (overlay-start oleft)))))))
 
 (defun sp-wrap--finalize (wrapping-end open close)
