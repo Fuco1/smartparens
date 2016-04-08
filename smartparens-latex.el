@@ -56,7 +56,16 @@
 (defun sp-latex-insert-spaces-inside-pair (id action context)
   (when (eq action 'insert)
     (insert "  ")
-    (backward-char 1)))
+    (backward-char 1))
+  (when (and (eq action 'wrap)
+             (save-excursion
+               (goto-char (sp-get sp-last-wrapped-region :beg-in))
+               (not (sp--looking-back-p "[[{(]"))))
+    (save-excursion
+      (goto-char (sp-get sp-last-wrapped-region :end-in))
+      (insert " ")
+      (goto-char (sp-get sp-last-wrapped-region :beg-in))
+      (insert " "))))
 
 (defun sp-latex-skip-match-apostrophe (ms mb me)
   (when (equal ms "'")
