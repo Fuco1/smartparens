@@ -190,6 +190,9 @@ be."
 
     ("(foo)\nbar ;; baz (f|oo) baz\n(quux)"
      "(foo)\nbar ;; baz (f|oo baz)\n(quux)"))
+   (((current-prefix-arg '(4)))
+    ("[(fo|o) bar baz]" "[(fo|o bar baz)]")
+    ("((progn| bar (baz) (baz)))" "((progn| bar (baz) (baz)))"))
 
    (((mode 'c))
     ("int funct() { int |foo =} bar;" "int funct() { int |foo = bar;}")
