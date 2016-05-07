@@ -252,11 +252,12 @@
         (sp-ruby-method-p "end"))))
 
 (add-to-list 'sp-navigate-skip-match
-             '((ruby-mode enh-ruby-mode) . sp--ruby-skip-match))
+             '((ruby-mode enh-ruby-mode motion-mode) . sp--ruby-skip-match))
 
-(add-to-list 'sp-sexp-suffix '(ruby-mode syntax ""))
+(dolist (mode '(ruby-mode motion-mode))
+  (add-to-list 'sp-sexp-suffix `(,mode syntax "")))
 
-(sp-with-modes '(ruby-mode enh-ruby-mode)
+(sp-with-modes '(ruby-mode enh-ruby-mode motion-mode)
   (sp-local-pair "do" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :unless '(sp-ruby-in-string-or-word-p sp-in-comment-p)
@@ -365,7 +366,8 @@
                  :pre-handlers '(sp-ruby-pre-pipe-handler)
                  :suffix ""))
 
-(add-to-list 'sp-navigate-consider-stringlike-sexp 'ruby-mode)
+(dolist (mode '(ruby-mode motion-mode))
+  (add-to-list 'sp-navigate-consider-stringlike-sexp mode))
 
 (provide 'smartparens-ruby)
 
