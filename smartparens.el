@@ -2714,6 +2714,7 @@ see `sp-pair' for description."
             ;; no auto-escape here? Should be fairly safe
             (sp--run-hook-with-args open-pair :post-handlers 'insert)
             (setq sp-last-inserted-pair open-pair)
+            ;; TODO: this is probably useless
             (setq sp-last-operation 'sp-insert-pair)))
         (setq sp-delayed-pair nil))
 
