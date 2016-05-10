@@ -3031,8 +3031,12 @@ programatically.  Use `sp-wrap-with-pair' instead."
            (mapconcat (lambda (x)
                         (if sp-highlight-wrap-overlay
                             (concat
-                             (propertize (plist-get x :open) 'face 'sp-wrap-overlay-opening-pair)
-                             (propertize (plist-get x :close) 'face 'sp-wrap-overlay-closing-pair))
+                             (propertize
+                              (plist-get x :open) 'face
+                              'sp-wrap-overlay-opening-pair)
+                             (propertize
+                              (plist-get x :close)
+                              'face 'sp-wrap-overlay-closing-pair))
                           (concat (plist-get x :open) (plist-get x :close))))
                       opening-pairs " ")))
         (when (equal (sp--get-overlay-text obeg) open)
