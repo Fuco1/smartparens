@@ -355,6 +355,22 @@ Maximum length of opening or closing pair is
   "Symbol holding the last successful operation.")
 (make-variable-buffer-local 'sp-last-operation)
 
+(cl-defstruct sp-state
+  "Smartparens state for the current buffer."
+  ;; A "counter" to track delayed hook.  When a pair is inserted, a
+  ;; cons of the form (:next . pair) is stored.  On the next
+  ;; (immediately after insertion) invocation of post-command-hook, it
+  ;; is changed to (:this . pair).  When the `car' is :this, the
+  ;; post-command-hook checks the delayed hooks for `pair' and
+  ;; executes them, then reset the "counter".
+  delayed-hook
+  ;; TODO
+  delayed-insertion)
+
+(defvar sp-state nil
+  "Smartparens state for the current buffer.")
+(make-variable-buffer-local 'sp-state)
+
 ;; TODO: get rid of this
 (defvar sp-previous-point -1
   "Location of point before last command.
@@ -646,6 +662,8 @@ after the smartparens indicator in the mode list."
 (defun sp--init ()
   "Initialize the buffer local pair bindings and other buffer
 local variables that depend on the active `major-mode'."
+  ;; setup local state
+  (setq sp-state (make-sp-state))
   ;; setup local pair replacements
   (sp--update-local-pairs)
   ;; set the escape char
@@ -2674,18 +2692,22 @@ see `sp-pair' for description."
         (setq sp-previous-point (point)))
 
       ;; Here we run the delayed hooks. See issue #80
-      (when (and (not (eq sp-last-operation 'sp-insert-pair))
-                 sp-last-inserted-pair)
-        (let ((hooks (sp-get-pair sp-last-inserted-pair :post-handlers-cond)))
+      (cond
+       ((eq (car-safe (sp-state-delayed-hook sp-state)) :next)
+        (setf (car (sp-state-delayed-hook sp-state)) :this))
+       ((eq (car-safe (sp-state-delayed-hook sp-state)) :this)
+        (let* ((pair (cdr (sp-state-delayed-hook sp-state)))
+               (hooks (sp-get-pair pair :post-handlers-cond)))
           (--each hooks
             (let ((fun (car it))
                   (conds (cdr it)))
               (when (or (--any? (eq this-command it) conds)
                         (--any? (equal (single-key-description last-command-event) it) conds))
                 (sp--run-function-or-insertion
-                 fun sp-last-inserted-pair 'insert
-                 (sp--get-handler-context :post-handlers))))))
-        (setq sp-last-inserted-pair nil))
+                 fun pair 'insert
+                 (sp--get-handler-context :post-handlers)))))
+          (setf (sp-state-delayed-hook sp-state) nil)
+          (setq sp-last-inserted-pair nil))))
 
       ;; Here we run the delayed insertion. Some details in issue #113
       (when (and (not (eq sp-last-operation 'sp-insert-pair-delayed))
@@ -3284,6 +3306,7 @@ default."
           (push nil buffer-undo-list))
         (sp--run-hook-with-args open-pair :post-handlers 'insert)
         (setq sp-last-inserted-pair open-pair)
+        (setf (sp-state-delayed-hook sp-state) (cons :next open-pair))
         (setq sp-last-operation 'sp-insert-pair)))))
 
 (defun sp--wrap-repeat-last (active-pair)
