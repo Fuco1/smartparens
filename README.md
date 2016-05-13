@@ -111,12 +111,13 @@ If you want to support this project, you can:
   [start new issue](https://github.com/Fuco1/smartparens/issues/new)
   on the tracker and submit your suggestion.
 
-* You can make a
-  [financial donation](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CEYP5YVHDRX8C)
-  through PayPal.  If you like smartparens and can spare a modest
-  amount on a donation, feel free to do so.  These donations are
-  expressions of your gratitude and are used for my personal "rewards"
-  (books, games, music etc.).  You can also gift me a game on
+* You can make a financial donation through
+  [PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CEYP5YVHDRX8C)
+  or [Patreon](https://www.patreon.com/user?u=3282358&ty=h).  If you
+  like smartparens and can spare a modest amount on a donation, feel
+  free to do so.  These donations are expressions of your gratitude
+  and are used for my personal "rewards" (books, games, music etc.).
+  You can also gift me a game on
   [Steam](http://steamcommunity.com/profiles/76561198265034071/wishlist)
   or buy something on
   [Amazon](http://www.amazon.com/gp/registry/wishlist/2I8DOQH8OZEUR).
