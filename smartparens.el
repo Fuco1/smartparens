@@ -53,6 +53,7 @@
 (require 'cl-lib)
 (require 'dash)
 (require 'thingatpt)
+(require 'memoize)
 
 (eval-when-compile (defvar cua--region-keymap))
 (declare-function cua-replace-region "cua-base")
@@ -2885,7 +2886,7 @@ that the strings are not matched in-symbol."
       (mapconcat (lambda (g) (apply 'sp--regexp-for-group g)) it "\\|")
       (concat "\\(?:" it "\\)"))))
 
-(defun sp--strict-regexp-quote (string)
+(defmemoize sp--strict-regexp-quote (string)
   "Like regexp-quote, but make sure that the string is not
 matched in-symbol."
   (sp--wrap-regexp (regexp-quote string)
