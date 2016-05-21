@@ -3553,8 +3553,9 @@ is remove the just added wrapping."
                         (search-forward (cdr inside-pair))))
                  (cs (sp--get-context p))
                  (ce (sp--get-context end)))
-            (when (or (not (eq cs 'comment)) ;; a => b <=> ~a v b
-                      (eq ce 'comment))
+            (when (and (or (not (eq cs 'comment)) ;; a => b <=> ~a v b
+                           (eq ce 'comment))
+                       (eq end (sp-get (sp-get-sexp) :end)))
               (delete-char (- end p))
               (delete-char (- (1- (length (car inside-pair)))))
               (setq sp-last-operation 'sp-delete-pair))))
