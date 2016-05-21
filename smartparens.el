@@ -3274,9 +3274,11 @@ default."
         ;; again with this pair removed from sp-pair-list to give
         ;; chance to other pairs sharing a common suffix (for
         ;; example \[ and [)
-        (let ((new-sp-pair-list (--remove (equal (car it) open-pair) sp-pair-list)))
+        (let ((new-sp-pair-list (--remove (equal (car it) open-pair) sp-pair-list))
+              (new-sp-local-pairs (--remove (equal (plist-get it :open) open-pair) sp-local-pairs)))
           (when (> (length sp-pair-list) (length new-sp-pair-list))
-            (let ((sp-pair-list new-sp-pair-list))
+            (let ((sp-pair-list new-sp-pair-list)
+                  (sp-local-pairs new-sp-local-pairs))
               (sp-insert-pair))))
       ;; setup the delayed insertion here.
       (if (sp-get-pair open-pair :when-cond)
