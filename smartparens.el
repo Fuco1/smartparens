@@ -4405,13 +4405,12 @@ argument."
             (while (and ok (>= (sp-get ok :beg) p))
               (setq ok (sp-get-sexp))
               (when ok (goto-char (sp-get ok :end)))))))
-        ;; if the pair expression is completely enclosed inside a
-        ;; string, return the pair expression, otherwise return the
-        ;; string expression
+        ;; if the pair expression is enclosed inside a string, return
+        ;; the pair expression, otherwise return the string expression
         (when okr
           (unless (and ok
-                       (sp-compare-sexps ok okr >)
-                       (sp-compare-sexps ok okr < :end))
+                       (sp-compare-sexps ok okr >=)
+                       (sp-compare-sexps ok okr <= :end))
             (setq ok okr)
             (goto-char (sp-get ok :end))))
         (setq n (1- n)))
