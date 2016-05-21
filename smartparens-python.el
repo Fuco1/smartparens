@@ -61,17 +61,10 @@ care not to be confused by an unclosed ' that's just been typed."
          (backward-char 1)
          (nth 3 (syntax-ppss)))))
 
-(sp-local-pair 'python-mode
-               "'" "'"
-               :unless '(sp-in-comment-p sp-python-in-string-p))
-
-(sp-local-pair 'python-mode
-               "(" nil
-               :pre-handlers '(sp-python-pre-slurp-handler))
-
-(sp-local-pair 'python-mode
-               "[" nil
-               :pre-handlers '(sp-python-pre-slurp-handler))
+(sp-with-modes 'python-mode
+  (sp-local-pair "'" "'" :unless '(sp-in-comment-p sp-python-in-string-p))
+  (sp-local-pair "(" nil :pre-handlers '(sp-python-pre-slurp-handler))
+  (sp-local-pair "[" nil :pre-handlers '(sp-python-pre-slurp-handler)))
 
 (defun sp-python-pre-slurp-handler (id action context)
   (when (eq action 'slurp-forward)
