@@ -200,7 +200,10 @@ be."
     ("int funct() { int |foo =}; bar;" "int funct() { int |foo = bar;};"))
    (((mode 'racket)
      (sp-sexp-prefix '((racket-mode regexp "#?['`,]@?"))))
-    ("(f|oo)  #'(bar)" "(f|oo  #'(bar))"))))
+    ("(f|oo)  #'(bar)" "(f|oo  #'(bar))"))
+   (((sp-sexp-prefix '((emacs-lisp-mode regexp "\\(?:['`]*,@?\\|[',`]\\)"))))
+    ("(fo|o) `',(bar)" "(fo|o `',(bar))")
+    ("(fo|o) ,@(bar)" "(fo|o ,@(bar))"))))
 
 (sp-test-command sp-backward-slurp-sexp
   ((nil
@@ -210,7 +213,11 @@ be."
      "((foo)\n bar ;; baz (foo) baz\n qu|ux)")
 
     ("(foo)\nbar ;; baz (f|oo) baz\n(quux)"
-     "(foo)\nbar ;; (baz f|oo) baz\n(quux)"))))
+     "(foo)\nbar ;; (baz f|oo) baz\n(quux)"))
+
+   (((sp-sexp-prefix '((emacs-lisp-mode regexp "\\(?:['`]*,@?\\|[',`]\\)"))))
+    ("(foo `',(b|ar))" "(`',(foo b|ar))")
+    ("(foo ,@(b|ar))" "(,@(foo b|ar))"))))
 
 (sp-test-command sp-forward-barf-sexp
   ((nil

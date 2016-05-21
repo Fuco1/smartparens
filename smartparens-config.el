@@ -89,7 +89,7 @@
 ;; make @ no longer have prefix syntax, it is now a symbol... because
 ;; apparently its use in symbols is so frequent.  Anyway, since we
 ;; can't really change that, let's use a regexp based solution</rant>
-(add-to-list 'sp-sexp-prefix (list 'emacs-lisp-mode 'regexp "\\(?:,@\\|[',`]\\)"))
+(add-to-list 'sp-sexp-prefix (list 'emacs-lisp-mode 'regexp "\\(?:['`]*,@?\\|[',`]\\)"))
 
 ;; TODO: this should only be active in docstring, otherwise we want
 ;; the regexp completion \\{\\}.  To handle this feature, we must
