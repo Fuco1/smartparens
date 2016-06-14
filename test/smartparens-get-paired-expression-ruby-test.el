@@ -2,7 +2,8 @@
   (let ((sp-pairs '((t . ((:open "def"   :close "end" :actions (insert wrap autoskip navigate))
                           (:open "if"    :close "end" :actions (insert wrap autoskip navigate))
                           (:open "do"    :close "end" :actions (insert wrap autoskip navigate))
-                          (:open "begin" :close "end" :actions (insert wrap autoskip navigate)))))))
+                          (:open "begin" :close "end" :actions (insert wrap autoskip navigate))
+                          (:open "(" :close ")" :actions (insert wrap autoskip navigate)))))))
     (sp-test-with-temp-buffer initial
         (ruby-mode)
       (should (equal (sp-get-paired-expression back) result)))))
@@ -19,6 +20,8 @@
   (sp-test--paired-expression-parse-in-ruby "begin| end" '(:beg 1 :end 10 :op "begin" :cl "end" :prefix "" :suffix "") t)
   (sp-test--paired-expression-parse-in-ruby "def foo bar if blaz end end|" '(:beg 1 :end 28 :op "def" :cl "end" :prefix "" :suffix "") t)
   (sp-test--paired-expression-parse-in-ruby "def foo end;|" '(:beg 1 :end 12 :op "def" :cl "end" :prefix "" :suffix "") t)
+  (sp-test--paired-expression-parse-in-ruby "asd (asd)|#asdas" '(:beg 5 :end 10 :op "(" :cl ")" :prefix "" :suffix "") t)
+  (sp-test--paired-expression-parse-in-ruby "C = %w(asd)|#asdas" '(:beg 7 :end 12 :op "(" :cl ")" :prefix "" :suffix "") t)
   )
 
 (ert-deftest sp-test-get-paired-expression-ruby-fail ()

@@ -3804,6 +3804,16 @@ The expressions considered are those delimited by pairs on
            ;; in C-like language.  In this case, we want to report the
            ;; context as comment.
 
+           ;; In some languages, special paren syntax with a prefix
+           ;; serves to mark strings.  This means that regular
+           ;; delimiters, like () are used to delimit strings.  For
+           ;; example, in ruby the sequence %w(...) signifies a
+           ;; string.  If the point is after such a sequence and we
+           ;; are searching back, we must use the string context,
+           ;; because the paren is now a string delimiter.  This is
+           ;; usually implemented with "string fence" syntax, so we
+           ;; will simply check for that.
+
            ;; Thanks for being consistent at handling syntax bounds Emacs!
            (in-string-or-comment (if back
                                      (let ((in-comment (sp-point-in-comment))
@@ -3812,11 +3822,15 @@ The expressions considered are those delimited by pairs on
                                          (unless (= (point) (point-min))
                                            (backward-char)
                                            (cond
-                                            (in-comment (and in-comment (sp-point-in-comment)))
-                                            ((and (not in-comment) (sp-point-in-comment)) t)
-                                            ((or in-comment in-string))))))
-                                   (sp-point-in-string-or-comment)))
-           (string-bounds (and in-string-or-comment (sp--get-string-or-comment-bounds)))
+                                            ((eq (car (syntax-after (point))) 15) (point))
+                                            (in-comment (when (sp-point-in-comment) (1+ (point))))
+                                            ((and (not in-comment) (sp-point-in-comment)) (1+ (point)))
+                                            ((or in-comment in-string) (1+ (point)))))))
+                                   (when (sp-point-in-string-or-comment) (point))))
+           (string-bounds (and in-string-or-comment
+                               (progn
+                                 (goto-char in-string-or-comment)
+                                 (sp--get-string-or-comment-bounds))))
            (fw-bound (if in-string-or-comment (cdr string-bounds) (point-max)))
            (bw-bound (if in-string-or-comment (car string-bounds) (point-min)))
            s e active-pair forward mb me ms r done
