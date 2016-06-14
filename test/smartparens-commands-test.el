@@ -465,7 +465,7 @@ be."
     ("(define-key sp-keymap (kbd | \"C-{\") 'sp-beginning-of-next-sexp)" "(define-key sp-keymap (|kbd  \"C-{\") 'sp-beginning-of-next-sexp)" ))))
 
 (sp-test-command backward-delete-char
-  ((nil
+  ((((sp-navigate-consider-stringlike-sexp '(emacs-lisp-mode)))
     (";;asdas'|\n'asdasd'" ";;asdas|\n'asdasd'")
     ("foo \"|\" bar" "foo | bar")
     ("foo [|] bar" "foo | bar")
