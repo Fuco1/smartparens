@@ -4181,8 +4181,9 @@ By default, this is enabled in all modes derived from
             (ss (if back (1- (point-min)) (1+ (point-max))))
             (string-delim nil))
         (setq ps (or (save-excursion (funcall search-fn pre nil t)) ps))
-        (setq ss (or (save-excursion (funcall search-fn sre nil t)) ss))
-        (setq string-delim (match-string 0))
+        (setq ss (or (--when-let (save-excursion (funcall search-fn sre nil t))
+                       (setq string-delim (match-string 0))
+                       it) ss))
         ;; TODO: simplify this logic somehow... (this really depends
         ;; on a rewrite of the core parser logic: separation of "find
         ;; the valid opening" and "parse it")
