@@ -56,10 +56,11 @@
 (defun sp-python-in-string-p (id action context)
   "Return non-nil if point is in a string, taking
 care not to be confused by an unclosed ' that's just been typed."
-  (and (eq context 'string)
-       (save-excursion
-         (backward-char 1)
-         (nth 3 (syntax-ppss)))))
+  (when (memq action '(insert navigate))
+    (and (eq context 'string)
+         (save-excursion
+           (backward-char 1)
+           (nth 3 (syntax-ppss))))))
 
 (sp-with-modes 'python-mode
   (sp-local-pair "'" "'" :unless '(sp-in-comment-p sp-python-in-string-p))

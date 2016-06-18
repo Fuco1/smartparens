@@ -52,3 +52,28 @@ baz = biz."))))
       (python-mode)
     (execute-kbd-macro "'")
     (should (equal (buffer-string) "''"))))
+
+(ert-deftest sp-test-python-apostrophe-skip-closing-in-code ()
+  "When inserting ' at the end of '-delimited string, skip it."
+  (sp-test-with-temp-buffer ""
+      (python-mode)
+    (execute-kbd-macro "'foo'")
+    (should (equal (buffer-string) "'foo'"))
+    (should (eobp))))
+
+(ert-deftest sp-test-python-apostrophe-skip-closing-after-edit-in-code ()
+  "When inserting ' at the end of '-delimited string, skip it.
+
+Make sure to skip even in inactive sexps."
+  (sp-test-with-temp-buffer ""
+      (python-mode)
+    (execute-kbd-macro "'foo\C-b\C-db'")
+    (should (equal (buffer-string) "'fob'"))
+    (should (eobp))))
+
+(ert-deftest sp-test-python-apostrophe-delete-on-backspace-in-comment ()
+  "When backspacing over ' it should be deleted."
+  (sp-test-with-temp-buffer "\"foo; it's| a nice word!\""
+      (python-mode)
+    (execute-kbd-macro (kbd "<backspace><backspace><backspace><backspace>|"))
+    (should (equal (buffer-string) "\"foo; | a nice word!\""))))
