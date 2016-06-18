@@ -3560,10 +3560,13 @@ is remove the just added wrapping."
           (let* ((end (save-excursion
                         (search-forward (cdr inside-pair))))
                  (cs (sp--get-context p))
-                 (ce (sp--get-context end)))
+                 (ce (sp--get-context end))
+                 (current-sexp (sp-get-sexp)))
             (when (and (or (not (eq cs 'comment)) ;; a => b <=> ~a v b
                            (eq ce 'comment))
-                       (eq end (sp-get (sp-get-sexp) :end)))
+                       (eq end (sp-get current-sexp :end))
+                       (equal (sp-get current-sexp :op) (car inside-pair))
+                       (equal (sp-get current-sexp :cl) (cdr inside-pair)))
               (delete-char (- end p))
               (delete-char (- (1- (length (car inside-pair)))))
               (setq sp-last-operation 'sp-delete-pair))))
