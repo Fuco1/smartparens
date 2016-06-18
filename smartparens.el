@@ -3240,7 +3240,7 @@ default."
                    ;; TODO: all these tests must go into `sp--pair-to-insert'
                    (and sp-autoinsert-pair
                         active-pair
-                        (if (eq sp-autoskip-closing-pair 'always)
+                        (if (memq sp-autoskip-closing-pair '(always always-end))
                             (or (not (equal open-pair close-pair))
                                 (not (sp-skip-closing-pair nil t)))
                           t)

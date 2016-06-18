@@ -59,7 +59,7 @@
     (sp-test-latex-insertion "|" "$" "$$")
     (sp-test-latex-insertion "|" "`" "`'")
     (when (version< "24.3" emacs-version)
-      (sp-test-latex-insertion "|" "$$" "$$$$"))
+      (sp-test-latex-insertion "|" "$$" "$$"))
     (sp-test-latex-insertion "|" "$foo$$foo" "$foo$$foo$")
     (sp-test-latex-insertion "foo |" "$" "foo $$")
     (sp-test-latex-insertion "|" "\\[" "\\[\\]")
@@ -97,4 +97,12 @@
 (ert-deftest sp-test-insert-pair-skip-closing ()
   "Typing ) should step over the closing paren."
   (sp-test-insertion "|" "(abc)" "(abc)")
+  (should (eobp)))
+
+(ert-deftest sp-test-insert-pair-skip-active-quotes nil
+  (sp-test-insertion "|" "\"abc\"" "\"abc\"")
+  (should (eobp)))
+
+(ert-deftest sp-test-insert-pair-skip-inactive-quotes nil
+  (sp-test-insertion "|" "\"ab\C-b\C-dc\"" "\"ac\"")
   (should (eobp)))
