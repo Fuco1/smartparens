@@ -103,6 +103,9 @@
   (sp-test-insertion "|" "\"abc\"" "\"abc\"")
   (should (eobp)))
 
+(ert-deftest sp-test-insert-pair-dont-skip-escaped-quotes nil
+  (sp-test-insertion "\"abc|\"" "\\\"|" "\"abc\\\"|\\\"\""))
+
 (ert-deftest sp-test-insert-pair-skip-inactive-quotes nil
   (sp-test-insertion "|" "\"ab\C-b\C-dc\"" "\"ac\"")
   (should (eobp)))
