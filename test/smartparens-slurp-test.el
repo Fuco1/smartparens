@@ -17,13 +17,13 @@ bar;"
 
 (ert-deftest sp-test-python-slurp-exclude-colon ()
   (sp-test-with-temp-buffer "if bar(|)foo:"
-      (python-mode)
+      (shut-up (python-mode))
     (sp-slurp-hybrid-sexp)
     (should (equal (buffer-string) "if bar(foo):"))))
 
 (ert-deftest sp-test-python-slurp-include-dot ()
   (sp-test-with-temp-buffer "(|foo).bar"
-      (python-mode)
+      (shut-up (python-mode))
     (sp-slurp-hybrid-sexp)
     (should (equal (buffer-string) "(foo.bar)"))))
 

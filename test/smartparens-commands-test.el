@@ -6,7 +6,7 @@
    ((eq mode 'elisp) (emacs-lisp-mode))
    ((eq mode 'racket) (racket-mode))
    ((eq mode 'c) (c-mode))
-   ((eq mode 'python) (python-mode)))
+   ((eq mode 'python) (shut-up (python-mode))))
   (smartparens-mode 1))
 
 ;; TODO: don't use this, simply define the tests manually.  Gives more
