@@ -15,4 +15,5 @@
   (depends-on "ruby-mode")
   (depends-on "racket-mode")
   (depends-on "rust-mode")
-  (depends-on "auctex"))
+  (depends-on "auctex")
+  (depends-on "clojure-mode"))
