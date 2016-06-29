@@ -5,17 +5,18 @@
          (replace-regexp-in-string "^ *" "" b)))
 
 
-(ert-deftest sp-test-ruby-delete-pair ()
-  (sp-test-with-temp-buffer "class Foo
+(when (version< "24.3" emacs-version)
+  (ert-deftest sp-test-ruby-delete-pair ()
+    (sp-test-with-temp-buffer "class Foo
   def foo_for|
   end
 end"
-      (ruby-mode)
-    (execute-kbd-macro (kbd "<backspace>|"))
-    (should (equal (buffer-string) "class Foo
+        (ruby-mode)
+      (execute-kbd-macro (kbd "<backspace>|"))
+      (should (equal (buffer-string) "class Foo
   def foo_fo|
   end
-end"))))
+end")))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; basic pairs
