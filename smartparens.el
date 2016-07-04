@@ -2781,7 +2781,7 @@ see `sp-pair' for description."
           (sp-wrap))
          (t
           ;; TODO: this does not pick correct pair!! it uses insert and not wrapping code
-          (sp--setaction action (-when-let ((_ . open-pairs) (sp--all-pairs-to-insert))
+          (sp--setaction action (-when-let ((_ . open-pairs) (sp--all-pairs-to-insert nil 'wrap))
                                   (catch 'done
                                     (-each open-pairs
                                       (-lambda ((&keys :open open :close close))
@@ -3124,7 +3124,10 @@ include separate pair node."
   (and (equal (char-after (1+ (point))) delimeter)
        (equal (char-after (- (point) 2)) delimeter)))
 
-(defun sp--all-pairs-to-insert (&optional looking-fn)
+;; TODO: remove ACTION argument and make the selection process more
+;; unified (see also sp--pair-to-wrap which depends on buffer state
+;; among other things)
+(defun sp--all-pairs-to-insert (&optional looking-fn action)
   "Return all pairs that can be inserted at point.
 
 Return nil if such pair does not exist.
@@ -3133,11 +3136,17 @@ Pairs inserted using a trigger have higher priority over pairs
 without a trigger and only one or the other list is returned.
 
 In other words, if any pair can be inserted using a trigger, only
-pairs insertable by trigger are returned."
+pairs insertable by trigger are returned.
+
+ACTION is an implementation detail.  Usually it has the value
+'insert when we determine pairs to insert.  On repeated wrapping
+however we pass the value 'wrap.  This will be refactored away in
+the upcoming version."
   (setq looking-fn (or looking-fn 'sp--looking-back-p))
+  (setq action (or action 'insert))
   (let ((working-pairs
          ;; TODO: abstract this into a new "sp--get-..." hierarchy
-         (--filter (sp--do-action-p (plist-get it :open) 'insert) sp-local-pairs)))
+         (--filter (sp--do-action-p (plist-get it :open) action) sp-local-pairs)))
     (-if-let (trigs (--filter (and (plist-get it :trigger)
                                    (funcall looking-fn (sp--strict-regexp-quote (plist-get it :trigger))))
                               working-pairs))

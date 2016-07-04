@@ -33,6 +33,16 @@
     (sp-test-wrapping "|aM" "[[" "[[|a]]")
     (sp-test-wrapping "Ma|" "[[" "[[a]]|")))
 
+(ert-deftest sp-test-wrap-repeated-wrap-only-pair nil
+  (let ((sp-pairs
+         '((t
+            (:open "*" :close "*" :actions (wrap))
+            (:open "[" :close "]" :actions (wrap))))))
+    (sp-test-wrapping "|aM" "**" "**|a**")
+    (sp-test-wrapping "Ma|" "**" "**a**|")
+    (sp-test-wrapping "|aM" "[[" "[[|a]]")
+    (sp-test-wrapping "Ma|" "[[" "[[a]]|")))
+
 (defun sp-test-wrapping-latex (initial keys result)
   (sp-test-with-temp-buffer initial
       (latex-mode)
