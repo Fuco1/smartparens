@@ -2373,7 +2373,7 @@ boundaries of the overlay, ID is the id of the pair."
   (interactive)
   (unwind-protect
       (-let (((obeg . oend) sp-wrap-overlays))
-        (when (and (not (called-interactively-p))
+        (when (and (not (called-interactively-p 'any))
                    (sp--delete-selection-p))
           (kill-region (overlay-end obeg) (overlay-start oend)))
         (delete-region (overlay-start oend) (overlay-end oend))
