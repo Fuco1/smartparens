@@ -2358,7 +2358,9 @@ with given type."
 tracking the position of the point.  START and END are the
 boundaries of the overlay, ID is the id of the pair."
   (let ((overlay (make-overlay start end)))
-    (overlay-put overlay 'priority 100)
+    ;; set priority to 99 so that yasnippet with 100 overloads the
+    ;; keymap #625
+    (overlay-put overlay 'priority 99)
     (overlay-put overlay 'keymap sp-pair-overlay-keymap)
     (overlay-put overlay 'pair-id id)
     (overlay-put overlay 'type 'pair)
