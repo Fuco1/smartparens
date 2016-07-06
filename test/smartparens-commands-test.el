@@ -189,7 +189,12 @@ be."
      "(f|oo\n bar ;; baz (foo) baz\n (quux))")
 
     ("(foo)\nbar ;; baz (f|oo) baz\n(quux)"
-     "(foo)\nbar ;; baz (f|oo baz)\n(quux)"))
+     "(foo)\nbar ;; baz (f|oo baz)\n(quux)")
+
+    ;; do not slurp outside of comment
+    ("(foo)\nbar ;; (|foo) baz\n(asd)\n\n"
+     "(foo)\nbar ;; (|foo baz)\n(asd)\n\n"
+     "(foo)\nbar ;; (|foo baz)\n(asd)\n\n"))
    (((current-prefix-arg '(4)))
     ("[(fo|o) bar baz]" "[(fo|o bar baz)]")
     ("((progn| bar (baz) (baz)))" "((progn| bar (baz) (baz)))"))
@@ -213,7 +218,12 @@ be."
      "((foo)\n bar ;; baz (foo) baz\n qu|ux)")
 
     ("(foo)\nbar ;; baz (f|oo) baz\n(quux)"
-     "(foo)\nbar ;; (baz f|oo) baz\n(quux)"))
+     "(foo)\nbar ;; (baz f|oo) baz\n(quux)")
+
+    ;; do not slurp outside of comment
+    ("(foo)\nbar ;; baz (foo|)\n(asd)\n\n"
+     "(foo)\nbar ;; (baz foo|)\n(asd)\n\n"
+     "(foo)\nbar ;; (baz foo|)\n(asd)\n\n"))
 
    (((sp-sexp-prefix '((emacs-lisp-mode regexp "\\(?:['`]*,@?\\|[',`]\\)"))))
     ("(foo `',(b|ar))" "(`',(foo b|ar))")
