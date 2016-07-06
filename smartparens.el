@@ -6646,7 +6646,8 @@ Examples:
         (goto-char :beg)
         (insert (car pair))
         (unless keep-old
-          (delete-char :op-l))))))
+          (delete-char :op-l))))
+    (sp--run-hook-with-args (sp-get enc :op) :post-handlers 'rewrap-sexp)))
 
 (defun sp-swap-enclosing-sexp (&optional arg)
   "Swap the enclosing delimiters of this and the parent expression.
