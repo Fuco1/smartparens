@@ -2677,7 +2677,7 @@ see `sp-pair' for description."
 
 ;; TODO: add a test for a symbol property that would tell this handler
 ;; not to re=set `sp-last-operation'. Useful for example in "macro
-;; funcions" like `my-wrap-with-paren'.
+;; functions" like `my-wrap-with-paren'.
 (defun sp--post-command-hook-handler ()
   "Handle the situation after some command has executed."
   (when (sp--special-self-insert-command-p)
