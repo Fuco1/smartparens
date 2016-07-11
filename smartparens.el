@@ -1360,13 +1360,23 @@ sexp, otherwise the call may be very slow."
                    "\\`[ \t\n]*\\'"
                    (buffer-substring-no-properties :beg-in :end-in))))))
 
+(defun sp--syntax-ppss (&optional p)
+  "Memoize the last result of syntax-ppss."
+  (let ((p (or p (point))))
+    (if (eq p sp-last-point)
+        sp-last-syntax-ppss-result
+      (let ((result (syntax-ppss p)))
+        (setq-local sp-last-point p)
+        (setq-local sp-last-syntax-ppss-result result)
+        result))))
+
 (defun sp-point-in-string (&optional p)
   "Return non-nil if point is inside string or documentation string.
 
 If optional argument P is present test this instead of point."
   (ignore-errors
     (save-excursion
-      (nth 3 (syntax-ppss p)))))
+      (nth 3 (sp--syntax-ppss p)))))
 
 (defun sp-point-in-comment (&optional p)
   "Return non-nil if point is inside comment.
@@ -1375,7 +1385,7 @@ If optional argument P is present test this instead off point."
   (setq p (or p (point)))
   (ignore-errors
     (save-excursion
-      (or (nth 4 (syntax-ppss p))
+      (or (nth 4 (sp--syntax-ppss p))
           ;; this also test opening and closing comment delimiters... we
           ;; need to chack that it is not newline, which is in "comment
           ;; ender" class in elisp-mode, but we just want it to be
@@ -8107,6 +8117,10 @@ the opening delimiter or before the closing delimiter."
 (defvar sp-show-pair-overlays nil)
 
 (defvar sp-show-pair-enc-overlays nil)
+
+(defvar-local sp-last-point nil)
+
+(defvar-local sp-last-syntax-ppss-result nil)
 
 ;;;###autoload
 (define-minor-mode show-smartparens-mode
