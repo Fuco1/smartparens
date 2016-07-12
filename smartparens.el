@@ -365,7 +365,11 @@ Maximum length of opening or closing pair is
   ;; executes them, then reset the "counter".
   delayed-hook
   ;; TODO
-  delayed-insertion)
+  delayed-insertion
+  ;; The last point checked by sp--syntax-ppss and its result, used for
+  ;; memoization
+  last-syntax-ppss-point
+  last-syntax-ppss-result)
 
 (defvar sp-state nil
   "Smartparens state for the current buffer.")
@@ -1363,11 +1367,11 @@ sexp, otherwise the call may be very slow."
 (defun sp--syntax-ppss (&optional p)
   "Memoize the last result of syntax-ppss."
   (let ((p (or p (point))))
-    (if (eq p sp-last-point)
-        sp-last-syntax-ppss-result
+    (if (eq p (sp-state-last-syntax-ppss-point sp-state))
+        (sp-state-last-syntax-ppss-result sp-state)
       (let ((result (syntax-ppss p)))
-        (setq-local sp-last-point p)
-        (setq-local sp-last-syntax-ppss-result result)
+        (setf (sp-state-last-syntax-ppss-point sp-state) p
+              (sp-state-last-syntax-ppss-result sp-state) result)
         result))))
 
 (defun sp-point-in-string (&optional p)
@@ -8117,10 +8121,6 @@ the opening delimiter or before the closing delimiter."
 (defvar sp-show-pair-overlays nil)
 
 (defvar sp-show-pair-enc-overlays nil)
-
-(defvar-local sp-last-point nil)
-
-(defvar-local sp-last-syntax-ppss-result nil)
 
 ;;;###autoload
 (define-minor-mode show-smartparens-mode
