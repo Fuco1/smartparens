@@ -1369,10 +1369,8 @@ sexp, otherwise the call may be very slow."
   (let ((p (or p (point))))
     (if (eq p (sp-state-last-syntax-ppss-point sp-state))
         (sp-state-last-syntax-ppss-result sp-state)
-      (let ((result (syntax-ppss p)))
-        (setf (sp-state-last-syntax-ppss-point sp-state) p
-              (sp-state-last-syntax-ppss-result sp-state) result)
-        result))))
+      (setf (sp-state-last-syntax-ppss-point sp-state) p
+            (sp-state-last-syntax-ppss-result sp-state) (syntax-ppss p)))))
 
 (defun sp-point-in-string (&optional p)
   "Return non-nil if point is inside string or documentation string.
