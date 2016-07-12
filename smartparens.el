@@ -2441,6 +2441,7 @@ should be highlighted."
   "Remove all pair overlays that doesn't have point inside them,
 are of zero length, or if point moved backwards."
   ;; if the point moved backwards, remove all overlays
+  (sp--reset-memoization)
   (if (and sp-cancel-autoskip-on-backward-movement
            (< (point) sp-previous-point))
       (dolist (o sp-pair-overlay-list) (sp--remove-overlay o))
@@ -2452,6 +2453,11 @@ are of zero length, or if point moved backwards."
       (sp--remove-overlay o)))
   (when sp-pair-overlay-list
     (setq sp-previous-point (point))))
+
+(defun sp--reset-memoization ()
+  "Reset memoization as a safety precaution."
+  (setf (sp-state-last-syntax-ppss-point sp-state) nil
+        (sp-state-last-syntax-ppss-result sp-state) nil))
 
 (defun sp-remove-active-pair-overlay ()
   "Deactivate the active overlay.  See `sp--get-active-overlay'."
