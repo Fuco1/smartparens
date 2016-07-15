@@ -119,6 +119,7 @@ This predicate is only tested on \"insert\" action."
                  tex-mode
                  plain-tex-mode
                  latex-mode
+                 LaTeX-mode
                  )
   (sp-local-pair "`" "'"
                  :actions '(:rem autoskip)
