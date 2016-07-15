@@ -113,6 +113,7 @@
 (eval-after-load "scala-mode" '(require 'smartparens-scala))
 (eval-after-load "racket-mode" '(require 'smartparens-racket))
 (eval-after-load "ess" '(require 'smartparens-ess))
+(eval-after-load "tuareg" '(require 'smartparens-ocaml))
 
 (provide 'smartparens-config)
 
