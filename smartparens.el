@@ -1369,6 +1369,9 @@ sexp, otherwise the call may be very slow."
   (let ((p (or p (point))))
     (if (eq p (sp-state-last-syntax-ppss-point sp-state))
         (sp-state-last-syntax-ppss-result sp-state)
+      ;; Add hook to reset memoization if necessary
+      (unless (sp-state-last-syntax-ppss-point sp-state)
+        (add-hook 'before-change-functions 'sp--reset-memoization t t))
       (setf (sp-state-last-syntax-ppss-point sp-state) p
             (sp-state-last-syntax-ppss-result sp-state) (syntax-ppss p)))))
 
@@ -2441,7 +2444,6 @@ should be highlighted."
   "Remove all pair overlays that doesn't have point inside them,
 are of zero length, or if point moved backwards."
   ;; if the point moved backwards, remove all overlays
-  (sp--reset-memoization)
   (if (and sp-cancel-autoskip-on-backward-movement
            (< (point) sp-previous-point))
       (dolist (o sp-pair-overlay-list) (sp--remove-overlay o))
@@ -2454,7 +2456,7 @@ are of zero length, or if point moved backwards."
   (when sp-pair-overlay-list
     (setq sp-previous-point (point))))
 
-(defun sp--reset-memoization ()
+(defun sp--reset-memoization (&rest ignored)
   "Reset memoization as a safety precaution."
   (setf (sp-state-last-syntax-ppss-point sp-state) nil
         (sp-state-last-syntax-ppss-result sp-state) nil))
