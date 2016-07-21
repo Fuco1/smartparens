@@ -1309,9 +1309,9 @@ insert the modes."
                                             (1 font-lock-keyword-face))))
 
 (defmacro sp--with-case-sensitive (&rest body)
-  "Ensures that all searches done within BODY are case-sensitive.
+  "Ensure that all searches done within BODY are case-sensitive.
 
-Binds case-fold-search to nil if it is not already and avoids the bind if it is
+Bind case-fold-search to nil if it is not already and avoid the bind if it is
 already. Any function that needs to use any of the sp--looking-* functions more
 than once should wrap them all in sp--with-case-sensitive."
   (declare (indent 0)
