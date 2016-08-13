@@ -2792,30 +2792,36 @@ see `sp-pair' for description."
   (with-demoted-errors "sp--post-self-insert-hook-handler: %S"
     (when smartparens-mode
       (sp--with-case-sensitive
-        (let (op action)
-          (setq op sp-last-operation)
-          (when (region-active-p)
-            (sp-wrap--initialize))
-          (cond
-           (sp-wrap-overlays
-            (sp-wrap))
-           (t
-            ;; TODO: this does not pick correct pair!! it uses insert and not wrapping code
-            (sp--setaction action (-when-let ((_ . open-pairs) (sp--all-pairs-to-insert nil 'wrap))
-                                    (catch 'done
-                                      (-each open-pairs
-                                        (-lambda ((&keys :open open :close close))
-                                          (--when-let (sp--wrap-repeat-last (cons open close))
-                                            (throw 'done it)))))))
-            (sp--setaction action (sp-insert-pair))
-            (sp--setaction action (sp-skip-closing-pair))
-            ;; if nothing happened, we just inserted a character, so
-            ;; set the apropriate operation.  We also need to check
-            ;; for `sp--self-insert-no-escape' not to overwrite
-            ;; it.  See `sp-autoinsert-quote-if-followed-by-closing-pair'.
-            (when (and (not action)
-                       (not (eq sp-last-operation 'sp-self-insert-no-escape)))
-              (setq sp-last-operation 'sp-self-insert)))))))))
+       (catch 'done
+         (let (op action)
+           (setq op sp-last-operation)
+           (when (region-active-p)
+             (condition-case err
+                 (sp-wrap--initialize)
+               (user-error
+                (delete-char -1)
+                (message (error-message-string err))
+                (throw 'done nil))))
+           (cond
+            (sp-wrap-overlays
+             (sp-wrap))
+            (t
+             ;; TODO: this does not pick correct pair!! it uses insert and not wrapping code
+             (sp--setaction action (-when-let ((_ . open-pairs) (sp--all-pairs-to-insert nil 'wrap))
+                                     (catch 'done
+                                       (-each open-pairs
+                                         (-lambda ((&keys :open open :close close))
+                                           (--when-let (sp--wrap-repeat-last (cons open close))
+                                             (throw 'done it)))))))
+             (sp--setaction action (sp-insert-pair))
+             (sp--setaction action (sp-skip-closing-pair))
+             ;; if nothing happened, we just inserted a character, so
+             ;; set the apropriate operation.  We also need to check
+             ;; for `sp--self-insert-no-escape' not to overwrite
+             ;; it.  See `sp-autoinsert-quote-if-followed-by-closing-pair'.
+             (when (and (not action)
+                        (not (eq sp-last-operation 'sp-self-insert-no-escape)))
+               (setq sp-last-operation 'sp-self-insert))))))))))
 
 ;; Unfortunately, some modes rebind "inserting" keys to their own
 ;; handlers but do not hand over the insertion back to
@@ -3008,6 +3014,10 @@ overlay."
       ;; TODO: get rid of the following variables
       (setq sp-wrap-point (- (point) inserted-string-length))
       (setq sp-wrap-mark (mark))
+      (unless (sp-region-ok-p
+               (if (> (point) (mark)) sp-wrap-point (point))
+               (mark))
+        (user-error "Wrapping active region would break structure"))
       ;; if point > mark, we need to move point to mark and reinsert the
       ;; just inserted character.
       (when (> (point) (mark))

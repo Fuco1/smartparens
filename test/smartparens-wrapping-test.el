@@ -21,6 +21,10 @@
     (sp-test-wrapping "|aM" "\\langle" "\\langle|a\\rangle")
     (sp-test-wrapping "Ma|" "\\langle" "\\langlea\\rangle|")))
 
+(ert-deftest sp-test-wrap-unbalanced-region nil
+  (let ((sp-pairs sp--test-basic-pairs))
+    (sp-test-wrapping "[a b |c] dM e" "(" "[a b |c] d e")
+    (sp-test-wrapping "[a b Mc] d| e" "(" "[a b c] d| e")))
 
 (ert-deftest sp-test-wrap-with-closing nil
   (let ((sp-pairs sp--test-basic-pairs))
