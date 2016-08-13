@@ -3124,6 +3124,34 @@ programatically.  Use `sp-wrap-with-pair' instead."
      (t
       (sp-wrap-cancel)))))
 
+(defun sp--escape-wrapped-region (chars-to-escape beg end)
+  "Escape instances of CHARS-TO-ESCAPE between BEG and END."
+  (save-excursion
+    (goto-char beg)
+    (let ((pattern (regexp-opt chars-to-escape))
+          (end-marker (set-marker (make-marker) end)))
+      (while (re-search-forward pattern end-marker t)
+        (save-excursion
+          (goto-char (match-beginning 0))
+          (insert sp-escape-char))))))
+
+(defun sp-escape-wrapped-region (id action context)
+  (when (eq action 'wrap)
+    (sp-get sp-last-wrapped-region
+      (let* ((parent-delim (save-excursion
+                             (goto-char :beg)
+                             (sp-get (sp-get-string)
+                               (when (and (< :beg (point))
+                                          (< (point) :end))
+                                 :op)))))
+        (cond
+         ((equal parent-delim id)
+          (sp--escape-wrapped-region (list id sp-escape-char) :beg :end))
+         (parent-delim
+          (sp--escape-wrapped-region (list id) :beg-in :end-in))
+         (t
+          (sp--escape-wrapped-region (list id sp-escape-char) :beg-in :end-in)))))))
+
 ;; kept to not break people's config... remove later
 (defun sp-match-sgml-tags (tag)
   "Split the html tag TAG at the first space and return its name."
