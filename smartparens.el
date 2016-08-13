@@ -7950,8 +7950,8 @@ of the point."
      (t (= string-or-comment-count normal-count 0)))))
 
 (cl-defun sp-region-ok-p (start end)
-  (save-restriction
-    (save-excursion
+  (save-excursion
+    (save-restriction
       (narrow-to-region start end)
       (when (ignore-errors (scan-sexps (point-min) (point-max)) t)
         (let ((count (list 0 0))
