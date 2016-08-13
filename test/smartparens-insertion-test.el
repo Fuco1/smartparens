@@ -47,7 +47,7 @@
 ;; versions, they are welcome to figure it out for us :)
 (ert-deftest sp-test-insertion-latex nil
   (when (version< "24.3" emacs-version)
-    (load "auctex-autoloads"))
+    (shut-up (load "auctex-autoloads")))
   (let ((sp-undo-pairs-separately nil)
         (sp-pairs '((latex-mode
                      (:open "$" :close "$" :actions (insert wrap autoskip navigate))

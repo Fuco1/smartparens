@@ -1,6 +1,6 @@
 ;; Get thing tests
 (when (version< "24.3" emacs-version)
-  (load "auctex-autoloads"))
+  (shut-up (load "auctex-autoloads")))
 
 (defun sp-test-thing-parse-in-latex (initial result)
   (sp-test-with-temp-buffer initial

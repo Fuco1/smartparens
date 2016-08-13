@@ -13,7 +13,6 @@
 ;;; Code:
 
 (when (require 'undercover nil t)
-  (message "loaded undercover!")
   (undercover "smartparens*.el"))
 
 (require 'ert)
