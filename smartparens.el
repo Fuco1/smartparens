@@ -3014,10 +3014,12 @@ overlay."
       ;; TODO: get rid of the following variables
       (setq sp-wrap-point (- (point) inserted-string-length))
       (setq sp-wrap-mark (mark))
-      (unless (sp-region-ok-p
-               (if (> (point) (mark)) sp-wrap-point (point))
-               (mark))
-        (user-error "Wrapping active region would break structure"))
+      (unless (or (sp-point-in-string (point))
+                  (sp-point-in-string (mark)))
+        (unless (sp-region-ok-p
+                 (if (> (point) (mark)) sp-wrap-point (point))
+                 (mark))
+          (user-error "Wrapping active region would break structure")))
       ;; if point > mark, we need to move point to mark and reinsert the
       ;; just inserted character.
       (when (> (point) (mark))
