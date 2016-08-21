@@ -133,6 +133,10 @@ This predicate is only tested on \"insert\" action."
                  :trigger "\\l{"
                  :when '(sp-in-math-p)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\left|" "\\right|"
+                 :trigger "\\l|"
+                 :when '(sp-in-math-p)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\bigl(" "\\bigr)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\biggl(" "\\biggr)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\Bigl(" "\\Bigr)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
