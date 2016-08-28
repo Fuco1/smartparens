@@ -365,7 +365,11 @@ Maximum length of opening or closing pair is
   ;; executes them, then reset the "counter".
   delayed-hook
   ;; TODO
-  delayed-insertion)
+  delayed-insertion
+  ;; The last point checked by sp--syntax-ppss and its result, used for
+  ;; memoization
+  last-syntax-ppss-point
+  last-syntax-ppss-result)
 
 (defvar sp-state nil
   "Smartparens state for the current buffer.")
@@ -1360,13 +1364,24 @@ sexp, otherwise the call may be very slow."
                    "\\`[ \t\n]*\\'"
                    (buffer-substring-no-properties :beg-in :end-in))))))
 
+(defun sp--syntax-ppss (&optional p)
+  "Memoize the last result of syntax-ppss."
+  (let ((p (or p (point))))
+    (if (eq p (sp-state-last-syntax-ppss-point sp-state))
+        (sp-state-last-syntax-ppss-result sp-state)
+      ;; Add hook to reset memoization if necessary
+      (unless (sp-state-last-syntax-ppss-point sp-state)
+        (add-hook 'before-change-functions 'sp--reset-memoization t t))
+      (setf (sp-state-last-syntax-ppss-point sp-state) p
+            (sp-state-last-syntax-ppss-result sp-state) (syntax-ppss p)))))
+
 (defun sp-point-in-string (&optional p)
   "Return non-nil if point is inside string or documentation string.
 
 If optional argument P is present test this instead of point."
   (ignore-errors
     (save-excursion
-      (nth 3 (syntax-ppss p)))))
+      (nth 3 (sp--syntax-ppss p)))))
 
 (defun sp-point-in-comment (&optional p)
   "Return non-nil if point is inside comment.
@@ -1375,7 +1390,7 @@ If optional argument P is present test this instead off point."
   (setq p (or p (point)))
   (ignore-errors
     (save-excursion
-      (or (nth 4 (syntax-ppss p))
+      (or (nth 4 (sp--syntax-ppss p))
           ;; this also test opening and closing comment delimiters... we
           ;; need to chack that it is not newline, which is in "comment
           ;; ender" class in elisp-mode, but we just want it to be
@@ -2440,6 +2455,11 @@ are of zero length, or if point moved backwards."
       (sp--remove-overlay o)))
   (when sp-pair-overlay-list
     (setq sp-previous-point (point))))
+
+(defun sp--reset-memoization (&rest ignored)
+  "Reset memoization as a safety precaution."
+  (setf (sp-state-last-syntax-ppss-point sp-state) nil
+        (sp-state-last-syntax-ppss-result sp-state) nil))
 
 (defun sp-remove-active-pair-overlay ()
   "Deactivate the active overlay.  See `sp--get-active-overlay'."
