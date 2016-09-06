@@ -44,7 +44,7 @@ We generally target GNU Emacs version 24.3 and newer, however,
 everything should work mostly fine on anything newer than version 24.
 
 You can install smartparens from [MELPA](http://melpa.org/).  Once
-installed, enable the default configuration:
+installed, enable the [default configuration](https://github.com/Fuco1/smartparens/wiki/Default-configuration):
 
 ```lisp
 (require 'smartparens-config)
