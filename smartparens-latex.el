@@ -90,10 +90,32 @@ This predicate is only tested on \"insert\" action."
 (add-to-list 'sp-navigate-skip-match
              '((tex-mode plain-tex-mode latex-mode) . sp--backslash-skip-match))
 
+
+(defun sp-latex-pre-slurp-handler (id action context)
+  ;; If there was no space before or after, we shouldn't add on.
+  ;; Variable ok, next-thing are defined in
+  ;; `sp-forward-slurp-sexp' and `sp-backward-slurp-sexp'
+  (when (eq action 'slurp-forward)
+    (save-excursion
+      (when (and (sp-get ok (/= :len-in 0))
+                 (= (sp-get ok :end-suf) (sp-get next-thing :beg-prf)))
+        (goto-char (sp-get ok :end))
+        (when (looking-back " ")
+          (delete-char -1)))))
+  
+  (when (eq action 'slurp-backward)
+    (save-excursion
+      (when (and (sp-get ok (/= :len-in 0))
+                 (= (sp-get ok :beg-prf) (sp-get next-thing :end-suf)))
+        (goto-char (sp-get ok :beg))
+        (when (looking-at " ")
+          (delete-char 1))))))
+
 (sp-with-modes '(
                  tex-mode
                  plain-tex-mode
                  latex-mode
+                 LaTex-mode
                  )
   (sp-local-pair "`" "'"
                  :actions '(:rem autoskip)
@@ -152,6 +174,11 @@ This predicate is only tested on \"insert\" action."
   (sp-local-pair "\\lfloor" "\\rfloor" :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\lceil" "\\rceil" :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\langle" "\\rangle" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+
+  ;; do not add more space when slurping
+  (sp-local-pair "{" "}" :pre-handlers '(sp-latex-pre-slurp-handler))
+  (sp-local-pair "(" ")" :pre-handlers '(sp-latex-pre-slurp-handler))
+  (sp-local-pair "[" "]" :pre-handlers '(sp-latex-pre-slurp-handler))
 
   ;; some common wrappings
   (sp-local-tag "\"" "``" "''" :actions '(wrap))

@@ -116,6 +116,7 @@
   (eval-after-load it '(require 'smartparens-python)))
 (eval-after-load "scala-mode" '(require 'smartparens-scala))
 (eval-after-load "racket-mode" '(require 'smartparens-racket))
+(eval-after-load "tuareg-mode" '(require 'smartparens-ocaml))
 
 (provide 'smartparens-config)
 
