@@ -16,4 +16,5 @@
   (depends-on "racket-mode")
   (depends-on "rust-mode")
   (depends-on "auctex")
-  (depends-on "clojure-mode"))
+  (depends-on "clojure-mode")
+  (depends-on "lua-mode"))
