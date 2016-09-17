@@ -35,50 +35,80 @@
 (dolist (mode '(ess-mode inferior-ess-mode))
   (add-to-list 'sp-sexp-suffix (list mode 'regexp "")))
 
+;; `sp-sexp-prefix' for ESS
+(add-to-list 'sp-sexp-prefix
+             (list 'ess-mode 'regexp
+                   (rx (zero-or-more (or word (syntax symbol))))))
+
 ;; slurping follows Google's R style guide
 ;; see https://google.github.io/styleguide/Rguide.xml
 (defun sp-ess-pre-handler (id action context)
   "Remove spaces before opening parenthesis in a function call.
 Remove redundant space around commas."
   (when (equal action 'slurp-forward)
-    (save-excursion
-      (sp-backward-sexp)
-      ;; for style reasons there should be a space before curly brackets
-      (unless (looking-at "{")
-        ;; (|)v[2] ---> (|v)[2] ---> (|v[2])
-        (when (looking-back
-               (rx (or
-                    (and symbol-end (one-or-more space))
-                    (and (syntax close-parenthesis)
-                         (one-or-more space)
-                         not-word-boundary))))
-          (cycle-spacing 0 nil 'single-shot)))
-      (cond
-        ;; (|)if(cond) ---> (|if (cond))
-        ((looking-back (rx symbol-start (or "if" "for" "while")
-                           (zero-or-more space)))
-         (cycle-spacing 1 nil 'single-shot))
-        ;; (|)a , b,    c ---> (|a, b, c)
-        ((looking-back
-          (rx (zero-or-more space) "," (zero-or-more space))
-          (line-beginning-position) 'greedy)
-         (replace-match ", ")))))
-  ;; v[2](|) ---> v([2]|) ---> (v[2]|)
+    (let ((sxp (sp-get-thing 'back)))
+      (save-excursion
+        (goto-char (sp-get sxp :beg-prf))
+        ;; (|)   x ---> (x)
+        (when (looking-back (rx (syntax open-parenthesis)
+                                (one-or-more space)))
+          (cycle-spacing 0 nil 'single-shot))
+        (cond
+          ;; (|)if(cond) ---> (|if (cond))
+          ((member (sp-get sxp :prefix) '("if" "for" "while"))
+           (goto-char (sp-get sxp :beg))
+           (cycle-spacing 1 nil 'single-shot))
+          ;; (|)v [,2] <- if(x > 1) ---> (v[,2] <- if (x > 1))
+          ((and
+            (member (sp-get sxp :op) '("[" "("))
+            (equal (sp-get sxp :prefix) "")
+            (looking-back
+             (rx (and (not-char "%" ",")
+                      (not (syntax close-parenthesis)))
+                 (one-or-more space)))
+            (not (member
+                  (save-excursion
+                    (sp-backward-sexp)
+                    (thing-at-point 'word 'noprop))
+                  '("if" "for" "while"))))
+           (cycle-spacing 0 nil 'single-shot))
+          ;; (|)a , b,    c ---> (|a, b, c)
+          ((looking-back
+            (rx (zero-or-more space) "," (zero-or-more space))
+            (line-beginning-position) 'greedy)
+           (replace-match ", "))))))
   (when (equal action 'slurp-backward)
-    (save-excursion
-      (sp-forward-sexp)
-      (cond ((looking-at (rx (one-or-more space) "{"))
-             (cycle-spacing 1 nil 'single-shot))
-            ((looking-back (rx symbol-start (or "if" "for" "while")))
-             (cycle-spacing 1 nil 'single-shot))
-            ((looking-at
-              (rx (and (zero-or-more space)
-                       (or (syntax close-parenthesis)
-                           (syntax open-parenthesis)))))
-             (cycle-spacing 0 nil 'single-shot))
-            ((looking-at
-              (rx (zero-or-more space) "," (zero-or-more space)))
-             (replace-match ", "))))))
+    (let ((sxp (sp-get-thing)))
+      (save-excursion
+        (goto-char (sp-get sxp :end))
+        ;; x  (|) ---> (x)
+        (when (looking-at (rx (one-or-more space)
+                              (syntax close-parenthesis)))
+          (cycle-spacing 0 nil 'single-shot))
+        ;; if(cond){} (|) ---> (if (cond) {}|)
+        (cond ((member (sp-get sxp :prefix) '("if" "for" "while"))
+               (goto-char (sp-get sxp :beg))
+               (cycle-spacing 1 nil 'single-shot))
+              ;; for style reasons there should be a space before curly
+              ;; brackets and binary operators
+              ((and (member (sp-get sxp :op) '("{" "%"))
+                    (not (looking-at (rx (syntax close-parenthesis)))))
+               (cycle-spacing 1 nil 'single-shot))
+              ;; v[2](|) ---> (v[2]|)
+              ((and
+                (not (member (thing-at-point 'word 'noprop)
+                             '("if" "for" "while")))
+                (looking-at
+                 (rx (and (zero-or-more space)
+                          (not-char "{")
+                          (or (syntax close-parenthesis)
+                              (char "(")
+                              (char "["))))))
+               (cycle-spacing 0 nil 'single-shot))
+              ;; 1 , 2 (|) ---> (1, 2)
+              ((looking-at
+                (rx (zero-or-more space) "," (zero-or-more space)))
+               (replace-match ", ")))))))
 
 ;; function(x) {|} ---> function(x) {\n|\n}
 ;; ##' \tabular{rrr}{|} --->
