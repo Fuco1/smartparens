@@ -3127,15 +3127,20 @@ programatically.  Use `sp-wrap-with-pair' instead."
       (sp-wrap-cancel)))))
 
 (defun sp--escape-wrapped-region (chars-to-escape beg end)
-  "Escape instances of CHARS-TO-ESCAPE between BEG and END."
+  "Escape instances of CHARS-TO-ESCAPE between BEG and END.
+
+Return non-nil if at least one escaping was performed."
   (save-excursion
     (goto-char beg)
     (let ((pattern (regexp-opt chars-to-escape))
-          (end-marker (set-marker (make-marker) end)))
+          (end-marker (set-marker (make-marker) end))
+          (re nil))
       (while (re-search-forward pattern end-marker t)
+        (setq re t)
         (save-excursion
           (goto-char (match-beginning 0))
-          (insert sp-escape-char))))))
+          (insert sp-escape-char)))
+      re)))
 
 (defun sp-escape-wrapped-region (id action context)
   (when (eq action 'wrap)
