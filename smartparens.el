@@ -961,6 +961,11 @@ position (before or after the region)."
   :group 'smartparens)
 (make-obsolete-variable 'sp-autoescape-string-quote "smartparens' global autoescape system was removed." "2015-02-07")
 
+(defcustom sp-escape-wrapped-region t
+  "If non-nil, escape special chars inside the just wrapped region."
+  :type 'boolean
+  :group 'smartparens)
+
 (defcustom sp-autoescape-string-quote-if-empty '(
                                                  python-mode
                                                  )
@@ -3143,7 +3148,8 @@ Return non-nil if at least one escaping was performed."
       re)))
 
 (defun sp-escape-wrapped-region (id action context)
-  (when (eq action 'wrap)
+  (when (and sp-escape-wrapped-region
+             (eq action 'wrap))
     (sp-get sp-last-wrapped-region
       (let* ((parent-delim (save-excursion
                              (goto-char :beg)
