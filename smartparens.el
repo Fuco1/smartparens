@@ -457,11 +457,11 @@ backtrack the entire buffer which would lock up Emacs.")
       (:open "\\\""  :close "\\\""  :actions (insert wrap autoskip navigate))
       (:open "\""    :close "\""
        :actions (insert wrap autoskip navigate escape)
-       :unless (sp-in-string-p)
+       :unless (sp-in-string-quotes-p)
        :post-handlers (sp-escape-wrapped-region sp-escape-quotes-after-insert))
       (:open "'"     :close "'"
        :actions (insert wrap autoskip navigate escape)
-       :unless (sp-in-string-p)
+       :unless (sp-in-string-quotes-p)
        :post-handlers (sp-escape-wrapped-region sp-escape-quotes-after-insert))
       (:open "("     :close ")"     :actions (insert wrap autoskip navigate))
       (:open "["     :close "]"     :actions (insert wrap autoskip navigate))
@@ -2518,6 +2518,20 @@ are of zero length, or if point moved backwards."
   "Return t if point is inside string or comment, nil otherwise."
   (eq context 'string))
 
+(defun sp-in-string-quotes-p (id action context)
+  "Special string test for quotes.
+
+On insert action, test the string context one character back from
+point.  Return nil at `bobp'.
+
+On escape action use the value of CONTEXT."
+  (cond
+   ((eq action 'insert)
+    (if (bobp) nil
+      (save-excursion (backward-char 1) (sp-point-in-string))))
+   ((eq action 'escape)
+    (eq context 'string))))
+
 (defun sp-in-docstring-p (id action context)
   "Return t if point is inside elisp docstring, nil otherwise."
   (and (eq context 'string)
@@ -3198,7 +3212,7 @@ Return non-nil if at least one escaping was performed."
 This is useful for escaping of \" inside strings when its pairing
 is disabled.  This way, we can control autoescape and closing
 delimiter insertion separately."
-  (-when-let (open (plist-get (sp--pair-to-insert) :open))
+  (-when-let (open (plist-get (sp--pair-to-insert 'escape) :open))
     (when (sp--do-action-p open 'escape)
       (sp--escape-wrapped-region (list open) (- (point) (length open)) (point)))))
 
@@ -3299,14 +3313,14 @@ the upcoming version."
       (not (and (string-prefix-p (plist-get b :close) (plist-get a :close))
                 (sp--looking-at-p (plist-get b :close))))))))
 
-(defun sp--pair-to-insert ()
+(defun sp--pair-to-insert (&optional action)
   "Return pair that can be inserted at point.
 
 Return nil if such pair does not exist.
 
 If more triggers or opening pairs are possible select the
 shortest one."
-  (-when-let ((property . pairs) (sp--all-pairs-to-insert))
+  (-when-let ((property . pairs) (sp--all-pairs-to-insert nil action))
     (car (--sort (sp--pair-to-insert-comparator property it other) pairs))))
 
 (defun sp--longest-prefix-to-insert ()
