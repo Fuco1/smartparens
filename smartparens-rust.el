@@ -84,7 +84,7 @@ If we return nil, ' should be used for character literals."
    (t)))
 
 (sp-with-modes '(rust-mode)
-  (sp-local-pair "'" "'" :unless '(sp-in-comment-p sp-in-string-p sp-in-rust-lifetime-context))
+  (sp-local-pair "'" "'" :unless '(sp-in-comment-p sp-in-string-quotes-p sp-in-rust-lifetime-context) :post-handlers'(:rem sp-escape-quotes-after-insert))
   (sp-local-pair "<" ">" :when '(sp-rust-filter-angle-brackets)))
 
 ;; Rust has no sexp suffices.  This fixes slurping
