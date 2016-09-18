@@ -448,18 +448,25 @@ expressions, they can potentially be of arbitrary length.  This
 settings solves the problem where the parser would decide to
 backtrack the entire buffer which would lock up Emacs.")
 
-(defvar sp-pairs '((t
-                    .
-                    ((:open "\\\\(" :close "\\\\)" :actions (insert wrap autoskip navigate))
-                     (:open "\\{"   :close "\\}"   :actions (insert wrap autoskip navigate))
-                     (:open "\\("   :close "\\)"   :actions (insert wrap autoskip navigate))
-                     (:open "\\\""  :close "\\\""  :actions (insert wrap autoskip navigate))
-                     (:open "\""    :close "\""    :actions (insert wrap autoskip navigate))
-                     (:open "'"     :close "'"     :actions (insert wrap autoskip navigate))
-                     (:open "("     :close ")"     :actions (insert wrap autoskip navigate))
-                     (:open "["     :close "]"     :actions (insert wrap autoskip navigate))
-                     (:open "{"     :close "}"     :actions (insert wrap autoskip navigate))
-                     (:open "`"     :close "`"     :actions (insert wrap autoskip navigate)))))
+(defvar sp-pairs
+  '((t
+     .
+     ((:open "\\\\(" :close "\\\\)" :actions (insert wrap autoskip navigate))
+      (:open "\\{"   :close "\\}"   :actions (insert wrap autoskip navigate))
+      (:open "\\("   :close "\\)"   :actions (insert wrap autoskip navigate))
+      (:open "\\\""  :close "\\\""  :actions (insert wrap autoskip navigate))
+      (:open "\""    :close "\""
+       :actions (insert wrap autoskip navigate escape)
+       :unless (sp-in-string-p)
+       :post-handlers (sp-escape-wrapped-region sp-escape-quotes-after-insert))
+      (:open "'"     :close "'"
+       :actions (insert wrap autoskip navigate escape)
+       :unless (sp-in-string-p)
+       :post-handlers (sp-escape-wrapped-region sp-escape-quotes-after-insert))
+      (:open "("     :close ")"     :actions (insert wrap autoskip navigate))
+      (:open "["     :close "]"     :actions (insert wrap autoskip navigate))
+      (:open "{"     :close "}"     :actions (insert wrap autoskip navigate))
+      (:open "`"     :close "`"     :actions (insert wrap autoskip navigate)))))
   "List of pair definitions.
 
 Maximum length of opening or closing pair is
