@@ -962,12 +962,6 @@ position (before or after the region)."
   :group 'smartparens)
 
 ;; escaping custom
-(defcustom sp-autoescape-string-quote t
-  "If non-nil, autoescape string quotes if typed inside string."
-  :type 'boolean
-  :group 'smartparens)
-(make-obsolete-variable 'sp-autoescape-string-quote "smartparens' global autoescape system was removed." "2015-02-07")
-
 (defcustom sp-escape-wrapped-region t
   "If non-nil, escape special chars inside the just wrapped region."
   :type 'boolean
@@ -977,19 +971,6 @@ position (before or after the region)."
   "If non-nil, escape string quotes if typed inside string."
   :type 'boolean
   :group 'smartparens)
-
-(defcustom sp-autoescape-string-quote-if-empty '(
-                                                 python-mode
-                                                 )
-  "List of modes where the string quotes aren't escaped if the string is empty.
-
-You can list modes where multiple quote characters are used for
-multi-line strings, such as `python-mode' to make the insertion
-less annoying (that is, three times pressing \" would insert
-\"\"\"|\"\"\" instead of \"\\\"\\\"|\\\"\\\"\")."
-  :type '(repeat symbol)
-  :group 'smartparens)
-(make-obsolete-variable 'sp-autoescape-string-quote-if-empty "smartparens' global autoescape system was removed." "2015-02-07")
 
 ;; navigation & manip custom
 (defcustom sp-navigate-consider-sgml-tags '(
