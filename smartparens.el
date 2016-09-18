@@ -2570,7 +2570,8 @@ This predicate is only tested on \"insert\" action."
 (defun sp-point-after-word-p (id action context)
   "Return t if point is after a word, nil otherwise.
 This predicate is only tested on \"insert\" action."
-  (when (eq action 'insert)
+  ;; TODO: remove condition with sp-defpair
+  (when (memq action '(insert escape))
     (sp--looking-back-p (concat "\\(\\sw\\|\\s_\\)" (regexp-quote id)))))
 
 (defun sp-point-before-same-p (id action context)

@@ -142,3 +142,17 @@ escape them on the top level."
         (rst-mode)
       (execute-kbd-macro "\"|")
       (should (equal (buffer-string) "foo \"|\" bar")))))
+
+(ert-deftest sp-test-insert-quote-dont-escape-in-contraction nil
+  "Do not escape ' after a word when it is used as a contraction"
+  (let ((sp-pairs
+         '((t
+            (:open "'" :close "'"
+             :actions (insert wrap autoskip navigate escape)
+             :unless (sp-in-string-quotes-p sp-point-after-word-p)
+             :post-handlers (sp-escape-wrapped-region sp-escape-quotes-after-insert))
+            (:open "[" :close "]" :actions (insert wrap autoskip navigate))))))
+    (sp-test-with-temp-buffer "foo| bar"
+        (rst-mode)
+      (execute-kbd-macro "'s|")
+      (should (equal (buffer-string) "foo's| bar")))))
