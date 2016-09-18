@@ -128,3 +128,17 @@
              :post-handlers (sp-escape-quotes-after-insert))
             (:open "[" :close "]" :actions (insert wrap autoskip navigate))))))
     (sp-test-insertion "\"foo | bar\"" "\"|" "\"foo \\\"|\\\" bar\"")))
+
+(ert-deftest sp-test-insert-quote-dont-escape-quote-in-rst-mode nil
+  "In text modes where ' and \" are not string syntax, do not
+escape them on the top level."
+  (let ((sp-pairs
+         '((t
+            (:open "\"" :close "\""
+             :actions (insert wrap autoskip navigate)
+             :post-handlers (sp-escape-quotes-after-insert))
+            (:open "[" :close "]" :actions (insert wrap autoskip navigate))))))
+    (sp-test-with-temp-buffer "foo | bar"
+        (rst-mode)
+      (execute-kbd-macro "\"|")
+      (should (equal (buffer-string) "foo \"|\" bar")))))
