@@ -1,5 +1,5 @@
 (require 'ert)
-(require 'smartparens)
+(require 'smartparens-python)
 
 (defun sp-test--python-mode ()
   (shut-up (python-mode)))
@@ -80,3 +80,19 @@ Make sure to skip even in inactive sexps."
       (sp-test--python-mode)
     (execute-kbd-macro (kbd "<backspace><backspace><backspace><backspace>|"))
     (should (equal (buffer-string) "\"foo; | a nice word!\""))))
+
+(ert-deftest sp-test-python-apostrophe-is-escaped-in-apostrophe-string ()
+  "When inside a '' delimited string, escape inserted '."
+  (sp-test-with-temp-buffer "a = 'foo | bar'"
+      (sp-test--python-mode)
+    (execute-kbd-macro (kbd "'"))
+    (insert "|")
+    (should (equal (buffer-string) "a = 'foo \\'| bar'"))))
+
+(ert-deftest sp-test-python-apostrophe-is-not-escaped-in-doublequote-string ()
+  "When inside a '' delimited string, escape inserted '."
+  (sp-test-with-temp-buffer "a = \"foo | bar\""
+      (sp-test--python-mode)
+    (execute-kbd-macro (kbd "'"))
+    (insert "|")
+    (should (equal (buffer-string) "a = \"foo '| bar\""))))

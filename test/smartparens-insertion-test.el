@@ -104,5 +104,27 @@
   (sp-test-insertion "\"abc|\"" "\\\"|" "\"abc\\\"|\\\"\""))
 
 (ert-deftest sp-test-insert-pair-skip-inactive-quotes nil
-  (sp-test-insertion "|" "\"ab\C-b\C-dc\"" "\"ac\"")
-  (should (eobp)))
+  (sp-test-insertion "|" "\"ab\C-b\C-dc\"|" "\"ac\"|"))
+
+(ert-deftest sp-test-insert-pair-skip-inactive-quotes-with-escape-enabled nil
+  (let ((sp-pairs
+         '((t (:open "\"" :close "\""
+               :actions (insert wrap autoskip navigate escape)
+               :unless (sp-in-string-quotes-p))))))
+    (sp-test-insertion "|" "\"ab\C-b\C-dc\"|" "\"ac\"|")))
+
+(ert-deftest sp-test-insert-quote-escape-enabled nil
+  (let ((sp-pairs
+         '((t (:open "\"" :close "\""
+               :actions (insert wrap autoskip navigate escape)
+               :unless (sp-in-string-quotes-p))))))
+    (sp-test-insertion "\"foo | bar\"" "\"" "\"foo \\\" bar\"")))
+
+(ert-deftest sp-test-insert-quote-escape-quote-after-insert nil
+  (let ((sp-pairs
+         '((t
+            (:open "\"" :close "\""
+             :actions (insert wrap autoskip navigate)
+             :post-handlers (sp-escape-quotes-after-insert))
+            (:open "[" :close "]" :actions (insert wrap autoskip navigate))))))
+    (sp-test-insertion "\"foo | bar\"" "\"|" "\"foo \\\"|\\\" bar\"")))
