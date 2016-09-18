@@ -3158,7 +3158,7 @@ programatically.  Use `sp-wrap-with-pair' instead."
      (t
       (sp-wrap-cancel)))))
 
-(defun sp--escape-wrapped-region (chars-to-escape beg end)
+(defun sp--escape-region (chars-to-escape beg end)
   "Escape instances of CHARS-TO-ESCAPE between BEG and END.
 
 Return non-nil if at least one escaping was performed."
@@ -3186,11 +3186,11 @@ Return non-nil if at least one escaping was performed."
                                  :op)))))
         (cond
          ((equal parent-delim id)
-          (sp--escape-wrapped-region (list id sp-escape-char) :beg :end))
+          (sp--escape-region (list id sp-escape-char) :beg :end))
          (parent-delim
-          (sp--escape-wrapped-region (list id) :beg-in :end-in))
+          (sp--escape-region (list id) :beg-in :end-in))
          (t
-          (sp--escape-wrapped-region (list id sp-escape-char) :beg-in :end-in)))))))
+          (sp--escape-region (list id sp-escape-char) :beg-in :end-in)))))))
 
 (defun sp-escape-quotes-after-insert (id action context)
   "Escape quotes inserted via `sp-insert-pair'."
@@ -3202,7 +3202,7 @@ Return non-nil if at least one escaping was performed."
              (not (eq context 'string)))
     (let ((open id)
           (close (sp-get-pair id :close)))
-      (sp--escape-wrapped-region (list open close)
+      (sp--escape-region (list open close)
                                  (- (point) (length open))
                                  (+ (point) (length close))))))
 
@@ -3214,7 +3214,7 @@ is disabled.  This way, we can control autoescape and closing
 delimiter insertion separately."
   (-when-let (open (plist-get (sp--pair-to-insert 'escape) :open))
     (when (sp--do-action-p open 'escape)
-      (sp--escape-wrapped-region (list open) (- (point) (length open)) (point)))))
+      (sp--escape-region (list open) (- (point) (length open)) (point)))))
 
 ;; kept to not break people's config... remove later
 (defun sp-match-sgml-tags (tag)
