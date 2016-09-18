@@ -461,7 +461,7 @@ backtrack the entire buffer which would lock up Emacs.")
        :post-handlers (sp-escape-wrapped-region sp-escape-quotes-after-insert))
       (:open "'"     :close "'"
        :actions (insert wrap autoskip navigate escape)
-       :unless (sp-in-string-quotes-p)
+       :unless (sp-in-string-quotes-p sp-point-after-word-p)
        :post-handlers (sp-escape-wrapped-region sp-escape-quotes-after-insert))
       (:open "("     :close ")"     :actions (insert wrap autoskip navigate))
       (:open "["     :close "]"     :actions (insert wrap autoskip navigate))
