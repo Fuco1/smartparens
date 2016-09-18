@@ -966,6 +966,11 @@ position (before or after the region)."
   :type 'boolean
   :group 'smartparens)
 
+(defcustom sp-escape-quotes-after-insert t
+  "If non-nil, escape string quotes if typed inside string."
+  :type 'boolean
+  :group 'smartparens)
+
 (defcustom sp-autoescape-string-quote-if-empty '(
                                                  python-mode
                                                  )
@@ -3164,6 +3169,20 @@ Return non-nil if at least one escaping was performed."
           (sp--escape-wrapped-region (list id) :beg-in :end-in))
          (t
           (sp--escape-wrapped-region (list id sp-escape-char) :beg-in :end-in)))))))
+
+(defun sp-escape-quotes-after-insert (id action context)
+  "Escape quotes inserted via `sp-insert-pair'."
+  (when (and sp-escape-quotes-after-insert
+             (eq action 'insert)
+             ;; we test not being inside string because if we were
+             ;; before inserting the "" pair it is now split into two
+             ;; -> which moves us outside the pair
+             (not (eq context 'string)))
+    (let ((open id)
+          (close (sp-get-pair id :close)))
+      (sp--escape-wrapped-region (list open close)
+                                 (- (point) (length open))
+                                 (+ (point) (length close))))))
 
 ;; kept to not break people's config... remove later
 (defun sp-match-sgml-tags (tag)
