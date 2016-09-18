@@ -87,6 +87,11 @@ This predicate is only tested on \"insert\" action."
     (let ((trigger (sp-get-pair id :trigger)))
       (looking-back (concat "\\\\" (regexp-quote (if trigger trigger id)))))))
 
+(defun sp-latex-point-before-word-p (id action context)
+  "Return t if point is before a word while in navigate action."
+  (when (eq action 'navigate)
+    (looking-at-p "\\sw")))
+
 (add-to-list 'sp-navigate-skip-match
              '((tex-mode plain-tex-mode latex-mode) . sp--backslash-skip-match))
 
@@ -98,7 +103,8 @@ This predicate is only tested on \"insert\" action."
   (sp-local-pair "`" "'"
                  :actions '(:rem autoskip)
                  :skip-match 'sp-latex-skip-match-apostrophe
-                 :unless '(sp-latex-point-after-backslash))
+                 :unless '(sp-latex-point-after-backslash
+                           sp-latex-point-before-word-p))
   ;; math modes, yay.  The :actions are provided automatically if
   ;; these pairs do not have global definitions.
   (sp-local-pair "$" "$")
