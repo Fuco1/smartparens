@@ -2847,6 +2847,7 @@ see `sp-pair' for description."
                          (throw 'done it)))))))
               (sp--setaction action (sp-insert-pair))
               (sp--setaction action (sp-skip-closing-pair))
+              (unless action (sp-escape-open-delimiter))
               ;; if nothing happened, we just inserted a character, so
               ;; set the apropriate operation.  We also need to check
               ;; for `sp--self-insert-no-escape' not to overwrite
@@ -3183,6 +3184,16 @@ Return non-nil if at least one escaping was performed."
       (sp--escape-wrapped-region (list open close)
                                  (- (point) (length open))
                                  (+ (point) (length close))))))
+
+(defun sp-escape-open-delimiter ()
+  "Escape just inserted opening pair if `sp-insert-pair' was skipped.
+
+This is useful for escaping of \" inside strings when its pairing
+is disabled.  This way, we can control autoescape and closing
+delimiter insertion separately."
+  (-when-let (open (plist-get (sp--pair-to-insert) :open))
+    (when (sp--do-action-p open 'escape)
+      (sp--escape-wrapped-region (list open) (- (point) (length open)) (point)))))
 
 ;; kept to not break people's config... remove later
 (defun sp-match-sgml-tags (tag)
