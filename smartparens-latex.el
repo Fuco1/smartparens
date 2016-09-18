@@ -67,12 +67,6 @@
       (goto-char (sp-get sp-last-wrapped-region :beg-in))
       (insert " "))))
 
-(defun sp-latex-skip-match-apostrophe (ms mb me)
-  (when (equal ms "'")
-    (save-excursion
-      (goto-char me)
-      (looking-at-p "\\sw"))))
-
 (defun sp-latex-skip-double-quote (_1 action _2)
   (when (eq action 'insert)
     (when (looking-at-p "''''")
@@ -95,10 +89,6 @@ This predicate is only tested on \"insert\" action."
                  plain-tex-mode
                  latex-mode
                  )
-  (sp-local-pair "`" "'"
-                 :actions '(:rem autoskip)
-                 :skip-match 'sp-latex-skip-match-apostrophe
-                 :unless '(sp-latex-point-after-backslash))
   ;; math modes, yay.  The :actions are provided automatically if
   ;; these pairs do not have global definitions.
   (sp-local-pair "$" "$")
