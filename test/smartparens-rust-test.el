@@ -91,3 +91,19 @@ Regression test."
     (execute-kbd-macro "<")
     ;; We should have inserted a pair.
     (should (equal (buffer-string) "iterator.collect::<>"))))
+
+(ert-deftest sp-test-rust-pair-autoskip-closing-bracket ()
+  "Autoskip a matching >."
+  (sp-test-with-temp-buffer "E<T|>"
+      (rust-mode)
+    (execute-kbd-macro ">")
+    ;; We should have skipped the closing bracket.
+    (should (equal (buffer-string) "E<T>"))))
+
+(ert-deftest sp-test-rust-pair-insert-and-autoskip-closing-bracket ()
+  "Inserting multiples brackets and closing them."
+  (sp-test-with-temp-buffer "E|"
+      (rust-mode)
+    (execute-kbd-macro "<Rc<RefCell<T>>>")
+    ;; We should have inserted a pair without an extra chevron.
+    (should (equal (buffer-string) "E<Rc<RefCell<T>>>"))))
