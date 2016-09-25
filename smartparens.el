@@ -3157,6 +3157,7 @@ Return non-nil if at least one escaping was performed."
       re)))
 
 (defun sp-escape-wrapped-region (id action context)
+  "Escape quotes and special chars when a region is wrapped."
   (when (and sp-escape-wrapped-region
              (eq action 'wrap))
     (sp-get sp-last-wrapped-region
