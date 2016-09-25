@@ -11,8 +11,8 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   automatic-escaping
 ..   pair-management
-..   automatic-escaping
 
 
 Indices and tables

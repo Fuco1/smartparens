@@ -75,3 +75,100 @@
 
     (sp-test-wrapping-latex "Mfoo|" "\"" "``foo''|")
     (sp-test-wrapping-latex "|fooM" "\"" "``|foo''")))
+
+(defun sp-test-wrapping-python (initial keys result)
+  (sp-test-with-temp-buffer initial
+      (shut-up (python-mode))
+    (-each (-list keys) 'execute-kbd-macro)
+    (should (equal (buffer-string) (replace-regexp-in-string "[|]" "" result)))
+    (should (= (1+ (string-match-p "|" result)) (point)))))
+
+(defvar sp-test-wrap-python-pairs
+  '((python-mode
+     (:open "\"" :close "\"" :actions (insert wrap autoskip navigate) :post-handlers (sp-escape-wrapped-region))
+     (:open "'" :close "'" :actions (insert wrap autoskip navigate) :post-handlers (sp-escape-wrapped-region))
+     (:open "(" :close ")" :actions (insert wrap autoskip navigate))
+     (:open "[" :close "]" :actions (insert wrap autoskip navigate)))))
+
+(ert-deftest sp-test-wrap-python-same nil
+  (let ((sp-pairs sp-test-wrap-python-pairs))
+    ;; wrap word with the same quote as enclosing
+    (sp-test-wrapping-python "'foo |barM baz'"
+                             "'"
+                             "'foo \\'|bar\\' baz'")
+    (sp-test-wrapping-python "'foo Mbar| baz'"
+                             "'"
+                             "'foo \\'bar\\'| baz'")))
+
+(ert-deftest sp-test-wrap-python-opposite nil
+  (let ((sp-pairs sp-test-wrap-python-pairs))
+    ;; wrap word with opposing quote as enclosing
+    (sp-test-wrapping-python "'foo |barM baz'"
+                             "\""
+                             "'foo \"|bar\" baz'")
+    (sp-test-wrapping-python "'foo Mbar| baz'"
+                             "\""
+                             "'foo \"bar\"| baz'")))
+
+
+(ert-deftest sp-test-wrap-python-same-same nil
+  (let ((sp-pairs sp-test-wrap-python-pairs))
+    ;; wrap same quote with same as enclosing
+    (sp-test-wrapping-python "'foo |bar \\' bazM qux'"
+                             "'"
+                             "'foo \\'|bar \\\\\\' baz\\' qux'")
+    (sp-test-wrapping-python "'foo Mbar \\' baz| qux'"
+                             "'"
+                             "'foo \\'bar \\\\\\' baz\\'| qux'")))
+
+(ert-deftest sp-test-wrap-python-same-opposite nil
+  (let ((sp-pairs sp-test-wrap-python-pairs))
+    ;; wrap same quote with opposing as enclosing
+    (sp-test-wrapping-python "'foo |bar \\' bazM qux'"
+                             "\""
+                             "'foo \"|bar \\' baz\" qux'")
+    (sp-test-wrapping-python "'foo Mbar \\' baz| qux'"
+                             "\""
+                             "'foo \"bar \\' baz\"| qux'")))
+
+(ert-deftest sp-test-wrap-python-opposite-same nil
+  (let ((sp-pairs sp-test-wrap-python-pairs))
+    ;; wrap opposing quote with same as enclosing
+    (sp-test-wrapping-python "'foo |bar \" bazM qux'"
+                             "'"
+                             "'foo \\'|bar \" baz\\' qux'")
+    (sp-test-wrapping-python "'foo Mbar \" baz| qux'"
+                             "'"
+                             "'foo \\'bar \" baz\\'| qux'")))
+
+(ert-deftest sp-test-wrap-python-opposite-opposite nil
+  (let ((sp-pairs sp-test-wrap-python-pairs))
+    ;; wrap opposing quote with opposing as enclosing
+    (sp-test-wrapping-python "'foo |bar \" bazM qux'"
+                             "\""
+                             "'foo \"|bar \\\" baz\" qux'")
+    (sp-test-wrapping-python "'foo Mbar \" baz| qux'"
+                             "\""
+                             "'foo \"bar \\\" baz\"| qux'")
+    ))
+
+(ert-deftest sp-test-wrap-python-escaped-opposite-same nil
+  (let ((sp-pairs sp-test-wrap-python-pairs))
+    ;; wrap escaped opposing quote with same as enclosing
+    (sp-test-wrapping-python "'foo |bar \\\" bazM qux'"
+                             "'"
+                             "'foo \\'|bar \\\\\" baz\\' qux'")
+    (sp-test-wrapping-python "'foo Mbar \\\" baz| qux'"
+                             "'"
+                             "'foo \\'bar \\\\\" baz\\'| qux'")))
+
+(ert-deftest sp-test-wrap-python-escaped-opposite-opposite nil
+  (let ((sp-pairs sp-test-wrap-python-pairs))
+    ;; wrap escaped opposing quote with opposing as enclosing
+    (sp-test-wrapping-python "'foo |bar \\\" bazM qux'"
+                             "\""
+                             "'foo \"|bar \\\\\" baz\" qux'")
+
+    (sp-test-wrapping-python "'foo Mbar \\\" baz| qux'"
+                             "\""
+                             "'foo \"bar \\\\\" baz\"| qux'")))

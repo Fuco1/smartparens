@@ -53,17 +53,8 @@
 (--each '(python-mode inferior-python-mode)
   (add-to-list 'sp-sexp-suffix (list it 'regexp "")))
 
-(defun sp-python-in-string-p (id action context)
-  "Return non-nil if point is in a string, taking
-care not to be confused by an unclosed ' that's just been typed."
-  (when (memq action '(insert navigate))
-    (and (eq context 'string)
-         (save-excursion
-           (backward-char 1)
-           (nth 3 (syntax-ppss))))))
-
 (sp-with-modes 'python-mode
-  (sp-local-pair "'" "'" :unless '(sp-in-comment-p sp-python-in-string-p))
+  (sp-local-pair "'" "'" :unless '(sp-in-comment-p sp-in-string-quotes-p))
   (sp-local-pair "\"\"\"" "\"\"\"")
   (sp-local-pair "(" nil :pre-handlers '(sp-python-pre-slurp-handler))
   (sp-local-pair "[" nil :pre-handlers '(sp-python-pre-slurp-handler)))
