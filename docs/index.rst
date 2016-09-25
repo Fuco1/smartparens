@@ -12,7 +12,6 @@ Contents:
    :maxdepth: 2
 
    automatic-escaping
-..   pair-management
 
 
 Indices and tables
