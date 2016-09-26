@@ -18,3 +18,4 @@
   (depends-on "auctex")
   (depends-on "clojure-mode")
   (depends-on "lua-mode"))
+  (depends-on "ess"))

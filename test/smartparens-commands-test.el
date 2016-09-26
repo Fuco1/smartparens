@@ -39,8 +39,7 @@ be."
   "Run the test for COMMAND."
   ;; TODO: get rid of this
   (unless (and (boundp 'mode)
-               (eq mode 'racket)
-               (version<= "24.3" emacs-version))
+               (eq mode 'racket))
     (shut-up
       (cl-dolist (example examples)
         (let ((before (car example)))

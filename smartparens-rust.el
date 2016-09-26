@@ -62,15 +62,30 @@ If we return nil, ' should be used for character literals."
             (goto-char paren-pos)
             (looking-at "<"))))))
 
-(defun sp-rust-could-be-parameterized (&rest args)
-  "Return t if we could add a <T> in this position.
-If nil, the user is probably using < for something else."
-  (and (apply #'sp-in-code-p args)
-       (looking-back (rx (or letter (seq letter "<") (seq letter "::<"))))))
+(defun sp-rust-filter-angle-brackets (id action context)
+  "Return t if we should allow the ACTION in the current CONTEXT
+  for angle brackets."
+  (cond
+   ;; Disallow in format string after any character, since < is used to specify
+   ;; alignment
+   ((and (eq context 'string)
+         (looking-back (rx (seq alphanumeric "<")))) nil)
+
+   ;; Disallow when inserting in code in two situations: 1) when '<' is used for
+   ;; the comparison operators '<' and '<=', and 2) when writing a left shift
+   ;; '<<'.  In both cases, we assume the user will use a space before the
+   ;; opening bracket '<'.
+   ((and (eq context 'code)
+         (eq action 'insert)
+         (looking-back (rx (or (seq space "<")
+                               (seq space "<<"))))) nil)
+
+   ;; Otherwise, allow all actions
+   (t)))
 
 (sp-with-modes '(rust-mode)
-  (sp-local-pair "'" "'" :unless '(sp-in-comment-p sp-in-string-p sp-in-rust-lifetime-context))
-  (sp-local-pair "<" ">" :when '(sp-rust-could-be-parameterized)))
+  (sp-local-pair "'" "'" :unless '(sp-in-comment-p sp-in-string-quotes-p sp-in-rust-lifetime-context) :post-handlers'(:rem sp-escape-quotes-after-insert))
+  (sp-local-pair "<" ">" :when '(sp-rust-filter-angle-brackets)))
 
 ;; Rust has no sexp suffices.  This fixes slurping
 ;; (|foo).bar -> (foo.bar)

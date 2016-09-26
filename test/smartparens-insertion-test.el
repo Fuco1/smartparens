@@ -46,8 +46,7 @@
 ;; and 24.2 but it's a waste of time.  If some users are on those
 ;; versions, they are welcome to figure it out for us :)
 (ert-deftest sp-test-insertion-latex nil
-  (when (version< "24.3" emacs-version)
-    (shut-up (load "auctex-autoloads")))
+  (shut-up (load "auctex-autoloads"))
   (let ((sp-undo-pairs-separately nil)
         (sp-pairs '((latex-mode
                      (:open "$" :close "$" :actions (insert wrap autoskip navigate))
@@ -58,8 +57,7 @@
                      (:open "`" :close "'" :actions (insert wrap autoskip navigate))))))
     (sp-test-latex-insertion "|" "$" "$$")
     (sp-test-latex-insertion "|" "`" "`'")
-    (when (version< "24.3" emacs-version)
-      (sp-test-latex-insertion "|" "$$" "$$"))
+    (sp-test-latex-insertion "|" "$$" "$$")
     (sp-test-latex-insertion "|" "$foo$$foo" "$foo$$foo$")
     (sp-test-latex-insertion "foo |" "$" "foo $$")
     (sp-test-latex-insertion "|" "\\[" "\\[\\]")
@@ -67,8 +65,7 @@
     (sp-test-latex-insertion "|" "[" "[]")
     (sp-test-latex-insertion "foo | bar" "\\bigl(" "foo \\bigl(\\bigr) bar")
     (sp-test-latex-insertion "foo | bar" "``" "foo ``'' bar")
-    (when (version< "24.3" emacs-version)
-      (sp-test-latex-insertion "foo | bar" "\"" "foo ``'' bar"))
+    (sp-test-latex-insertion "foo | bar" "\"" "foo ``'' bar")
     ))
 
 (defun sp-test--pair-to-insert (initial expected)
@@ -107,5 +104,55 @@
   (sp-test-insertion "\"abc|\"" "\\\"|" "\"abc\\\"|\\\"\""))
 
 (ert-deftest sp-test-insert-pair-skip-inactive-quotes nil
-  (sp-test-insertion "|" "\"ab\C-b\C-dc\"" "\"ac\"")
-  (should (eobp)))
+  (sp-test-insertion "|" "\"ab\C-b\C-dc\"|" "\"ac\"|"))
+
+(ert-deftest sp-test-insert-pair-skip-inactive-quotes-with-escape-enabled nil
+  (let ((sp-pairs
+         '((t (:open "\"" :close "\""
+               :actions (insert wrap autoskip navigate escape)
+               :unless (sp-in-string-quotes-p))))))
+    (sp-test-insertion "|" "\"ab\C-b\C-dc\"|" "\"ac\"|")))
+
+(ert-deftest sp-test-insert-quote-escape-enabled nil
+  (let ((sp-pairs
+         '((t (:open "\"" :close "\""
+               :actions (insert wrap autoskip navigate escape)
+               :unless (sp-in-string-quotes-p))))))
+    (sp-test-insertion "\"foo | bar\"" "\"" "\"foo \\\" bar\"")))
+
+(ert-deftest sp-test-insert-quote-escape-quote-after-insert nil
+  (let ((sp-pairs
+         '((t
+            (:open "\"" :close "\""
+             :actions (insert wrap autoskip navigate)
+             :post-handlers (sp-escape-quotes-after-insert))
+            (:open "[" :close "]" :actions (insert wrap autoskip navigate))))))
+    (sp-test-insertion "\"foo | bar\"" "\"|" "\"foo \\\"|\\\" bar\"")))
+
+(ert-deftest sp-test-insert-quote-dont-escape-quote-in-rst-mode nil
+  "In text modes where ' and \" are not string syntax, do not
+escape them on the top level."
+  (let ((sp-pairs
+         '((t
+            (:open "\"" :close "\""
+             :actions (insert wrap autoskip navigate)
+             :post-handlers (sp-escape-quotes-after-insert))
+            (:open "[" :close "]" :actions (insert wrap autoskip navigate))))))
+    (sp-test-with-temp-buffer "foo | bar"
+        (rst-mode)
+      (execute-kbd-macro "\"|")
+      (should (equal (buffer-string) "foo \"|\" bar")))))
+
+(ert-deftest sp-test-insert-quote-dont-escape-in-contraction nil
+  "Do not escape ' after a word when it is used as a contraction"
+  (let ((sp-pairs
+         '((t
+            (:open "'" :close "'"
+             :actions (insert wrap autoskip navigate escape)
+             :unless (sp-in-string-quotes-p sp-point-after-word-p)
+             :post-handlers (sp-escape-wrapped-region sp-escape-quotes-after-insert))
+            (:open "[" :close "]" :actions (insert wrap autoskip navigate))))))
+    (sp-test-with-temp-buffer "foo| bar"
+        (rst-mode)
+      (execute-kbd-macro "'s|")
+      (should (equal (buffer-string) "foo's| bar")))))

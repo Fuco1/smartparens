@@ -45,12 +45,6 @@
 
 (require 'smartparens)
 
-;; do not autoinsert ' pair if the point is preceeded by word.  This
-;; will handle the situation when ' is used as a contraction symbol in
-;; natural language.  Nil for second argument means to keep the
-;; original definition of closing pair.
-(sp-pair "'" nil :unless '(sp-point-after-word-p))
-
 (defun sp-lisp-invalid-hyperlink-p (_1 action _2)
   (when (eq action 'navigate)
     ;; Ignore errors due to us being at the start or end of the
@@ -116,6 +110,7 @@
   (eval-after-load it '(require 'smartparens-python)))
 (eval-after-load "scala-mode" '(require 'smartparens-scala))
 (eval-after-load "racket-mode" '(require 'smartparens-racket))
+(eval-after-load "ess" '(require 'smartparens-ess))
 
 (provide 'smartparens-config)
 

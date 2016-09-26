@@ -12,3 +12,4 @@ parser.el
 skip-function.el
 skip-function.org
 talk.org.org
+docs/_build

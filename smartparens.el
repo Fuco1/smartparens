@@ -448,18 +448,25 @@ expressions, they can potentially be of arbitrary length.  This
 settings solves the problem where the parser would decide to
 backtrack the entire buffer which would lock up Emacs.")
 
-(defvar sp-pairs '((t
-                    .
-                    ((:open "\\\\(" :close "\\\\)" :actions (insert wrap autoskip navigate))
-                     (:open "\\{"   :close "\\}"   :actions (insert wrap autoskip navigate))
-                     (:open "\\("   :close "\\)"   :actions (insert wrap autoskip navigate))
-                     (:open "\\\""  :close "\\\""  :actions (insert wrap autoskip navigate))
-                     (:open "\""    :close "\""    :actions (insert wrap autoskip navigate))
-                     (:open "'"     :close "'"     :actions (insert wrap autoskip navigate))
-                     (:open "("     :close ")"     :actions (insert wrap autoskip navigate))
-                     (:open "["     :close "]"     :actions (insert wrap autoskip navigate))
-                     (:open "{"     :close "}"     :actions (insert wrap autoskip navigate))
-                     (:open "`"     :close "`"     :actions (insert wrap autoskip navigate)))))
+(defvar sp-pairs
+  '((t
+     .
+     ((:open "\\\\(" :close "\\\\)" :actions (insert wrap autoskip navigate))
+      (:open "\\{"   :close "\\}"   :actions (insert wrap autoskip navigate))
+      (:open "\\("   :close "\\)"   :actions (insert wrap autoskip navigate))
+      (:open "\\\""  :close "\\\""  :actions (insert wrap autoskip navigate))
+      (:open "\""    :close "\""
+       :actions (insert wrap autoskip navigate escape)
+       :unless (sp-in-string-quotes-p)
+       :post-handlers (sp-escape-wrapped-region sp-escape-quotes-after-insert))
+      (:open "'"     :close "'"
+       :actions (insert wrap autoskip navigate escape)
+       :unless (sp-in-string-quotes-p sp-point-after-word-p)
+       :post-handlers (sp-escape-wrapped-region sp-escape-quotes-after-insert))
+      (:open "("     :close ")"     :actions (insert wrap autoskip navigate))
+      (:open "["     :close "]"     :actions (insert wrap autoskip navigate))
+      (:open "{"     :close "}"     :actions (insert wrap autoskip navigate))
+      (:open "`"     :close "`"     :actions (insert wrap autoskip navigate)))))
   "List of pair definitions.
 
 Maximum length of opening or closing pair is
@@ -955,24 +962,15 @@ position (before or after the region)."
   :group 'smartparens)
 
 ;; escaping custom
-(defcustom sp-autoescape-string-quote t
-  "If non-nil, autoescape string quotes if typed inside string."
+(defcustom sp-escape-wrapped-region t
+  "If non-nil, escape special chars inside the just wrapped region."
   :type 'boolean
   :group 'smartparens)
-(make-obsolete-variable 'sp-autoescape-string-quote "smartparens' global autoescape system was removed." "2015-02-07")
 
-(defcustom sp-autoescape-string-quote-if-empty '(
-                                                 python-mode
-                                                 )
-  "List of modes where the string quotes aren't escaped if the string is empty.
-
-You can list modes where multiple quote characters are used for
-multi-line strings, such as `python-mode' to make the insertion
-less annoying (that is, three times pressing \" would insert
-\"\"\"|\"\"\" instead of \"\\\"\\\"|\\\"\\\"\")."
-  :type '(repeat symbol)
+(defcustom sp-escape-quotes-after-insert t
+  "If non-nil, escape string quotes if typed inside string."
+  :type 'boolean
   :group 'smartparens)
-(make-obsolete-variable 'sp-autoescape-string-quote-if-empty "smartparens' global autoescape system was removed." "2015-02-07")
 
 ;; navigation & manip custom
 (defcustom sp-navigate-consider-sgml-tags '(
@@ -2501,6 +2499,20 @@ are of zero length, or if point moved backwards."
   "Return t if point is inside string or comment, nil otherwise."
   (eq context 'string))
 
+(defun sp-in-string-quotes-p (id action context)
+  "Special string test for quotes.
+
+On insert action, test the string context one character back from
+point.  Return nil at `bobp'.
+
+On escape action use the value of CONTEXT."
+  (cond
+   ((eq action 'insert)
+    (if (bobp) nil
+      (save-excursion (backward-char 1) (sp-point-in-string))))
+   ((eq action 'escape)
+    (eq context 'string))))
+
 (defun sp-in-docstring-p (id action context)
   "Return t if point is inside elisp docstring, nil otherwise."
   (and (eq context 'string)
@@ -2558,7 +2570,8 @@ This predicate is only tested on \"insert\" action."
 (defun sp-point-after-word-p (id action context)
   "Return t if point is after a word, nil otherwise.
 This predicate is only tested on \"insert\" action."
-  (when (eq action 'insert)
+  ;; TODO: remove condition with sp-defpair
+  (when (memq action '(insert escape))
     (sp--looking-back-p (concat "\\(\\sw\\|\\s_\\)" (regexp-quote id)))))
 
 (defun sp-point-before-same-p (id action context)
@@ -2812,36 +2825,39 @@ see `sp-pair' for description."
   (with-demoted-errors "sp--post-self-insert-hook-handler: %S"
     (when smartparens-mode
       (sp--with-case-sensitive
-       (catch 'done
-         (let (op action)
-           (setq op sp-last-operation)
-           (when (region-active-p)
-             (condition-case err
-                 (sp-wrap--initialize)
-               (user-error
-                (delete-char -1)
-                (message (error-message-string err))
-                (throw 'done nil))))
-           (cond
-            (sp-wrap-overlays
-             (sp-wrap))
-            (t
-             ;; TODO: this does not pick correct pair!! it uses insert and not wrapping code
-             (sp--setaction action (-when-let ((_ . open-pairs) (sp--all-pairs-to-insert nil 'wrap))
-                                     (catch 'done
-                                       (-each open-pairs
-                                         (-lambda ((&keys :open open :close close))
-                                           (--when-let (sp--wrap-repeat-last (cons open close))
-                                             (throw 'done it)))))))
-             (sp--setaction action (sp-insert-pair))
-             (sp--setaction action (sp-skip-closing-pair))
-             ;; if nothing happened, we just inserted a character, so
-             ;; set the apropriate operation.  We also need to check
-             ;; for `sp--self-insert-no-escape' not to overwrite
-             ;; it.  See `sp-autoinsert-quote-if-followed-by-closing-pair'.
-             (when (and (not action)
-                        (not (eq sp-last-operation 'sp-self-insert-no-escape)))
-               (setq sp-last-operation 'sp-self-insert))))))))))
+        (catch 'done
+          (let (op action)
+            (setq op sp-last-operation)
+            (when (region-active-p)
+              (condition-case err
+                  (sp-wrap--initialize)
+                (user-error
+                 (delete-char -1)
+                 (message (error-message-string err))
+                 (throw 'done nil))))
+            (cond
+             (sp-wrap-overlays
+              (sp-wrap))
+             (t
+              ;; TODO: this does not pick correct pair!! it uses insert and not wrapping code
+              (sp--setaction
+               action
+               (-when-let ((_ . open-pairs) (sp--all-pairs-to-insert nil 'wrap))
+                 (catch 'done
+                   (-each open-pairs
+                     (-lambda ((&keys :open open :close close))
+                       (--when-let (sp--wrap-repeat-last (cons open close))
+                         (throw 'done it)))))))
+              (sp--setaction action (sp-insert-pair))
+              (sp--setaction action (sp-skip-closing-pair))
+              (unless action (sp-escape-open-delimiter))
+              ;; if nothing happened, we just inserted a character, so
+              ;; set the apropriate operation.  We also need to check
+              ;; for `sp--self-insert-no-escape' not to overwrite
+              ;; it.  See `sp-autoinsert-quote-if-followed-by-closing-pair'.
+              (when (and (not action)
+                         (not (eq sp-last-operation 'sp-self-insert-no-escape)))
+                (setq sp-last-operation 'sp-self-insert))))))))))
 
 ;; Unfortunately, some modes rebind "inserting" keys to their own
 ;; handlers but do not hand over the insertion back to
@@ -3124,6 +3140,67 @@ programatically.  Use `sp-wrap-with-pair' instead."
      (t
       (sp-wrap-cancel)))))
 
+(defun sp--escape-region (chars-to-escape beg end)
+  "Escape instances of CHARS-TO-ESCAPE between BEG and END.
+
+Return non-nil if at least one escaping was performed."
+  (save-excursion
+    (goto-char beg)
+    (let ((pattern (regexp-opt chars-to-escape))
+          (end-marker (set-marker (make-marker) end))
+          (re nil))
+      (while (re-search-forward pattern end-marker t)
+        (setq re t)
+        (save-excursion
+          (goto-char (match-beginning 0))
+          (insert sp-escape-char)))
+      re)))
+
+(defun sp-escape-wrapped-region (id action context)
+  "Escape quotes and special chars when a region is wrapped."
+  (when (and sp-escape-wrapped-region
+             (eq action 'wrap))
+    (sp-get sp-last-wrapped-region
+      (let* ((parent-delim (save-excursion
+                             (goto-char :beg)
+                             (sp-get (sp-get-string)
+                               (when (and (< :beg (point))
+                                          (< (point) :end))
+                                 :op)))))
+        (cond
+         ((equal parent-delim id)
+          (sp--escape-region (list id sp-escape-char) :beg :end))
+         (parent-delim
+          (sp--escape-region (list id) :beg-in :end-in))
+         (t
+          (sp--escape-region (list id sp-escape-char) :beg-in :end-in)))))))
+
+(defun sp-escape-quotes-after-insert (id action context)
+  "Escape quotes inserted via `sp-insert-pair'."
+  (when (and sp-escape-quotes-after-insert
+             (eq action 'insert)
+             ;; we test not being inside string because if we were
+             ;; before inserting the "" pair it is now split into two
+             ;; -> which moves us outside the pair
+             (not (eq context 'string))
+             ;; the inserted character must have string syntax, otherwise no "context" flip happens
+             (eq (char-syntax (aref id 0)) ?\"))
+    (let ((open id)
+          (close (sp-get-pair id :close)))
+      (sp--escape-region (list open close)
+                         (- (point) (length open))
+                         (+ (point) (length close))))))
+
+(defun sp-escape-open-delimiter ()
+  "Escape just inserted opening pair if `sp-insert-pair' was skipped.
+
+This is useful for escaping of \" inside strings when its pairing
+is disabled.  This way, we can control autoescape and closing
+delimiter insertion separately."
+  (-when-let (open (plist-get (sp--pair-to-insert 'escape) :open))
+    (when (sp--do-action-p open 'escape)
+      (sp--escape-region (list open) (- (point) (length open)) (point)))))
+
 ;; kept to not break people's config... remove later
 (defun sp-match-sgml-tags (tag)
   "Split the html tag TAG at the first space and return its name."
@@ -3221,14 +3298,14 @@ the upcoming version."
       (not (and (string-prefix-p (plist-get b :close) (plist-get a :close))
                 (sp--looking-at-p (plist-get b :close))))))))
 
-(defun sp--pair-to-insert ()
+(defun sp--pair-to-insert (&optional action)
   "Return pair that can be inserted at point.
 
 Return nil if such pair does not exist.
 
 If more triggers or opening pairs are possible select the
 shortest one."
-  (-when-let ((property . pairs) (sp--all-pairs-to-insert))
+  (-when-let ((property . pairs) (sp--all-pairs-to-insert nil action))
     (car (--sort (sp--pair-to-insert-comparator property it other) pairs))))
 
 (defun sp--longest-prefix-to-insert ()
