@@ -11,3 +11,19 @@
     (should (sp-point-in-symbol)))
   (sp-test-with-temp-elisp-buffer "foo-b|ar"
     (should (sp-point-in-symbol))))
+
+;; #634
+(ert-deftest sp-test-sp-skip-backward-to-symbol-sexp-at-the-end-of-comment ()
+  "When we are skipping backward and land on a sexp delimiter
+right at the end of comment, and we started outside a comment, we
+should skip the current comment instead of ending on the
+delimiter."
+  (sp-test-with-temp-elisp-buffer "foo\n;; (bar)\n|baz"
+    (sp-skip-backward-to-symbol)
+    (insert "|")
+    (should (equal (buffer-string) "foo|\n;; (bar)\nbaz")))
+
+  (sp-test-with-temp-elisp-buffer "foo\n;; \"bar\"\n|baz"
+    (sp-skip-backward-to-symbol)
+    (insert "|")
+    (should (equal (buffer-string) "foo|\n;; \"bar\"\nbaz"))))

@@ -6602,8 +6602,10 @@ Examples:
                             (and stop-inside-string
                                  (sp-point-in-string)
                                  (not (sp-point-in-string (,inc (point)))))
-                            (,looking allowed-pairs)
-                            (,looking allowed-strings)))
+                            (and (,looking allowed-pairs)
+                                 (or in-comment (not (sp-point-in-comment))))
+                            (and (,looking allowed-strings)
+                                 (or in-comment (not (sp-point-in-comment))))))
                    (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\\ ?\" ?' ?.))
                        (unless in-comment (sp-point-in-comment))))
          (when (and (not in-comment)

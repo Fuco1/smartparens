@@ -236,7 +236,12 @@ be."
      "(f|oo)\nbar ;; baz (foo) baz\n(quux)")
 
     ("(foo)\nbar ;; baz (f|oo baz)\n(quux)"
-     "(foo)\nbar ;; baz (f|oo) baz\n(quux)"))
+     "(foo)\nbar ;; baz (f|oo) baz\n(quux)")
+
+    ;; #634
+    ("(let ((a 4)\n      ;; (fail)\n      |(+ 1)\n      ))\n"
+     "(let ((a 4))\n  ;; (fail)\n|  (+ 1)\n  )\n"
+     "(let ((a 4)))\n;; (fail)\n|(+ 1)\n\n"))
 
    (((mode 'racket)
      (sp-sexp-prefix '((racket-mode regexp "#?['`,]@?"))))
