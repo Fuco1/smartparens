@@ -1,7 +1,8 @@
 language: emacs-lisp
 env:
-  - EVM_EMACS=emacs-24.4-bin
-  - EVM_EMACS=emacs-24.5-bin
+  - EVM_EMACS=emacs-24.4-travis
+  - EVM_EMACS=emacs-24.5-travis
+  - EVM_EMACS=emacs-25.1-travis
 install:
   - sudo mkdir /usr/local/evm
   - sudo chown $(id -u):$(id -g) /usr/local/evm
