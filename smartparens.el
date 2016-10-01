@@ -1425,7 +1425,8 @@ are in either word or symbol class."
   (setq p (or p (point)))
   (save-excursion
     (goto-char p)
-    (and (memq (char-syntax (following-char)) '(?w ?_))
+    (and (/= 0 (following-char))
+         (memq (char-syntax (following-char)) '(?w ?_))
          (memq (char-syntax (preceding-char)) '(?w ?_)))))
 
 (defun sp--single-key-description (event)
