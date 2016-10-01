@@ -569,3 +569,25 @@ be."
         (call-interactively 'sp-select-next-thing)
         (error "We should never get here"))
     (user-error t)))
+
+(ert-deftest sp-test-yank-after-multiple-word-kill ()
+  "When we `sp-kill-word' multiple times in a row, we should
+  `yank' the entire killed sequence."
+  (sp-test-with-temp-elisp-buffer "|some-long-symbol"
+    (let ((smartparens-mode-map smartparens-mode-map))
+      (define-key smartparens-mode-map "d" 'sp-kill-word)
+      (execute-kbd-macro "ddd")
+      (call-interactively 'yank)
+      (insert "|")
+      (should (equal (buffer-string) "some-long-symbol|")))))
+
+(ert-deftest sp-test-yank-after-multiple-backward-word-kill ()
+  "When we `sp-backward-kill-word' multiple times in a row, we
+  should `yank' the entire killed sequence."
+  (sp-test-with-temp-elisp-buffer "some-long-symbol|"
+    (let ((smartparens-mode-map smartparens-mode-map))
+      (define-key smartparens-mode-map "d" 'sp-backward-kill-word)
+      (execute-kbd-macro "ddd")
+      (call-interactively 'yank)
+      (insert "|")
+      (should (equal (buffer-string) "some-long-symbol|")))))
