@@ -46,14 +46,14 @@ everything should work mostly fine on anything newer than version 24.
 You can install smartparens from [MELPA](http://melpa.org/).  Once
 installed, enable the [default configuration](https://github.com/Fuco1/smartparens/wiki/Default-configuration):
 
-```lisp
+```elisp
 (require 'smartparens-config)
 ```
 
 You can now use smartparens with `M-x smartparens-mode`. To
 automatically enable smartparens in a programming mode:
 
-```lisp
+```elisp
 ;; Always start smartparens mode in js-mode.
 (add-hook 'js-mode-hook #'smartparens-mode)
 ```
