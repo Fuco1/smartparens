@@ -1974,6 +1974,7 @@ this pair.  Possible values are:
   characters in order.
 - navigate - enable this pair for navigation/highlight and strictness
   checks
+- escape - allow autoescaping of this delimiter in string contexts
 
 If the ACTIONS argument has value :rem, the pair is removed.
 This can be used to remove default pairs you don't want to use.
