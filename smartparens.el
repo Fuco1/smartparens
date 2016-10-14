@@ -7876,7 +7876,7 @@ delimiter enclosing this sexp."
      ((sp-point-in-empty-string pos)))))
 
 (defun sp-point-in-empty-string (&optional pos)
-  "Return non-nil if point is in empty sexp or string.
+  "Return non-nil if point is in empty string.
 
 The return value is actually cons pair of opening and closing
 string delimiter enclosing this string."
