@@ -7889,16 +7889,6 @@ string delimiter enclosing this string."
              (c (char-to-string (if (eq syntax t) (following-char) syntax))))
         (cons c c)))))
 
-(defun sp-zap-syntax (syntax &optional back)
-  "Delete characters forward until they match syntax class SYNTAX.
-
-If BACK is non-nil, delete backward."
-  (let ((p (point)))
-    (if back
-        (skip-syntax-backward syntax)
-      (skip-syntax-forward syntax))
-    (delete-region p (point))))
-
 (defun sp--use-subword ()
   "Return non-nil if word killing commands should kill subwords.
 This is the case if `subword-mode' is enabled and
