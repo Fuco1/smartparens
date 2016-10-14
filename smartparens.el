@@ -2962,9 +2962,6 @@ delimiter for any pair allowed in current context."
 (cl-defun sp--get-stringlike-regexp (&optional (pair-list (sp--get-allowed-stringlike-list)))
   (regexp-opt (--map (car it) pair-list)))
 
-(defun sp-pair-is-stringlike-p (delim)
-  (--first (equal delim (car it)) (sp--get-allowed-stringlike-list)))
-
 (defun sp--get-last-wraped-region (beg end open close)
   "Return `sp-get-sexp' style plist about the last wrapped region.
 
