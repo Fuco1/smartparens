@@ -3236,11 +3236,6 @@ include separate pair node."
             (append (list nil second-action nil first-action)
                     previous-undo-actions)))))
 
-(defun sp--string-empty-p (delimeter)
-  "Return t if point is inside an empty string."
-  (and (equal (char-after (1+ (point))) delimeter)
-       (equal (char-after (- (point) 2)) delimeter)))
-
 ;; TODO: remove ACTION argument and make the selection process more
 ;; unified (see also sp--pair-to-wrap which depends on buffer state
 ;; among other things)
