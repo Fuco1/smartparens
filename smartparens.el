@@ -516,7 +516,19 @@ Symbol is defined as a chunk of text recognized by
                            slime-repl-mode
                            stumpwm-mode
                            )
-  "List of Lisp modes."
+  "List of Lisp-related modes."
+  :type '(repeat symbol)
+  :group 'smartparens)
+
+(defcustom sp-clojure-modes '(
+                              cider-repl-mode
+                              clojure-mode
+                              clojurec-mode
+                              clojurescript-mode
+                              clojurex-mode
+                              inf-clojure-mode
+                              )
+  "List of Clojure-related modes."
   :type '(repeat symbol)
   :group 'smartparens)
 

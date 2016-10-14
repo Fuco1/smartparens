@@ -45,5 +45,12 @@
 (dolist (mode '(clojure-mode clojurescript-mode clojurec-mode cider-repl-mode))
   (add-to-list 'sp-sexp-prefix `(,mode regexp ,sp-clojure-prefix)))
 
+;; Match "`" with "`" in strings and comments
+(sp-with-modes sp-clojure-modes
+  (sp-local-pair "`" "`"
+                 :when '(sp-in-string-p
+                         sp-in-comment-p)
+                 :unless '(sp-lisp-invalid-hyperlink-p)))
+
 (provide 'smartparens-clojure)
 ;;; smartparens-clojure.el ends here
