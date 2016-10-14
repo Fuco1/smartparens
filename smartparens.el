@@ -1436,13 +1436,6 @@ TODO: fix this!"
      ((string-match-p "SPC" original) " ")
      (t original))))
 
-(defun sp--split-string (string by)
-  "Split STRING on BY.  This simply calls `split-string' and if it
-returns a list of length one, empty string is inserted to the
-beginning."
-  (let ((sp (split-string string by)))
-    (if (not (cdr sp)) (cons "" sp) sp)))
-
 ;; see https://github.com/Fuco1/smartparens/issues/125#issuecomment-20356176
 (defun sp--current-indentation ()
   "Get the indentation offset of the current line."
