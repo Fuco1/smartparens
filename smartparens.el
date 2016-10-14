@@ -1335,10 +1335,6 @@ than once should wrap them all in sp--with-case-sensitive."
   "Checks to see if the current `evil-state' is in visual mode."
   (and (fboundp 'evil-visual-state-p) (evil-visual-state-p)))
 
-(defun sp--reverse-string (str)
-  "Reverse the string STR."
-  (concat (reverse (append str nil))))
-
 (defun sp-point-in-blank-line (&optional p)
   "Return non-nil if line at point is blank (whitespace only).
 
