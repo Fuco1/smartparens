@@ -65,7 +65,9 @@
 ;; lisp modes too
 (sp-with-modes sp-lisp-modes
   ;; disable ', it's the quote character!
-  (sp-local-pair "'" nil :actions nil)
+  (sp-local-pair "'" nil :actions nil))
+
+(sp-with-modes (cl-set-difference sp-lisp-modes sp-clojure-modes)
   ;; also only use the pseudo-quote inside strings where it serve as
   ;; hyperlink.
   (sp-local-pair "`" "'"
