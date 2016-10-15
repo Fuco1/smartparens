@@ -2823,8 +2823,15 @@ see `sp-pair' for description."
               (condition-case err
                   (sp-wrap--initialize)
                 (user-error
-                 (delete-char -1)
                  (message (error-message-string err))
+                 ;; we need to remove the undo record of the insertion
+                 (unless (eq buffer-undo-list t)
+                   ;; pop all undo info until we hit an insertion node
+                   (sp--undo-pop-to-last-insertion-node)
+                   ;; get rid of it and insert an undo boundary marker
+                   (pop buffer-undo-list)
+                   (undo-boundary))
+                 (restore-buffer-modified-p sp-buffer-modified-p)
                  (throw 'done nil))))
             (cond
              (sp-wrap-overlays
@@ -3038,12 +3045,44 @@ overlay."
       ;; TODO: get rid of the following variables
       (setq sp-wrap-point (- (point) inserted-string-length))
       (setq sp-wrap-mark (mark))
-      (unless (or (sp-point-in-string (point))
-                  (sp-point-in-string (mark)))
-        (unless (sp-region-ok-p
-                 (if (> (point) (mark)) sp-wrap-point (point))
-                 (mark))
-          (user-error "Wrapping active region would break structure")))
+      ;; balance check
+      (with-silent-modifications
+        (let ((inserted-string
+               (prog1 (delete-and-extract-region sp-wrap-point (point))
+                 ;; HACK: in modes with string fences, the insertion
+                 ;; of the delimiter causes `syntax-propertize' to
+                 ;; fire, but the above deletion doesn't re-run it
+                 ;; because the cache tells it the state is OK.  We
+                 ;; need to destroy the cache and re-run the
+                 ;; `syntax-propertize' on the buffer.  This might be
+                 ;; expensive, but we only done this on wrap-init so
+                 ;; it's fine, I guess.
+                 (setq syntax-propertize--done -1)
+                 (syntax-propertize (point-max))))
+              (point-string-context (sp-get-quoted-string-bounds sp-wrap-point))
+              (mark-string-context (sp-get-quoted-string-bounds (mark))))
+          ;; If point and mark are inside the same string, we don't
+          ;; need to check if the region is OK.  If both are outisde
+          ;; strings, we have to.  If one is inside and the other is
+          ;; not, no matter what we would break, so we exit.
+          (cond
+           ;; inside the same string
+           ((and point-string-context mark-string-context
+                 (eq (car point-string-context)
+                     (car mark-string-context))))
+           ;; neither is inside string
+           ((and (not point-string-context)
+                 (not mark-string-context))
+            (unless (sp-region-ok-p sp-wrap-point (mark))
+              (user-error "Mismatched sexp state: wrapping would break structure")))
+           ;; one is in and the other isn't
+           ((if point-string-context (not mark-string-context) mark-string-context)
+            (user-error "Mismatched string state: point %sin string, mark %sin string"
+                        (if (car-safe point-string-context) "" "not ")
+                        (if (car-safe mark-string-context) "" "not ")))
+           ;; both are in but in different strings
+           (t (user-error "Mismatched string state: point and mark are inside different strings")))
+          (insert inserted-string)))
       ;; if point > mark, we need to move point to mark and reinsert the
       ;; just inserted character.
       (when (> (point) (mark))
