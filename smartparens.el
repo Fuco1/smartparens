@@ -5584,6 +5584,11 @@ Examples:
 
 (put 'sp-end-of-previous-sexp 'CUA 'move)
 
+;; TODO: split the reindent code so we can call it inside strings on
+;; sexps like [foo ]... We can't reindent that by default because it
+;; can be a regular expression or something where the whitespace
+;; matters.  For now, disable reindent in strings if the sexp is not
+;; the string quote itself.
 (defun sp-up-sexp (&optional arg interactive)
   "Move forward out of one level of parentheses.
 
@@ -5624,7 +5629,17 @@ Examples:
                            (and (memq major-mode (assq 'interactive sp-navigate-reindent-after-up))
                                 interactive))
                        (or sp-navigate-reindent-after-up-in-string
-                           (sp-get ok (not (sp-point-in-string :end-in)))))
+                           (sp-get ok (not (sp-point-in-string :end-in))))
+                       ;; if the sexp to be reindented is not a string
+                       ;; but is inside a string, we should rather do
+                       ;; nothing than break semantics (in e.g. regexp
+                       ;; [...])
+                       (let ((str (sp-point-in-string)))
+                         (or (not str)
+                             ;; op must be the delimiter of the string we're in
+                             (eq (sp-get ok :op)
+                                 (or (eq str t)
+                                     (char-to-string str))))))
               ;; TODO: this needs different indent rules for different
               ;; modes.  Should we concern with such things?  Lisp rules are
               ;; funny in HTML... :/
