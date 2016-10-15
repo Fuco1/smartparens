@@ -5623,12 +5623,8 @@ Examples:
                        (or (memq major-mode (assq 'always sp-navigate-reindent-after-up))
                            (and (memq major-mode (assq 'interactive sp-navigate-reindent-after-up))
                                 interactive))
-                       (if sp-navigate-reindent-after-up-in-string
-                           t
-                         (save-excursion
-                           (sp-get ok
-                             (goto-char :end-in)
-                             (not (sp-point-in-string))))))
+                       (or sp-navigate-reindent-after-up-in-string
+                           (sp-get ok (not (sp-point-in-string :end-in)))))
               ;; TODO: this needs different indent rules for different
               ;; modes.  Should we concern with such things?  Lisp rules are
               ;; funny in HTML... :/
