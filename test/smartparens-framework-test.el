@@ -27,3 +27,15 @@ delimiter."
     (sp-skip-backward-to-symbol)
     (insert "|")
     (should (equal (buffer-string) "foo|\n;; \"bar\"\nbaz"))))
+
+(ert-deftest sp-test-looking-back ()
+  (sp-test-with-temp-elisp-buffer "foo \\|\\ bar"
+    (should (sp--looking-back "\\\\+"))
+    (should (eq (match-end 0) 6)))
+
+  (sp-test-with-temp-elisp-buffer "OPEN|CLOSE"
+    (should (not (sp--looking-back "OPEN\\>"))))
+
+  (sp-test-with-temp-elisp-buffer "OPEN| CLOSE"
+    (should (sp--looking-back "OPEN\\>"))
+    (should (eq (match-end 0) 5))))

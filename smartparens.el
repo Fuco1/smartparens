@@ -3783,16 +3783,19 @@ sequence, not necessarily the longest possible."
           (to (point))
           (greedy (not not-greedy))
           has-match)
-      (set-match-data '(0 0))
       (if greedy
           (save-excursion
             (goto-char from)
-            (while (and (not has-match) (< (point) to))
-              (looking-at regexp)
-              (if (= (match-end 0) to)
-                  (setq has-match t)
-                (forward-char 1)))
-            has-match)
+            (save-match-data
+              (while (and (not has-match) (< (point) to))
+                ;; don't use looking-at because we can't limit that search
+                (if (and (save-excursion (re-search-forward regexp to t))
+                         (= (match-end 0) to))
+                    (setq has-match (match-data))
+                  (forward-char 1))))
+            (when has-match
+              (set-match-data has-match)
+              t))
         (save-excursion
           (not (null (search-backward-regexp (concat "\\(?:" regexp "\\)\\=") from t))))))))
 
@@ -3816,8 +3819,9 @@ pairs!"
       (while (> count 0)
         (when (search-backward-regexp regexp bound noerror)
           (goto-char (match-end 0))
-          (sp--looking-back regexp)
-          (setq r (goto-char (match-beginning 0))))
+          (if (sp--looking-back regexp)
+              (setq r (goto-char (match-beginning 0)))
+            (if noerror nil (error "Search failed: %s" regexp))))
         (setq count (1- count)))
       r)))
 
