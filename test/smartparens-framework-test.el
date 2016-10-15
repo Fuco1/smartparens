@@ -39,3 +39,22 @@ delimiter."
   (sp-test-with-temp-elisp-buffer "OPEN| CLOSE"
     (should (sp--looking-back "OPEN\\>"))
     (should (eq (match-end 0) 5))))
+
+(ert-deftest sp-test-char-is-escaped-p ()
+  (sp-test-with-temp-elisp-buffer "\\|t"
+    (should (sp-char-is-escaped-p)))
+
+  (sp-test-with-temp-elisp-buffer "\\\\|t"
+    (should (not (sp-char-is-escaped-p))))
+
+  (sp-test-with-temp-elisp-buffer "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\|t"
+    (should (sp-char-is-escaped-p)))
+
+  (sp-test-with-temp-elisp-buffer "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\|t"
+    (should (not (sp-char-is-escaped-p))))
+
+  (sp-test-with-temp-elisp-buffer "\\\\|"
+    (should (not (sp-char-is-escaped-p))))
+
+  (sp-test-with-temp-elisp-buffer "\"foo bar \\\"| baz\""
+    (should (sp-char-is-escaped-p (1- (point))))))

@@ -1360,6 +1360,17 @@ sexp, otherwise the call may be very slow."
                    "\\`[ \t\n]*\\'"
                    (buffer-substring-no-properties :beg-in :end-in))))))
 
+(defun sp-char-is-escaped-p (&optional point)
+  "Test if the char at POINT is escaped or not.
+
+POINT defaults to `point'."
+  (setq point (or point (point)))
+  (save-match-data
+    (when (save-excursion
+            (goto-char point)
+            (looking-back (concat sp-escape-char sp-escape-char "+") nil t))
+      (eq (logand (length (match-string 0)) 1) 1))))
+
 (defun sp--syntax-ppss (&optional p)
   "Memoize the last result of syntax-ppss."
   (let ((p (or p (point))))
