@@ -3786,19 +3786,24 @@ pairs!"
   (sp--with-case-sensitive
     (search-forward-regexp regexp bound noerror count)))
 
-(defun sp-get-quoted-string-bounds ()
-  "Return the bounds of the string around point.
+(defun sp-get-quoted-string-bounds (&optional point)
+  "Return the bounds of the string around POINT.
+
+POINT defaults to `point'.
 
 If the point is not inside a quoted string, return nil."
-  (let ((parse-data (syntax-ppss)))
-    (when (nth 3 parse-data)
-      (let* ((open (nth 8 parse-data))
-             (close (save-excursion
-                      (parse-partial-sexp
-                       (point) (point-max)
-                       nil nil parse-data 'syntax-table)
-                      (point))))
-        (cons open close)))))
+  (setq point (or point (point)))
+  (save-excursion
+    (goto-char point)
+    (let ((parse-data (syntax-ppss)))
+      (when (nth 3 parse-data)
+        (let* ((open (nth 8 parse-data))
+               (close (save-excursion
+                        (parse-partial-sexp
+                         (point) (point-max)
+                         nil nil parse-data 'syntax-table)
+                        (point))))
+          (cons open close))))))
 
 ;; TODO: the repeated conditions are ugly, refactor this!
 (defun sp-get-comment-bounds ()
