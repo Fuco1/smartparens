@@ -1300,8 +1300,10 @@ This can be used with `sp-local-pair' calls to automatically
 insert the modes."
   (declare (indent 1)
            (debug (form body)))
-  `(progn
-     ,@(mapcar (lambda (form) (append (list (car form) arg) (cdr form))) forms)))
+  (let ((modes (make-symbol "modes")))
+    `(let ((,modes ,arg))
+       (progn
+         ,@(mapcar (lambda (form) (append (list (car form) modes) (cdr form))) forms)))))
 
 (font-lock-add-keywords 'emacs-lisp-mode `((,(concat "("
                                                      (regexp-opt '("sp-with-modes"
