@@ -106,6 +106,10 @@
 (ert-deftest sp-test-insert-pair-skip-inactive-quotes nil
   (sp-test-insertion "|" "\"ab\C-b\C-dc\"|" "\"ac\"|"))
 
+(ert-deftest sp-test-insert-sp-autoskip-opening-pair nil
+  (let ((sp-autoskip-opening-pair t))
+    (sp-test-insertion "foo |\"bar\" baz" "\"|" "foo \"|bar\" baz")))
+
 (ert-deftest sp-test-insert-pair-skip-inactive-quotes-with-escape-enabled nil
   (let ((sp-pairs
          '((t (:open "\"" :close "\""
