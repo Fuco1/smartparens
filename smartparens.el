@@ -2170,7 +2170,7 @@ definition, this will override the global closing delimiter.
 
 The list arguments can optionally be of form starting with
 \":add\" or \":rem\" when these mean \"add to the global list\"
-and \"remove from the global list\" respectivelly.  Otherwise,
+and \"remove from the global list\" respectively.  Otherwise,
 the global list is replaced.  If you wish to both add and remove
 things with single call, use \"((:add ...) (:rem ...))\" as an
 argument.  Therefore,
