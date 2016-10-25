@@ -99,8 +99,8 @@
 
 (defvar sp-test-wrap-python-pairs
   '((python-mode
-     (:open "\"" :close "\"" :actions (insert wrap autoskip navigate) :post-handlers (sp-escape-wrapped-region))
-     (:open "'" :close "'" :actions (insert wrap autoskip navigate) :post-handlers (sp-escape-wrapped-region))
+     (:open "\"" :close "\"" :actions (insert wrap autoskip navigate escape) :post-handlers (sp-escape-wrapped-region))
+     (:open "'" :close "'" :actions (insert wrap autoskip navigate escape) :post-handlers (sp-escape-wrapped-region))
      (:open "(" :close ")" :actions (insert wrap autoskip navigate))
      (:open "[" :close "]" :actions (insert wrap autoskip navigate)))))
 

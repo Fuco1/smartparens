@@ -34,7 +34,7 @@
       (:open "("   :close ")"   :actions (insert wrap autoskip navigate))
       (:open "["   :close "]"   :actions (insert wrap autoskip navigate))
       (:open "{"   :close "}"   :actions (insert wrap autoskip navigate))
-      (:open "\""  :close "\""  :actions (insert wrap autoskip navigate))
+      (:open "\""  :close "\""  :actions (insert wrap autoskip navigate escape))
       (:open "\\\""  :close "\\\""  :actions (insert wrap autoskip navigate))
       (:open "\\langle"  :close "\\rangle"  :actions (insert wrap autoskip navigate))
       (:open "OPEN"  :close "CLOSE"  :actions (insert wrap autoskip navigate))
