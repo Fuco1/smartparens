@@ -21,6 +21,15 @@
     (sp-test-wrapping "|aM" "\\langle" "\\langle|a\\rangle")
     (sp-test-wrapping "Ma|" "\\langle" "\\langlea\\rangle|")))
 
+(ert-deftest sp-test-wrap-basic-with-quotes nil
+  (let ((sp-pairs '((t (:open "\""  :close "\""
+                        :actions (insert wrap autoskip navigate escape)
+                        :post-handlers (sp-escape-wrapped-region
+                                        sp-escape-quotes-after-insert))))))
+    ;; #212
+    (sp-test-wrapping "\"C-M[|\"" "\"" "\"C-\\\"[\\\"|\"")
+    (sp-test-wrapping "\"C-|[M\"" "\"" "\"C-\\\"|[\\\"\"")))
+
 (ert-deftest sp-test-wrap-unbalanced-region nil
   (let ((sp-pairs sp--test-basic-pairs))
     (sp-test-wrapping "[a b |c] dM e" "(" "[a b |c] d e")
