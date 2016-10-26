@@ -579,6 +579,14 @@ be."
         (error "We should never get here"))
     (user-error t)))
 
+(ert-deftest sp-test-command-sp-select-previous-thing-empty-buffer ()
+  "Ensure we call user-error at buffer end."
+  (condition-case c
+      (sp-test-with-temp-elisp-buffer ""
+        (call-interactively 'sp-select-previous-thing)
+        (error "We should never get here"))
+    (user-error t)))
+
 (ert-deftest sp-test-yank-after-multiple-word-kill ()
   "When we `sp-kill-word' multiple times in a row, we should
   `yank' the entire killed sequence."
