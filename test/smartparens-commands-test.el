@@ -586,7 +586,7 @@ be."
     (let ((smartparens-mode-map smartparens-mode-map))
       (define-key smartparens-mode-map "d" 'sp-kill-word)
       (execute-kbd-macro "ddd")
-      (call-interactively 'yank)
+      (shut-up (call-interactively 'yank))
       (insert "|")
       (should (equal (buffer-string) "some-long-symbol|")))))
 
@@ -597,6 +597,6 @@ be."
     (let ((smartparens-mode-map smartparens-mode-map))
       (define-key smartparens-mode-map "d" 'sp-backward-kill-word)
       (execute-kbd-macro "ddd")
-      (call-interactively 'yank)
+      (shut-up (call-interactively 'yank))
       (insert "|")
       (should (equal (buffer-string) "some-long-symbol|")))))

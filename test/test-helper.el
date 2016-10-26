@@ -121,5 +121,9 @@ See `sp-test-with-temp-buffer'."
        (emacs-lisp-mode)
      ,@forms))
 
+;; put advice on `TeX-update-style' to silence its output
+(defadvice TeX-update-style (around fix-output-spam activate)
+  (shut-up ad-do-it))
+
 (provide 'test-helper)
 ;;; test-helper.el ends here

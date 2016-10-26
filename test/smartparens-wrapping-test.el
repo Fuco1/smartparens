@@ -31,23 +31,24 @@
     (sp-test-wrapping "\"C-|[M\"" "\"" "\"C-\\\"|[\\\"\"")))
 
 (ert-deftest sp-test-wrap-unbalanced-region nil
-  (let ((sp-pairs sp--test-basic-pairs))
-    (sp-test-wrapping "[a b |c] dM e" "(" "[a b |c] d e")
-    (sp-test-wrapping "[a b Mc] d| e" "(" "[a b c] d| e")
-    (sp-test-wrapping "[a b |c] d [e Mf]" "(" "[a b |c] d [e f]")
-    (sp-test-wrapping "[a b Mc] d [e |f]" "(" "[a b c] d [e |f]")
+  (shut-up
+    (let ((sp-pairs sp--test-basic-pairs))
+      (sp-test-wrapping "[a b |c] dM e" "(" "[a b |c] d e")
+      (sp-test-wrapping "[a b Mc] d| e" "(" "[a b c] d| e")
+      (sp-test-wrapping "[a b |c] d [e Mf]" "(" "[a b |c] d [e f]")
+      (sp-test-wrapping "[a b Mc] d [e |f]" "(" "[a b c] d [e |f]")
 
-    ;; wrapping with quotes
-    (sp-test-wrapping "[a b |c] dM e" "\"" "[a b |c] d e")
-    (sp-test-wrapping "[a b Mc] d| e" "\"" "[a b c] d| e")
+      ;; wrapping with quotes
+      (sp-test-wrapping "[a b |c] dM e" "\"" "[a b |c] d e")
+      (sp-test-wrapping "[a b Mc] d| e" "\"" "[a b c] d| e")
 
-    (sp-test-wrapping "\"a b |c\" dM e" "\"" "\"a b |c\" d e")
-    (sp-test-wrapping "\"a b Mc\" d| e" "\"" "\"a b c\" d| e")
-    (sp-test-wrapping "[foo |bar] baz \"quMx\"" "\"" "[foo |bar] baz \"qux\"")
-    (sp-test-wrapping "[foo Mbar] baz \"qu|x\"" "\"" "[foo bar] baz \"qu|x\"")
+      (sp-test-wrapping "\"a b |c\" dM e" "\"" "\"a b |c\" d e")
+      (sp-test-wrapping "\"a b Mc\" d| e" "\"" "\"a b c\" d| e")
+      (sp-test-wrapping "[foo |bar] baz \"quMx\"" "\"" "[foo |bar] baz \"qux\"")
+      (sp-test-wrapping "[foo Mbar] baz \"qu|x\"" "\"" "[foo bar] baz \"qu|x\"")
 
-    (sp-test-wrapping "\"fo|o\" asd \"baMz\"" "[" "\"fo|o\" asd \"baz\"")
-    (sp-test-wrapping "\"foMo\" asd \"ba|z\"" "[" "\"foo\" asd \"ba|z\"")))
+      (sp-test-wrapping "\"fo|o\" asd \"baMz\"" "[" "\"fo|o\" asd \"baz\"")
+      (sp-test-wrapping "\"foMo\" asd \"ba|z\"" "[" "\"foo\" asd \"ba|z\""))))
 
 (ert-deftest sp-test-wrap-with-closing nil
   (let ((sp-pairs sp--test-basic-pairs))

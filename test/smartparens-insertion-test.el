@@ -39,7 +39,7 @@
 (defun sp-test-latex-insertion (initial keys result)
   (sp-test-with-temp-buffer initial
       (latex-mode)
-    (execute-kbd-macro keys)
+    (shut-up (execute-kbd-macro keys))
     (should (equal (buffer-string) result))))
 
 ;; TODO: ideally, we would figure out why that doesn't work on 24.1
