@@ -5138,7 +5138,22 @@ expressions are considered."
                   (sp-get-string t))
                  ((and (sp--valid-initial-delimiter-p (sp--looking-back (sp--get-stringlike-regexp) nil))
                        (sp-get-expression t)))
-                 (t (sp-get-symbol t)))))))
+                 ;; We might be somewhere inside the prefix of the
+                 ;; sexp after the point.  Since the prefix can be
+                 ;; specified as regexp and not syntax class, it might
+                 ;; itself by a symbol which would invalidly get
+                 ;; picked here.
+                 (t (-when-let (sym (sp-get-symbol t))
+                      (save-excursion
+                        (sp-get sym (goto-char :end))
+                        (if (sp--valid-initial-delimiter-p (sp--looking-at (sp--get-opening-regexp (sp--get-allowed-pair-list))))
+                            (let* ((ms (match-string 0))
+                                   (pref (sp--get-prefix (point) ms)))
+                              (if (and pref
+                                       (not (equal pref "")))
+                                  (sp-get-sexp t)
+                                sym))
+                          sym)))))))))
         (if (not sp-navigate-consider-symbols)
             (sp-get-sexp nil)
           (save-excursion

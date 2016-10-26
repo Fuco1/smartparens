@@ -28,3 +28,10 @@
   (let ((sp-sexp-prefix '((racket-mode regexp "#?['`,]@?")))
         (sp-pairs '((t . ((:open "(" :close ")" :actions (insert wrap autoskip navigate)))))))
     (sp-test-thing-parse-in-racket "foo | #'(foo) qux" '(:beg 8 :end 13 :op "(" :cl ")" :prefix "#'" :suffix ""))))
+
+;; 621
+(ert-deftest sp-test-get-thing-with-prefix-when-inside-prefix-backward ()
+  (let ((sp-sexp-prefix '((emacs-lisp-mode regexp "\\(?:[_]+\\)"))))
+    (sp-test-with-temp-elisp-buffer "(_|(abc))"
+      (should (equal (sp-get-thing t)
+                     '(:beg 1 :end 9 :op "(" :cl ")" :prefix "" :suffix ""))))))
