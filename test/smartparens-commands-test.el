@@ -581,8 +581,8 @@ be."
   "Ensure we call user-error at buffer end."
   (should-error
    (sp-test-with-temp-elisp-buffer ""
-     (call-interactively 'sp-select-previous-thing)
-     :type 'user-error)))
+     (call-interactively 'sp-select-previous-thing))
+   :type 'user-error))
 
 (ert-deftest sp-test-yank-after-multiple-word-kill ()
   "When we `sp-kill-word' multiple times in a row, we should
