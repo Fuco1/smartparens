@@ -58,3 +58,8 @@ delimiter."
 
   (sp-test-with-temp-elisp-buffer "\"foo bar \\\"| baz\""
     (should (sp-char-is-escaped-p (1- (point))))))
+
+(ert-deftest sp-test-sp--strict-regexp-opt-no-strings ()
+  "`sp--strict-regexp-opt' on nil input should return empty
+string to be consistent with `regexp-opt'."
+  (should (equal "" (sp--strict-regexp-opt nil))))
