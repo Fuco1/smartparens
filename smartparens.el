@@ -4410,10 +4410,12 @@ By default, this is enabled in all modes derived from
         (ps (if back (1- (point-min)) (1+ (point-max))))
         (ss (if back (1- (point-min)) (1+ (point-max))))
         (string-delim nil))
-    (setq ps (or (save-excursion (funcall search-fn pre nil t)) ps))
-    (setq ss (or (--when-let (save-excursion (funcall search-fn sre nil t))
-                   (setq string-delim (match-string 0))
-                   it) ss))
+    (setq ps (if (equal pre "") ps
+               (or (save-excursion (funcall search-fn pre nil t)) ps)))
+    (setq ss (if (equal sre "") ss
+               (or (--when-let (save-excursion (funcall search-fn sre nil t))
+                     (setq string-delim (match-string 0))
+                     it) ss)))
     ;; TODO: simplify this logic somehow... (this really depends
     ;; on a rewrite of the core parser logic: separation of "find
     ;; the valid opening" and "parse it")
@@ -4433,25 +4435,22 @@ By default, this is enabled in all modes derived from
                                 (and back (> ps ss)))
                             (cons :regular (sp-get-paired-expression back))
                           (cons :string (sp-get-stringlike-or-textmode-expression back string-delim)))))
-      (if re
-          (sp-get re
-            (cond
-             ;; If the returned sexp is regular, but the
-             ;; to-be-tried-string-expression is before it, we try
-             ;; to parse it as well, it might be a complete sexp in
-             ;; which case it should be returned.
-             ((and (eq type :regular)
-                   (or (and (not back) (< ss :beg))
-                       (and back (> ss :end))))
-              (or (sp-get-stringlike-or-textmode-expression back string-delim) re))
-             ((and (eq type :string)
-                   (or (and (not back) (< ps :beg))
-                       (and back (> ps :end))))
-              (or (sp-get-paired-expression back) re))
-             (t re)))
-        (if (eq type :regular)
-            (sp-get-stringlike-or-textmode-expression back string-delim)
-          (sp-get-paired-expression back))))))
+      (when re
+        (sp-get re
+          (cond
+           ;; If the returned sexp is regular, but the
+           ;; to-be-tried-string-expression is before it, we try
+           ;; to parse it as well, it might be a complete sexp in
+           ;; which case it should be returned.
+           ((and (eq type :regular)
+                 (or (and (not back) (< ss :beg))
+                     (and back (> ss :end))))
+            (or (sp-get-stringlike-or-textmode-expression back string-delim) re))
+           ((and (eq type :string)
+                 (or (and (not back) (< ps :beg))
+                     (and back (> ps :end))))
+            (or (sp-get-paired-expression back) re))
+           (t re)))))))
 
 (defun sp-get-sexp (&optional back)
   "Find the nearest balanced expression that is after (before) point.

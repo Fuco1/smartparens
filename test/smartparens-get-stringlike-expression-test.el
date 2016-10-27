@@ -190,7 +190,7 @@
     (sp-test-sexp-parse-in-org "foo /bar/ |n'est pas [asd] asd /baz/" '(:beg 21 :end 26 :op "[" :cl "]" :prefix "" :suffix ""))
     (sp-test-sexp-parse-in-org "foo /bar/ n'est pas [a|sd] asd /baz/" '(:beg 21 :end 26 :op "[" :cl "]" :prefix "" :suffix ""))
     (sp-test-sexp-parse-in-org "foo /bar/ n'est pas [asd] |asd /baz/" '(:beg 31 :end 36 :op "/" :cl "/" :prefix "" :suffix ""))
-    (sp-test-sexp-parse-in-org "|foo [bar /baz/ asd" '(:beg 10 :end 15 :op "/" :cl "/" :prefix "" :suffix ""))))
+    (sp-test-sexp-parse-in-org "foo [b|ar /baz/ asd" '(:beg 10 :end 15 :op "/" :cl "/" :prefix "" :suffix ""))))
 
 (defun sp-test-get-textmode-stringlike-expression-in-org (initial result &optional back)
   (sp-test-with-temp-buffer initial
