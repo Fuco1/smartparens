@@ -564,28 +564,25 @@ be."
   (sp--test-sp-rewrap-sexp "[f|oo]" '("\\{" . "\\}") "\\{[f|oo]\\}" :keep))
 
 (ert-deftest sp-test-command-sp-rewrap-sexp-invalid-pair ()
-  (condition-case c
-      (sp-test-with-temp-elisp-buffer "(fo|o)"
-        (let ((unread-command-events (list ?\a)))
-          (call-interactively 'sp-rewrap-sexp))
-        (error "We should never get here"))
-    (user-error t)))
+  (should-error
+   (sp-test-with-temp-elisp-buffer "(fo|o)"
+     (let ((unread-command-events (list ?\a)))
+       (call-interactively 'sp-rewrap-sexp)))
+   :type 'user-error))
 
 (ert-deftest sp-test-command-sp-select-next-thing-empty-buffer ()
   "Ensure we call user-error at buffer end."
-  (condition-case c
-      (sp-test-with-temp-elisp-buffer ""
-        (call-interactively 'sp-select-next-thing)
-        (error "We should never get here"))
-    (user-error t)))
+  (should-error
+   (sp-test-with-temp-elisp-buffer ""
+     (call-interactively 'sp-select-next-thing))
+   :type 'user-error))
 
 (ert-deftest sp-test-command-sp-select-previous-thing-empty-buffer ()
   "Ensure we call user-error at buffer end."
-  (condition-case c
-      (sp-test-with-temp-elisp-buffer ""
-        (call-interactively 'sp-select-previous-thing)
-        (error "We should never get here"))
-    (user-error t)))
+  (should-error
+   (sp-test-with-temp-elisp-buffer ""
+     (call-interactively 'sp-select-previous-thing)
+     :type 'user-error)))
 
 (ert-deftest sp-test-yank-after-multiple-word-kill ()
   "When we `sp-kill-word' multiple times in a row, we should
