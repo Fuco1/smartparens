@@ -5135,8 +5135,8 @@ expressions are considered."
                  ((and (eq (char-syntax (preceding-char)) 34)
                        (not (sp-char-is-escaped-p (1- (point)))))
                   (sp-get-string t))
-                 ((and (sp--valid-initial-delimiter-p (sp--looking-back (sp--get-stringlike-regexp) nil))
-                       (sp-get-expression t)))
+                 ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-stringlike-regexp) nil))
+                  (sp-get-expression t))
                  ;; We might be somewhere inside the prefix of the
                  ;; sexp after the point.  Since the prefix can be
                  ;; specified as regexp and not syntax class, it might
@@ -5172,8 +5172,8 @@ expressions are considered."
                ((and (eq (char-syntax (following-char)) 34)
                      (not (sp-char-is-escaped-p)))
                 (sp-get-string nil))
-               ((and (sp--valid-initial-delimiter-p (sp--looking-at (sp--get-stringlike-regexp)))
-                     (sp-get-expression nil)))
+               ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-stringlike-regexp)))
+                (sp-get-expression nil))
                ;; it can still be that we are looking at a /prefix/ of a
                ;; sexp.  We should skip a symbol forward and check if it
                ;; is a sexp, and then maybe readjust the output.

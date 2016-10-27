@@ -35,3 +35,24 @@
     (sp-test-with-temp-elisp-buffer "(_|(abc))"
       (should (equal (sp-get-thing t)
                      '(:beg 1 :end 9 :op "(" :cl ")" :prefix "" :suffix ""))))))
+
+
+(defun sp-test-get-thing-invalid (initial &optional back)
+  (sp-test-with-temp-elisp-buffer initial
+    (should-not (sp-get-thing back))))
+
+(ert-deftest sp-test-get-thing-invalid-sexp ()
+  (sp-test-get-thing-invalid "\"foo |\\\" bar\"")
+  (sp-test-get-thing-invalid "\"foo \\\"| bar\"" t)
+
+  (sp-test-get-thing-invalid "\"foo |[ bar\"")
+  (sp-test-get-thing-invalid "\"foo ]| bar\"" t)
+
+  (sp-test-get-thing-invalid "foo |[ bar")
+  (sp-test-get-thing-invalid "foo ]| bar" t)
+
+  (sp-test-get-thing-invalid "foo |[ bar (foo)")
+  (sp-test-get-thing-invalid "(bar) foo ]| bar" t)
+
+  (sp-test-get-thing-invalid "foo |[ bar \"foo\"")
+  (sp-test-get-thing-invalid "\"bar\" foo ]| bar" t))

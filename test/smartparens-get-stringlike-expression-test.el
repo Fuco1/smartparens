@@ -212,4 +212,6 @@
     (sp-test-get-textmode-stringlike-expression-in-org "/bar/ asd /b|az/" '(:beg 11 :end 16 :op "/" :cl "/" :prefix "" :suffix ""))
     (sp-test-get-textmode-stringlike-expression-in-org "/bar/ asd /baz|/" '(:beg 11 :end 16 :op "/" :cl "/" :prefix "" :suffix ""))
     (sp-test-get-textmode-stringlike-expression-in-org "/bar/ asd /baz/|" '(:beg 11 :end 16 :op "/" :cl "/" :prefix "" :suffix "") t)
-    (sp-test-get-textmode-stringlike-expression-in-org "/bar/ asd ~a|sd~" '(:beg 11 :end 16 :op "~" :cl "~" :prefix "" :suffix ""))))
+    (sp-test-get-textmode-stringlike-expression-in-org "/bar/ asd ~a|sd~" '(:beg 11 :end 16 :op "~" :cl "~" :prefix "" :suffix ""))
+    (sp-test-get-textmode-stringlike-expression-in-org "|//" '(:beg 1 :end 3 :op "/" :cl "/" :prefix "" :suffix ""))
+    (sp-test-get-textmode-stringlike-expression-in-org "//|" '(:beg 1 :end 3 :op "/" :cl "/" :prefix "" :suffix "") t)))
