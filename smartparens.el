@@ -4480,6 +4480,7 @@ The return value is a plist with following keys:
   :op     - opening delimiter
   :cl     - closing delimiter
   :prefix - expression prefix
+  :suffix - expression suffix
 
 However, you should never access this structure directly as it is
 subject to change.  Instead, use the macro `sp-get' which also
