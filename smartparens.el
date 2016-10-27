@@ -1025,9 +1025,6 @@ where PARENT-MODE is checked using `derived-mode-p'."
                     (symbol :tag "Parent major mode name"))))
   :group 'smartparens)
 
-(defvaralias 'sp-nagivate-use-textmode-stringlike-parser 'sp-navigate-use-textmode-stringlike-parser)
-;; For backward compatibility?
-
 (defcustom sp-navigate-consider-symbols t
   "If non-nil, consider symbols outside balanced expressions as such.
 
@@ -4404,7 +4401,7 @@ For markup and text modes a special, more efficient stringlike
 parser is available, see `sp-get-textmode-stringlike-expression'.
 By default, this is enabled in all modes derived from
 `text-mode'.  You can change it by customizing
-`sp-nagivate-use-textmode-stringlike-parser'."
+`sp-navigate-use-textmode-stringlike-parser'."
   (let ((pre (sp--get-allowed-regexp))
         (sre (sp--get-stringlike-regexp))
         (search-fn (if (not back) 'sp--search-forward-regexp 'sp--search-backward-regexp))
