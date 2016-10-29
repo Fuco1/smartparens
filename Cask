@@ -6,6 +6,7 @@
 
 (depends-on "cl-lib" "0.3")
 (depends-on "dash" "2.12.1")
+(depends-on "memoize" "1.0.1")
 
 (development
   (depends-on "f")
