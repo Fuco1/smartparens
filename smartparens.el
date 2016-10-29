@@ -1871,7 +1871,7 @@ This modifies the OLD-PAIR by side effect."
       (setq ind (1+ ind))))
   old-pair)
 
-(defun sp--update-pair (old-pair new-pair)
+(defun sp--update-pair (new-pair old-pair)
   "Copy properties from NEW-PAIR to OLD-PAIR.
 
 The list OLD-PAIR must not be nil."
@@ -1904,7 +1904,7 @@ old definition with values from PAIR."
                                (cdr struct))))
         (if (not old-pair)
             (setcdr struct (cons pair (cdr struct)))
-          (sp--update-pair old-pair pair)))))
+          (sp--update-pair pair old-pair)))))
   sp-pairs)
 
 (defun sp--get-pair (open list)
@@ -2380,7 +2380,7 @@ string and the action."
               (setcdr tag-list (--remove (equal trig (plist-get it :trigger)) (cdr tag-list)))
             (if (not tag)
                 (setcdr tag-list (cons new-tag (cdr tag-list)))
-              (sp--update-pair tag new-tag)))
+              (sp--update-pair new-tag tag)))
         ;; mode doesn't exist
         (when actions
           (!cons (cons mode (list new-tag)) sp-tags))))))
