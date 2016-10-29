@@ -864,6 +864,7 @@ instead of inserting a new pair."
   :group 'smartparens)
 (make-variable-buffer-local 'sp-autoskip-opening-pair)
 
+;; TODO: rename to reflect what this actually does
 (defcustom sp-cancel-autoskip-on-backward-movement t
   "If non-nil, deactivate the active expression on backward movement.
 
@@ -1068,6 +1069,7 @@ never automatically closed (see `sp-navigate-close-if-unbalanced')."
   :type 'boolean
   :group 'smartparens)
 
+;; TODO: add -alist suffix
 (defcustom sp-navigate-skip-match `(
                                     (,sp-lisp-modes . sp--elisp-skip-match)
                                     )
@@ -1291,6 +1293,8 @@ means mute.  Integers specify the maximum width."
                  (integer :tag "Max width"))
   :group 'smartparens)
 
+;; TODO: this should be true by default > then the behaviour is
+;; controlled by subword-mode... and this is a hard override
 (defcustom sp-use-subword nil
   "Override of `subword-mode' killing behaviour.
 
@@ -1468,6 +1472,7 @@ If optional argument P is present, test this instead of point."
   (or (sp-point-in-string p)
       (sp-point-in-comment p)))
 
+;; TODO: add -p suffix
 (defun sp-point-in-symbol (&optional p)
   "Return non-nil if `point' is inside symbol.
 
@@ -1529,6 +1534,7 @@ OLD-INDENTATION is the indentation depth before reindent."
   (let ((offset (sp--calculate-indentation-offset old-column old-indentation)))
     (move-to-column offset)))
 
+;; TODO: rename to preserve-current-column
 (defmacro sp--keep-indentation (&rest body)
   "Execute BODY and restore the column.
 
@@ -2453,6 +2459,7 @@ POS is the same as for `overlays-at'.
 
 Smartparens functions must use this function instead of
 `overlays-at' directly."
+  ;; TODO: we should probably also check the returned value
   (--filter (overlay-get it 'type) (overlays-at (or pos (point)))))
 
 (defun sp--point-in-overlay-p (overlay)
