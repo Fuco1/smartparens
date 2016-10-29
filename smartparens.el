@@ -1833,8 +1833,9 @@ the `sp-message-width' variable."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Adding/removing of pairs/bans/allows etc.
 
-(defun sp--merge-prop (old-pair new-pair prop)
+(defun sp--merge-prop (prop new-pair old-pair)
   "Merge a property PROP from NEW-PAIR into OLD-PAIR.
+
 The list OLD-PAIR must not be nil."
   (let ((new-val (plist-get new-pair prop)))
     (cl-case prop
@@ -1866,12 +1867,13 @@ This modifies the OLD-PAIR by side effect."
   (let ((ind 0))
     (--each new-pair
       (when (= 0 (% ind 2))
-        (sp--merge-prop old-pair new-pair it))
+        (sp--merge-prop it new-pair old-pair))
       (setq ind (1+ ind))))
   old-pair)
 
 (defun sp--update-pair (old-pair new-pair)
   "Copy properties from NEW-PAIR to OLD-PAIR.
+
 The list OLD-PAIR must not be nil."
   (let ((ind 0))
     (--each new-pair
