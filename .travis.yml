@@ -12,4 +12,4 @@ install:
   - export PATH="$HOME/.cask/bin:$PATH"
   - cask
 script:
-  make travis-ci
+  - cask exec ert-runner
