@@ -7987,8 +7987,8 @@ Examples:
                  (save-excursion (forward-char) (not (sp-point-in-string))))
             (setq n 0))
            ((sp--looking-at (sp--get-opening-regexp (sp--get-pair-list-context 'navigate)))
-            (if (save-match-data (sp-get-thing))
-                (goto-char (match-end 0))
+            (-if-let (thing (save-match-data (sp-get-thing)))
+                (goto-char (sp-get thing :beg-in))
               (delete-char (length (match-string 0))))
             ;; make this customizable
             (setq n (1- n)))
@@ -8063,8 +8063,8 @@ Examples:
                  (save-excursion (backward-char) (not (sp-point-in-string))))
             (setq n 0))
            ((sp--looking-back (sp--get-closing-regexp (sp--get-pair-list-context 'navigate)))
-            (if (save-match-data (sp-get-thing t))
-                (goto-char (match-beginning 0))
+            (-if-let (thing (save-match-data (sp-get-thing t)))
+                (goto-char (sp-get thing :end-in))
               (delete-char (- (length (match-string 0)))))
             ;; make this customizable
             (setq n (1- n)))

@@ -544,6 +544,12 @@ be."
      (current-prefix-arg -1))
     ("x - |" "|"))))
 
+(sp-test-command sp-backward-delete-char
+  ((nil
+    ("[foo]|" "[foo|]")
+    ("\\{foo\\}|" "\\{foo|\\}")
+    ("\"foo\\\\\"|" "\"foo\\\\|\""))))
+
 (defun sp--test-sp-rewrap-sexp (initial pair expected &optional keep)
   (sp-test-with-temp-elisp-buffer initial
     (sp-rewrap-sexp pair keep)
