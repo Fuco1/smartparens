@@ -12,8 +12,8 @@
 
 ;;; Code:
 
-(when (require 'undercover nil t)
-  (undercover "smartparens*.el"))
+;; (when (require 'undercover nil t)
+;;   (undercover "smartparens*.el"))
 
 (require 'ert)
 (require 'dash)
