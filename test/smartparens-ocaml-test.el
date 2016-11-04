@@ -1,5 +1,6 @@
 (require 'ert)
 (require 'smartparens)
+(require 'tuareg)
 
 (defun sp-test--ocaml-mode ()
   (shut-up (tuareg-mode)))
