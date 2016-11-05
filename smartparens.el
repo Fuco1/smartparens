@@ -645,6 +645,8 @@ You can enable pre-set bindings by customizing
     (define-key map [remap kill-word] 'sp-kill-word)
     (define-key map [remap kill-line] 'sp-kill-hybrid-sexp)
     (define-key map [remap backward-kill-word] 'sp-backward-kill-word)
+    (define-key map [remap kill-region] 'sp-kill-region)
+    (define-key map [remap delete-region] 'sp-delete-region)
     map)
   "Keymap used for `smartparens-strict-mode'.")
 
@@ -8264,6 +8266,34 @@ With ARG being Negative number -N, repeat that many times in
 backward direction."
   (interactive "p")
   (sp-backward-kill-symbol arg t))
+
+(defun sp-delete-region (beg end)
+  "Delete the text between point and mark, like `delete-region'.
+
+BEG and END are the bounds of region to be deleted.
+
+If that text is unbalanced, signal an error instead.
+With a prefix argument, skip the balance check."
+  (interactive "r")
+  (when (or current-prefix-arg
+            (sp-region-ok-p beg end)
+            (user-error "Unbalanced region"))
+    (setq this-command 'delete-region)
+    (delete-region beg end)))
+
+(defun sp-kill-region (beg end)
+  "Kill the text between point and mark, like `kill-region'.
+
+BEG and END are the bounds of region to be killed.
+
+If that text is unbalanced, signal an error instead.
+With a prefix argument, skip the balance check."
+  (interactive "r")
+  (when (or current-prefix-arg
+            (sp-region-ok-p beg end)
+            (user-error "Unbalanced region"))
+    (setq this-command 'kill-region)
+    (kill-region beg end)))
 
 (defun sp-indent-defun (&optional arg)
   "Reindent the current defun.

@@ -623,3 +623,15 @@ be."
       (shut-up (call-interactively 'yank))
       (insert "|")
       (should (equal (buffer-string) "some-long-symbol|")))))
+
+(ert-deftest sp-test-kill-region ()
+  (sp-test-with-temp-elisp-buffer "[fo|o] bar [bMaz]"
+    (should-error
+     (call-interactively 'sp-kill-region)
+     :type 'user-error)))
+
+(ert-deftest sp-test-delete-region ()
+  (sp-test-with-temp-elisp-buffer "[fo|o] bar [bMaz]"
+    (should-error
+     (call-interactively 'sp-delete-region)
+     :type 'user-error)))
