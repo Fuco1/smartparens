@@ -12,4 +12,4 @@ install:
   - export PATH="$HOME/.cask/bin:$PATH"
   - cask
 script:
-  - cask exec ert-runner
+  - cask exec ert-runner --reporter ert+duration
