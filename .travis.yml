@@ -11,5 +11,8 @@ install:
   - curl -fsSkL --max-time 10 --retry 10 --retry-delay 10 https://raw.github.com/cask/cask/master/go | python
   - export PATH="$HOME/.cask/bin:$PATH"
   - cask
+  # temporary fix for the ert+duration reporter, when compiled gives
+  # "Invalid time specification"
+  - find . -name 'ert-runner-reporter-ert+duration.elc' -delete
 script:
   - cask exec ert-runner --reporter ert+duration
