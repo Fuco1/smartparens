@@ -1,13 +1,15 @@
 (defun sp-test-wrapping (initial keys result)
   (sp-test-with-temp-elisp-buffer initial
     (-each (-list keys) 'execute-kbd-macro)
-    (should (equal (buffer-string) (replace-regexp-in-string "[|]" "" result)))
-    (should (= (1+ (string-match-p "|" result)) (point)))))
+    (should (equal (buffer-string) (replace-regexp-in-string "[|M]" "" result)))
+    (should (= (1+ (string-match-p "|" (replace-regexp-in-string "[M]" "" result))) (point)))
+    (when (string-match-p "M" result)
+      (should (= (1+ (string-match-p "M" (replace-regexp-in-string "[|]" "" result))) (mark))))))
 
 (ert-deftest sp-test-wrap-basic nil
   (let ((sp-pairs sp--test-basic-pairs))
-    (sp-test-wrapping "|aM" "(" "(|a)")
-    (sp-test-wrapping "Ma|" "(" "(a)|")
+    (sp-test-wrapping "|aM" "(" "(|aM)")
+    (sp-test-wrapping "Ma|" "(" "M(a)|")
 
     (sp-test-wrapping "|aM" "[" "[|a]")
     (sp-test-wrapping "Ma|" "[" "[a]|")
@@ -20,6 +22,12 @@
 
     (sp-test-wrapping "|aM" "\\langle" "\\langle|a\\rangle")
     (sp-test-wrapping "Ma|" "\\langle" "\\langlea\\rangle|")))
+
+(ert-deftest sp-test-wrap-basic-respect-direction nil
+  (let ((sp-pairs sp--test-basic-pairs)
+        (sp-wrap-respect-direction t))
+    (sp-test-wrapping "|aM" "(" "|(a)M")
+    (sp-test-wrapping "Ma|" "(" "|(a)M")))
 
 (ert-deftest sp-test-wrap-basic-with-quotes nil
   (let ((sp-pairs '((t (:open "\""  :close "\""
@@ -52,8 +60,8 @@
 
 (ert-deftest sp-test-wrap-with-closing nil
   (let ((sp-pairs sp--test-basic-pairs))
-    (sp-test-wrapping "|aM" "]" "[a]|")
-    (sp-test-wrapping "Ma|" "]" "[a]|")
+    (sp-test-wrapping "|aM" "]" "M[a]|")
+    (sp-test-wrapping "Ma|" "]" "M[a]|")
     (sp-test-wrapping "|aM" "\\}" "\\{a\\}|")))
 
 (ert-deftest sp-test-wrap-repeated nil

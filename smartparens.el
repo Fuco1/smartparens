@@ -987,9 +987,19 @@ When non-nil, wrapping with opening pair always jumps to the
 beginning of the region and wrapping with closing pair always
 jumps to the end of the region.
 
+  |fooM -> [ -> |[foo]M
+  Mfoo| -> [ -> |[foo]M
+  |fooM -> ] -> M[foo]|
+  Mfoo| -> ] -> M[foo]|
+
 When nil, closing pair places the point at the end of the region
 and the opening pair leaves the point at its original
-position (before or after the region)."
+position (before or after the region).
+
+  |fooM -> [ -> [|fooM]
+  Mfoo| -> [ -> M[foo]|
+  |fooM -> ] -> M[foo]|
+  Mfoo| -> ] -> M[foo]|"
   :type 'boolean
   :group 'smartparens)
 
@@ -3264,10 +3274,14 @@ OPEN and CLOSE are the delimiters."
     (cond
      ((eq wrapping-end :open)
       (if sp-wrap-respect-direction
-          (goto-char (overlay-start obeg))
+          (progn
+            (set-mark (overlay-end oend))
+            (goto-char (overlay-start obeg)))
         (when (> sp-wrap-point sp-wrap-mark)
+          (set-mark (overlay-start obeg))
           (goto-char (overlay-end oend)))))
      ((eq wrapping-end :close)
+      (set-mark (overlay-start obeg))
       (goto-char (overlay-end oend))))
     (sp-wrap--clean-overlays)
     (sp--run-hook-with-args open :post-handlers 'wrap)))
