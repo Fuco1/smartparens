@@ -92,6 +92,26 @@ This predicate is only tested on \"insert\" action."
   (when (eq action 'navigate)
     (looking-at-p "\\sw")))
 
+(defun sp-latex-pre-slurp-handler (id action context)
+  ;; If there was no space before or after, we shouldn't add on.
+  ;; Variable ok, next-thing are defined in
+  ;; `sp-forward-slurp-sexp' and `sp-backward-slurp-sexp'
+  (when (eq action 'slurp-forward)
+    (save-excursion
+      (when (and (sp-get ok (/= :len-in 0))
+                 (= (sp-get ok :end-suf) (sp-get next-thing :beg-prf)))
+        (goto-char (sp-get ok :end))
+        (when (looking-back " ")
+          (delete-char -1)))))
+
+  (when (eq action 'slurp-backward)
+    (save-excursion
+      (when (and (sp-get ok (/= :len-in 0))
+                 (= (sp-get ok :beg-prf) (sp-get next-thing :end-suf)))
+        (goto-char (sp-get ok :beg))
+        (when (looking-at " ")
+          (delete-char 1))))))
+
 (add-to-list 'sp-navigate-skip-match
              '((tex-mode plain-tex-mode latex-mode) . sp--backslash-skip-match))
 
@@ -104,11 +124,15 @@ This predicate is only tested on \"insert\" action."
                  :actions '(:rem autoskip)
                  :skip-match 'sp-latex-skip-match-apostrophe
                  :unless '(sp-latex-point-after-backslash
-                           sp-latex-point-before-word-p))
+                           sp-latex-point-before-word-p)
+                 :pre-handlers '(sp-latex-pre-slurp-handler))
   ;; math modes, yay.  The :actions are provided automatically if
   ;; these pairs do not have global definitions.
-  (sp-local-pair "$" "$")
-  (sp-local-pair "\\[" "\\]" :unless '(sp-latex-point-after-backslash))
+  (sp-local-pair "$" "$" :pre-handlers '(sp-latex-pre-slurp-handler))
+  (sp-local-pair "\\[" "\\]"
+                 :unless '(sp-latex-point-after-backslash)
+                 :pre-handlers '(sp-latex-pre-slurp-handler))
+
   ;; disable useless pairs.  Maybe also remove " ' and \"?
   (sp-local-pair "/*" nil :actions nil)
   (sp-local-pair "\\\\(" nil :actions nil)
@@ -120,44 +144,84 @@ This predicate is only tested on \"insert\" action."
   (sp-local-pair "``" "''"
                  :trigger "\""
                  :unless '(sp-latex-point-after-backslash)
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
                  :post-handlers '(sp-latex-skip-double-quote))
 
   ;; add the prefix function sticking to {} pair
   (sp-local-pair "{" nil :prefix "\\\\\\(\\sw\\|\\s_\\)*")
+
+  ;; do not add more space when slurping
+  (sp-local-pair "{" "}" :pre-handlers '(sp-latex-pre-slurp-handler))
+  (sp-local-pair "(" ")" :pre-handlers '(sp-latex-pre-slurp-handler))
+  (sp-local-pair "[" "]" :pre-handlers '(sp-latex-pre-slurp-handler))
 
   ;; pairs for big brackets.  Needs more research on what pairs are
   ;; useful to add here.  Post suggestions if you know some.
   (sp-local-pair "\\left(" "\\right)"
                  :trigger "\\l("
                  :when '(sp-in-math-p)
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\left[" "\\right]"
                  :trigger "\\l["
                  :when '(sp-in-math-p)
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\left\\{" "\\right\\}"
                  :trigger "\\l{"
                  :when '(sp-in-math-p)
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\left|" "\\right|"
                  :trigger "\\l|"
                  :when '(sp-in-math-p)
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\bigl(" "\\bigr)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\biggl(" "\\biggr)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\Bigl(" "\\Bigr)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\Biggl(" "\\Biggr)" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\bigl[" "\\bigr]" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\biggl[" "\\biggr]" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\Bigl[" "\\Bigr]" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\Biggl[" "\\Biggr]" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\bigl\\{" "\\bigr\\}" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\biggl\\{" "\\biggr\\}" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\Bigl\\{" "\\Bigr\\}" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\Biggl\\{" "\\Biggr\\}" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\lfloor" "\\rfloor" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\lceil" "\\rceil" :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  (sp-local-pair "\\langle" "\\rangle" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\bigl(" "\\bigr)"
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\biggl(" "\\biggr)"
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\Bigl(" "\\Bigr)"
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\Biggl(" "\\Biggr)"
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\bigl[" "\\bigr]"
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\biggl[" "\\biggr]"
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\Bigl[" "\\Bigr]"
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\Biggl[" "\\Biggr]"
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\bigl\\{" "\\bigr\\}"
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\biggl\\{" "\\biggr\\}"
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\Bigl\\{" "\\Bigr\\}"
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\Biggl\\{" "\\Biggr\\}"
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\lfloor" "\\rfloor"
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\lceil" "\\rceil"
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "\\langle" "\\rangle"
+                 :pre-handlers '(sp-latex-pre-slurp-handler)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
 
   ;; some common wrappings
   (sp-local-tag "\"" "``" "''" :actions '(wrap))
