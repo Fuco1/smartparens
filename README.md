@@ -78,7 +78,7 @@ We love pull requests. Please include tests. Smartparens uses
 run all the tests, run:
 
 ```
-$ make test
+$ cask exec ert-runner
 ```
 
 Alternatively, you can open the individual files in Emacs, then
