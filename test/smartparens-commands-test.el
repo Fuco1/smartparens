@@ -468,6 +468,18 @@ be."
     ("(`|(depends-on ,pkg))" "|(`(depends-on ,pkg))")
     ("(,@|(depends-on ,pkg))" "|(,@(depends-on ,pkg))"))))
 
+(sp-test-command sp-down-sexp
+  ((((mode 'python))
+    ("\"foo bar| 'baz qux' fux\"" "\"foo bar '|baz qux' fux\"")
+    ("\"foo |bar 'baz qux' fux\"" "\"foo bar '|baz qux' fux\"")
+    ("\"foo |bar [baz qux] fux\"" "\"foo bar [|baz qux] fux\""))))
+
+(sp-test-command sp-backward-down-sexp
+  ((((mode 'python))
+    ("\"foo bar 'baz qux' |fux\"" "\"foo bar 'baz qux|' fux\"")
+    ("\"foo bar 'baz qux' fux| bla\"" "\"foo bar 'baz qux|' fux bla\"")
+    ("\"foo bar [baz qux] fux| bla\"" "\"foo bar [baz qux|] fux bla\""))))
+
 (sp-test-command sp-end-of-sexp
   ((nil
     ;; #446

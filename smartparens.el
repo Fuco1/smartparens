@@ -4496,7 +4496,8 @@ on it when calling directly."
     ;; `sp-get-string'
     (if (and delimiter
              (= (length delimiter) 1)
-             (eq (char-syntax (string-to-char delimiter)) 34))
+             (eq (char-syntax (string-to-char delimiter)) 34)
+             (not (eq t (sp-point-in-string))))
         (sp-get-string back)
       (sp-get-stringlike-expression back))))
 
@@ -5238,7 +5239,9 @@ expressions are considered."
                   (sp-get-sexp t))
                  ((and (eq (char-syntax (preceding-char)) 34)
                        (not (sp-char-is-escaped-p (1- (point)))))
-                  (sp-get-string t))
+                  (if (eq t (sp-point-in-string))
+                      (sp-get-stringlike-expression t)
+                    (sp-get-string t)))
                  ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-stringlike-regexp) nil))
                   (sp-get-expression t))
                  ;; We might be somewhere inside the prefix of the
@@ -5275,7 +5278,17 @@ expressions are considered."
                 (sp-get-sexp nil))
                ((and (eq (char-syntax (following-char)) 34)
                      (not (sp-char-is-escaped-p)))
-                (sp-get-string nil))
+                ;; It might happen that the string delimiter we are
+                ;; looking at is nested inside another string
+                ;; delimited by string fences (for example nested "
+                ;; and ' in python).  In this case we can't use
+                ;; `sp-get-string' parser because it would pick up the
+                ;; outer string.  So if we are inside a string and
+                ;; `syntax-ppss' returns t as delimiter we need to use
+                ;; `sp-get-stringlike-expression'
+                (if (eq t (sp-point-in-string))
+                    (sp-get-stringlike-expression nil)
+                  (sp-get-string nil)))
                ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-stringlike-regexp)))
                 (sp-get-expression nil))
                ;; it can still be that we are looking at a /prefix/ of a
