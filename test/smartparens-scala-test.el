@@ -14,7 +14,9 @@
   (sp-test-with-temp-buffer
    "foo.map|"
    (scala-mode)
-   (execute-kbd-macro "( _.toString")
+   (execute-kbd-macro "(")
+   (execute-kbd-macro (kbd "SPC"))
+   (execute-kbd-macro "_.toString")
    (should (equal (buffer-string) "foo.map( _.toString )"))))
 
 (ert-deftest sp-test-scala-curly ()
@@ -31,7 +33,9 @@
    ;; it might be nice in a future update to not need the prefix space
    "foo.map |"
    (scala-mode)
-   (execute-kbd-macro "{ f => f.toString")
+   (execute-kbd-macro "{")
+   (execute-kbd-macro (kbd "SPC"))
+   (execute-kbd-macro "f => f.toString")
    (should (equal (buffer-string) "foo.map { f => f.toString }"))))
 
 (ert-deftest sp-test-scala-curly-newline ()
@@ -39,7 +43,9 @@
   (sp-test-with-temp-buffer
    "foo.map |"
    (scala-mode)
-   (execute-kbd-macro "{\nf => f.toString")
+   (execute-kbd-macro "{")
+   (execute-kbd-macro (kbd "RET"))
+   (execute-kbd-macro "f => f.toString")
    (should (equal (buffer-string) "foo.map {\n  f => f.toString\n}"))))
 
 (ert-deftest sp-test-scala-curly-wrap ()
