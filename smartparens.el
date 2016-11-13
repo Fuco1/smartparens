@@ -3381,7 +3381,8 @@ This is useful for escaping of \" inside strings when its pairing
 is disabled.  This way, we can control autoescape and closing
 delimiter insertion separately."
   (-when-let (open (plist-get (sp--pair-to-insert 'escape) :open))
-    (when (sp--do-action-p open 'escape)
+    (when (and (sp--do-action-p open 'escape)
+               sp-point-inside-string)
       (sp--escape-region (list open) (- (point) (length open)) (point)))))
 
 ;; kept to not break people's config... remove later

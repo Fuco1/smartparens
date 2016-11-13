@@ -19,4 +19,5 @@
   (depends-on "clojure-mode")
   (depends-on "lua-mode")
   (depends-on "ess")
-  (depends-on "tuareg"))
+  (depends-on "tuareg")
+  (depends-on "scala-mode"))

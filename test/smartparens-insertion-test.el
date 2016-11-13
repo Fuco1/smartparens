@@ -1,6 +1,8 @@
 ;; TODO: add proper headers and organize tests a bit better
 
 (require 'smartparens)
+(require 'smartparens-scala)
+(require 'scala-mode)
 
 (defun sp-test-insertion (initial keys result)
   (sp-test-with-temp-elisp-buffer initial
@@ -160,3 +162,27 @@ escape them on the top level."
         (rst-mode)
       (execute-kbd-macro "'s|")
       (should (equal (buffer-string) "foo's| bar")))))
+
+;; #665
+(ert-deftest sp-test-insert-quote-dont-escape-if-not-in-string-before-insertion nil
+  "In `scala-mode' and modes where the syntax classes are hacked
+on-the-fly it can happen that the quote character \" is not
+always syntax class, and therefore unclosed string is *not*
+parsed as string.  Adding the closing quote properly closes it
+and therefore we should not escape the just-inserted quote."
+  (let ((sp-pairs
+         '((t (:open "\"" :close "\""
+               :actions (insert wrap autoskip navigate escape)
+               :unless (sp-in-string-quotes-p)))))
+        (init "ensimeScalaCompilerJarmoduleIDs := {\n  val v = (scalaVersion in LocalProject(\"bootstrap|)).value\n  Seq(scalaOrganization.value % \"scala-compiler\" % v)\n}")
+        (result "ensimeScalaCompilerJarmoduleIDs := {\n  val v = (scalaVersion in LocalProject(\"bootstrap\"|)).value\n  Seq(scalaOrganization.value % \"scala-compiler\" % v)\n}"))
+    (sp-test-with-temp-buffer init
+        (scala-mode)
+      (execute-kbd-macro "\"|")
+      (should (equal (buffer-string) result)))
+    (sp-test-with-temp-buffer init
+        (progn
+          (scala-mode)
+          (smartparens-strict-mode +1))
+      (execute-kbd-macro "\"|")
+      (should (equal (buffer-string) result)))))
