@@ -37,3 +37,15 @@ executing `sp-skip-closing-pair'."
     (execute-kbd-macro "[]")
     (insert "|")
     (should (equal (buffer-string) "\"\\t foo []| bar\""))))
+
+(ert-deftest sp-test-non-escaped-pair-is-skipped-in-string-c++ ()
+  (sp-test-with-temp-buffer "std::string a = \"foo\\nbar\";\n\"|\";"
+      (c++-mode)
+    (execute-kbd-macro "[]|")
+    (should (equal (buffer-string) "std::string a = \"foo\\nbar\";\n\"[]|\";"))))
+
+(ert-deftest sp-test-non-escaped-pair-is-skipped-in-string-python ()
+  (sp-test-with-temp-buffer "from sys import stdin, \\\n    stdout\n\na = \"|\""
+      (c++-mode)
+    (execute-kbd-macro "[]|")
+    (should (equal (buffer-string) "from sys import stdin, \\\n    stdout\n\na = \"[]|\""))))
