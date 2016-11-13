@@ -1,3 +1,5 @@
+(require 'smartparens)
+
 (ert-deftest sp-test-buffer-modified-sp-skip-closing-pair ()
   "Test the correct setting of `buffer-modified-p' flag after
 executing `sp-skip-closing-pair'."
@@ -23,3 +25,15 @@ executing `sp-skip-closing-pair'."
       (insert "a")
       (sp-skip-closing-pair ")")
       (should (eq (buffer-modified-p) t)))))
+
+(ert-deftest sp-test-escaped-pair-is-not-skipped-in-string ()
+  (sp-test-with-temp-elisp-buffer "\"\\|\""
+    (execute-kbd-macro "\"")
+    (insert "|")
+    (should (equal (buffer-string) "\"\\\"|\\\"\""))))
+
+(ert-deftest sp-test-non-escaped-pair-is-skipped-in-string ()
+  (sp-test-with-temp-elisp-buffer "\"\\t foo | bar\""
+    (execute-kbd-macro "[]")
+    (insert "|")
+    (should (equal (buffer-string) "\"\\t foo []| bar\""))))

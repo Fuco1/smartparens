@@ -3785,12 +3785,7 @@ achieve this by using `sp-pair' or `sp-local-pair' with
                          ;; should not skip as that would leave the
                          ;; string broken.
                          (or (not (sp-point-in-string))
-                             (if (save-excursion
-                                   (backward-char 1)
-                                   (sp--search-backward-regexp
-                                    (concat sp-escape-char sp-escape-char "+") nil t))
-                                 (eq (logand (length (match-string 0)) 1) 0) ;; even? = we can skip
-                               t)))
+                             (not (sp-char-is-escaped-p (1- (point))))))
                 (-when-let (re (cond
                                 ((= (point) (sp-get active-sexp :beg))
                                  ;; we are in front of a string-like sexp
