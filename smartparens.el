@@ -3393,6 +3393,7 @@ delimiter insertion separately."
 (make-obsolete 'sp-match-sgml-tags "do not use this function as the tag system has been removed." "2015-02-07")
 
 (defun sp--is-number-cons (c)
+  "Return non-nil if C is a cons cell with numbers at `car' and `cdr'."
   (and (consp c) (numberp (car c)) (numberp (cdr c))))
 
 ;; TODO: more research is needed
