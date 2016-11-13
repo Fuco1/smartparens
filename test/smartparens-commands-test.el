@@ -455,9 +455,9 @@ be."
     ("(;; foo\n b|ar\n baz\n ;; foo\n )" "(;; foo\n bar\n baz\n ;; foo\n )|")
 
     ;; #446
-    ("(define-key sp-keymap (kbd | \"C-(\") 'sp-down-sexp)" "(define-key sp-keymap (kbd  \"C-(\")| 'sp-down-sexp)" )
-    ("(define-key sp-keymap (kbd | \"C-[\") 'sp-up-sexp)" "(define-key sp-keymap (kbd  \"C-[\")| 'sp-up-sexp)" )
-    ("(define-key sp-keymap (kbd | \"C-{\") 'sp-beginning-of-next-sexp)" "(define-key sp-keymap (kbd  \"C-{\")| 'sp-beginning-of-next-sexp)")
+    ("(define-key smartparens-mode-map (kbd | \"C-(\") 'sp-down-sexp)" "(define-key smartparens-mode-map (kbd  \"C-(\")| 'sp-down-sexp)" )
+    ("(define-key smartparens-mode-map (kbd | \"C-[\") 'sp-up-sexp)" "(define-key smartparens-mode-map (kbd  \"C-[\")| 'sp-up-sexp)" )
+    ("(define-key smartparens-mode-map (kbd | \"C-{\") 'sp-beginning-of-next-sexp)" "(define-key smartparens-mode-map (kbd  \"C-{\")| 'sp-beginning-of-next-sexp)")
 
     ;; #616
     ("\"[\t| ]\"" "\"[\t ]|\"")
@@ -483,16 +483,16 @@ be."
 (sp-test-command sp-end-of-sexp
   ((nil
     ;; #446
-    ("(define-key sp-keymap (kbd | \"C-(\") 'sp-down-sexp)" "(define-key sp-keymap (kbd  \"C-(\"|) 'sp-down-sexp)" )
-    ("(define-key sp-keymap (kbd | \"C-[\") 'sp-up-sexp)" "(define-key sp-keymap (kbd  \"C-[\"|) 'sp-up-sexp)" )
-    ("(define-key sp-keymap (kbd | \"C-{\") 'sp-beginning-of-next-sexp)" "(define-key sp-keymap (kbd  \"C-{\"|) 'sp-beginning-of-next-sexp)" ))))
+    ("(define-key smartparens-mode-map (kbd | \"C-(\") 'sp-down-sexp)" "(define-key smartparens-mode-map (kbd  \"C-(\"|) 'sp-down-sexp)" )
+    ("(define-key smartparens-mode-map (kbd | \"C-[\") 'sp-up-sexp)" "(define-key smartparens-mode-map (kbd  \"C-[\"|) 'sp-up-sexp)" )
+    ("(define-key smartparens-mode-map (kbd | \"C-{\") 'sp-beginning-of-next-sexp)" "(define-key smartparens-mode-map (kbd  \"C-{\"|) 'sp-beginning-of-next-sexp)" ))))
 
 (sp-test-command sp-beginning-of-sexp
   ((nil
     ;; #446
-    ("(define-key sp-keymap (kbd | \"C-(\") 'sp-down-sexp)" "(define-key sp-keymap (|kbd  \"C-(\") 'sp-down-sexp)" )
-    ("(define-key sp-keymap (kbd | \"C-[\") 'sp-up-sexp)" "(define-key sp-keymap (|kbd  \"C-[\") 'sp-up-sexp)" )
-    ("(define-key sp-keymap (kbd | \"C-{\") 'sp-beginning-of-next-sexp)" "(define-key sp-keymap (|kbd  \"C-{\") 'sp-beginning-of-next-sexp)" ))))
+    ("(define-key smartparens-mode-map (kbd | \"C-(\") 'sp-down-sexp)" "(define-key smartparens-mode-map (|kbd  \"C-(\") 'sp-down-sexp)" )
+    ("(define-key smartparens-mode-map (kbd | \"C-[\") 'sp-up-sexp)" "(define-key smartparens-mode-map (|kbd  \"C-[\") 'sp-up-sexp)" )
+    ("(define-key smartparens-mode-map (kbd | \"C-{\") 'sp-beginning-of-next-sexp)" "(define-key smartparens-mode-map (|kbd  \"C-{\") 'sp-beginning-of-next-sexp)" ))))
 
 (sp-test-command backward-delete-char
   ((((sp-navigate-consider-stringlike-sexp '(emacs-lisp-mode)))
