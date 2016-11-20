@@ -4008,17 +4008,17 @@ If the point is not inside a quoted string, return nil."
             (looking-at "[[:space:]]+\\s<"))
     (let ((open (save-excursion
                   (while (and (not (bobp))
-                              (or (sp-point-in-comment)
-                                  (save-excursion
+                              (or (when (sp-point-in-comment)
                                     (backward-char 1)
-                                    (looking-at "[[:space:]]+\\s<"))))
-                    (backward-char 1))
-                  (when (not (or (bobp)
-                                 (or (sp-point-in-comment)
-                                     (save-excursion
-                                       (backward-char 1)
-                                       (looking-at "[[:space:]]+\\s<")))))
-                    (forward-char))
+                                    t)
+                                  (when (save-excursion
+                                          (beginning-of-line)
+                                          (looking-at "^[[:space:]]+\\s<"))
+                                    (when (>= (forward-line -1) 0)
+                                      (end-of-line))
+                                    t))))
+                  ;; this means we got here by `sp-point-in-comment' condition
+                  (forward-char)
                   (point)))
           (close (save-excursion
                    (while (and (not (eobp))
@@ -4027,18 +4027,18 @@ If the point is not inside a quoted string, return nil."
                      (forward-char 1))
                    (let ((pp (1- (point))))
                      (when (not (or (eobp)
-                                   (sp-point-in-comment)
-                                   (looking-at "[[:space:]]+\\s<")
-                                   (and (eq (char-syntax
-                                             (char-after pp)) ?>)
-                                        (not (eq (char-after pp) ?\n)))
-                                   (/= (logand
-                                        (lsh 1 18)
-                                        (car (syntax-after pp))) 0)
-                                   (/= (logand
-                                        (lsh 1 19)
-                                        (car (syntax-after pp))) 0)))
-                      (backward-char 1)))
+                                    (sp-point-in-comment)
+                                    (looking-at "[[:space:]]+\\s<")
+                                    (and (eq (char-syntax
+                                              (char-after pp)) ?>)
+                                         (not (eq (char-after pp) ?\n)))
+                                    (/= (logand
+                                         (lsh 1 18)
+                                         (car (syntax-after pp))) 0)
+                                    (/= (logand
+                                         (lsh 1 19)
+                                         (car (syntax-after pp))) 0)))
+                       (backward-char 1)))
                    (point))))
       (cons open close))))
 

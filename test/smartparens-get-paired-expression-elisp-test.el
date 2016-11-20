@@ -139,3 +139,16 @@
   (sp-test--paired-expression-parse-in-elisp "(f ; ()\n  |'x)" '(:beg 1 :end 14 :op "(" :cl ")" :prefix "" :suffix ""))
   (sp-test--paired-expression-parse-in-elisp "(f ; ()\n  '|x)" '(:beg 1 :end 14 :op "(" :cl ")" :prefix "" :suffix ""))
   )
+
+(ert-deftest sp-test-get-paired-expression-653 ()
+  "If the point is in a multi-line comment, we should be able to
+parse a multi-line sexp.
+
+Test https://github.com/Fuco1/smartparens/issues/653"
+  ;; nothing in front
+  (sp-test--paired-expression-parse-in-elisp "  ;; asd |(as d\n  ;; asd\n  ;; asd) as\n" '(:beg 10 :end 34 :op "(" :cl ")" :prefix "" :suffix ""))
+  (sp-test--paired-expression-parse-in-elisp "  ;; asd (as d\n  ;; asd\n  ;; asd)| as\n" '(:beg 10 :end 34 :op "(" :cl ")" :prefix "" :suffix "") t)
+
+  ;; with sexp in front
+  (sp-test--paired-expression-parse-in-elisp "(defun true () t)\n  ;; asd |(as d\n  ;; asd\n  ;; asd) as\n" '(:beg 28 :end 52 :op "(" :cl ")" :prefix "" :suffix ""))
+  (sp-test--paired-expression-parse-in-elisp "(defun true () t)\n  ;; asd (as d\n  ;; asd\n  ;; asd)| as\n" '(:beg 28 :end 52 :op "(" :cl ")" :prefix "" :suffix "") t))
