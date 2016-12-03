@@ -635,3 +635,25 @@ be."
     (should-error
      (call-interactively 'sp-delete-region)
      :type 'user-error)))
+
+;; test for #452
+(ert-deftest sp-test-sp-kill-hybrid-sexp-excessive-whitespace-nil nil
+  (let ((sp-hybrid-kill-excessive-whitespace nil))
+    (sp-test-with-temp-elisp-buffer "|(baz)\n\n\n\n(bar)"
+      (call-interactively 'sp-kill-hybrid-sexp)
+      (insert "|")
+      (should (equal (buffer-string) "|\n\n\n\n(bar)"))
+      (delete-char -1)
+      (insert (current-kill 0) "|")
+      (should (equal (buffer-string) "(baz)|\n\n\n\n(bar)")))))
+
+;; test for #452
+(ert-deftest sp-test-sp-kill-hybrid-sexp-excessive-whitespace-t nil
+  (let ((sp-hybrid-kill-excessive-whitespace t))
+    (sp-test-with-temp-elisp-buffer "|(baz)\n\n\n\n(bar)"
+      (call-interactively 'sp-kill-hybrid-sexp)
+      (insert "|")
+      (should (equal (buffer-string) "|(bar)"))
+      (delete-char -1)
+      (insert (current-kill 0) "|")
+      (should (equal (buffer-string) "(baz)|(bar)")))))
