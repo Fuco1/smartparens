@@ -610,8 +610,7 @@ be."
       (define-key smartparens-mode-map "d" 'sp-kill-word)
       (execute-kbd-macro "ddd")
       (shut-up (call-interactively 'yank))
-      (insert "|")
-      (should (equal (buffer-string) "some-long-symbol|")))))
+      (sp-buffer-equals "some-long-symbol|"))))
 
 (ert-deftest sp-test-yank-after-multiple-backward-word-kill ()
   "When we `sp-backward-kill-word' multiple times in a row, we
@@ -621,8 +620,7 @@ be."
       (define-key smartparens-mode-map "d" 'sp-backward-kill-word)
       (execute-kbd-macro "ddd")
       (shut-up (call-interactively 'yank))
-      (insert "|")
-      (should (equal (buffer-string) "some-long-symbol|")))))
+      (sp-buffer-equals "some-long-symbol|"))))
 
 (ert-deftest sp-test-kill-region ()
   (sp-test-with-temp-elisp-buffer "[fo|o] bar [bMaz]"
@@ -641,30 +639,24 @@ be."
   (let ((sp-hybrid-kill-excessive-whitespace nil))
     (sp-test-with-temp-elisp-buffer "|(baz)\n\n\n\n(bar)"
       (call-interactively 'sp-kill-hybrid-sexp)
-      (insert "|")
-      (should (equal (buffer-string) "|\n\n\n\n(bar)"))
-      (delete-char -1)
-      (insert (current-kill 0) "|")
-      (should (equal (buffer-string) "(baz)|\n\n\n\n(bar)")))))
+      (sp-buffer-equals "|\n\n\n\n(bar)")
+      (insert (current-kill 0))
+      (sp-buffer-equals "(baz)|\n\n\n\n(bar)"))))
 
 ;; test for #452
 (ert-deftest sp-test-sp-kill-hybrid-sexp-excessive-whitespace-t nil
   (let ((sp-hybrid-kill-excessive-whitespace t))
     (sp-test-with-temp-elisp-buffer "|(baz)\n\n\n\n(bar)"
       (call-interactively 'sp-kill-hybrid-sexp)
-      (insert "|")
-      (should (equal (buffer-string) "|(bar)"))
-      (delete-char -1)
-      (insert (current-kill 0) "|")
-      (should (equal (buffer-string) "(baz)|(bar)")))))
+      (sp-buffer-equals "|(bar)")
+      (insert (current-kill 0))
+      (sp-buffer-equals "(baz)|(bar)"))))
 
 ;; test for #452
 (ert-deftest sp-test-sp-kill-hybrid-sexp-excessive-whitespace-kill nil
   (let ((sp-hybrid-kill-excessive-whitespace 'kill))
     (sp-test-with-temp-elisp-buffer "|(baz)\n\n\n\n(bar)"
       (call-interactively 'sp-kill-hybrid-sexp)
-      (insert "|")
-      (should (equal (buffer-string) "|(bar)"))
-      (delete-char -1)
-      (insert (current-kill 0) "|")
-      (should (equal (buffer-string) "(baz)\n\n\n\n|(bar)")))))
+      (sp-buffer-equals "|(bar)")
+      (insert (current-kill 0))
+      (sp-buffer-equals "(baz)\n\n\n\n|(bar)"))))
