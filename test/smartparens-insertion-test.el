@@ -7,7 +7,7 @@
 (defun sp-test-insertion (initial keys result)
   (sp-test-with-temp-elisp-buffer initial
     (execute-kbd-macro keys)
-    (should (equal (buffer-string) result))))
+    (sp-buffer-equals result)))
 
 (ert-deftest sp-test-insertion-basic nil
   (let ((sp-pairs sp--test-basic-pairs))
@@ -103,21 +103,21 @@
   (should (eobp)))
 
 (ert-deftest sp-test-insert-pair-dont-skip-escaped-quotes nil
-  (sp-test-insertion "\"abc|\"" "\\\"|" "\"abc\\\"|\\\"\""))
+  (sp-test-insertion "\"abc|\"" "\\\"" "\"abc\\\"|\\\"\""))
 
 (ert-deftest sp-test-insert-pair-skip-inactive-quotes nil
-  (sp-test-insertion "|" "\"ab\C-b\C-dc\"|" "\"ac\"|"))
+  (sp-test-insertion "|" "\"ab\C-b\C-dc\"" "\"ac\"|"))
 
 (ert-deftest sp-test-insert-sp-autoskip-opening-pair nil
   (let ((sp-autoskip-opening-pair t))
-    (sp-test-insertion "foo |\"bar\" baz" "\"|" "foo \"|bar\" baz")))
+    (sp-test-insertion "foo |\"bar\" baz" "\"" "foo \"|bar\" baz")))
 
 (ert-deftest sp-test-insert-pair-skip-inactive-quotes-with-escape-enabled nil
   (let ((sp-pairs
          '((t (:open "\"" :close "\""
                :actions (insert wrap autoskip navigate escape)
                :unless (sp-in-string-quotes-p))))))
-    (sp-test-insertion "|" "\"ab\C-b\C-dc\"|" "\"ac\"|")))
+    (sp-test-insertion "|" "\"ab\C-b\C-dc\"" "\"ac\"|")))
 
 (ert-deftest sp-test-insert-quote-escape-enabled nil
   (let ((sp-pairs
@@ -133,7 +133,7 @@
              :actions (insert wrap autoskip navigate)
              :post-handlers (sp-escape-quotes-after-insert))
             (:open "[" :close "]" :actions (insert wrap autoskip navigate))))))
-    (sp-test-insertion "\"foo | bar\"" "\"|" "\"foo \\\"|\\\" bar\"")))
+    (sp-test-insertion "\"foo | bar\"" "\"" "\"foo \\\"|\\\" bar\"")))
 
 (ert-deftest sp-test-insert-quote-dont-escape-quote-in-rst-mode nil
   "In text modes where ' and \" are not string syntax, do not
@@ -146,8 +146,8 @@ escape them on the top level."
             (:open "[" :close "]" :actions (insert wrap autoskip navigate))))))
     (sp-test-with-temp-buffer "foo | bar"
         (rst-mode)
-      (execute-kbd-macro "\"|")
-      (should (equal (buffer-string) "foo \"|\" bar")))))
+      (execute-kbd-macro "\"")
+      (sp-buffer-equals "foo \"|\" bar"))))
 
 (ert-deftest sp-test-insert-quote-dont-escape-in-contraction nil
   "Do not escape ' after a word when it is used as a contraction"
@@ -160,8 +160,8 @@ escape them on the top level."
             (:open "[" :close "]" :actions (insert wrap autoskip navigate))))))
     (sp-test-with-temp-buffer "foo| bar"
         (rst-mode)
-      (execute-kbd-macro "'s|")
-      (should (equal (buffer-string) "foo's| bar")))))
+      (execute-kbd-macro "'s")
+      (sp-buffer-equals "foo's| bar"))))
 
 ;; #665
 (ert-deftest sp-test-insert-quote-dont-escape-if-not-in-string-before-insertion nil
