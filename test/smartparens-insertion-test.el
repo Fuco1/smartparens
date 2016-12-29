@@ -186,3 +186,13 @@ and therefore we should not escape the just-inserted quote."
           (smartparens-strict-mode +1))
       (execute-kbd-macro "\"|")
       (should (equal (buffer-string) result)))))
+
+(ert-deftest sp-test-insert-quote-do-not-escape-if-string-unbalanced ()
+  "When we have an unbalanced string we should sometimes just close it.
+
+If the point is in a string, we check the \"parity\" state of the
+buffer and decide if to close or escape: if the parity at the end
+of the buffer is correct, we escape, otherwise we close."
+  (sp-test-insertion "[\"asd|]" "\"" "[\"asd\"|]")
+  (sp-test-insertion "\"foo |] bar\"" "\"" "\"foo \\\"|] bar\"")
+  (sp-test-insertion "\"first| \"second\"" "\"" "\"first\"| \"second\""))

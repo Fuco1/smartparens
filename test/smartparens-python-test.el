@@ -4,6 +4,12 @@
 (defun sp-test--python-mode ()
   (shut-up (python-mode)))
 
+(defun sp-test-insertion-python (initial keys result)
+  (sp-test-with-temp-buffer initial
+      (sp-test--python-mode)
+    (execute-kbd-macro keys)
+    (sp-buffer-equals result)))
+
 (ert-deftest sp-test-dont-reindent-python ()
   (sp-test-with-temp-buffer "if foo:
     bar()
@@ -96,3 +102,9 @@ Make sure to skip even in inactive sexps."
     (execute-kbd-macro (kbd "'"))
     (insert "|")
     (should (equal (buffer-string) "a = \"foo '| bar\""))))
+
+(ert-deftest sp-test-python-quote-do-not-escape-if-string-unbalanced ()
+  "See `sp-test-insert-quote-do-not-escape-if-string-unbalanced'."
+  (sp-test-insertion-python "[\"asd|]" "\"" "[\"asd\"|]")
+  (sp-test-insertion-python "\"foo |] bar\"" "\"" "\"foo \\\"|] bar\"")
+  (sp-test-insertion-python "\"first| \"second\"" "\"" "\"first\"| \"second\""))
