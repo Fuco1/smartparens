@@ -562,6 +562,13 @@ be."
     ("\\{foo\\}|" "\\{foo|\\}")
     ("\"foo\\\\\"|" "\"foo\\\\|\""))))
 
+(sp-test-command sp-kill-whole-line
+  ((nil
+    ("(progn (some |long sexp))" "|")
+    ("(progn\n  (some |long sexp))" "(progn\n  |)")
+    ("(progn\n | (some\nlong\nsexp))" "(progn\n  |)")
+    ("(progn\n  (so|me\nlong\nsexp))" "(progn\n  |)"))))
+
 (defun sp--test-sp-rewrap-sexp (initial pair expected &optional keep)
   (sp-test-with-temp-elisp-buffer initial
     (sp-rewrap-sexp pair keep)

@@ -6221,6 +6221,28 @@ Examples:
             (when (> need-indent 0)
               (insert (make-string need-indent ?\ ))))))))))
 
+(defun sp-kill-whole-line ()
+  "Kill current line in sexp-aware manner.
+
+First, go to the beginning of current line and then try to kill
+as much as possible on the current line but without breaking
+balance.
+
+If there is a hanging sexp at the end of line the it is killed as
+well.
+
+If there is a closing delimiter for a sexp \"up\" current sexp,
+the kill is not extended after it.  For more details see
+`sp-kill-hybrid-sexp'.
+
+Examples:
+
+  (progn                    (progn
+    (some |long sexp))  ->    |)"
+  (interactive)
+  (beginning-of-line)
+  (sp-kill-hybrid-sexp nil))
+
 (defun sp--transpose-objects (first second)
   "Transpose FIRST and SECOND object while preserving the
 whitespace between them."
