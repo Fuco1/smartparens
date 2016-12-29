@@ -7983,21 +7983,24 @@ it marks the next ARG sexps after the ones already marked.
 This command assumes point is not in a string or comment."
   (interactive "P\np")
   (cond ((and allow-extend
-	      (or (and (eq last-command this-command) (mark t))
-		  (and transient-mark-mode mark-active)))
-	 (setq arg (if arg (prefix-numeric-value arg)
-		     (if (< (mark) (point)) -1 1)))
-	 (set-mark
-	  (save-excursion
-	    (goto-char (mark))
-	    (sp-forward-sexp arg)
-	    (point))))
-	(t
-	 (push-mark
-	  (save-excursion
-	    (sp-forward-sexp (prefix-numeric-value arg))
-	    (point))
-	  nil t))))
+              (or (and (eq last-command this-command) (mark t))
+                  (and transient-mark-mode mark-active)))
+         (setq arg (if arg (prefix-numeric-value arg)
+                     (if (< (mark) (point)) -1 1)))
+         (set-mark
+          (save-excursion
+            (let ((p (point)))
+              (goto-char (mark))
+              (sp-forward-sexp arg)
+              (unless (sp-region-ok-p p (point))
+                (user-error "Can not extend selection: region invalid"))
+              (point)))))
+        (t
+         (push-mark
+          (save-excursion
+            (sp-forward-sexp (prefix-numeric-value arg))
+            (point))
+          nil t))))
 
 (defun sp-delete-char (&optional arg)
   "Delete a character forward or move forward over a delimiter.

@@ -602,6 +602,29 @@ be."
      (call-interactively 'sp-select-previous-thing))
    :type 'user-error))
 
+(ert-deftest sp-test-command-sp-mark-sexp ()
+  (sp-test-with-temp-elisp-buffer "|(foo) (bar) (baz)"
+    (call-interactively 'sp-mark-sexp)
+    (sp-buffer-equals "|(foo)M (bar) (baz)")))
+
+(ert-deftest sp-test-command-sp-mark-sexp-extend-existing-region ()
+  (sp-test-with-temp-elisp-buffer "|(foo)M (bar) (baz)"
+    (call-interactively 'sp-mark-sexp)
+    (sp-buffer-equals "|(foo) (bar)M (baz)")))
+
+(ert-deftest sp-test-command-sp-mark-sexp-multiple-invocations ()
+  (sp-test-with-temp-elisp-buffer "|(foo) (bar) (baz)"
+    (call-interactively 'sp-mark-sexp)
+    (call-interactively 'sp-mark-sexp)
+    (sp-buffer-equals "|(foo) (bar)M (baz)")))
+
+(ert-deftest sp-test-command-sp-mark-sexp-invalid ()
+  (should-error
+   (sp-test-with-temp-elisp-buffer "(progn (foo) |(bar)) (baz)"
+     (call-interactively 'sp-mark-sexp)
+     (call-interactively 'sp-mark-sexp))
+   :type 'user-error))
+
 (ert-deftest sp-test-yank-after-multiple-word-kill ()
   "When we `sp-kill-word' multiple times in a row, we should
   `yank' the entire killed sequence."
