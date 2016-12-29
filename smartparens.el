@@ -6181,7 +6181,8 @@ Examples:
          (arg (prefix-numeric-value arg))
          (orig-indent (save-excursion
                         (back-to-indentation)
-                        (current-column))))
+                        (current-column)))
+         (orig-column (current-column)))
     (cond
      ((= arg 0) (kill-line))
      ((and raw (= arg 16))
@@ -6213,9 +6214,12 @@ Examples:
       ;; to just one space
       (when (sp-point-in-blank-line)
         (delete-region (line-beginning-position) (line-end-position))
-        (let ((need-indent (- orig-indent (current-column))))
-          (when (> need-indent 0)
-            (insert (make-string need-indent ?\ )))))))))
+        (if (and (= 0 orig-column)
+                 kill-whole-line)
+            (delete-char 1) ;; delete the newline
+          (let ((need-indent (- orig-indent (current-column))))
+            (when (> need-indent 0)
+              (insert (make-string need-indent ?\ ))))))))))
 
 (defun sp--transpose-objects (first second)
   "Transpose FIRST and SECOND object while preserving the

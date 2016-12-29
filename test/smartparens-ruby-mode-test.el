@@ -891,3 +891,45 @@ foo.send(\"#{object}\").
 ")
 
   )
+
+(ert-deftest sp-test-ruby-kill-whole-line-t ()
+  "If the point it as bol we should kill the resulting empty line as well."
+  (let ((kill-whole-line t))
+    (sp-test-with-temp-buffer "begin
+|  foo
+end"
+        (ruby-mode)
+      (call-interactively 'sp-kill-hybrid-sexp)
+      (sp-buffer-equals "begin
+|end"))
+
+    (sp-test-with-temp-buffer "begin
+|  if test
+    \"hello\"
+  end
+end"
+        (ruby-mode)
+      (call-interactively 'sp-kill-hybrid-sexp)
+      (sp-buffer-equals "begin
+|end"))))
+
+(ert-deftest sp-test-ruby-kill-whole-line-nil ()
+  "Do not kill the resulting empty line and indent accordingly."
+  (sp-test-with-temp-buffer "begin
+|  foo
+end"
+      (ruby-mode)
+    (call-interactively 'sp-kill-hybrid-sexp)
+    (sp-buffer-equals "begin
+  |
+end"))
+  (sp-test-with-temp-buffer "begin
+|  if test
+    \"hello\"
+  end
+end"
+      (ruby-mode)
+    (call-interactively 'sp-kill-hybrid-sexp)
+    (sp-buffer-equals "begin
+  |
+end")))
