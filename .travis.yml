@@ -1,18 +1,22 @@
-language: emacs-lisp
+language: generic
+sudo: false
 env:
-  - EVM_EMACS=emacs-24.4-bin
-  - EVM_EMACS=emacs-24.5-bin
-install:
-  - sudo mkdir /usr/local/evm
-  - sudo chown $(id -u):$(id -g) /usr/local/evm
-  - curl -fsSkL --max-time 10 --retry 10 --retry-delay 10 https://raw.github.com/rejeep/evm/master/go | bash
-  - export PATH="$HOME/.evm/bin:$PATH"
-  - evm install $EVM_EMACS --use
-  - curl -fsSkL --max-time 10 --retry 10 --retry-delay 10 https://raw.github.com/cask/cask/master/go | python
-  - export PATH="$HOME/.cask/bin:$PATH"
+  - EVM_EMACS=emacs-24.4-travis
+  - EVM_EMACS=emacs-24.5-travis
+  - EVM_EMACS=emacs-25.1-travis
+  - EVM_EMACS=emacs-git-snapshot-travis
+before_install:
+  - curl -fsSkL https://gist.github.com/rejeep/ebcd57c3af83b049833b/raw > x.sh && source ./x.sh
+  - evm install $EVM_EMACS --use --skip
   - cask
   # temporary fix for the ert+duration reporter, when compiled gives
   # "Invalid time specification"
   - find . -name 'ert-runner-reporter-ert+duration.elc' -delete
 script:
   - cask exec ert-runner --reporter ert+duration
+
+matrix:
+  fast_finish: true
+  allow_failures:
+    - env: EVM_EMACS=emacs-git-snapshot-travis
+    - env: EVM_EMACS=emacs-25.1-travis
