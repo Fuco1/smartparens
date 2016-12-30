@@ -77,6 +77,30 @@ Regression test."
     (execute-kbd-macro "<")
     (should (equal (buffer-string) "if x <<"))))
 
+(ert-deftest sp-test-rust-left-shift-then-function ()
+  "We should still be able to insert -> after a left shift."
+  (sp-test-with-temp-buffer "const y: u64 = 1 << 2;
+
+fn foo(x: u64) -|
+
+fn bar(x: u64) -> bool {
+    true
+}
+"
+      (rust-mode)
+    (smartparens-strict-mode)
+    (execute-kbd-macro ">")
+    (should (equal (buffer-substring (line-beginning-position) (line-end-position))
+                   "fn foo(x: u64) ->"))))
+
+(ert-deftest sp-test-rust-delete-comparison ()
+  "We should be able to delete comparisons, even in strict mode."
+  (sp-test-with-temp-buffer "a < b; b >|"
+      (rust-mode)
+    (smartparens-strict-mode)
+    (execute-kbd-macro (kbd "<backspace>"))
+    (should (equal (buffer-string) "a < b; b "))))
+
 (ert-deftest sp-test-rust-format-string ()
   "Don't pair < when used in a format string."
   (sp-test-with-temp-buffer "println!(\"{:0|}\", x);"
