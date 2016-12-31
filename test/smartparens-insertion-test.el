@@ -38,6 +38,32 @@
     (sp-test-insertion "{-|-}" "-" "{----}")
     (sp-test-insertion "|" "{--" "{----}")))
 
+(ert-deftest sp-test-insertion-pair-with-spaces ()
+  (let ((sp-pairs '((t . ((:open "[ " :close " ]" :actions (insert wrap autoskip navigate)))))))
+    (sp-test-insertion "|" "[ " "[ | ]")))
+
+(ert-deftest sp-test-insertion-pair-when-in-string ()
+  (let ((sp-pairs '((t . ((:open "[" :close "]"
+                           :actions (insert wrap autoskip navigate)
+                           :when (sp-in-string-p)))))))
+    (sp-test-insertion "\"foo | bar\"" "[" "\"foo [|] bar\"")
+    (sp-test-insertion "foo | bar" "[" "foo [| bar")))
+
+(ert-deftest sp-test-insertion-pair-unless-in-string ()
+  (let ((sp-pairs '((t . ((:open "[" :close "]"
+                           :actions (insert wrap autoskip navigate)
+                           :unless (sp-in-string-p)))))))
+    (sp-test-insertion "\"foo | bar\"" "[" "\"foo [| bar\"")
+    (sp-test-insertion "foo | bar" "[" "foo [|] bar")))
+
+(ert-deftest sp-test-insertion-pair-when-in-string-override-setting ()
+  (let ((sp-pairs sp-pairs))
+    (sp-local-pair '(emacs-lisp-mode lisp-mode) "%" "$")
+    (sp-test-insertion "foo | bar" "%" "foo %|$ bar")
+    (sp-local-pair 'emacs-lisp-mode "%" nil :when '(sp-in-string-p))
+    (sp-test-insertion "\"foo | bar\"" "%" "\"foo %|$ bar\"")
+    (sp-test-insertion "foo | bar" "%" "foo %| bar")))
+
 (defun sp-test-latex-insertion (initial keys result)
   (sp-test-with-temp-buffer initial
       (latex-mode)
