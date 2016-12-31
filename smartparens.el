@@ -591,6 +591,9 @@ Symbol is defined as a chunk of text recognized by
     (:cant-slurp-context
      "We can't slurp into different context (comment -> code). Ignored."
      "Can't slurp into different context.")
+    (:cant-insert-closing-delimiter
+     "We can not insert unbalanced closing delimiter in strict mode."
+     "Can't insert unbalanced delimiter.")
     (:blank-sexp
      "Point is in blank sexp, nothing to barf."
      "Point is in blank sexp.")
@@ -3690,9 +3693,9 @@ active region."
     (-map 'car)
     (--any? (string-match-p (regexp-quote char) it))))
 
-(defun sp--char-is-part-of-closing (char)
+(defun sp--char-is-part-of-closing (char &optional pair-list)
   "Return non-nil if CHAR is part of a pair delimiter of length 1."
-  (->> (sp--get-pair-list)
+  (->> (or pair-list (sp--get-pair-list))
     (--filter (= 1 (length (cdr it))))
     (-map 'cdr)
     (--any? (string-match-p (regexp-quote char) it))))
@@ -3748,48 +3751,48 @@ achieve this by using `sp-pair' or `sp-local-pair' with
                        (delete-char -1)
                        (insert last))))
           (let ((last (or last (sp--single-key-description last-command-event))))
-            (-when-let (active-sexp
+            (-if-let (active-sexp
+                      (cond
+                       ((-when-let* ((ov (sp--get-active-overlay 'pair))
+                                     (op (overlay-get ov 'pair-id))
+                                     (cl (cdr (assoc op sp-pair-list))))
+                          ;; if the sexp is active, we are inside it.
+                          (when (and (= 1 (length op))
+                                     (equal last cl))
+                            (list :beg (overlay-start ov)
+                                  :end (overlay-end ov)
+                                  :op op
+                                  :cl cl
+                                  :prefix ""
+                                  :suffix ""))))
+                       ((sp--char-is-part-of-stringlike last)
+                        ;; a part of closing delimiter is typed. There are four
+                        ;; options now:
+                        ;; - we are inside the sexp, at its end
+                        ;; - we are inside the sexp, somewhere in the middle
+                        ;; - we are outside, in front of a sexp
+                        ;; - we are outside, somewhere between sexps
                         (cond
-                         ((-when-let* ((ov (sp--get-active-overlay 'pair))
-                                       (op (overlay-get ov 'pair-id))
-                                       (cl (cdr (assoc op sp-pair-list))))
-                            ;; if the sexp is active, we are inside it.
-                            (when (and (= 1 (length op))
-                                       (equal last cl))
-                              (list :beg (overlay-start ov)
-                                    :end (overlay-end ov)
-                                    :op op
-                                    :cl cl
-                                    :prefix ""
-                                    :suffix ""))))
-                         ((sp--char-is-part-of-stringlike last)
-                          ;; a part of closing delimiter is typed. There are four
-                          ;; options now:
-                          ;; - we are inside the sexp, at its end
-                          ;; - we are inside the sexp, somewhere in the middle
-                          ;; - we are outside, in front of a sexp
-                          ;; - we are outside, somewhere between sexps
-                          (cond
-                           ((and (sp--looking-at (sp--get-stringlike-regexp))
-                                 (not (sp--skip-match-p (match-string-no-properties 0)
-                                                        (match-beginning 0)
-                                                        (match-end 0))))
-                            ;; if we're looking at the delimiter, and it is valid in
-                            ;; current context, get the sexp.
-                            (get-sexp))
-                           ;; here comes the feature when we're somewhere in the
-                           ;; middle of the sexp (or outside), if ever supported.
-                           ))
-                         ((sp--char-is-part-of-closing last)
-                          (cond
-                           ((and (sp--looking-at (sp--get-closing-regexp))
-                                 (not (sp--skip-match-p (match-string-no-properties 0)
-                                                        (match-beginning 0)
-                                                        (match-end 0))))
-                            (get-sexp))
-                           ((eq sp-autoskip-closing-pair 'always)
-                            (get-enclosing-sexp))))))
-              (when (and active-sexp
+                         ((and (sp--looking-at (sp--get-stringlike-regexp))
+                               (not (sp--skip-match-p (match-string-no-properties 0)
+                                                      (match-beginning 0)
+                                                      (match-end 0))))
+                          ;; if we're looking at the delimiter, and it is valid in
+                          ;; current context, get the sexp.
+                          (get-sexp))
+                         ;; here comes the feature when we're somewhere in the
+                         ;; middle of the sexp (or outside), if ever supported.
+                         ))
+                       ((sp--char-is-part-of-closing last)
+                        (cond
+                         ((and (sp--looking-at (sp--get-closing-regexp))
+                               (not (sp--skip-match-p (match-string-no-properties 0)
+                                                      (match-beginning 0)
+                                                      (match-end 0))))
+                          (get-sexp))
+                         ((eq sp-autoskip-closing-pair 'always)
+                          (get-enclosing-sexp))))))
+                (if (and active-sexp
                          (equal (sp-get active-sexp :cl) last)
                          (sp--do-action-p (sp-get active-sexp :op) 'autoskip)
                          ;; if the point is inside string and preceded
@@ -3798,30 +3801,51 @@ achieve this by using `sp-pair' or `sp-local-pair' with
                          ;; string broken.
                          (or (not (sp-point-in-string))
                              (not (sp-char-is-escaped-p (1- (point))))))
-                (-when-let (re (cond
-                                ((= (point) (sp-get active-sexp :beg))
-                                 ;; we are in front of a string-like sexp
-                                 (when sp-autoskip-opening-pair
-                                   (if test-only t
-                                     (delete-char -1)
-                                     (forward-char)
-                                     (setq sp-last-operation 'sp-skip-closing-pair))))
-                                ((= (point) (sp-get active-sexp :end-in))
-                                 (if test-only t
-                                   (delete-char 1)
-                                   (setq sp-last-operation 'sp-skip-closing-pair)))
-                                ((sp-get active-sexp
-                                   (and (> (point) :beg-in)
-                                        (< (point) :end-in)))
-                                 (if test-only t
-                                   (delete-char -1)
-                                   (sp-up-sexp)))))
-                  (unless (or test-only
-                              sp-buffer-modified-p)
-                    (set-buffer-modified-p nil))
-                  (unless test-only
-                    (sp--run-hook-with-args (sp-get active-sexp :op) :post-handlers 'skip-closing-pair))
-                  re)))))))))
+                    (-when-let (re (cond
+                                    ((= (point) (sp-get active-sexp :beg))
+                                     ;; we are in front of a string-like sexp
+                                     (when sp-autoskip-opening-pair
+                                       (if test-only t
+                                         (delete-char -1)
+                                         (forward-char)
+                                         (setq sp-last-operation 'sp-skip-closing-pair))))
+                                    ((= (point) (sp-get active-sexp :end-in))
+                                     (if test-only t
+                                       (delete-char 1)
+                                       (setq sp-last-operation 'sp-skip-closing-pair)))
+                                    ((sp-get active-sexp
+                                       (and (> (point) :beg-in)
+                                            (< (point) :end-in)))
+                                     (if test-only t
+                                       (delete-char -1)
+                                       (sp-up-sexp)))))
+                      (unless (or test-only
+                                  sp-buffer-modified-p)
+                        (set-buffer-modified-p nil))
+                      (unless test-only
+                        (sp--run-hook-with-args (sp-get active-sexp :op) :post-handlers 'skip-closing-pair))
+                      re)
+                  ;; if we can't skip and are in strict mode we must not
+                  ;; insert anything if it is a closing character
+                  (sp--inhibit-insertion-of-closing-delim last))
+              (sp--inhibit-insertion-of-closing-delim last))))))))
+
+(defun sp--inhibit-insertion-of-closing-delim (last)
+  "Inhibit insertion of closing delimiter in `smartparens-strict-mode'.
+
+If we are not inserting inside string or a comment and the LAST
+inserted character is closing delimiter, and we can not jump out
+of its enclosing sexp (i.e. it does not match), we are not
+allowed to insert it literally because it would break the
+balance; so we delete the just-inserted character."
+  (when (and smartparens-strict-mode
+             (sp--char-is-part-of-closing
+              last (sp--get-allowed-pair-list))
+             (not (sp-point-in-string-or-comment)))
+    (delete-char -1)
+    (set-buffer-modified-p sp-buffer-modified-p)
+    (sp-message :cant-insert-closing-delimiter)
+    nil))
 
 (defun sp-delete-pair (&optional arg)
   "Automatically delete opening or closing pair, or both, depending on

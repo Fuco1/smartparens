@@ -49,3 +49,37 @@ executing `sp-skip-closing-pair'."
       (c++-mode)
     (execute-kbd-macro "[]|")
     (should (equal (buffer-string) "from sys import stdin, \\\n    stdout\n\na = \"[]|\""))))
+
+;; #421
+;; If we are in a balanced context and hit a closing delimiters which
+;; is not enclosing (so we would jump out of the sexp) we should not
+;; insert it as it would just create an imbalance.
+(ert-deftest sp-test-strict-mode-inhibit-closing-delim-inside-sexp ()
+  (sp-test-with-temp-elisp-buffer "(foo | bar)"
+    (smartparens-strict-mode 1)
+    (execute-kbd-macro "]")
+    (sp-buffer-equals "(foo | bar)")))
+
+(ert-deftest sp-test-strict-mode-inhibit-closing-delim-outside-sexp ()
+  (sp-test-with-temp-elisp-buffer "(foo bar) | (bar baz)"
+    (smartparens-strict-mode 1)
+    (execute-kbd-macro "]")
+    (sp-buffer-equals "(foo bar) | (bar baz)")))
+
+(ert-deftest sp-test-strict-mode-insert-closing-delim-in-comment ()
+  (sp-test-with-temp-elisp-buffer ";; (foo bar) | (bar baz)"
+    (smartparens-strict-mode 1)
+    (execute-kbd-macro "]")
+    (sp-buffer-equals ";; (foo bar) ]| (bar baz)")))
+
+(ert-deftest sp-test-strict-mode-insert-disallowed-pairs-normally ()
+  (sp-test-with-temp-elisp-buffer ";; (foo bar) |foo (bar baz)"
+    (smartparens-strict-mode 1)
+    (execute-kbd-macro "'")
+    (sp-buffer-equals ";; (foo bar) '|foo (bar baz)")))
+
+(ert-deftest sp-test-non-strict-mode-insert-closing-delim ()
+  "In non-strict mode, just insert whatever"
+  (sp-test-with-temp-elisp-buffer "(foo | bar)"
+    (execute-kbd-macro "]")
+    (sp-buffer-equals "(foo ]| bar)")))
