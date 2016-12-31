@@ -8389,6 +8389,14 @@ of the point."
      (t (= string-or-comment-count normal-count 0)))))
 
 (cl-defun sp-region-ok-p (start end)
+  "Test if region between START and END is balanced.
+
+A balanced region is one where all opening delimiters are matched
+by closing delimiters.
+
+This function does *not* check that the delimiters are correctly
+ordered, that is [(]) is correct even though it is not logically
+properly balanced."
   (save-excursion
     (save-restriction
       (narrow-to-region start end)
