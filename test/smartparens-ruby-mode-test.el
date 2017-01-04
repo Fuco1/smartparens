@@ -649,7 +649,7 @@ end
 ")
   )
 
-(ert-deftest sp-test-ruby-slurp-on-single-line ()
+(ert-deftest sp-test-ruby-barf-on-single-line ()
   (sp-ruby-test-barf-assert 1 "
 test { Xtest }
 " :=> "
