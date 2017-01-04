@@ -933,3 +933,12 @@ end"
     (sp-buffer-equals "begin
   |
 end")))
+
+;; #638
+(ert-deftest sp-test-ruby-parse-code-with-tabs ()
+  (sp-test-with-temp-buffer "module Rfmt\n\tmodule Rewriters\n\t\tclass AlignEq < Parser::Rewriter\n\t\t\tdef on_begin(node)\n\t\t\t\teq_nodes = []\n\n\t\t\t\tnode.children.each do |child_node|\n\t\t\t\t\tif assignment?(child_node)\n\t\t\t\t\t\teq_nodes << child_node\n\t\t\t\t\telsif eq_nodes.any?\n\t\t\t\t\t\talign(eq_nodes)\n\t\t\t\t\t\teq_nodes = []\n\t\t\t\t\tend\n\t\t\t\tend\n\n\t\t\t\talign(eq_nodes)\n\n\t\t\t\tsuper\n\t\t\tend\n\n\t\t\tdef align(eq_nodes)\n\t\t\t\taligned_column = eq_nodes.\n\t\t\t\t\t  map { |node| node.loc.operator.column }.\n\t\t\t\t\t  max\n\n\t\t\t\teq_nodes.each do |node|\n\t\t\t\t\tif(column = node.loc.operator.column) < aligned_column\n\t\t\t\t\t\tinsert_before node.loc.operator, ' ' * (aligned_column - column)\n\t\t\t\t\tend\n\t\t\t\tend\n\t\t\tend\n\t\tend\n\tend\nend"
+      (ruby-mode)
+    (goto-char (point-max))
+    (equal (sp-get-thing t) '(:beg 1 :end 642 :op "module" :cl "end" :prefix "" :suffix ""))
+    (goto-char (point-min))
+    (equal (sp-get-thing) '(:beg 1 :end 642 :op "module" :cl "end" :prefix "" :suffix ""))))

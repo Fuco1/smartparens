@@ -131,7 +131,7 @@
           (sp-ruby-maybe-one-space)
           (when (not (= (line-number-at-pos) end-line))
             (sp-ruby-delete-indentation -1)))
-        (while (thing-at-point-looking-at "\\.[ \n]*")
+        (while (thing-at-point-looking-at "\\.[[:blank:]\n]*")
           (sp-backward-sexp))
         (when (looking-back "[@$:&?!]")
           (backward-char)
@@ -145,7 +145,7 @@
 
       (when (equal action 'barf-backward)
         ;; Barf whole method chains
-        (while (thing-at-point-looking-at "[.([:][ \n]*")
+        (while (thing-at-point-looking-at "[(.:[][\n[:blank:]]*")
           (sp-forward-sexp))
         (if (looking-at-p " *$")
             (newline)
@@ -157,7 +157,7 @@
           (when (looking-back "\.") (backward-char))
           (sp-ruby-maybe-one-space)
           (when (not (= (line-number-at-pos) beg-line))
-            (if (thing-at-point-looking-at "\\.[ \n]*")
+            (if (thing-at-point-looking-at "\\.[[:blank:]\n]*")
                 (progn
                   (forward-symbol -1)
                   (sp-ruby-delete-indentation -1))
@@ -173,7 +173,7 @@
         (while (looking-back "::") (sp-backward-symbol))
         (if (= (line-number-at-pos) end-line)
             (insert " ")
-          (if (looking-back "^ *")
+          (if (looking-back "^[[:blank:]]*")
               (save-excursion (newline))
             (newline)))))))
 
@@ -181,7 +181,7 @@
   (save-excursion
     (when (looking-back id)
       (backward-word))
-    (when (not (or (looking-back "^ *")
+    (when (not (or (looking-back "^[[:blank:]]*")
                    (looking-back "= *")))
       (or (save-excursion
                (forward-symbol -1)
@@ -192,7 +192,7 @@
             (ignore-errors
               (sp-ruby-backward-sexp)
               (sp-ruby-forward-sexp)
-              (looking-at-p (concat "[^ ]* *" id))))))))
+              (looking-at-p (concat "[^[:blank:]]* *" id))))))))
 
 (defun sp-ruby-method-p (id)
   (save-excursion
@@ -208,7 +208,7 @@
           (looking-back "def \\|class \\|module ")
           ;; Check if multiline method call
           ;; But beware of comments!
-          (and (looking-back "\\.[ \n]*")
+          (and (looking-back "\\.[[:blank:]\n]*")
                (not (save-excursion
                       (search-backward ".")
                       (sp-point-in-comment))))))))
