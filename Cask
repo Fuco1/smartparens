@@ -20,4 +20,5 @@
   (depends-on "lua-mode")
   (depends-on "ess")
   (depends-on "tuareg")
-  (depends-on "scala-mode"))
+  (depends-on "scala-mode")
+  (depends-on "elixir-mode"))
