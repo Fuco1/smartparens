@@ -98,22 +98,24 @@
 ;; automatically.  If you want to call sp-local-pair outside this
 ;; macro, you MUST supply the major mode argument.
 
-(--each sp--html-modes
-  (eval-after-load it '(require 'smartparens-html)))
-(eval-after-load 'latex         '(require 'smartparens-latex))
-(eval-after-load 'tex-mode      '(require 'smartparens-latex))
-(eval-after-load 'lua-mode      '(require 'smartparens-lua))
-(eval-after-load 'ruby-mode     '(require 'smartparens-ruby))
-(eval-after-load 'enh-ruby-mode '(require 'smartparens-ruby))
-(eval-after-load 'rust-mode     '(require 'smartparens-rust))
-(eval-after-load 'haskell-mode  '(require 'smartparens-haskell))
+(eval-after-load 'clojure-mode             '(require 'smartparens-clojure))
+(eval-after-load 'elixir-mode              '(require 'smartparens-elixir))
+(eval-after-load 'enh-ruby-mode            '(require 'smartparens-ruby))
+(eval-after-load 'ess                      '(require 'smartparens-ess))
 (eval-after-load 'haskell-interactive-mode '(require 'smartparens-haskell))
+(eval-after-load 'haskell-mode             '(require 'smartparens-haskell))
+(--each sp--html-modes
+  (eval-after-load it                      '(require 'smartparens-html)))
+(eval-after-load 'latex                    '(require 'smartparens-latex))
+(eval-after-load 'lua-mode                 '(require 'smartparens-lua))
 (--each '(python-mode python)
-  (eval-after-load it '(require 'smartparens-python)))
-(eval-after-load 'scala-mode '(require 'smartparens-scala))
-(eval-after-load 'racket-mode '(require 'smartparens-racket))
-(eval-after-load 'ess '(require 'smartparens-ess))
-(eval-after-load 'tuareg '(require 'smartparens-ocaml))
+  (eval-after-load it                      '(require 'smartparens-python)))
+(eval-after-load 'racket-mode              '(require 'smartparens-racket))
+(eval-after-load 'ruby-mode                '(require 'smartparens-ruby))
+(eval-after-load 'rust-mode                '(require 'smartparens-rust))
+(eval-after-load 'scala-mode               '(require 'smartparens-scala))
+(eval-after-load 'tex-mode                 '(require 'smartparens-latex))
+(eval-after-load 'tuareg                   '(require 'smartparens-ocaml))
 
 (provide 'smartparens-config)
 
