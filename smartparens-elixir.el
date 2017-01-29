@@ -37,11 +37,19 @@ def-do-end and similar pairs."
       (back-to-indentation)
       (looking-at (regexp-opt '(
                                 "defmodule"
+                                "defmacro"
+                                "defmacrop"
+                                "quote"
                                 "def"
+                                "defp"
                                 "if"
                                 "unless"
                                 "case"
+                                "cond"
+                                "with"
+                                "for"
                                 "receive"
+                                "try"
                                 ))))))
 
 (defun sp-elixir-skip-def-p (ms mb me)
