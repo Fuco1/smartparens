@@ -8228,7 +8228,9 @@ The return value is actually cons pair of opening and closing
 string delimiter enclosing this string."
   (setq pos (or pos (point)))
   (when (and (sp-point-in-string)
-             (save-excursion (forward-char) (not (sp-point-in-string)))
+             (save-excursion (if (= (point-max) (point))
+                                 t
+                               (forward-char) (not (sp-point-in-string))))
              (save-excursion (backward-char) (not (sp-point-in-string))))
     (save-excursion
       (let* ((syntax (nth 3 (syntax-ppss pos)))
