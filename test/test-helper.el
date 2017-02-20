@@ -146,5 +146,4 @@ should match."
 (defadvice TeX-update-style (around fix-output-spam activate)
   (shut-up ad-do-it))
 
-(provide 'test-helper)
 ;;; test-helper.el ends here
