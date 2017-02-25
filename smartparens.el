@@ -3694,11 +3694,13 @@ active region."
     (--any? (string-match-p (regexp-quote char) it))))
 
 (defun sp--char-is-part-of-closing (char &optional pair-list)
-  "Return non-nil if CHAR is part of a pair delimiter of length 1."
-  (->> (or pair-list (sp--get-pair-list))
-    (--filter (= 1 (length (cdr it))))
-    (-map 'cdr)
-    (--any? (string-match-p (regexp-quote char) it))))
+  "Return non-nil if CHAR is part of a pair delimiter of length 1.
+Specifically, return the pair for which CHAR is the closing
+delimiter."
+  (let ((regexp (regexp-quote char)))
+    (->> (or pair-list (sp--get-pair-list))
+         (--filter (= 1 (length (cdr it))))
+         (--find (string-match-p regexp (cdr it))))))
 
 ;; TODO: this only supports single-char delimiters.  Maybe it should
 ;; that that way.
@@ -3833,14 +3835,16 @@ achieve this by using `sp-pair' or `sp-local-pair' with
 (defun sp--inhibit-insertion-of-closing-delim (last)
   "Inhibit insertion of closing delimiter in `smartparens-strict-mode'.
 
-If we are not inserting inside string or a comment and the LAST
-inserted character is closing delimiter, and we can not jump out
-of its enclosing sexp (i.e. it does not match), we are not
-allowed to insert it literally because it would break the
-balance; so we delete the just-inserted character."
+If we are not inserting inside string or a comment, and the LAST
+inserted character is closing delimiter for a pair that performs
+autoskip, and we can not jump out of its enclosing sexp (i.e. it
+does not match), we are not allowed to insert it literally
+because it would break the balance; so we delete the
+just-inserted character."
   (when (and smartparens-strict-mode
-             (sp--char-is-part-of-closing
-              last (sp--get-allowed-pair-list))
+             (-when-let (pair (sp--char-is-part-of-closing
+                               last (sp--get-allowed-pair-list)))
+               (memq 'autoskip (sp-get-pair (car pair) :actions)))
              (not (sp-point-in-string-or-comment)))
     (delete-char -1)
     (set-buffer-modified-p sp-buffer-modified-p)
