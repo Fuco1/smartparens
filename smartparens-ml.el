@@ -1,4 +1,4 @@
-;;; smartparens-ocaml.el --- Additional configuration for Ocaml language
+;;; smartparens-ml.el --- Additional configuration for ML languages
 
 ;; Copyright (C) 2016 Ta Quang Trung
 
@@ -29,10 +29,10 @@
 
 ;;; Commentary:
 
-;; This file provides some additional configuration for OCaml language.
+;; This file provides some additional configuration for ML languages.
 ;; To use it, simply add:
 ;;
-;; (require 'smartparens-ocaml)
+;; (require 'smartparens-ml)
 ;;
 ;; into your configuration.  You can use this in conjunction with the
 ;; default config or your own configuration.
@@ -61,12 +61,12 @@
 ;;     EXPECTED:
 ;;       List.map (foo) ~~> List(.map foo) ~~> (List.map foo)
 
-(sp-with-modes 'tuareg-mode
-  (sp-local-pair "{" nil :pre-handlers '(sp-ocaml-pre-slurp-handler))
-  (sp-local-pair "(" nil :pre-handlers '(sp-ocaml-pre-slurp-handler))
-  (sp-local-pair "[" nil :pre-handlers '(sp-ocaml-pre-slurp-handler)))
+(sp-with-modes '(tuareg-mode fsharp-mode)
+  (sp-local-pair "{" nil :pre-handlers '(sp-ml-pre-slurp-handler))
+  (sp-local-pair "(" nil :pre-handlers '(sp-ml-pre-slurp-handler))
+  (sp-local-pair "[" nil :pre-handlers '(sp-ml-pre-slurp-handler)))
 
-(defun sp-ocaml-pre-slurp-handler (id action context)
+(defun sp-ml-pre-slurp-handler (id action context)
   ;; If there was no space before or after, we shouldn't add on.
   ;; Variable ok, next-thing are defined in `sp-forward-slurp-sexp'
   (when (eq action 'slurp-forward)
@@ -85,5 +85,5 @@
         (when (looking-at " ")
           (delete-char 1))))))
 
-(provide 'smartparens-ocaml)
-;;; smartparens-ocaml.el ends here
+(provide 'smartparens-ml)
+;;; smartparens-ml.el ends here
