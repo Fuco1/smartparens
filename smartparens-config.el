@@ -115,8 +115,8 @@
 (eval-after-load 'rust-mode                '(require 'smartparens-rust))
 (eval-after-load 'scala-mode               '(require 'smartparens-scala))
 (eval-after-load 'tex-mode                 '(require 'smartparens-latex))
-(eval-after-load 'tuareg                   '(require 'smartparens-ocaml))
-
+(eval-after-load 'tuareg                   '(require 'smartparens-ml))
+(eval-after-load 'fsharp-mode              '(require 'smartparens-ml))
 (provide 'smartparens-config)
 
 ;;; smartparens-config.el ends here
