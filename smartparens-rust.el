@@ -1,4 +1,4 @@
-;;; smartparens-rust.el --- Additional configuration for Haskell based modes.
+;;; smartparens-rust.el --- Additional configuration for Rust based modes.
 
 ;; Copyright (C) 2015 Wilfred Hughes
 
