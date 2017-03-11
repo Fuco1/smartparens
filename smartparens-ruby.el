@@ -107,82 +107,87 @@ ID, ACTION, CONTEXT."
   (sp-ruby-post-handler id action context))
 
 (defun sp-ruby-post-handler (id action context)
-  (when (equal action 'barf-backward)
-    (sp-ruby-delete-indentation 1)
-    (indent-according-to-mode)
-    (save-excursion
-      (sp-backward-sexp) ; move to begining of current sexp
-      (sp-backward-sexp arg)
-      (sp-ruby-maybe-one-space)))
+  "Ruby post handler.
+ID, ACTION, CONTEXT."
+  (-let (((&plist :arg arg :enc enc) sp-handler-context))
+    (when (equal action 'barf-backward)
+      (sp-ruby-delete-indentation 1)
+      (indent-according-to-mode)
+      (save-excursion
+        (sp-backward-sexp) ; move to begining of current sexp
+        (sp-backward-sexp arg)
+        (sp-ruby-maybe-one-space)))
 
-  (when (equal action 'barf-forward)
+    (when (equal action 'barf-forward)
+      (sp-get enc
+        (let ((beg-line (line-number-at-pos :beg-in))
+              (end-line (line-number-at-pos :end-in)))
+          (sp-forward-sexp arg)
+          (sp-ruby-maybe-one-space)
+          (when (not (= (line-number-at-pos) beg-line))
+            (sp-ruby-delete-indentation -1))
+          (indent-according-to-mode))))))
+
+(defun sp-ruby-pre-handler (id action context)
+  "Handler for ruby slurp and barf.
+ID, ACTION, CONTEXT."
+  (let ((enc (plist-get sp-handler-context :enc)))
     (sp-get enc
       (let ((beg-line (line-number-at-pos :beg-in))
             (end-line (line-number-at-pos :end-in)))
-        (sp-forward-sexp arg)
-        (sp-ruby-maybe-one-space)
-        (when (not (= (line-number-at-pos) beg-line))
-          (sp-ruby-delete-indentation -1))
-        (indent-according-to-mode)))))
 
-(defun sp-ruby-pre-handler (id action context)
-  "Handler for ruby slurp and barf"
-  (sp-get enc
-    (let ((beg-line (line-number-at-pos :beg-in))
-          (end-line (line-number-at-pos :end-in)))
+        (when (equal action 'slurp-backward)
+          (save-excursion
+            (sp-forward-sexp)
+            (when (looking-at-p ";") (forward-char))
+            (sp-ruby-maybe-one-space)
+            (when (not (= (line-number-at-pos) end-line))
+              (sp-ruby-delete-indentation -1)))
+          (while (thing-at-point-looking-at "\\.[[:blank:]\n]*")
+            (sp-backward-sexp))
+          (when (looking-back "[@$:&?!]")
+            (backward-char)
+            (when (looking-back "[@&:]")
+              (backward-char)))
+          (just-one-space)
+          (save-excursion
+            (if (= (line-number-at-pos) end-line)
+                (insert " ")
+              (newline))))
 
-      (when (equal action 'slurp-backward)
-        (save-excursion
-          (sp-forward-sexp)
-          (when (looking-at-p ";") (forward-char))
-          (sp-ruby-maybe-one-space)
-          (when (not (= (line-number-at-pos) end-line))
-            (sp-ruby-delete-indentation -1)))
-        (while (thing-at-point-looking-at "\\.[[:blank:]\n]*")
-          (sp-backward-sexp))
-        (when (looking-back "[@$:&?!]")
-          (backward-char)
-          (when (looking-back "[@&:]")
-            (backward-char)))
-        (just-one-space)
-        (save-excursion
+        (when (equal action 'barf-backward)
+          ;; Barf whole method chains
+          (while (thing-at-point-looking-at "[(.:[][\n[:blank:]]*")
+            (sp-forward-sexp))
+          (if (looking-at-p " *$")
+              (newline)
+            (save-excursion (newline))))
+
+        (when (equal action 'slurp-forward)
+          (save-excursion
+            (sp-backward-sexp)
+            (when (looking-back "\.") (backward-char))
+            (sp-ruby-maybe-one-space)
+            (when (not (= (line-number-at-pos) beg-line))
+              (if (thing-at-point-looking-at "\\.[[:blank:]\n]*")
+                  (progn
+                    (forward-symbol -1)
+                    (sp-ruby-delete-indentation -1))
+                (sp-ruby-delete-indentation))))
+          (while (looking-at-p "::") (sp-forward-symbol))
+          (when (looking-at-p "[?!;]") (forward-char))
+          (if (= (line-number-at-pos) beg-line)
+              (insert " ")
+            (newline)))
+
+        (when (equal action 'barf-forward)
+          (when (looking-back "\\.") (backward-char))
+          (while (looking-back "::") (sp-backward-symbol))
           (if (= (line-number-at-pos) end-line)
               (insert " ")
-            (newline))))
-
-      (when (equal action 'barf-backward)
-        ;; Barf whole method chains
-        (while (thing-at-point-looking-at "[(.:[][\n[:blank:]]*")
-          (sp-forward-sexp))
-        (if (looking-at-p " *$")
-            (newline)
-          (save-excursion (newline))))
-
-      (when (equal action 'slurp-forward)
-        (save-excursion
-          (sp-backward-sexp)
-          (when (looking-back "\.") (backward-char))
-          (sp-ruby-maybe-one-space)
-          (when (not (= (line-number-at-pos) beg-line))
-            (if (thing-at-point-looking-at "\\.[[:blank:]\n]*")
-                (progn
-                  (forward-symbol -1)
-                  (sp-ruby-delete-indentation -1))
-              (sp-ruby-delete-indentation))))
-        (while (looking-at-p "::") (sp-forward-symbol))
-        (when (looking-at-p "[?!;]") (forward-char))
-        (if (= (line-number-at-pos) beg-line)
-            (insert " ")
-          (newline)))
-
-      (when (equal action 'barf-forward)
-        (when (looking-back "\\.") (backward-char))
-        (while (looking-back "::") (sp-backward-symbol))
-        (if (= (line-number-at-pos) end-line)
-            (insert " ")
-          (if (looking-back "^[[:blank:]]*")
-              (save-excursion (newline))
-            (newline)))))))
+            (if (looking-back "^[[:blank:]]*")
+                (save-excursion (newline))
+              (newline))))))))
 
 (defun sp-ruby-inline-p (id)
   "Test if ID is inline."

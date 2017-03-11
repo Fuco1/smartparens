@@ -71,21 +71,22 @@
 ID, ACTION, CONTEXT."
   ;; If there was no space before or after, we shouldn't add on.
   ;; Variable ok, next-thing are defined in `sp-forward-slurp-sexp'
-  (when (eq action 'slurp-forward)
-    (save-excursion
-      (when (and (sp-get ok (/= :len-in 0))
-                 (= (sp-get ok :end-suf) (sp-get next-thing :beg-prf)))
-        (goto-char (sp-get ok :end))
-        (when (looking-back " ")
-          (delete-char -1)))))
-  
-  (when (eq action 'slurp-backward)
-    (save-excursion
-      (when (and (sp-get ok (/= :len-in 0))
-                 (= (sp-get ok :beg-prf) (sp-get next-thing :end-suf)))
-        (goto-char (sp-get ok :beg))
-        (when (looking-at " ")
-          (delete-char 1))))))
+  (-let (((&plist :ok ok :next-thing next-thing) sp-handler-context))
+    (when (eq action 'slurp-forward)
+      (save-excursion
+        (when (and (sp-get ok (/= :len-in 0))
+                   (= (sp-get ok :end-suf) (sp-get next-thing :beg-prf)))
+          (goto-char (sp-get ok :end))
+          (when (looking-back " ")
+            (delete-char -1)))))
+
+    (when (eq action 'slurp-backward)
+      (save-excursion
+        (when (and (sp-get ok (/= :len-in 0))
+                   (= (sp-get ok :beg-prf) (sp-get next-thing :end-suf)))
+          (goto-char (sp-get ok :beg))
+          (when (looking-at " ")
+            (delete-char 1)))))))
 
 (provide 'smartparens-ml)
 ;;; smartparens-ml.el ends here
