@@ -147,16 +147,16 @@ ID, ACTION, CONTEXT."
 
 (sp-with-modes 'ess-mode
   (sp-local-pair "{" nil
-		 :pre-handlers '(sp-ess-pre-handler)
-                 ;; the more reasonable C-j interferes with default binding for
-                 ;; `ess-eval-line'
-		 :post-handlers '((sp-ess-open-sexp-indent "M-j")))
+                 :pre-handlers '(sp-ess-pre-handler)
+    ;; the more reasonable C-j interferes with default binding for
+    ;; `ess-eval-line'
+                 :post-handlers '((sp-ess-open-sexp-indent "M-j")))
   (sp-local-pair "(" nil
-		 :pre-handlers '(sp-ess-pre-handler)
-		 :post-handlers '((sp-ess-open-sexp-indent "M-j")))
+                 :pre-handlers '(sp-ess-pre-handler)
+                 :post-handlers '((sp-ess-open-sexp-indent "M-j")))
   (sp-local-pair "[" nil
-		 :pre-handlers '(sp-ess-pre-handler)
-		 :post-handlers '((sp-ess-open-sexp-indent "M-j")))
+                 :pre-handlers '(sp-ess-pre-handler)
+                 :post-handlers '((sp-ess-open-sexp-indent "M-j")))
   (sp-local-pair "'" nil
                  :unless '(sp-ess-roxy-str-p)))
 
@@ -190,19 +190,19 @@ ID, ACTION, CONTEXT."
                  :trigger "\\pkg")
   (sp-local-pair "\\item{" "}"
                  :when '(sp-in-comment-p)
-		 :post-handlers '((sp-ess-open-sexp-indent "M-j"))
+                 :post-handlers '((sp-ess-open-sexp-indent "M-j"))
                  :trigger "\\item{")
   (sp-local-pair "\\enumerate{" "}"
                  :when '(sp-in-comment-p)
-		 :post-handlers '((sp-ess-open-sexp-indent "M-j"))
+                 :post-handlers '((sp-ess-open-sexp-indent "M-j"))
                  :trigger "\\enumerate")
   (sp-local-pair "\\itemize{" "}"
                  :when '(sp-in-comment-p)
-		 :post-handlers '((sp-ess-open-sexp-indent "M-j"))
+                 :post-handlers '((sp-ess-open-sexp-indent "M-j"))
                  :trigger "\\itemize")
   (sp-local-pair "\\describe{" "}"
                  :when '(sp-in-comment-p)
-		 :post-handlers '((sp-ess-open-sexp-indent "M-j"))
+                 :post-handlers '((sp-ess-open-sexp-indent "M-j"))
                  :trigger "\\describe")
   (sp-local-pair "\\eqn{" "}"
                  :when '(sp-in-comment-p)
@@ -213,7 +213,7 @@ ID, ACTION, CONTEXT."
   (sp-local-pair "\\tabular{" "}"
                  :when '(sp-in-comment-p)
                  :trigger "\\tabular"
-		 :post-handlers '((sp-ess-open-sexp-indent "M-j"))
+                 :post-handlers '((sp-ess-open-sexp-indent "M-j"))
                  :suffix "{[^}]*}"))
 
 
