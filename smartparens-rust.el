@@ -46,7 +46,8 @@
 
 (defun sp-in-rust-lifetime-context (&rest args)
   "Return t if point is in a Rust context where ' represents a lifetime.
-If we return nil, ' should be used for character literals."
+If we return nil, ' should be used for character literals.
+ARGS."
   (or
    (condition-case nil
        ;; If point is just after a &', it's probably a &'foo.
@@ -63,8 +64,7 @@ If we return nil, ' should be used for character literals."
             (looking-at "<"))))))
 
 (defun sp-rust-filter-angle-brackets (id action context)
-  "Return t if we should allow ACTION in the current CONTEXT
-for angle brackets."
+  "Non-nil if we should allow ID's ACTION in CONTEXT for angle brackets."
   ;; See the docstring for `sp-pair' for the possible values of ID,
   ;; ACTION and CONTEXT.
   (cond

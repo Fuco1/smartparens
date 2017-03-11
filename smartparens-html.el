@@ -96,6 +96,10 @@ backward."
       (sp-beginning-of-sexp (1- (- (prefix-numeric-value arg)))))))
 
 (defun sp-html-post-handler (&optional id action context)
+  "Post-action hooks for `html-mode'.
+
+ID is the tag being processed, ACTION is the action and CONTEXT
+specifies if we are inside a string or code."
   (cl-case action
     (slurp-forward
      (save-excursion

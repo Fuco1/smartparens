@@ -73,6 +73,7 @@
 
 (defadvice python-indent-dedent-line-backspace
     (around sp-backward-delete-char-advice activate)
+  "Fix indend."
   (if smartparens-strict-mode
       (cl-letf (((symbol-function 'delete-backward-char)
                  (lambda (arg &optional killp)

@@ -49,18 +49,21 @@
 (require 'smartparens)
 
 (defun sp-ruby-forward-sexp ()
+  "Wrapper for `ruby-forward-sexp' based on `enh-ruby-mode'."
   (interactive)
   (if (boundp 'enh-ruby-forward-sexp)
       (enh-ruby-forward-sexp)
     (ruby-forward-sexp)))
 
 (defun sp-ruby-backward-sexp ()
+  "Wrapper for `ruby-backward-sexp' based on `enh-ruby-mode'."
   (interactive)
   (if (boundp 'enh-ruby-backward-sexp)
       (enh-ruby-backward-sexp)
     (ruby-backward-sexp)))
 
 (defun sp-ruby-maybe-one-space ()
+  "Turn whitespace around point to just one space."
   (while (looking-back " ") (backward-char))
   (when (or (looking-at-p " ")
             (looking-at-p "}")
@@ -76,12 +79,15 @@
     (delete-char 1)))
 
 (defun sp-ruby-delete-indentation (&optional arg)
-  "Better way of joining ruby lines"
+  "Better way of joining ruby lines.
+
+ARG is how many indentation to delete."
   (delete-indentation arg)
   (sp-ruby-maybe-one-space))
 
 (defun sp-ruby-block-post-handler (id action context)
-  "Handler for ruby block-like inserts"
+  "Handler for ruby block-like insertions.
+ID, ACTION, CONTEXT."
   (when (equal action 'insert)
     (save-excursion
       (newline)
@@ -90,7 +96,8 @@
   (sp-ruby-post-handler id action context))
 
 (defun sp-ruby-def-post-handler (id action context)
-  "Handler for ruby def-like inserts"
+  "Handler for ruby def-like insertions.
+ID, ACTION, CONTEXT."
   (when (equal action 'insert)
     (save-excursion
       (insert "x")
@@ -178,6 +185,7 @@
             (newline)))))))
 
 (defun sp-ruby-inline-p (id)
+  "Test if ID is inline."
   (save-excursion
     (when (looking-back id)
       (backward-word))
@@ -195,6 +203,7 @@
               (looking-at-p (concat "[^[:blank:]]* *" id))))))))
 
 (defun sp-ruby-method-p (id)
+  "Test if ID is a method."
   (save-excursion
     (when (looking-back id)
       (backward-word))
@@ -214,24 +223,34 @@
                       (sp-point-in-comment))))))))
 
 (defun sp-ruby-skip-inline-match-p (ms mb me)
+  "If non-nil, skip inline match.
+MS, MB, ME."
   (or (sp-ruby-method-p ms)
       (sp-ruby-inline-p ms)))
 
 (defun sp-ruby-skip-method-p (ms mb me)
+  "If non-nil, skip method.
+MS, MB, ME."
   (sp-ruby-method-p ms))
 
 (defun sp-ruby-in-string-or-word-p (id action context)
+  "Test if point is inside string or word.
+ID, ACTION, CONTEXT."
   (or (sp-in-string-p id action context)
       (and (looking-back id)
            (not (looking-back (sp--strict-regexp-quote id))))
       (sp-ruby-method-p id)))
 
 (defun sp-ruby-in-string-word-or-inline-p (id action context)
+  "Test if point is inside string, word or inline.
+ID, ACTION, CONTEXT."
   (or (sp-ruby-in-string-or-word-p id action context)
       (and (looking-back id)
            (sp-ruby-inline-p id))))
 
 (defun sp-ruby-pre-pipe-handler (id action context)
+  "Ruby pipe handler.
+ID, ACTION, CONTEXT."
   (when (equal action 'insert)
     (save-excursion
       (just-one-space))
@@ -239,14 +258,17 @@
       (search-backward id)
       (just-one-space))))
 
-(defun sp-ruby-should-insert-pipe-close (id action _ctx)
-  "Test whether to insert the closing pipe for a lambda-binding pipe pair."
+(defun sp-ruby-should-insert-pipe-close (id action context)
+  "Test whether to insert the closing pipe for a lambda-binding pipe pair.
+ID, ACTION, CONTEXT"
   (if (eq action 'insert)
       (thing-at-point-looking-at
        (rx-to-string `(and (or "do" "{") (* space) ,id)))
     t))
 
 (defun sp--ruby-skip-match (ms me mb)
+  "Ruby skip match.
+MS, ME, MB."
   (when (string= ms "end")
     (or (sp-in-string-p ms me mb)
         (sp-ruby-method-p "end"))))

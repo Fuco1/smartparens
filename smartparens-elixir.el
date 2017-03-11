@@ -30,6 +30,8 @@
 (defun sp-elixir-def-p (id)
   "Return non-nil if the \"do\" keyword is part of definition.
 
+ID is the opening delimiter.
+
 Definitions are the constructions of the form defmodule-do-end,
 def-do-end and similar pairs."
   (save-excursion
@@ -53,10 +55,13 @@ def-do-end and similar pairs."
                                 ))))))
 
 (defun sp-elixir-skip-def-p (ms mb me)
+  "Test if \"do\" is part of definition.
+MS, MB, ME."
   (sp-elixir-def-p ms))
 
 (defun sp-elixir-do-block-post-handler (id action context)
-  "Insert \"do\" keyword and indent the new block."
+  "Insert \"do\" keyword and indent the new block.
+ID, ACTION, CONTEXT."
   (when (eq action 'insert)
     (let ((m (make-marker)))
       (save-excursion
@@ -70,7 +75,8 @@ def-do-end and similar pairs."
 (defun sp-elixir-empty-do-block-post-handler (id action context)
   "Insert empty \"do\" keyword and indent the new block.
 
-This is used for receive-do-end expression."
+This is used for receive-do-end expression.
+ID, ACTION, CONTEXT."
   (when (eq action 'insert)
     (let ((m (make-marker)))
       (save-excursion

@@ -45,7 +45,9 @@
 
 (require 'smartparens)
 
-(defun sp-lisp-invalid-hyperlink-p (_1 action _2)
+(defun sp-lisp-invalid-hyperlink-p (id action context)
+  "Test if there is an invalid hyperlink in a Lisp docstring.
+ID, ACTION, CONTEXT."
   (when (eq action 'navigate)
     ;; Ignore errors due to us being at the start or end of the
     ;; buffer.

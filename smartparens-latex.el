@@ -54,6 +54,7 @@
 (require 'smartparens)
 
 (defun sp-latex-insert-spaces-inside-pair (id action context)
+  "ID, ACTION, CONTEXT."
   (when (eq action 'insert)
     (insert "  ")
     (backward-char 1))
@@ -68,12 +69,14 @@
       (insert " "))))
 
 (defun sp-latex-skip-match-apostrophe (ms mb me)
+  "MS, MB, ME."
   (when (equal ms "'")
     (save-excursion
       (goto-char me)
       (looking-at-p "\\sw"))))
 
-(defun sp-latex-skip-double-quote (_1 action _2)
+(defun sp-latex-skip-double-quote (id action context)
+  "ID, ACTION, CONTEXT."
   (when (eq action 'insert)
     (when (looking-at-p "''''")
       (delete-char -2)
@@ -82,17 +85,20 @@
 
 (defun sp-latex-point-after-backslash (id action context)
   "Return t if point follows a backslash, nil otherwise.
-This predicate is only tested on \"insert\" action."
+This predicate is only tested on \"insert\" action.
+ID, ACTION, CONTEXT."
   (when (eq action 'insert)
     (let ((trigger (sp-get-pair id :trigger)))
       (looking-back (concat "\\\\" (regexp-quote (if trigger trigger id)))))))
 
 (defun sp-latex-point-before-word-p (id action context)
-  "Return t if point is before a word while in navigate action."
+  "Return t if point is before a word while in navigate action.
+ID, ACTION, CONTEXT."
   (when (eq action 'navigate)
     (looking-at-p "\\sw")))
 
 (defun sp-latex-pre-slurp-handler (id action context)
+  "ID, ACTION, CONTEXT."
   ;; If there was no space before or after, we shouldn't add on.
   ;; Variable ok, next-thing are defined in
   ;; `sp-forward-slurp-sexp' and `sp-backward-slurp-sexp'

@@ -50,13 +50,13 @@
 ;; This fixes slurping from adding space before or after "." if not needed
 ;;
 ;;   Forward-slurp:
-;;     UNWANTED: 
+;;     UNWANTED:
 ;;       (foo) List.map  ~~> (foo List).map ~~ (foo List .map)
 ;;     EXPECTED:
 ;;       (foo) List.map  ~~> (foo List).map ~~ (foo List.map)
 ;;
 ;;   Backward-slurp:
-;;     UNWANTED: 
+;;     UNWANTED:
 ;;       List.map (foo) ~~> List(.map foo) ~~> (List .map foo)
 ;;     EXPECTED:
 ;;       List.map (foo) ~~> List(.map foo) ~~> (List.map foo)
@@ -67,6 +67,8 @@
   (sp-local-pair "[" nil :pre-handlers '(sp-ml-pre-slurp-handler)))
 
 (defun sp-ml-pre-slurp-handler (id action context)
+  "ML slurp handler.
+ID, ACTION, CONTEXT."
   ;; If there was no space before or after, we shouldn't add on.
   ;; Variable ok, next-thing are defined in `sp-forward-slurp-sexp'
   (when (eq action 'slurp-forward)
