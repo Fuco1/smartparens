@@ -4875,23 +4875,35 @@ and the prefix is searched backwards.
 If the prefix property is defined for OP, the associated regexp
 is used to retrieve the prefix instead of the global setting."
   (sp--with-case-sensitive
-    (let ((pref (sp-get-pair op :prefix)))
-      (save-excursion
+    (save-excursion
+      (goto-char p)
+      (let* ((pref (sp-get-pair op :prefix))
+             (prefix
+              (if pref
+                  (when (sp--looking-back pref sp-max-prefix-length)
+                    (match-string-no-properties 0))
+                (-if-let (mmode-prefix (cdr (assoc major-mode sp-sexp-prefix)))
+                    (cond
+                     ((and (eq (car mmode-prefix) 'regexp)
+                           (sp--looking-back (cadr mmode-prefix)))
+                      (match-string-no-properties 0))
+                     ((eq (car mmode-prefix) 'syntax)
+                      (skip-syntax-backward (cadr mmode-prefix))
+                      (buffer-substring-no-properties (point) p))
+                     (t ""))
+                  (skip-syntax-backward "'")
+                  (buffer-substring-no-properties (point) p)))))
+        ;; do not consider it a prefix if it matches some opening or
+        ;; closing delimiter which is allowed for parsing in current
+        ;; context
         (goto-char p)
-        (if pref
-            (when (sp--looking-back pref sp-max-prefix-length)
-              (match-string-no-properties 0))
-          (-if-let (mmode-prefix (cdr (assoc major-mode sp-sexp-prefix)))
-              (cond
-               ((and (eq (car mmode-prefix) 'regexp)
-                     (sp--looking-back (cadr mmode-prefix)))
-                (match-string-no-properties 0))
-               ((eq (car mmode-prefix) 'syntax)
-                (skip-syntax-backward (cadr mmode-prefix))
-                (buffer-substring-no-properties (point) p))
-               (t ""))
-            (skip-syntax-backward "'")
-            (buffer-substring-no-properties (point) p)))))))
+        (if (or (sp--do-action-p prefix 'navigate)
+                (sp--do-action-p
+                 (car (--first (equal (cdr it) prefix)
+                               sp-pair-list))
+                 'navigate))
+            ""
+          prefix)))))
 
 (cl-defun sp--get-suffix (&optional (p (point)) op)
   "Get the suffix of EXPR.
@@ -4904,23 +4916,35 @@ See `sp-sexp-suffix'.
 If the suffix property is defined for OP, the associated regexp
 is used to retrieve the suffix instead of the global setting."
   (sp--with-case-sensitive
-    (let ((suff (sp-get-pair op :suffix)))
-      (save-excursion
+    (save-excursion
+      (goto-char p)
+      (let* ((suff (sp-get-pair op :suffix))
+             (suffix
+              (if suff
+                  (when (sp--looking-at suff)
+                    (match-string-no-properties 0))
+                (-if-let (mmode-suffix (cdr (assoc major-mode sp-sexp-suffix)))
+                    (cond
+                     ((and (eq (car mmode-suffix) 'regexp)
+                           (sp--looking-at (cadr mmode-suffix)))
+                      (match-string-no-properties 0))
+                     ((eq (car mmode-suffix) 'syntax)
+                      (skip-syntax-forward (cadr mmode-suffix))
+                      (buffer-substring-no-properties p (point)))
+                     (t ""))
+                  (skip-syntax-forward ".")
+                  (buffer-substring-no-properties p (point))))))
+        ;; do not consider it a suffix if it matches some opening or
+        ;; closing delimiter which is allowed for parsing in current
+        ;; context
         (goto-char p)
-        (if suff
-            (when (sp--looking-at suff)
-              (match-string-no-properties 0))
-          (-if-let (mmode-suffix (cdr (assoc major-mode sp-sexp-suffix)))
-              (cond
-               ((and (eq (car mmode-suffix) 'regexp)
-                     (sp--looking-at (cadr mmode-suffix)))
-                (match-string-no-properties 0))
-               ((eq (car mmode-suffix) 'syntax)
-                (skip-syntax-forward (cadr mmode-suffix))
-                (buffer-substring-no-properties p (point)))
-               (t ""))
-            (skip-syntax-forward ".")
-            (buffer-substring-no-properties p (point))))))))
+        (if (or (sp--do-action-p suffix 'navigate)
+                (sp--do-action-p
+                 (car (--first (equal (cdr it) suffix)
+                               sp-pair-list))
+                 'navigate))
+            ""
+          suffix)))))
 
 (defun sp-get-symbol (&optional back)
   "Find the nearest symbol that is after point, or before point if BACK is non-nil.

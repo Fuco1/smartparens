@@ -19,6 +19,14 @@
     (sp-test-with-temp-elisp-buffer "(fo|o)"
       (should (equal (sp--get-prefix 1 "(") "")))))
 
+;; 664
+(ert-deftest sp-test-get-prefix-which-is-a-pair-in-text-mode ()
+  (let ((sp-pairs '((t (:open "«" :close "»" :actions (navigate)))))
+        (sp-sexp-prefix '((text-mode regexp "»"))))
+    (sp-test-with-temp-buffer "«asdasd»|«asdasd»"
+        (text-mode)
+      (should (equal (sp--get-prefix (point) "«") "")))))
+
 ;; 621
 (ert-deftest sp-test-get-thing-with-prefix ()
   (let ((sp-sexp-prefix '((emacs-lisp-mode regexp "\\(?:[_]+\\)"))))
