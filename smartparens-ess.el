@@ -83,6 +83,9 @@ ID, ACTION, CONTEXT."
                     (thing-at-point 'word 'noprop))
                   '("if" "for" "while"))))
            (cycle-spacing 0 nil 'single-shot))
+          ;; (|[...])%in% ---> ([...] %in%|)
+          ((or (looking-at "%") (looking-back "%"))
+           (just-one-space))
           ;; (|)a , b,    c ---> (|a, b, c)
           ((looking-back
             (rx (zero-or-more space) "," (zero-or-more space))

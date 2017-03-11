@@ -56,23 +56,7 @@
 (sp-with-modes 'python-mode
   (sp-local-pair "'" "'" :unless '(sp-in-comment-p sp-in-string-quotes-p))
   (sp-local-pair "\\'" "\\'")
-  (sp-local-pair "\"\"\"" "\"\"\"")
-  (sp-local-pair "(" nil :pre-handlers '(sp-python-pre-slurp-handler))
-  (sp-local-pair "[" nil :pre-handlers '(sp-python-pre-slurp-handler)))
-
-(defun sp-python-pre-slurp-handler (id action context)
-  "ID, ACTION, CONTEXT."
-  (-let (((&plist :ok ok :next-thing next-thing) sp-handler-context))
-    (when (eq action 'slurp-forward)
-      ;; If there was no space before, we shouldn't add on.
-      ;; ok = enclosing, next-thing one being slurped into
-      ;; (variables let-bound in `sp-forward-slurp-sexp').
-      (save-excursion
-        (when (and (= (sp-get ok :end) (sp-get next-thing :beg))
-                   (equal (sp-get ok :op) (sp-get next-thing :op)))
-          (goto-char (sp-get ok :end))
-          (when (looking-back " ")
-            (delete-char -1)))))))
+  (sp-local-pair "\"\"\"" "\"\"\""))
 
 (defadvice python-indent-dedent-line-backspace
     (around sp-backward-delete-char-advice activate)
