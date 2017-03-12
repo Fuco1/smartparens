@@ -1,0 +1,159 @@
+* Questions
+- how to edit previously specified rule?
+- how to add rule
+  - in submode
+- how to remove rule
+  - in submode
+- how to have a "matrix" of conditions
+
+#+BEGIN_SRC elisp
+(defmacro sp-defpair (&rest body)
+  (declare (indent defun)))
+#+END_SRC
+
+* Inheritance
+Pairs can be defined in three scopes: globally, mode-locally and buffer-locally.  All properties are automatically inherited down the chain: global < mode < buffer-local.
+
+Properties which are defined mode-locally /completely/ override global properties and properties which are defined buffer-locally /completely/ override global and mode-local properites.
+
+The old model of =:add= and =:rem= for list properties was removed due to unsound semantics.  We also found that it was rarely used and the extra complexity was not warranted.
+
+If you call =sp-defpair= multiple times for the same pair on the same "level" (global, mode-local or buffer-local), the non-list properties are replaced and the list properties are concatenated.  You can use a special value =:nil= to completely remove the property from the pair.
+
+* data structure
+#+BEGIN_SRC elisp
+'(:open "do"
+  :close "end"
+  :trigger-wrap :undefined
+  :trigger-insert :undefined
+  :actions ((:type insert
+             :active :undefined ;; can be set to nil to disable in inherited setting
+             :when :undefined
+             :unless (sp-ruby-in-string-or-word-p sp-in-comment-p)
+             :after ("SPC" "RET" "<evil-ret>"))
+            (:type navigate
+             :active :undefined
+             :when :undefined
+             :unless :undefined
+             :after :undefined))
+  :pre-hook ((:function sp-ruby-pre-handler
+              :on (slurp-backward barf-backward slurp-forward barf-forward)
+              ;; if there is an after clause, the function is only
+              ;; added to the "delayed" list on the specified
+              ;; actions... if :on is unspecified, all actions are
+              ;; taken automatically
+              :when :undefined
+              :unless :undefined
+              :after :undefined))
+  :post-hook ((:function sp-ruby-block-post-handler
+               :on (insert))
+              (:function sp-ruby-post-handler
+               :on (barf-backward barf-forward)))
+  :skip-match sp-ruby-skip-method-p
+  :suffix ""
+  :prefix :undefined
+  :wrap :undefined
+  :insert :undefined)
+#+END_SRC
+
+* API
+API copies the data structure as close as possible with the addition of these fields:
+- =:when= for a global "when" condition (this is stored under the when conditions of all the actions)
+- =:unless=, see =:when=
+- =:settings= which is an alist of a setting name (customizable) and a value; this can be used to override any smartparens global setting on a pair-by-pair basis
+
+* Example uses
+#+BEGIN_SRC elisp
+(sp-defpair
+  :mode ruby-mode :open "do" :close "end"
+  :actions (insert
+            :unless sp-ruby-in-string-or-word-p sp-in-comment-p
+            :after "SPC" "RET" "<evil-ret>")
+           navigate
+  :pre-hook (sp-ruby-pre-handler :on slurp-backward barf-backward slurp-forward barf-forward)
+  :post-hook
+  (sp-ruby-block-post-handler :on insert)
+  (sp-ruby-post-handler :on barf-backward barf-forward)
+  :skip-match sp-ruby-skip-method-p
+  :suffix "")
+#+END_SRC
+
+#+BEGIN_SRC elisp
+(sp-defpair
+  :mode markdown-mode :open "*"
+  ;; no :actions means all by default
+  (insert :unless sp-point-at-bol-p)
+  (navigate :unless sp--gfm-point-after-word-p)
+  :post-hook ("[d1]" :after "SPC"))
+#+END_SRC
+
+#+BEGIN_SRC elisp
+(sp-defpair :mode c++-mode :open "/*" :close "*/"
+  :post-hook (" | " :after "SPC") ("* ||\n[i]" :after "RET"))
+#+END_SRC
+
+#+BEGIN_SRC elisp
+(sp-defpair :mode php-mode :open "/**" :close "*/"
+  :post-hook ("| " :after "SPC") (my-php-handle-docstring :after "RET"))
+#+END_SRC
+
+* Global x local x buffer-local
+#+BEGIN_SRC elisp
+;; add pair globally
+(sp-defpair :open "-" :close "-")
+;; add pair to emacs-lisp-mode buffers
+(sp-defpair :mode emacs-lisp-mode :open "-" :close "-")
+;; add pair to local buffer only
+(sp-defpair :mode t :open "-" :close "-")
+#+END_SRC
+
+* Matrix conditions
+
+With the following configuraion =foo-hook= is only invoked on insert
+action in comment or wrap action in string.
+
+#+BEGIN_SRC elisp
+(sp-defpair
+  :open "[" :close "]"
+  :post-hook
+  (foo-hook :on insert :when sp-in-comment)
+  (foo-hook :on wrap :when sp-in-string))
+#+END_SRC
+
+On the other hand, a /matrix/ condition specifies an each-to-each
+combination, so the in the following example =foo-hook= is invoked on
+either =insert= or =wrap= action whenever point is in comment or string (4
+combinations in total).
+
+#+BEGIN_SRC elisp
+(sp-defpair
+  :open "[" :close "]"
+  :post-hook
+  (foo-hook :on insert wrap :when sp-in-comment sp-in-string))
+#+END_SRC
+
+* Nezaradene
+#+BEGIN_SRC elisp
+(sp-defpair
+  :open "'"
+  :close "'"
+  :when (sp-mode-is 'emacs-lisp-mode)
+  :actions
+  (insert :when sp-in-string-p)
+  (wrap :when sp-in-string-p :unless (sp-string-quote-is "'"))
+  (navigate :unless sp-eol-p)
+  :post-handlers
+  (sp-escape-wrapped-region :on wrap :when sp-in-comment-p))
+
+(sp-local-pair
+ 'emacs-lisp-mode
+ :open "'"
+ :actions
+ (insert :unless sp-is-docstring-link-p)
+ (:rem wrap)
+ autoskip
+ :post-handlers
+ (sp-fix-slurp-space :on slurp-forward)
+ :when
+ (sp-mode-is 'emacs-lisp-mode))
+#+END_SRC

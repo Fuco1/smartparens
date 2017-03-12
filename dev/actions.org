@@ -1,0 +1,18 @@
+* Actions, rename to Permissions
+** insert
+Insert the closing delimiter when the opening delimiter or the trigger is inserted (in case of trigger, replace it with the open-close pair)
+** wrap
+If a region is active, allow wraping it with the pair
+** autoskip
+Skip over the closing delimiter if it is typed in an active sexp at the end or according to =sp-autoskip-closing-pair=.
+** escape
+Allow autoescaping of this delimiter in string contexts
+** navigate
+Enable this pair for navigation
+** parse
+Enable this pair for parsing (that is, non-interactive calls)
+TODO: Do we want this to be separate from navigate?
+** strict
+Enable strictness checks for this pair (if =smartparens-strict-mode= is enabled)
+** highlight
+Enable pair for highlighting (if =show-smartparens-mode= is enabled)
