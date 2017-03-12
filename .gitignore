@@ -1,15 +1,4 @@
 elpa
 *.elc
 *~*
-hybridline.el
-loading.el
-presentation2.org
-talk.org
-movement.el
-pair-info.el
-parser-system.org
-parser.el
-skip-function.el
-skip-function.org
-talk.org.org
 docs/_build
