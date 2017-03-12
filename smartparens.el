@@ -2208,9 +2208,9 @@ modes, use this property on `sp-local-pair' instead."
         ;; already exists in the pair.  In that case, we will set it to
         ;; nil.  This allows for removing properties in global
         ;; definitions.
-        (when (or (eval (cdr arg))
+        (when (or (cdr arg)
                   (sp-get-pair-definition open t (car arg)))
-          (plist-put pair (car arg) (eval (cdr arg)))))
+          (plist-put pair (car arg) (cdr arg))))
       (sp--update-pair-list pair t))
     (when (or wrap bind) (global-set-key (read-kbd-macro (or wrap bind))
                                          `(lambda (&optional arg)
