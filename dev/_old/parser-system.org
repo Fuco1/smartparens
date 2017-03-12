@@ -1,0 +1,105 @@
+This file outlines the new "parser" system that's going to gradually replace the old (albeit somewhat working) mess. If you want to help, feel free to ask for work :)
+
+* General idea of getting things
+1. figure out what context we're operating in, set the search bounds if necessary.
+2. skip to opening or closing end of thing.
+3. do this for all the "thing types" and then pick the closest one to actually carry out the search. Note that the search direction can reverse if we land on closing delimiter first.
+4. return the data about the thing. Make data about conflicting things available somehow (e.g. sgml tag pair and the <> pair opening it).
+
+Every function should have a name =sp-get-$foo= with single optional argument =back= that tells sp to search backward. Each should in turn call a helper function =sp--get-$foo= which should support these arguments (when reasonable):
+- back
+- bound: limit for the search
+- context: where are we searching, see the next section. We should be able to provide a context we want or use the "current one". If some is provided, we should first find such context and go there, then set up bounds etc.
+
+The reason for this split is to provide a nicer interface for querying: when we want to query thing at point, we *don't* want to bother with search limits or contexts etc.
+
+The return value should be a plist with these attributes:
+
+#+BEGIN_EXAMPLE
+- :beg       - point in buffer where the opening delimiter starts
+- :end       - point in buffer where the closing delimiter ends
+- :op        - opening delimiter or "" if there is none (e.g. for symbols)
+- :cl        - closing delimiter
+- :prefix    - thing prefix (e.g. ' in lisp)
+- :suffix    - thing suffix
+- :from      - point from which the search was started. This helps us to get the "things inbetween" point and sexp
+#+END_EXAMPLE
+
+This data structure should be usable with =sp-get= macro.
+
+In addition, there should be these functions for each $foo:
+
+** sp-skip-to-$foo
+This should accept direction, search limits and context. The return value should be:
+
+#+BEGIN_EXAMPLE
+- :point - point, is equal to :ms or :me depending on direction
+- :mb - point where the thing starts (match-beginning)
+- :me - point where the thing ends (match-end)
+- :skipped - the distance travelled. Is negative if search was backward
+- :back - t if backward search, nil if forward search
+- :delim - the delimiter found
+#+END_EXAMPLE
+
+This function should ignore prefix or suffix.
+
+* Special contexts we need to consider
+We should write functions that will:
+- =sp-skip-to-context= skip into specified context
+- =sp-skip-outof-context= skip outof specified context
+- =sp-get-context= find the type of current context
+- =sp-get-context-info= find type and bounds of current context
+
+These should be general enough to be useful on their own as well as in =sp-get-$foo= functions to limit the searches. In general, every "getter" function where it makes sense should support all of these, so that the behaviour will be as consistent as possible.
+
+The return value for =sp-get-context-info= is a list with properties:
+
+#+BEGIN_EXAMPLE
+- :type - type of context
+- :beg - start of the context
+- :end - end of the context
+#+END_EXAMPLE
+
+** strings
+We should limit the search to the string bounds. For now, only strings supported by syntax tables should be considered
+
+** comments
+There are two options:
+- we can only search in current comment block
+- we can do "invert search", that is ignore code and only search comments. This can be useful to pair things like @{:
+
+#+BEGIN_SRC c
+  //@{
+  int foo(int a) {
+    return a+1;
+  }
+  //@}
+#+END_SRC
+
+This "comment continuation" should probably be configurable for each pair.
+
+Not all modes provide comments that are specified in syntax tables, for example org mode uses line-initial # for this. Should we provide a callback to check for such contexts?
+
+** org comment block                                               :research:
+Org mode has comment blocks:
+
+#+BEGIN_COMMENT
+#+END_COMMENT
+
+Should we treat these as comments?
+
+** org src block                                                   :research:
+If we are outside of a src block, we should treat it as comment. If we are inside, we might at least change =major-mode= variable to the apropriate mode. Getting the correct syntax tables would also be cool, but is this safe?
+
+** code
+Ignore strings, comments, org blocks.
+
+** custom context
+A predicate that is called on each match, deciding if we are in "this context" or not.
+
+* Thing types
+The generally supported "parsers" or things are:
+- symbol
+- sexp (i.e. pair with different opening and closing)
+- string-like (i.e. pair with same opening and closing)
+- sgml tag (special parser for performance)

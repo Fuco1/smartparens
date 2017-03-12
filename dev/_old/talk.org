@@ -1,0 +1,103 @@
+* Intro
+
+smartparens.el
+wrap-region.el
+textmate.el
+autopair.el
+paredit.el
+
+why - to give user more freedome
+
+* Defining pairs
+** basic pairs present everywhere
+** more elaborate pairs
+
+   ("\\\\\\\\(" . "\\\\\\\\)") ;; emacs regexp parens
+   ("\\{"       . "\\}")
+   ("\\\\("     . "\\\\)")
+   ("\\\""      . "\\\"")
+   ("/*"        . "*/")
+   ("\""        . "\"")
+   ("'"         . "'")
+   ("("         . ")")
+   ("["         . "]")
+   ("{"         . "}")
+   ("`"         . "'") ;; tap twice for tex double quotes
+
+* Auto insertion
+** Global pairs
+** something about permissions (briefly)
+
+3 layers/4 levels
+
+** defining pairs
+(sp-add-pair "$" "$")
+
+*** locally
+(sp-add-local-pair "`" "`" 'markdown-mode)
+
+- used to override global definitions.
+
+** smart handling of closing pairs.
+
+if typed in, it is skipped.
+
+** automatic deletion of the whole pair
+
+\{|\} < |
+\{\} < \{
+
+* Wrapping
+** regular
+just with normally defined pairs () [] {} "" \{\} \\(\\)
+
+** "tags"
+(sp-add-tag-pair "<" "<_>" "</_>" 'sp-match-sgml-tags '(html-mode sgml-mode))
+(sp-add-tag-pair "\\b" "\\begin{_}" "\\end{_}" 'identity '(latex-mode tex-mode))
+(sp-add-tag-pair "2" "**" "**" nil '(markdown-mode))
+
+
+- nil = default to identity...
+
+** html-mode
+<ul class="banana-bag">
+  <li>banana</li>
+  <li>banana</li>
+  <li>banana</li>
+</ul>
+
+** latex-mode
+\begin{itemize}
+  \item Shetland
+  \item Welsh
+  \item Australian
+  \end{itemize}
+
+* Navigation
+
+** forward-sexp
+backward-sexp -- s-expression
+
+(define-key sp-keymap (kbd "C-M-f") 'sp-forward-sexp)
+(define-key sp-keymap (kbd "C-M-b") 'sp-backward-sexp)
+
+** down-list
+
+(define-key sp-keymap (kbd "C-M-d") 'sp-down-sexp)
+(define-key sp-keymap (kbd "C-M-a") 'sp-backward-down-sexp)
+
+** up-list
+up-backward-list
+
+(define-key sp-keymap (kbd "C-M-e") 'sp-up-sexp)
+(define-key sp-keymap (kbd "C-M-u") 'sp-backward-up-sexp)
+
+** next-list
+previous-list
+
+(define-key sp-keymap (kbd "C-M-n") 'sp-next-sexp)
+(define-key sp-keymap (kbd "C-M-p") 'sp-previous-sexp)
+
+** kill-sexp
+
+(define-key sp-keymap (kbd "C-M-k") 'sp-kill-sexp)

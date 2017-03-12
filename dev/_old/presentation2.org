@@ -1,0 +1,172 @@
+* forward/backward
+** prefix commands
+
+- tag object
+- pair object
+- symbol object
+** numeric prefix
+- move that many times
+
+* next/previous
+- if at the end of the expression, move up forward/backward
+** numeric prefix
+- move that many times
+
+* up/backward up
+- reindent the expression
+
+** numeric prefix
+- move that many levels up
+
+* down/backward down
+** prefix
+- numeric = move that many levels down
+- raw = move down as much as possible
+- double raw = move to the beginning of sexp
+  (same as if there's nothing to go down to)
+
+* beginning of sexp/end of sexp.
+** prefix
+- numeric = move to beginning of Nth expression
+- raw =  move to beginning of parent expression
+
+* select next thing
+** prefix
+- numeric = select that many things
+- raw = select up until the end of exp
+- double raw = select current expr
+  -- selecting again selects the inside.
+
+* pouzity buffer
+
+;; * forward/backward
+;; ** numeric prefix
+;; - move that many times
+
+(defun sp-forward-sexp (&optional arg)
+  (interactive "p")
+  (setq arg (or arg 1)))
+
+(defun sp-forward-sexp (&optional arg) (interactive "p") (setq arg (or arg 1)))
+
+;; ** prefix commands
+;; - tag object
+
+some words [ <p> and a paragraph </p> and more words ] and whatever (maybe a little expression here)
+
+;; - pair object
+
+some words [ <p> and a paragraph </p> and more words ] and whatever (maybe a little expression here)
+
+;; - symbol object
+
+some words [ <p> and a paragraph </p> and more words ] and whatever (maybe a little expression here)
+
+;; * next/previous
+;; - if at the end of the expression, move up forward/backward
+;; ** numeric prefix
+;; - move that many times
+
+(defun sp-forward-sexp (&optional arg) (interactive "p") (setq arg (or arg 1)))
+
+(let ((enc (sp-get-enclosing-sexp)))
+  (if enc
+      (save-excursion
+        (if (> arg 0)
+            (progn
+              (goto-char (sp-get enc :end-in)))))
+    (error "No enclosing expression")))
+
+;; * up/backward up
+;; - reindent the expression
+;; ** numeric prefix
+;; - move that many levels up
+
+(cond
+ ((equal arg '(4))
+  (sp-splice-sexp-killing-backward 1))
+ ((equal arg '(-4))
+  (sp-splice-sexp-killing-forward 1))
+ (t
+  (let ((ok (sp-get-enclosing-sexp)) str)
+    (when ok
+      (sp-select-next-thing-exchange arg)))))
+
+;; * down/backward down
+;; ** prefix
+;; - numeric = move that many levels down
+;; - raw = move down as much as possible
+;; - double raw = move to the beginning of sexp
+;;   (same as if there's nothing to go down to)
+
+(cond
+ ((equal arg '(4))
+  (sp-splice-sexp-killing-backward 1))
+ ((equal arg '(-4))
+  (sp-splice-sexp-killing-forward 1))
+ (t
+  (let ((ok (sp-get-enclosing-sexp)) str)
+    (when ok
+      (sp-select-next-thing-exchange arg)))))
+
+(if (> arg 0) nil 'end)
+
+;; * beginning of sexp/end of sexp.
+;; ** prefix
+;; - numeric = move to beginning of Nth expression
+;; - raw =  move to beginning of parent expression
+
+(let* ((old (point))
+       (raise (progn
+                (sp-beginning-of-sexp)
+                (buffer-substring (point) old))))
+  (dee-region (point) old)
+  (sp-backward-slurp-sexp arg)
+  (sp-forward-whitespace)
+  (sp-beginning-of-sexp)
+  (insert raise)
+  (save-excursion
+    (sp-backward-up-sexp)
+    (indent-sexp)))
+
+;; * select next thing
+;; ** prefix
+;; - numeric = select that many things
+;; - raw = select up until the end of exp
+;; - double raw = select current expr
+;;   -- selecting again selects the inside.
+
+(let* ((old (point))
+       (raise (progn
+                (sp-beginning-of-sexp)
+                (buffer-substring (point) old))))
+  (delete-region (point) old)
+  (sp-backward-slurp-sexp arg)
+  (sp-forward-whitespace)
+  (sp-beginning-of-sexp)
+  (insert raise)
+  (save-excursion
+    (sp-backward-up-sexp)
+    (indent-sexp)))
+
+;; ---------------------------------------------
+;; ---------------------------------------------
+
+
+[
+verba arcana
+<p>
+  Lorem ipsum dolor sit amet, consectetuer adipiscing elit. <b>Praesent</b>
+  libero orci, [auctor sed, faucibus vestibulum, gravida vitae,]
+  arcu. (Nunc posuere. Suspendisse potenti. Praesent) in arcu ac nisl
+  ultricies ultricies. Fusce eros. Sed pulvinar vehicula
+</p>
+
+]
+
+<p>
+  Lorem ipsum dolor sit amet, consectetuer adipiscing elit. <b>Praesent</b>
+  libero orci, [auctor sed, faucibus vestibulum, gravida vitae,]
+  arcu. (Nunc posuere. Suspendisse potenti. Praesent) in arcu ac nisl
+  ultricies ultricies. Fusce eros. Sed pulvinar vehicula
+</p>

@@ -1,0 +1,16 @@
+* use cases
+
+- skipping out of active pairs
+  - this is easy, because we have the data about the pair from the
+    overlay. Can work both inside and at the end
+- skipping out of inactive pairs
+  - when point is at the end and the closing delim is inserted
+  - when point is somewhere inside, the expression is properly
+    balanced, and the closing delim is inserted
+
+* problems
+
+- string-like delims
+  - we need to be able to detect if we are skipping out or into such a
+    structure
+- multi-char pairs. Is this worth it?
