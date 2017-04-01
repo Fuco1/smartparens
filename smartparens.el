@@ -6114,6 +6114,9 @@ Note: prefix argument is shown after the example in
                 "")))
       (delete-region bdel edel)))
   (if (memq major-mode sp-lisp-modes)
+      ;; WARNING: The above white-space killing routine might preserve
+      ;; less whitespace than there actually is because the indent
+      ;; might further eat some up
       (indent-according-to-mode)
     (unless (memq major-mode sp-no-reindent-after-kill-modes)
       (save-excursion

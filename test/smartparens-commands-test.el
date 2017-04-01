@@ -690,3 +690,30 @@ be."
       (sp-buffer-equals "|(bar)")
       (insert (current-kill 0))
       (sp-buffer-equals "(baz)\n\n\n\n|(bar)"))))
+
+(ert-deftest sp-test-sp-kill-sexp-cleanup-always-preserve nil
+  (let ((sp-successive-kill-preserve-whitespace 0)
+        (smartparens-mode-map smartparens-mode-map))
+    (sp-test-with-temp-elisp-buffer "(foo) |(bar)   (baz)  "
+      (define-key smartparens-mode-map "d" 'sp-kill-sexp)
+      (execute-kbd-macro "dd")
+      (shut-up (call-interactively 'yank))
+      (sp-buffer-equals "(foo) (bar)   (baz)  |"))))
+
+(ert-deftest sp-test-sp-kill-sexp-cleanup-preserve-last nil
+  (let ((sp-successive-kill-preserve-whitespace 1)
+        (smartparens-mode-map smartparens-mode-map))
+    (sp-test-with-temp-elisp-buffer "(foo) |(bar)   (baz)  "
+      (define-key smartparens-mode-map "d" 'sp-kill-sexp)
+      (execute-kbd-macro "dd")
+      (shut-up (call-interactively 'yank))
+      (sp-buffer-equals "(foo) (bar)   (baz)|"))))
+
+(ert-deftest sp-test-sp-kill-sexp-cleanup-never-preserve nil
+  (let ((sp-successive-kill-preserve-whitespace 2)
+        (smartparens-mode-map smartparens-mode-map))
+    (sp-test-with-temp-elisp-buffer "(foo) |(bar)   (baz)  "
+      (define-key smartparens-mode-map "d" 'sp-kill-sexp)
+      (execute-kbd-macro "dd")
+      (shut-up (call-interactively 'yank))
+      (sp-buffer-equals "(foo) (bar) (baz)|"))))
