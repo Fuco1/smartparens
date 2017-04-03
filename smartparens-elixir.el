@@ -98,6 +98,9 @@ ID, ACTION, CONTEXT."
   (sp-local-pair "def" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :post-handlers '(sp-elixir-do-block-post-handler))
+  (sp-local-pair "defp" "end"
+                 :when '(("SPC" "RET" "<evil-ret>"))
+                 :post-handlers '(sp-elixir-do-block-post-handler))
   (sp-local-pair "defmodule" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :post-handlers '(sp-elixir-do-block-post-handler))
