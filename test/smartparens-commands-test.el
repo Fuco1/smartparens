@@ -588,6 +588,11 @@ be."
   (sp--test-sp-rewrap-sexp "\\{f|oo\\}" '("[" . "]") "[\\{f|oo\\}]" :keep)
   (sp--test-sp-rewrap-sexp "[f|oo]" '("\\{" . "\\}") "\\{[f|oo]\\}" :keep))
 
+(ert-deftest sp-test-command-sp-rewrap-sexp-escape-after-rewrap ()
+  ;; #667
+  (sp--test-sp-rewrap-sexp "\"foo (b|ar) baz\"" '("\"" . "\"") "\"foo \\\"b|ar\\\" baz\"")
+  (sp--test-sp-rewrap-sexp "\"foo \\\"b|ar\\\" baz\"" '("(" . ")") "\"foo (b|ar) baz\""))
+
 (ert-deftest sp-test-command-sp-rewrap-sexp-invalid-pair ()
   (should-error
    (sp-test-with-temp-elisp-buffer "(fo|o)"

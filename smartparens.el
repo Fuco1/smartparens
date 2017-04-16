@@ -3356,17 +3356,23 @@ Return non-nil if at least one escaping was performed."
           (insert sp-escape-char)))
       re)))
 
+;; TODO: refactor the rewrap-sexp dependent parts out so that this
+;; function has less dependencies on the action
+;; TODO: add mode-dependent escape/unescape actions?
 (defun sp-escape-wrapped-region (id action _context)
-  "Escape quotes and special chars when a region is wrapped."
+  "Escape quotes and special chars when a region is (re)wrapped."
   (when (and sp-escape-wrapped-region
-             (eq action 'wrap))
+             (memq action '(wrap rewrap-sexp)))
     (sp-get sp-last-wrapped-region
       (let* ((parent-delim (save-excursion
                              (goto-char :beg)
                              (sp-get (sp-get-string)
-                               (when (and (< :beg (point))
-                                          (< (point) :end))
-                                 :op)))))
+                               (cond
+                                ((and (< :beg (point))
+                                      (< (point) :end))
+                                 :op)
+                                ((eq action 'rewrap-sexp)
+                                 (plist-get sp-handler-context :parent)))))))
         (cond
          ((equal parent-delim id)
           (sp--escape-region (list id sp-escape-char) :beg :end))
@@ -7133,7 +7139,7 @@ Examples:
 
   (foo |bar baz) -> [(foo |bar baz)] ;; \\[universal-argument] ["
   (interactive (list
-                (let ((available-pairs (sp--get-pair-list-context))
+                (let ((available-pairs (sp--get-pair-list-context 'wrap))
                       ev ac (pair-prefix ""))
                   (while (not ac)
                     (setq ev (read-event (format "Rewrap with: %s" pair-prefix) t))
@@ -7153,8 +7159,17 @@ Examples:
         (goto-char :beg)
         (insert (car pair))
         (unless keep-old
-          (delete-char :op-l))))
-    (sp--run-hook-with-args (sp-get enc :op) :post-handlers 'rewrap-sexp)))
+          (delete-char :op-l))
+        (setq sp-last-wrapped-region
+              (sp--get-last-wraped-region
+               :beg (+ :end
+                      (length (car pair))
+                      (length (cdr pair))
+                      (- :op-l)
+                      (- :cl-l))
+                (car pair) (cdr pair)))))
+    (sp--run-hook-with-args (car pair) :post-handlers 'rewrap-sexp
+                            (list :parent (sp-get enc :op)))))
 
 (defun sp-swap-enclosing-sexp (&optional arg)
   "Swap the enclosing delimiters of this and the parent expression.
