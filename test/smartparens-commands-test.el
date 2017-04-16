@@ -575,6 +575,13 @@ be."
     (insert "|")
     (should (equal (buffer-string) expected))))
 
+(defun sp--test-sp-rewrap-sexp-python (initial pair expected &optional keep)
+  (sp-test-with-temp-buffer initial
+      (python-mode)
+    (sp-rewrap-sexp pair keep)
+    (insert "|")
+    (should (equal (buffer-string) expected))))
+
 (ert-deftest sp-test-command-sp-rewrap-sexp ()
   (sp--test-sp-rewrap-sexp "[f|oo]" '("(" . ")") "(f|oo)")
   (sp--test-sp-rewrap-sexp "{f|oo}" '("(" . ")") "(f|oo)")
@@ -591,7 +598,11 @@ be."
 (ert-deftest sp-test-command-sp-rewrap-sexp-escape-after-rewrap ()
   ;; #667
   (sp--test-sp-rewrap-sexp "\"foo (b|ar) baz\"" '("\"" . "\"") "\"foo \\\"b|ar\\\" baz\"")
-  (sp--test-sp-rewrap-sexp "\"foo \\\"b|ar\\\" baz\"" '("(" . ")") "\"foo (b|ar) baz\""))
+  (sp--test-sp-rewrap-sexp "\"foo \\\"b|ar\\\" baz\"" '("(" . ")") "\"foo (b|ar) baz\"")
+
+  (sp--test-sp-rewrap-sexp-python "\"foo 'b|ar' baz\"" '("\"" . "\"") "\"foo \\\"b|ar\\\" baz\"")
+  (sp--test-sp-rewrap-sexp-python "\"foo 'bar' b|az\"" '("'" . "'") "'foo \\'bar\\' b|az'")
+  (sp--test-sp-rewrap-sexp-python "'foo \\'b|ar\\' baz'" '("\"" . "\"") "'foo \"b|ar\" baz'"))
 
 (ert-deftest sp-test-command-sp-rewrap-sexp-invalid-pair ()
   (should-error

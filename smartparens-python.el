@@ -55,6 +55,7 @@
 
 (sp-with-modes 'python-mode
   (sp-local-pair "'" "'" :unless '(sp-in-comment-p sp-in-string-quotes-p))
+  (sp-local-pair "\\'" "\\'")
   (sp-local-pair "\"\"\"" "\"\"\"")
   (sp-local-pair "(" nil :pre-handlers '(sp-python-pre-slurp-handler))
   (sp-local-pair "[" nil :pre-handlers '(sp-python-pre-slurp-handler)))
