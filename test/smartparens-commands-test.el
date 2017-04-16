@@ -666,7 +666,8 @@ be."
 
 ;; test for #452
 (ert-deftest sp-test-sp-kill-hybrid-sexp-excessive-whitespace-nil nil
-  (let ((sp-hybrid-kill-excessive-whitespace nil))
+  (let ((sp-hybrid-kill-excessive-whitespace nil)
+        (kill-ring kill-ring))
     (sp-test-with-temp-elisp-buffer "|(baz)\n\n\n\n(bar)"
       (call-interactively 'sp-kill-hybrid-sexp)
       (sp-buffer-equals "|\n\n\n\n(bar)")
@@ -675,7 +676,8 @@ be."
 
 ;; test for #452
 (ert-deftest sp-test-sp-kill-hybrid-sexp-excessive-whitespace-t nil
-  (let ((sp-hybrid-kill-excessive-whitespace t))
+  (let ((sp-hybrid-kill-excessive-whitespace t)
+        (kill-ring kill-ring))
     (sp-test-with-temp-elisp-buffer "|(baz)\n\n\n\n(bar)"
       (call-interactively 'sp-kill-hybrid-sexp)
       (sp-buffer-equals "|(bar)")
@@ -684,7 +686,8 @@ be."
 
 ;; test for #452
 (ert-deftest sp-test-sp-kill-hybrid-sexp-excessive-whitespace-kill nil
-  (let ((sp-hybrid-kill-excessive-whitespace 'kill))
+  (let ((sp-hybrid-kill-excessive-whitespace 'kill)
+        (kill-ring kill-ring))
     (sp-test-with-temp-elisp-buffer "|(baz)\n\n\n\n(bar)"
       (call-interactively 'sp-kill-hybrid-sexp)
       (sp-buffer-equals "|(bar)")
@@ -693,7 +696,8 @@ be."
 
 (ert-deftest sp-test-sp-kill-sexp-cleanup-always-preserve nil
   (let ((sp-successive-kill-preserve-whitespace 0)
-        (smartparens-mode-map smartparens-mode-map))
+        (smartparens-mode-map smartparens-mode-map)
+        (kill-ring nil))
     (sp-test-with-temp-elisp-buffer "(foo) |(bar)   (baz)  "
       (define-key smartparens-mode-map "d" 'sp-kill-sexp)
       (execute-kbd-macro "dd")
@@ -702,7 +706,8 @@ be."
 
 (ert-deftest sp-test-sp-kill-sexp-cleanup-preserve-last nil
   (let ((sp-successive-kill-preserve-whitespace 1)
-        (smartparens-mode-map smartparens-mode-map))
+        (smartparens-mode-map smartparens-mode-map)
+        (kill-ring kill-ring))
     (sp-test-with-temp-elisp-buffer "(foo) |(bar)   (baz)  "
       (define-key smartparens-mode-map "d" 'sp-kill-sexp)
       (execute-kbd-macro "dd")
@@ -711,7 +716,8 @@ be."
 
 (ert-deftest sp-test-sp-kill-sexp-cleanup-never-preserve nil
   (let ((sp-successive-kill-preserve-whitespace 2)
-        (smartparens-mode-map smartparens-mode-map))
+        (smartparens-mode-map smartparens-mode-map)
+        (kill-ring kill-ring))
     (sp-test-with-temp-elisp-buffer "(foo) |(bar)   (baz)  "
       (define-key smartparens-mode-map "d" 'sp-kill-sexp)
       (execute-kbd-macro "dd")
