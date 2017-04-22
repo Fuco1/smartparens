@@ -180,6 +180,38 @@ be."
     ;; @}
     )))
 
+(sp-test-command sp-forward-parallel-sexp
+  ((nil
+    ("|foo" "foo|")
+    ("foo|" "foo|")
+    ("|foo bar" "foo| bar" "foo bar|")
+    ("(|foo bar)" "(foo| bar)" "(foo bar|)" "(foo| bar)")
+    ("(foo| bar baz)" "(foo bar| baz)" "(foo bar baz|)" "(foo| bar baz)" )
+    ("(|foo)" "(foo|)" "(foo|)")
+    )
+   (((current-prefix-arg 2))
+    ("|foo bar" "foo bar|")
+    ("|(foo bar) baz" "(foo bar) baz|")
+    ("(foo| bar) baz" "(foo| bar) baz")
+    )
+   ))
+
+(sp-test-command sp-backward-parallel-sexp
+  ((nil
+    ("foo|" "|foo")
+    ("|foo" "|foo")
+    ("foo bar|" "foo |bar" "|foo bar")
+    ("(foo bar|)" "(foo |bar)" "(|foo bar)" "(foo |bar)")
+    ("(foo| bar baz)" "(|foo bar baz)" "(foo bar |baz)" "(foo |bar baz)" )
+    ("(foo|)" "(|foo)" "(|foo)")
+    )
+   (((current-prefix-arg 2))
+    ("foo bar|" "|foo bar")
+    ("(foo bar) baz|" "|(foo bar) baz")
+    ("(foo |bar) baz" "(foo |bar) baz")
+    )
+   ))
+
 (sp-test-command sp-forward-slurp-sexp
   ((nil
     ;; beware, this also tests the reindenting/cleanup!!!
