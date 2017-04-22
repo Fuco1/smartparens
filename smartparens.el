@@ -1869,6 +1869,7 @@ The list OLD-PAIR must not be nil."
       (:suffix (plist-put old-pair :suffix new-val))
       (:skip-match (plist-put old-pair :skip-match new-val))
       (:trigger (plist-put old-pair :trigger new-val))
+      (:trigger-wrap (plist-put old-pair :trigger-wrap new-val))
       ((:actions :when :unless :pre-handlers :post-handlers)
        (cl-case (car new-val)
          (:add (plist-put old-pair prop (-union (plist-get old-pair prop) (cdr new-val))))
@@ -2051,6 +2052,7 @@ is wrapped instead.  This is useful with selection functions in
                    close
                    &key
                    trigger
+                   trigger-wrap
                    (actions '(wrap insert autoskip navigate))
                    when
                    unless
@@ -2072,6 +2074,8 @@ TRIGGER is an optional trigger for the pair.  The pair will be
 inserted if either OPEN or TRIGGER is typed.  This is usually
 used as a shortcut for longer pairs or for pairs that can't be
 typed easily.
+
+TRIGGER-WRAP is the same as TRIGGER but used for wrapping.
 
 ACTIONS is a list of actions that smartparens will perform with
 this pair.  Possible values are:
@@ -2199,6 +2203,7 @@ modes, use this property on `sp-local-pair' instead."
       (setq pair (plist-put pair :open open))
       (when close (plist-put pair :close close))
       (when trigger (plist-put pair :trigger trigger))
+      (when trigger-wrap (plist-put pair :trigger-wrap trigger-wrap))
       (dolist (arg `((:actions . ,actions)
                      (:when . ,when)
                      (:unless . ,unless)
@@ -2225,6 +2230,7 @@ modes, use this property on `sp-local-pair' instead."
                          close
                          &key
                          trigger
+                         trigger-wrap
                          (actions '(:add))
                          (when '(:add))
                          (unless '(:add))
@@ -2317,6 +2323,7 @@ addition, there is a global per major-mode option, see
         (setq pair (plist-put pair :open open))
         (when close (plist-put pair :close close))
         (when trigger (plist-put pair :trigger trigger))
+        (when trigger-wrap (plist-put pair :trigger-wrap trigger-wrap))
         (when prefix (plist-put pair :prefix prefix))
         (when suffix (plist-put pair :suffix suffix))
         (when skip-match (plist-put pair :skip-match skip-match))
@@ -3176,10 +3183,7 @@ This is used in advices on various pre-command-hooks from
   "Comparator for wrapping pair selection.
 
 PROP specifies wrapping-end.  A and B are pairs to be compared."
-  (let ((rprop (if (eq prop :open) :close :open)))
-    (if (< (length (plist-get a prop)) (length (plist-get b prop)))
-        (string-prefix-p (plist-get a rprop) (plist-get b rprop))
-      (not (string-prefix-p (plist-get b rprop) (plist-get a rprop))))))
+  (< (length (plist-get a prop)) (length (plist-get b prop))))
 
 (defun sp--pair-to-wrap (&optional prefix)
   "Return information about possible wrapping pairs.
@@ -3193,6 +3197,19 @@ overlay."
          (obeg (car sp-wrap-overlays))
          (prefix (or prefix (sp--get-overlay-text obeg)))
          (opening-pairs (--filter (string-prefix-p prefix (plist-get it :open)) working-pairs))
+         ;; HACK: Here, we will add special "trigger pairs" to the
+         ;; opening list.  We set the opening delimiter to the
+         ;; trigger, leave the rest alone and put the real open into
+         ;; :open-real property.  When we get the pair back, we will
+         ;; check this property, and if present, fix the pair back to
+         ;; the regular form
+         (wrapper-pairs (->> (--filter (string-prefix-p prefix (or (plist-get it :trigger-wrap) "")) working-pairs)
+                             (-map (-lambda ((pair &as &plist :open open :trigger-wrap trigger-wrap))
+                                     (setq pair (copy-sequence pair))
+                                     (setq pair (plist-put pair :open trigger-wrap))
+                                     (setq pair (plist-put pair :open-real open))
+                                     pair))))
+         (opening-pairs (-concat wrapper-pairs opening-pairs))
          (closing-pairs (--filter (string-prefix-p prefix (plist-get it :close)) working-pairs))
          (open (car (--sort (sp--pair-to-wrap-comparator :open it other) opening-pairs)))
          ;; TODO: do we need the special sorting here?
@@ -3316,7 +3333,7 @@ programatically.  Use `sp-wrap-with-pair' instead."
           ((obeg . oend) sp-wrap-overlays))
     (cond
      (open
-      (-let (((&plist :open open :close close) open))
+      (-let (((&plist :open open :close close :open-real open-real) open))
         (when sp-wrap-show-possible-pairs
           (overlay-put
            oend 'after-string
@@ -3332,7 +3349,7 @@ programatically.  Use `sp-wrap-with-pair' instead."
                           (concat (plist-get x :open) (plist-get x :close))))
                       opening-pairs " ")))
         (when (equal (sp--get-overlay-text obeg) open)
-          (sp-wrap--finalize :open open close))))
+          (sp-wrap--finalize :open (or open-real open) close))))
      ((and close (= 1 (length closing-pairs)))
       (-let (((&plist :open open :close close) close))
         (when (equal (sp--get-overlay-text obeg) close)

@@ -35,6 +35,17 @@
     (sp-test-wrapping "\"C-M[|\"" "\"" "\"C-\\\"[\\\"|\"")
     (sp-test-wrapping "\"C-|[M\"" "\"" "\"C-\\\"|[\\\"\"")))
 
+(ert-deftest sp-test-wrap-with-trigger nil
+  (let ((sp-pairs '((t (:open "\\(" :close "\\)" :trigger-wrap "$"
+                        :actions (insert wrap autoskip navigate escape))
+                       (:open "$" :close "$"
+                        :actions (insert wrap autoskip navigate escape))
+                       (:open "[" :close "]"
+                        :actions (insert wrap autoskip navigate escape))))))
+    ;; #663
+    (sp-test-wrapping "|foobarM" "$" "\\(|foobar\\)")
+    (sp-test-wrapping "Mfoobar|" "$" "\\(foobar\\)|")))
+
 (ert-deftest sp-test-wrap-unbalanced-region nil
   (shut-up
     (let ((sp-pairs sp--test-basic-pairs))
