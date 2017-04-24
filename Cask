@@ -1,7 +1,7 @@
 (source melpa)
 (source gnu)
 
-(package "smartparens" "1.9.0"
+(package "smartparens" "1.10.1"
          "Automatic insertion, wrapping and paredit-like navigation with user defined pairs.")
 
 (depends-on "cl-lib" "0.3")
