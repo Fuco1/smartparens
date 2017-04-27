@@ -7700,6 +7700,8 @@ splice the resulting expression.  Wrap the current enclosing list
 with the delimiters of the spliced list and insert the saved
 expressions.
 
+If point is in a symbol, move to end of symbol before convolving.
+
 With ARG positive N, move up N lists before wrapping.
 
 Examples:
@@ -7716,6 +7718,8 @@ We want to move the `while' before the `let'.
   (forward-char (sp-get env |:op-l)) -> (sp-get env (forward-char |:op-l))"
   (interactive "p")
   (save-excursion
+    (when (sp-point-in-symbol)
+      (sp-forward-symbol))
     (let* ((old-buffer-size (buffer-size))
            (enc (sp-get-enclosing-sexp))
            (inner-close (sp-get enc (delete-and-extract-region
