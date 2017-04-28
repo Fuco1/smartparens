@@ -7720,6 +7720,7 @@ We want to move the `while' before the `let'.
   (save-excursion
     (when (sp-point-in-symbol)
       (sp-forward-symbol))
+    (just-one-space)
     (let* ((old-buffer-size (buffer-size))
            (enc (sp-get-enclosing-sexp))
            (inner-close (sp-get enc (delete-and-extract-region
