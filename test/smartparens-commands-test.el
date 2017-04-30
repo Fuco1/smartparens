@@ -771,3 +771,20 @@ be."
       (execute-kbd-macro "dd")
       (shut-up (call-interactively 'yank))
       (sp-buffer-equals "(foo) (bar) (baz)|"))))
+
+(ert-deftest sp-test-sp-prefix-save-excursion-keep-indentation nil
+  (sp-test-with-temp-elisp-buffer "(progn
+  |(foo)
+  (bar))"
+    ;; TODO: turn this into some helper
+    (let ((overlay (make-overlay (point-min) (point-max) nil t t)))
+      (overlay-put overlay
+                   'keymap
+                   (let ((map (make-sparse-keymap)))
+                     (define-key map "x" 'sp-extract-before-sexp)
+                     (define-key map "e" 'sp-prefix-save-excursion)
+                     map))
+      (execute-kbd-macro "ex")
+      (sp-buffer-equals "(foo)
+(progn
+  |(bar))"))))

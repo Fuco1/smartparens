@@ -5289,10 +5289,11 @@ the executed command."
   (interactive "P")
   (let* ((cmd (read-key-sequence "" t))
          (com (key-binding cmd)))
-    (save-excursion
-      (if (commandp com)
-          (call-interactively com)
-        (execute-kbd-macro cmd)))))
+    (sp--keep-indentation
+      (save-excursion
+        (if (commandp com)
+            (call-interactively com)
+          (execute-kbd-macro cmd))))))
 
 (defun sp-get-thing (&optional back)
   "Find next thing after point, or before if BACK is non-nil.
