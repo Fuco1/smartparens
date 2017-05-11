@@ -22,4 +22,5 @@
   (depends-on "tuareg")
   (depends-on "scala-mode")
   (depends-on "elixir-mode")
+  (depends-on "markdown-mode")
   (depends-on "evil"))
