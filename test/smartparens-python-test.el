@@ -108,3 +108,17 @@ Make sure to skip even in inactive sexps."
   (sp-test-insertion-python "[\"asd|]" "\"" "[\"asd\"|]")
   (sp-test-insertion-python "\"foo |] bar\"" "\"" "\"foo \\\"|] bar\"")
   (sp-test-insertion-python "\"first| \"second\"" "\"" "\"first\"| \"second\""))
+
+(ert-deftest sp-test-python-rewrap-tripple-single-quote-to-double-quote ()
+  "Test if '''...''' is rewrapped to \"\"\"...\"\"\" when the user selects \" as rewrapping pair."
+  (sp-test-with-temp-buffer "'''f|oo'''"
+      (sp-test--python-mode)
+    (sp-rewrap-sexp '("\"" . "\""))
+    (sp-buffer-equals "\"\"\"f|oo\"\"\"")))
+
+(ert-deftest sp-test-python-rewrap-tripple-double-quote-to-single-quote ()
+  "Test if \"\"\"...\"\"\" is rewrapped to '''...''' when the user selects ' as rewrapping pair."
+  (sp-test-with-temp-buffer "\"\"\"f|oo\"\"\""
+      (sp-test--python-mode)
+    (sp-rewrap-sexp '("'" . "'"))
+    (sp-buffer-equals "'''f|oo'''")))
