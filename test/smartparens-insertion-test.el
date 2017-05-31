@@ -222,3 +222,10 @@ of the buffer is correct, we escape, otherwise we close."
   (sp-test-insertion "[\"asd|]" "\"" "[\"asd\"|]")
   (sp-test-insertion "\"foo |] bar\"" "\"" "\"foo \\\"|] bar\"")
   (sp-test-insertion "\"first| \"second\"" "\"" "\"first\"| \"second\""))
+
+(ert-deftest sp-test-insert-dont-insert-in-overwrite-mode ()
+  (sp-test-with-temp-buffer "foo = |\"\""
+      (shut-up (python-mode))
+    (overwrite-mode 1)
+    (execute-kbd-macro "''")
+    (sp-buffer-equals "foo = ''|")))

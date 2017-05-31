@@ -3015,7 +3015,7 @@ last form; otherwise do nothing."
                      (-lambda ((&keys :open open :close close))
                        (--when-let (sp--wrap-repeat-last (cons open close))
                          (throw 'done it)))))))
-              (sp--setaction action (sp-insert-pair))
+              (unless overwrite-mode (sp--setaction action (sp-insert-pair)))
               (sp--setaction action (sp-skip-closing-pair))
               (unless action (sp-escape-open-delimiter))
               ;; if nothing happened, we just inserted a character, so
