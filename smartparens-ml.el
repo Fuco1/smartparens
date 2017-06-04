@@ -50,7 +50,7 @@
 (require 'smartparens)
 
 ;;; Local pairs for ML-family languages
-(sp-with-modes '(tuareg-mode) (sp-local-pair "(*" "*)" ))
+(sp-with-modes '(tuareg-mode fsharp-mode) (sp-local-pair "(*" "*)" ))
 (sp-with-modes '(reason-mode) (sp-local-pair "/*" "*/" ))
 
 (provide 'smartparens-ml)
