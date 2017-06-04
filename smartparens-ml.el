@@ -1,12 +1,14 @@
 ;;; smartparens-ml.el --- Additional configuration for ML languages
 
-;; Copyright (C) 2016 Ta Quang Trung
+;; Copyright (C) 2016-2017 Ta Quang Trung
+;; Copyright (C) 2017 Matus Goljer
 
 ;; Author: Ta Quang Trung <taquangtrungvn@gmail.com>
-;; Maintainer: Ta Quang Trung <taquangtrung@gmail.com>
+;;         Matus Goljer <matus.goljer@gmail.com>
+;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
 ;; Created: 14 July 2016
-;; Keywords: abbrev convenience editing
-;; URL: https://github.com/taquangtrung/smartparens
+;; Keywords: smartparens, ML, ocaml, reason
+;; URL: https://github.com/Fuco1/smartparens
 
 ;; This file is not part of GNU Emacs.
 
@@ -46,6 +48,10 @@
 ;;; Code:
 
 (require 'smartparens)
+
+;;; Local pairs for ML-family languages
+(sp-with-modes '(tuareg-mode fsharp-mode) (sp-local-pair "(*" "*)" ))
+(sp-with-modes '(reason-mode) (sp-local-pair "/*" "*/" ))
 
 (provide 'smartparens-ml)
 ;;; smartparens-ml.el ends here
