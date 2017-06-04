@@ -1,9 +1,14 @@
 ;;; smartparens-ml.el --- Additional configuration for ML languages
 
-;; Author: tddsg
+;; Copyright (C) 2016-2017 Ta Quang Trung
+;; Copyright (C) 2017 Matus Goljer
+
+;; Author: Ta Quang Trung <taquangtrungvn@gmail.com>
+;;         Matus Goljer <matus.goljer@gmail.com>
+;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
 ;; Created: 14 July 2016
-;; Updated: 29 April 2017
 ;; Keywords: smartparens, ML, ocaml, reason
+;; URL: https://github.com/Fuco1/smartparens
 
 ;; This file is not part of GNU Emacs.
 
