@@ -51,14 +51,28 @@ executing `sp-skip-closing-pair'."
     (should (equal (buffer-string) "from sys import stdin, \\\n    stdout\n\na = \"[]|\""))))
 
 ;; #421
-;; If we are in a balanced context and hit a closing delimiters which
-;; is not enclosing (so we would jump out of the sexp) we should not
-;; insert it as it would just create an imbalance.
+;; If we are in a balanced context and hit a closing delimiter for
+;; an autoskip pair which is not enclosing (so we would jump out of
+;; the sexp) we should not insert it as it would just create an
+;; imbalance.
 (ert-deftest sp-test-strict-mode-inhibit-closing-delim-inside-sexp ()
   (sp-test-with-temp-elisp-buffer "(foo | bar)"
     (smartparens-strict-mode 1)
     (execute-kbd-macro "]")
     (sp-buffer-equals "(foo | bar)")))
+
+;; However, if the pair is not autoskip, then we insert the closing
+;; delimiter when typed, regardless of balance context.
+(ert-deftest sp-test-strict-mode-dont-inhibit-closing-non-autoskip-delim ()
+  (sp-test-with-temp-buffer "" nil
+    (let ((sp-pairs sp-pairs))
+      (smartparens-strict-mode)
+      (sp-local-pair major-mode "{" "}" :actions '(insert autoskip navigate wrap))
+      (execute-kbd-macro "}")
+      (should (eq (char-before) nil))
+      (sp-local-pair major-mode "{" "}" :actions '(:rem autoskip))
+      (execute-kbd-macro "}")
+      (should (eq (char-before) ?\})))))
 
 (ert-deftest sp-test-strict-mode-inhibit-closing-delim-outside-sexp ()
   (sp-test-with-temp-elisp-buffer "(foo bar) | (bar baz)"
