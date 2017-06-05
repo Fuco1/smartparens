@@ -6350,7 +6350,7 @@ Examples:
                         (current-column)))
          (orig-column (current-column)))
     (cond
-     ((= arg 0) (kill-line))
+     ((= arg 0) (kill-line 0))
      ((and raw (= arg 16))
       (let ((hl (sp-get-hybrid-sexp)))
         (sp-get hl (kill-region :beg-prf :end-suf))))
