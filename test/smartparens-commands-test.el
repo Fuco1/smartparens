@@ -601,6 +601,32 @@ be."
     ("(progn\n | (some\nlong\nsexp))" "(progn\n  |)")
     ("(progn\n  (so|me\nlong\nsexp))" "(progn\n  |)"))))
 
+(sp-test-command sp-transpose-sexp
+  ((nil
+    ;; Preserve whitespace
+    ("foo |  bar" "bar   foo|")
+    ("(foo bar)|:symbol" ":symbol(foo bar)|")
+
+    ;; Preserve prefix
+    ("'foo |  bar" "bar   'foo|")
+    (",@(foo bar)| :symbol" ":symbol ,@(foo bar)|")
+    )
+   (((mode 'python))
+    ;; Do not drag suffix
+    ("def foo(first, |second):" "def foo(second, first|):"))))
+
+
+(sp-test-command sp-transpose-hybrid-sexp
+  ((nil
+    ;; Preserve whitespace
+    ("foo   bar|\nbaz" "baz\nfoo   bar|")
+    ("foo (bas\n     bar)|\n(next list)" "(next list)\nfoo (bas\n     bar)|"))
+
+   ;; Do not drag suffix
+   (((mode 'c))
+    ("void f() {\n  int a[] = {\n    foo(1,2),|\n    bar(3,4)\n  };   \n}"
+     "void f() {\n  int a[] = {\n    bar(3,4),\n    foo(1,2)\n  |};   \n}"))))
+
 (defun sp--test-sp-rewrap-sexp (initial pair expected &optional keep)
   (sp-test-with-temp-elisp-buffer initial
     (sp-rewrap-sexp pair keep)

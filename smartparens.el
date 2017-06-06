@@ -6414,8 +6414,8 @@ Examples:
 whitespace between them."
   (save-excursion
     (goto-char (sp-get second :beg-prf))
-    (let ((ins (sp-get second (delete-and-extract-region :beg-prf :end-suf)))
-          (between (delete-and-extract-region (sp-get first :end-suf) (point))))
+    (let ((ins (sp-get second (delete-and-extract-region :beg-prf :end)))
+          (between (delete-and-extract-region (sp-get first :end) (point))))
       (goto-char (sp-get first :beg-prf))
       (insert ins between))))
 
