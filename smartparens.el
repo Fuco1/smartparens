@@ -1456,6 +1456,11 @@ P is the point at which we run `syntax-ppss'"
 (defun sp-point-in-string (&optional p)
   "Return non-nil if point is inside string or documentation string.
 
+This function actually returns the 3rd element of `syntax-ppss'
+which can be a number if the string is delimited by that
+character or t if the string is delimited by general string
+fences.
+
 If optional argument P is present test this instead of point."
   (ignore-errors
     (save-excursion
@@ -4575,9 +4580,19 @@ on it when calling directly."
     ;; `sp-get-string'
     (if (and delimiter
              (= (length delimiter) 1)
-             (eq (char-syntax (string-to-char delimiter)) 34)
-             (not (eq t (sp-point-in-string))))
-        (sp-get-string back)
+             ;; TODO: this "smart" behaviour is duplicated in
+             ;; `sp-get-thing', maybe the whole string parsing could
+             ;; be extracted to some common function (actually we
+             ;; should probably use this one from `sp-get-thing')
+             (eq (char-syntax (string-to-char delimiter)) 34))
+        (if (eq t (sp-point-in-string))
+            (save-excursion
+              (save-restriction
+                (widen)
+                (-let (((beg . end) (sp-get-quoted-string-bounds)))
+                  (narrow-to-region beg end))
+                (sp-get-stringlike-expression back)))
+          (sp-get-string back))
       (sp-get-stringlike-expression back))))
 
 (defun sp-get-expression (&optional back)
@@ -5338,7 +5353,12 @@ expressions are considered."
                  ((and (eq (char-syntax (preceding-char)) 34)
                        (not (sp-char-is-escaped-p (1- (point)))))
                   (if (eq t (sp-point-in-string))
-                      (sp-get-stringlike-expression t)
+                      (save-excursion
+                        (save-restriction
+                          (widen)
+                          (-let (((beg . end) (sp-get-quoted-string-bounds)))
+                            (narrow-to-region beg end))
+                          (sp-get-stringlike-expression t)))
                     (sp-get-string t)))
                  ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-stringlike-regexp) nil))
                   (sp-get-expression t))
@@ -5374,6 +5394,8 @@ expressions are considered."
                 (sp-get-sexp nil))
                ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-closing-regexp (sp--get-allowed-pair-list))))
                 (sp-get-sexp nil))
+               ;; TODO: merge the following two conditions and use
+               ;; `sp-get-stringlike-or-textmode-expression'
                ((and (eq (char-syntax (following-char)) 34)
                      (not (sp-char-is-escaped-p)))
                 ;; It might happen that the string delimiter we are
@@ -5385,7 +5407,12 @@ expressions are considered."
                 ;; `syntax-ppss' returns t as delimiter we need to use
                 ;; `sp-get-stringlike-expression'
                 (if (eq t (sp-point-in-string))
-                    (sp-get-stringlike-expression nil)
+                    (save-excursion
+                      (save-restriction
+                        (widen)
+                        (-let (((beg . end) (sp-get-quoted-string-bounds)))
+                          (narrow-to-region beg end))
+                        (sp-get-stringlike-expression nil)))
                   (sp-get-string nil)))
                ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-stringlike-regexp)))
                 (sp-get-expression nil))
