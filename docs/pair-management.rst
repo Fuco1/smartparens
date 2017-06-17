@@ -101,11 +101,23 @@ If a global pair with the same trigger does not exist, the pair is defined local
 
 Instead of one mode, you can also specify a list to handle multiple modes at the same time (for example ``'(emacs-lisp-mode LaTeX-mode)``).
 
+If you specify a parent major mode all the derived modes will automatically inherit all the definitions.  If you want to add a pair to all programming modes you can define it for ``prog-mode``.  If you want to add a pair to all text modes you can define it for ``text-mode``.
+
+You can use the following snippet to get all the parent major modes of the ``major-mode`` in the current buffer
+
+.. code-block:: emacs-lisp
+
+    (let ((parents (list major-mode)))
+      (while (get (car parents) 'derived-mode-parent)
+        (push (get (car parents) 'derived-mode-parent) parents))
+      parents)
+
+
 Local pairs can be removed by calling ``sp-local-pair`` with optional keyword argument ``:actions`` with value ``:rem``:
 
 .. code-block:: emacs-lisp
 
-   (sp-local-pair LaTeX-mode "`" nil :actions :rem)
+   (sp-local-pair 'LaTeX-mode "`" nil :actions :rem)
 
 
 .. warning:: This only removes the pairs you have previously added using ``sp-local-pair``. It does not remove/disable a global pair in the specified mode. If you want to disable some pair in specific modes, set its permissions accordingly.
@@ -122,3 +134,41 @@ When configuring a mode it is often the case that we modify multiple pairs at th
      ;; also only use the pseudo-quote inside strings where it
      ;; serves as hyperlink.
      (sp-local-pair "`" "'" :when '(sp-in-string-p sp-in-comment-p)
+
+Named pair definitions (buffer-local)
+----------------------
+
+In addition to using the major mode or a parent mode you can also use an arbitrary symbol as the name of the configuration.  This way you can build sets of pairs independent of the major mode hierarchies and you can apply them locally to buffers as you see fit.
+
+The syntax for defining custom named definitions is the same as with ``sp-local-pair`` only except a major mode as the first argument you pass your desired name.
+
+You can for example define a set of escaped pairs to be used cross-major-mode
+
+.. code-block:: emacs-lisp
+
+    (sp-local-pair 'escaped-pairs "\\<" "\\>")
+    (sp-local-pair 'escaped-pairs "\\`" "\\'")
+
+You can then apply this definition buffer-locally to the current buffer with
+
+.. code-block:: emacs-lisp
+
+    (sp-update-local-pairs 'escaped-pairs)
+
+This will merge this named configuration into the current buffer's ``sp-local-pairs`` definitions.
+
+Alternatively you can also use an *anonymous* configuration.  The configuration is a plist of arguments with the same meaning as those of ``sp-local-pair`` with the additional requirement of adding ``:open`` and ``:close`` keywords for the opening and closing delimiters.  You can also pass a list of such plists to apply all of them at once.
+
+.. warning:: Make sure to specify at least one action in the ``:actions`` key otherwise the pair will be removed by the virtue of having no actions.  When using ``sp-local-pair`` many of the keyword arguments get sensible defaults so you don't have to specify them; this is **not** the case when using an anonymous configuration directly.  When possible, use mode configrations or named configurations.
+
+This can be used for example for local configuration with major-mode hooks:
+
+.. code-block:: emacs-lisp
+
+   (defun my-php-mode-init ()
+     (sp-update-local-pairs '(:open "#"
+                              :close "#"
+                              :actions (insert))))
+   (add-hook 'php-mode-hook 'my-php-mode-init)
+
+This will add the ``# #`` pair to ``php-mode`` buffers via the major mode hook.

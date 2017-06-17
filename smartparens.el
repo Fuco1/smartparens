@@ -731,19 +731,54 @@ See `sp--init'."
   (unless sp-pair-list
     (sp--init)))
 
+(defun sp--update-sp-pair-list ()
+  "Update `sp-pair-list' according to current value of `sp-local-pairs'."
+  (setq sp-pair-list
+        (->> sp-local-pairs
+             (--map (cons (plist-get it :open) (plist-get it :close)))
+             (-sort (lambda (x y) (> (length (car x)) (length (car y))))))))
+
 (defun sp--update-local-pairs ()
-  "Update local pairs after removal or at mode initialization."
+  "Update local pairs after change or at mode initialization.
+
+This commands load all the parent major mode definitions and
+merges them into current buffer's `sp-local-pairs'."
+  (let ((parent-modes (-fix (lambda (x)
+                              (--if-let (get (car x) 'derived-mode-parent)
+                                  (cons it x)
+                                x))
+                            (list major-mode))))
+    ;; Combine all the definitions from the most ancient parent to the
+    ;; most recent parent
+    (--each parent-modes (sp-update-local-pairs it))))
+
+(defun sp-update-local-pairs (configuration)
+  "Update `sp-local-pairs' with CONFIGURATION.
+
+The pairs are only updated in current buffer not in all buffers
+with the same major mode!  If you want to update all buffers of
+the specific major-modes use `sp-local-pair'.
+
+CONFIGURATION can be a symbol to be looked up in `sp-pairs' or a
+property list corresponding to the arguments of `sp-local-pair'
+or a list of such property lists."
   (setq sp-local-pairs
-        (->> (sp--merge-with-local major-mode)
-          (--filter (plist-get it :actions))))
+        (cond
+         ((symbolp configuration)
+          (sp--merge-pair-configurations (cdr (assq configuration sp-pairs))))
+         ((plist-member configuration :open)
+          (sp--merge-pair-configurations (list configuration)))
+         (t
+          (sp--merge-pair-configurations configuration))))
+
+  ;; Keep only those which have non-nil :actions
+  (setq sp-local-pairs (--filter (plist-get it :actions) sp-local-pairs))
+
   ;; update the `sp-pair-list'.  This is a list only containing
   ;; (open.close) cons pairs for easier querying.  We also must order
   ;; it by length of opening delimiter in descending order (first
   ;; value is the longest)
-  (setq sp-pair-list
-        (->> sp-local-pairs
-          (--map (cons (plist-get it :open) (plist-get it :close)))
-          (-sort (lambda (x y) (> (length (car x)) (length (car y))))))))
+  (sp--update-sp-pair-list))
 
 (defun sp--update-local-pairs-everywhere (&rest modes)
   "Run `sp--update-local-pairs' in all buffers.
@@ -756,7 +791,7 @@ MODES."
     (with-current-buffer it
       (when (and smartparens-mode
                  (or (not modes)
-                     (memq major-mode modes)))
+                     (--any? (derived-mode-p it) modes)))
         (sp--update-local-pairs)))))
 
 (defcustom smartparens-enabled-hook nil
@@ -1983,10 +2018,13 @@ The value is fetched from `sp-local-pairs'.
 If PROP is non-nil, return the value of that property instead."
   (sp--get-pair-definition open sp-local-pairs prop))
 
-(defun sp--merge-with-local (mode)
-  "Merge the global pairs definitions with definitions for major mode MODE."
-  (let* ((global (cdr (assq t sp-pairs)))
-         (local (cdr (assq mode sp-pairs)))
+(defun sp--merge-pair-configurations (specific &optional current)
+  "Merge SPECIFIC pair configuration to the CURRENT configuration.
+
+CURRENT defaults to `sp-local-pairs' if it is non-nil or the
+global definition from `sp-pairs' if `sp-local-pairs' is nil."
+  (let* ((global (or current sp-local-pairs (cdr (assq t sp-pairs))))
+         (local specific)
          (result nil))
     ;; copy the pairs on global list first.  This creates new plists
     ;; so we can modify them without changing the global "template"
