@@ -140,6 +140,7 @@ Contents
 
    automatic-escaping
    pair-management
+   permissions
    example-configuration
 
 
