@@ -4527,6 +4527,8 @@ and the skip-match predicate."
 (defun sp-get-textmode-stringlike-expression (&optional back)
   "Find the nearest text-mode string-like expression.
 
+If BACK is non-nil search in the backwards direction.
+
 Text-mode string-like expression is one where the delimiters must
 be surrounded by whitespace from the outside.  For example,
 
@@ -8360,7 +8362,13 @@ Examples:
             (setq n 0))
            ((sp--looking-at (sp--get-opening-regexp (sp--get-pair-list-context 'navigate)))
             (-if-let (thing (save-match-data (sp-get-thing)))
-                (goto-char (sp-get thing :beg-in))
+                (cond
+                 ((= (sp-get thing :end-in) (point))
+                  (setq n 0))
+                 ((= (sp-get thing :beg) (point))
+                  (goto-char (sp-get thing :beg-in)))
+                 (t
+                  (delete-char (length (match-string 0)))))
               (delete-char (length (match-string 0))))
             ;; make this customizable
             (setq n (1- n)))
@@ -8436,7 +8444,13 @@ Examples:
             (setq n 0))
            ((sp--looking-back (sp--get-closing-regexp (sp--get-pair-list-context 'navigate)))
             (-if-let (thing (save-match-data (sp-get-thing t)))
-                (goto-char (sp-get thing :end-in))
+                (cond
+                 ((= (sp-get thing :end) (point))
+                  (goto-char (sp-get thing :end-in)))
+                 ((= (sp-get thing :beg-in) (point))
+                  (setq n 0))
+                 (t
+                  (delete-char (- (length (match-string 0))))))
               (delete-char (- (length (match-string 0)))))
             ;; make this customizable
             (setq n (1- n)))
@@ -8886,7 +8900,12 @@ support custom pairs."
                      ;; pair opening, and so only the tag or the sexp can trigger.
                      (-if-let (ok (sp-get-thing back))
                          (sp-get ok
-                           (when (and (<= :beg (point)) (<= (point) :end))
+                           (when (or (and back
+                                          (or (= :end (point))
+                                              (= :end-in (point))))
+                                     (and (not back)
+                                          (or (= :beg (point))
+                                              (= :beg-in (point)))))
                              (sp-show--pair-create-overlays :beg :end :op-l :cl-l)))
                        (if back
                            (sp-show--pair-create-mismatch-overlay (- (point) (length match))

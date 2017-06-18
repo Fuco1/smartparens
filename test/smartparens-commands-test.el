@@ -594,6 +594,43 @@ be."
     ("\\{foo\\}|" "\\{foo|\\}")
     ("\"foo\\\\\"|" "\"foo\\\\|\""))))
 
+(defun sp-test--sp-backward-delete-char-textmode (initial expected &optional n)
+  (setq n (or n 1))
+  (sp-test-with-temp-buffer initial
+      (text-mode)
+    (sp-backward-delete-char n)
+    (sp-buffer-equals expected)))
+
+(ert-deftest sp-test-command-sp-backward-delete-char-textmode ()
+  (let ((sp-pairs '((t . ((:open "\"" :close "\"" :actions (insert wrap autoskip navigate))
+                          (:open "'" :close "'" :actions (insert wrap autoskip navigate)))))))
+    (sp-test--sp-backward-delete-char-textmode "foo \"it'| OK\" baz" "foo \"it| OK\" baz")
+    (sp-test--sp-backward-delete-char-textmode "foo \"|OK\" baz" "foo \"|OK\" baz")
+    (sp-test--sp-backward-delete-char-textmode "foo \"it's OK\"| baz" "foo \"it's OK|\" baz")
+    (sp-test--sp-backward-delete-char-textmode "\"this\" doesn'|" "\"this\" doesn|")
+    (sp-test--sp-backward-delete-char-textmode "\"don't\"|" "|" 7)))
+
+(sp-test-command sp-delete-char
+  ((nil
+    ("|[foo]" "[|foo]")
+    ("|\\{foo\\}" "\\{|foo\\}")
+    ("|\"foo\\\\\"" "\"|foo\\\\\""))))
+
+(defun sp-test--sp-delete-char-textmode (initial expected)
+  (sp-test-with-temp-buffer initial
+      (text-mode)
+    (sp-delete-char)
+    (sp-buffer-equals expected)))
+
+(ert-deftest sp-test-command-sp-delete-char-textmode ()
+  (let ((sp-pairs '((t . ((:open "\"" :close "\"" :actions (insert wrap autoskip navigate))
+                          (:open "'" :close "'" :actions (insert wrap autoskip navigate)))))))
+    (sp-test--sp-delete-char-textmode "foo \"it|' OK\" baz" "foo \"it| OK\" baz")
+    (sp-test--sp-delete-char-textmode "foo \"OK|\" baz" "foo \"OK|\" baz")
+    (sp-test--sp-delete-char-textmode "foo |\"it's OK\" baz" "foo \"|it's OK\" baz")
+    (sp-test--sp-delete-char-textmode "foo|'s \"baz bar\" aaa" "foo|s \"baz bar\" aaa")
+    ))
+
 (sp-test-command sp-kill-whole-line
   ((nil
     ("(progn (some |long sexp))" "|")
