@@ -8626,6 +8626,31 @@ backward direction."
   (interactive "p")
   (sp-backward-kill-symbol arg t))
 
+(defun sp-backward-delete-symbol (&optional arg word)
+  "Delete a symbol backward, skipping over any intervening delimiters.
+
+With ARG being positive number N, repeat that many times.
+
+With ARG being Negative number -N, repeat that many times in
+forward direction.
+
+See `sp-backward-symbol' for what constitutes a symbol."
+  (interactive "p")
+  (interactive)
+  (let* ((kill-ring kill-ring)
+         (select-enable-clipboard nil))
+    (sp-backward-kill-symbol arg word)))
+
+(defun sp-backward-delete-word (&optional arg)
+  "Delete a word backward, skipping over intervening delimiters.
+
+With ARG being positive number N, repeat that many times.
+
+With ARG being Negative number -N, repeat that many times in
+backward direction."
+  (interactive "p")
+  (sp-backward-delete-symbol arg t))
+
 (defun sp-delete-region (beg end)
   "Delete the text between point and mark, like `delete-region'.
 
