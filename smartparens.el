@@ -8579,6 +8579,34 @@ backward direction."
   (interactive "p")
   (sp-kill-symbol arg t))
 
+(defun sp-delete-symbol (&optional arg word)
+  "Delete a symbol forward, skipping over any intervening delimiters.
+
+Deleted symbol does not go to the clipboard or kill ring.
+
+With ARG being positive number N, repeat that many times.
+
+With ARG being Negative number -N, repeat that many times in
+backward direction.
+
+See `sp-forward-symbol' for what constitutes a symbol."
+  (interactive "p")
+  (let* ((kill-ring kill-ring)
+         (select-enable-clipboard nil))
+    (sp-kill-symbol arg word)))
+
+(defun sp-delete-word (&optional arg)
+  "Delete a word forward, skipping over intervening delimiters.
+  
+Deleted word does not go to the clipboard or kill ring.
+
+With ARG being positive number N, repeat that many times.
+
+With ARG being Negative number -N, repeat that many times in
+backward direction."
+  (interactive "p")
+  (sp-delete-symbol arg t))
+
 (defun sp-backward-kill-symbol (&optional arg word)
   "Kill a symbol backward, skipping over any intervening delimiters.
 
@@ -8625,6 +8653,34 @@ With ARG being Negative number -N, repeat that many times in
 backward direction."
   (interactive "p")
   (sp-backward-kill-symbol arg t))
+
+(defun sp-backward-delete-symbol (&optional arg word)
+  "Delete a symbol backward, skipping over any intervening delimiters.
+
+Deleted symbol does not go to the clipboard or kill ring.
+
+With ARG being positive number N, repeat that many times.
+
+With ARG being Negative number -N, repeat that many times in
+forward direction.
+
+See `sp-backward-symbol' for what constitutes a symbol."
+  (interactive "p")
+  (let* ((kill-ring kill-ring)
+         (select-enable-clipboard nil))
+    (sp-backward-kill-symbol arg word)))
+
+(defun sp-backward-delete-word (&optional arg)
+  "Delete a word backward, skipping over intervening delimiters.
+  
+Deleted word does not go to the clipboard or kill ring.
+
+With ARG being positive number N, repeat that many times.
+
+With ARG being Negative number -N, repeat that many times in
+backward direction."
+  (interactive "p")
+  (sp-backward-delete-symbol arg t))
 
 (defun sp-delete-region (beg end)
   "Delete the text between point and mark, like `delete-region'.
