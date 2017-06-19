@@ -19,4 +19,5 @@
 - `smartparens` version:
 - Active major-mode:
 - Emacs version (`M-x emacs-version`):
+- Spacemacs/Evil/Other starterkit (specify which)/Vanilla: 
 - OS:
