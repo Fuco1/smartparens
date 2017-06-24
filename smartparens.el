@@ -8964,10 +8964,10 @@ support custom pairs."
                          (sp-get ok
                            (when (or (and back
                                           (or (= :end (point))
-                                              (= :end-in (point))))
+                                              (= :beg-in (point))))
                                      (and (not back)
                                           (or (= :beg (point))
-                                              (= :beg-in (point)))))
+                                              (= :end-in (point)))))
                              (sp-show--pair-create-overlays :beg :end :op-l :cl-l)))
                        (if back
                            (sp-show--pair-create-mismatch-overlay (- (point) (length match))
