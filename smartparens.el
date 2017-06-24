@@ -3186,7 +3186,13 @@ delimiter for any pair allowed in current context."
   (sp--strict-regexp-opt (--mapcat (list (car it) (cdr it)) pair-list)))
 
 (cl-defun sp--get-stringlike-regexp (&optional (pair-list (sp--get-allowed-stringlike-list)))
-  (regexp-opt (--map (car it) pair-list)))
+  "Return a regexp matching any string-like delimiter.
+
+In case PAIR-LIST is empty return a regexp that never matches
+anything."
+  (if (consp pair-list)
+      (regexp-opt (--map (car it) pair-list))
+    "^\\<$"))
 
 (defun sp--get-last-wraped-region (beg end open close)
   "Return `sp-get-sexp' style plist about the last wrapped region.

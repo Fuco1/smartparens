@@ -63,3 +63,25 @@ delimiter."
   "`sp--strict-regexp-opt' on nil input should return empty
 string to be consistent with `regexp-opt'."
   (should (equal "" (sp--strict-regexp-opt nil))))
+
+(ert-deftest sp-test-sp--get-stringlike-regexp-with-delimiter ()
+  "In case there are string-like delimiters we should return a
+regexp that matches them."
+  (let ((sp-pairs '((t . ((:open "\"" :close "\"" :actions (insert wrap autoskip navigate)))))))
+    (sp-test-with-temp-elisp-buffer "foo |\"bar\""
+      (should (sp--looking-at-p (sp--get-stringlike-regexp))))
+    (sp-test-with-temp-elisp-buffer "\"bar\"| baz"
+      (should (sp--looking-back-p (sp--get-stringlike-regexp))))))
+
+(ert-deftest sp-test-sp--get-stringlike-regexp-with-no-delimiter ()
+  "In case there is no string-like delimiter we should return a
+regexp that never matches anything."
+  (let ((sp-pairs '((t . ((:open "(" :close ")" :actions (insert wrap autoskip navigate)))))))
+    (sp-test-with-temp-elisp-buffer "foo |\"bar\""
+      (should-not (sp--looking-at-p (sp--get-stringlike-regexp))))
+    (sp-test-with-temp-elisp-buffer "\"bar\"| baz"
+      (should-not (sp--looking-back-p (sp--get-stringlike-regexp))))
+    (sp-test-with-temp-elisp-buffer "foo |(bar)"
+      (should-not (sp--looking-at-p (sp--get-stringlike-regexp))))
+    (sp-test-with-temp-elisp-buffer "(bar)| baz"
+      (should-not (sp--looking-back-p (sp--get-stringlike-regexp))))))
