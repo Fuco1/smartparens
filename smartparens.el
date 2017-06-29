@@ -8390,6 +8390,9 @@ Examples:
                 (setq n 0)
               (delete-char (length (match-string 0)))
               (setq n (1- n))))
+           ((bound-and-true-p hungry-delete-mode)
+            (hungry-delete-forward)
+            (setq n (1- n)))
            (t
             (delete-char 1)
             (setq n (1- n))))))
@@ -8472,6 +8475,9 @@ Examples:
                 (setq n 0)
               (delete-char (- (length (match-string 0))))
               (setq n (1- n))))
+           ((bound-and-true-p hungry-delete-mode)
+            (hungry-delete-backward 1)
+            (setq n (1- n)))
            (t
             (delete-char -1)
             (setq n (1- n))))))
