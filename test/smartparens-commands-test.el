@@ -743,6 +743,21 @@ be."
      (call-interactively 'sp-mark-sexp))
    :type 'user-error))
 
+(ert-deftest sp-test-command-sp-convolute-sexp-inside-symbol ()
+  "Calling `sp-convolute-sexp' with point inside of symbol moves
+point to end of symbol before convolving."
+  (sp-test-with-temp-elisp-buffer "(foo (bar b|az))"
+    (call-interactively #'sp-convolute-sexp)
+    (sp-buffer-equals "(bar baz (foo|))")))
+
+(ert-deftest sp-test-command-sp-convolute-sexp-whitespace ()
+  "Calling `sp-convolute-sexp' eliminates extra whitespace.
+
+This is the behavior of `paredit-convolute-sexp'."
+  (sp-test-with-temp-elisp-buffer "(foo (bar  |  baz))"
+    (call-interactively #'sp-convolute-sexp)
+    (sp-buffer-equals "(bar (foo |baz))")))
+
 (ert-deftest sp-test-yank-after-multiple-word-kill ()
   "When we `sp-kill-word' multiple times in a row, we should
   `yank' the entire killed sequence."
