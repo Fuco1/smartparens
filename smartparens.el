@@ -1184,6 +1184,19 @@ point (using `sp-previous-sexp')."
   :type 'boolean
   :group 'smartparens)
 
+(defcustom sp-navigate-interactive-always-progress-point nil
+  "Make point always move in the direction of navigation.
+
+If non-nil and the function is called interactively,
+`sp-next-sexp' and `sp-previous-sexp' will always move the point
+to the end/beg of such an expression where the point would end up
+being further in the direction of travel.
+
+Note: this behaviour will become default in release 2.0 and will
+cease to be configurable."
+  :type 'boolean
+  :group 'smartparens)
+
 (defcustom sp-sexp-prefix nil
   "Alist of `major-mode' specific prefix specification.
 
@@ -5568,11 +5581,6 @@ Examples: (prefix arg in comment)
 
 (put 'sp-backward-sexp 'CUA 'move)
 
-(defcustom sp-interactive-dwim nil
-  "If non-nil and called `interactive', `sp-next-sexp' and
-`sp-previous-sexp' will automatically move the point to the
-end/beg of the current if point is not already on a beg or end.")
-
 (defun sp-next-sexp (&optional arg)
   "Move forward to the beginning of next balanced expression.
 
@@ -5581,9 +5589,10 @@ at current level, jump one level up (effectively doing
 `sp-backward-up-sexp').  Negative arg -N means move to the
 beginning of N-th previous balanced expression.
 
-If `sp-interactive-dwim' is non-nil, and this is called
-interactively, the point will be moved to the :beg before
-proceeding.
+If `sp-navigate-interactive-always-progress-point' is non-nil,
+and this is called interactively, the point will move to the
+first expression in forward direction where it will end up
+greater than the current location.
 
 With `sp-navigate-consider-symbols' symbols and strings are also
 considered balanced expressions.
@@ -5594,28 +5603,33 @@ Examples:
 
   ((foo) bar |(baz quux)) -> |((foo) bar (baz quux))
 
-and with non-nil `sp-interactive-dwim'
+and with non-nil `sp-navigate-interactive-always-progress-point'
 
   (f|oo bar) -> (foo |bar)
 
-  ((fo|o) (bar)) -> (|(foo) (bar))"
+  ((fo|o) (bar)) -> ((foo) |(bar))"
   (interactive "^p")
   (setq arg (or arg 1))
   (if (<= arg 0)
       (sp-backward-sexp (- arg))
-    (when (and sp-interactive-dwim
-               (called-interactively-p 'any)
-               (not (= (point) (sp-get (sp-get-thing) :beg))))
-      (goto-char (sp-get (sp-get-thing) :beg)))
-    (if (= arg 1)
-        (-when-let (ok (sp-get-thing))
-          (if (= (point) (sp-get ok :beg))
-              (progn (sp-forward-sexp 2)
-                     (sp-backward-sexp))
-            (goto-char (sp-get ok :beg))
-            ok))
-      (sp-forward-sexp arg)
-      (sp-backward-sexp))))
+    (if (and sp-navigate-interactive-always-progress-point
+             (called-interactively-p 'any))
+        (progn
+          (while (< 0 arg)
+            (let ((point-start (point)))
+              (while (--when-let (sp-forward-sexp)
+                       (<= (sp-get it :beg) point-start))))
+            (setq arg (1- arg)))
+          (goto-char (sp-get (sp-get-thing t) :beg)))
+      (if (= arg 1)
+          (-when-let (ok (sp-get-thing))
+            (if (= (point) (sp-get ok :beg))
+                (progn (sp-forward-sexp 2)
+                       (sp-backward-sexp))
+              (goto-char (sp-get ok :beg))
+              ok))
+        (sp-forward-sexp arg)
+        (sp-backward-sexp)))))
 
 (put 'sp-next-sexp 'CUA 'move)
 
@@ -5630,9 +5644,10 @@ N-th following balanced expression.
 With `sp-navigate-consider-symbols' symbols and strings are also
 considered balanced expressions.
 
-If `sp-interactive-dwim' is non-nil, and this is called
-interactively, the point will be moved to the :end before
-proceeding.
+If `sp-navigate-interactive-always-progress-point' is non-nil,
+and this is called interactively, the point will move to the
+first expression in backward direction where it will end up
+less than the current location.
 
 Examples:
 
@@ -5640,28 +5655,34 @@ Examples:
 
   ((foo)| bar (baz quux)) -> ((foo) bar (baz quux))|
 
-and if `sp-interactive-dwim' is non-nil
+and if `sp-navigate-interactive-always-progress-point' is non-nil
 
   (foo b|ar baz) -> (foo| bar baz)
 
-  (f|oo bar baz) -> (foo bar baz)|"
+  (foo (b|ar baz)) -> (foo| (bar baz))"
   (interactive "^p")
   (setq arg (or arg 1))
   (if (<= arg 0)
       (sp-forward-sexp (- arg))
-    (when (and sp-interactive-dwim
-               (called-interactively-p 'any)
-               (not (= (point) (sp-get (sp-get-thing) :end))))
-      (goto-char (sp-get (sp-get-thing) :end)))
-    (if (= arg 1)
-        (-when-let (ok (sp-get-thing t))
-          (if (= (point) (sp-get ok :end))
-              (progn (sp-backward-sexp 2)
-                     (sp-forward-sexp))
-            (goto-char (sp-get ok :end))
-            ok))
-      (sp-backward-sexp arg)
-      (sp-forward-sexp))))
+    (if (and sp-navigate-interactive-always-progress-point
+             ;; (called-interactively-p 'any)
+             )
+        (progn
+          (while (< 0 arg)
+            (let ((point-start (point)))
+              (while (--when-let (sp-backward-sexp)
+                       (>= (sp-get it :end) point-start))))
+            (setq arg (1- arg)))
+          (goto-char (sp-get (sp-get-thing) :end)))
+      (if (= arg 1)
+          (-when-let (ok (sp-get-thing t))
+            (if (= (point) (sp-get ok :end))
+                (progn (sp-backward-sexp 2)
+                       (sp-forward-sexp))
+              (goto-char (sp-get ok :end))
+              ok))
+        (sp-backward-sexp arg)
+        (sp-forward-sexp)))))
 
 (put 'sp-previous-sexp 'CUA 'move)
 
@@ -8648,7 +8669,7 @@ See `sp-forward-symbol' for what constitutes a symbol."
 
 (defun sp-delete-word (&optional arg)
   "Delete a word forward, skipping over intervening delimiters.
-  
+
 Deleted word does not go to the clipboard or kill ring.
 
 With ARG being positive number N, repeat that many times.
@@ -8723,7 +8744,7 @@ See `sp-backward-symbol' for what constitutes a symbol."
 
 (defun sp-backward-delete-word (&optional arg)
   "Delete a word backward, skipping over intervening delimiters.
-  
+
 Deleted word does not go to the clipboard or kill ring.
 
 With ARG being positive number N, repeat that many times.
