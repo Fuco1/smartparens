@@ -68,7 +68,8 @@
         (indent-region beg end)))))
 
 (sp-local-pair 'scala-mode "(" nil
-               :post-handlers '(("||\n[i]" "RET")))
+               :post-handlers '(("||\n[i]" "RET")
+                                ("| " "SPC")))
 
 (sp-local-pair 'scala-mode "{" nil
                :post-handlers '(("||\n[i]" "RET")
