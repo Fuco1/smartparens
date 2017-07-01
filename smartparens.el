@@ -8451,7 +8451,7 @@ Examples:
               (delete-char (length (match-string 0)))
               (setq n (1- n))))
            ((bound-and-true-p hungry-delete-mode)
-            (hungry-delete-forward)
+            (hungry-delete-forward 1)
             (setq n (1- n)))
            (t
             (delete-char 1)

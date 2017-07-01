@@ -594,6 +594,18 @@ be."
     ("\\{foo\\}|" "\\{foo|\\}")
     ("\"foo\\\\\"|" "\"foo\\\\|\""))))
 
+(ert-deftest sp-test-command-sp-backward-delete-char-hungry-delete-mode ()
+  "In `hungry-delete-mode' we should kill all whitespace."
+  (sp-test-with-temp-elisp-buffer "(foo   )   |"
+    (require 'hungry-delete)
+    (hungry-delete-mode 1)
+    (sp-backward-delete-char)
+    (sp-buffer-equals "(foo   )|")
+    (sp-backward-delete-char)
+    (sp-buffer-equals "(foo   |)")
+    (sp-backward-delete-char)
+    (sp-buffer-equals "(foo|)")))
+
 (defun sp-test--sp-backward-delete-char-textmode (initial expected &optional n)
   (setq n (or n 1))
   (sp-test-with-temp-buffer initial
@@ -615,6 +627,18 @@ be."
     ("|[foo]" "[|foo]")
     ("|\\{foo\\}" "\\{|foo\\}")
     ("|\"foo\\\\\"" "\"|foo\\\\\""))))
+
+(ert-deftest sp-test-command-sp-delete-char-hungry-delete-mode ()
+  "In `hungry-delete-mode' we should kill all whitespace."
+  (sp-test-with-temp-elisp-buffer "|   (   foo)"
+    (require 'hungry-delete)
+    (hungry-delete-mode 1)
+    (sp-delete-char)
+    (sp-buffer-equals "|(   foo)")
+    (sp-delete-char)
+    (sp-buffer-equals "(|   foo)")
+    (sp-delete-char)
+    (sp-buffer-equals "(|foo)")))
 
 (defun sp-test--sp-delete-char-textmode (initial expected)
   (sp-test-with-temp-buffer initial
