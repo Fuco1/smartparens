@@ -20,6 +20,12 @@ The old model of =:add= and =:rem= for list properties was removed due to unsoun
 
 If you call =sp-defpair= multiple times for the same pair on the same "level" (global, mode-local or buffer-local), the non-list properties are replaced and the list properties are concatenated.  You can use a special value =:nil= to completely remove the property from the pair.
 
+*Note*: I'm not sure if we really want to remove this feature, probably just needs reworking.  With the named configurations or anonymous settings it might be nice to be able to merge more stuff into the existing settings.
+
+We should probably opt for something like =docker-compose= or =hiera= or =neon= merging strategies.  Those are well-defined and flexible.
+
+See this [[https://github.com/Fuco1/smartparens/issues/713#issuecomment-312457573][issue]] for the motivation:  we want to be able to change behaviour selectively but not wipe all the config out.
+
 * data structure
 #+BEGIN_SRC elisp
 '(:open "do"
