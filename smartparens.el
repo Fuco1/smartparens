@@ -4168,7 +4168,8 @@ If the point is not inside a quoted string, return nil."
                                       (end-of-line))
                                     t))))
                   ;; this means we got here by `sp-point-in-comment' condition
-                  (forward-char)
+                  (unless (and (bobp) (sp-point-in-comment))
+                    (forward-char))
                   (point)))
           (close (save-excursion
                    (while (and (not (eobp))

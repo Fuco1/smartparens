@@ -43,6 +43,10 @@
 (bar)"
    (should (equal (sp-get-comment-bounds) '(11 . 40)))))
 
+(ert-deftest sp-test-get-comment-bounds-elisp-with-comment-starting-at-bobp ()
+  (sp-test-with-temp-elisp-buffer ";; |foobar"
+    (should (equal (sp-get-comment-bounds) '(1 . 10)))))
+
 (ert-deftest sp-test-get-comment-bounds-pascal ()
   (sp-test-with-temp-buffer
       "var foo:integer; (* foo|bar *)"
@@ -56,3 +60,10 @@
         (pascal-mode)
         (save-excursion (syntax-ppss 1)))
     (should (equal (sp-get-comment-bounds) '(18 . 28)))))
+
+(ert-deftest sp-test-get-comment-bounds-pascal-with-comment-starting-at-bobp ()
+  (sp-test-with-temp-buffer "(* foo|bar *)"
+      (progn
+        (pascal-mode)
+        (save-excursion (syntax-ppss 1)))
+    (should (equal (sp-get-comment-bounds) '(1 . 13)))))
