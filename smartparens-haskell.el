@@ -47,6 +47,7 @@
 (require 'smartparens)
 
 (sp-with-modes '(haskell-mode haskell-interactive-mode)
+  (sp-local-pair "{-" "-}")
   (sp-local-pair "{-#" "#-}")
   (sp-local-pair "'" nil :unless '(sp-point-after-word-p))
   (sp-local-pair "\\(" nil :actions nil))
