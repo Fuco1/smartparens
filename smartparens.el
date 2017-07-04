@@ -3683,15 +3683,17 @@ default."
           (when open-pair
             (-when-let (prefix-pair (sp-get-pair (substring open-pair 0 -1)))
               (let ((last-char-of-open-pair (substring open-pair -1)))
-                (--when-let (sp-get-thing t)
-                  (delete-char -1)
-                  (save-excursion
-                    (sp-get it
-                      (delete-region :end-in :end)
-                      (goto-char :end-in)
-                      (insert close-pair)))
-                  (insert last-char-of-open-pair)
-                  (throw 'done t))))))
+                (unwind-protect
+                    (progn
+                      (delete-char -1)
+                      (--when-let (sp-get-thing t)
+                        (save-excursion
+                          (sp-get it
+                            (delete-region :end-in :end)
+                            (goto-char :end-in)
+                            (insert close-pair)))
+                        (throw 'done t)))
+                  (insert last-char-of-open-pair))))))
         (if (not (unwind-protect
                      (progn
                        (when pair (insert pair))
