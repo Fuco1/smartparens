@@ -1393,7 +1393,7 @@ kill \"subwords\" when `subword-mode' is active."
 
 (defadvice delete-selection-pre-hook (around fix-sp-wrap activate)
   "Fix `sp-wrap' in `delete-selection-mode'."
-  (unless (and smartparens-mode (sp-wrap--can-wrap-p))
+  (unless (sp-wrap--can-wrap-p)
     ad-do-it))
 
 
@@ -3683,8 +3683,8 @@ default."
           (when open-pair
             (-when-let (prefix-pair (sp-get-pair (substring open-pair 0 -1)))
               (let ((last-char-of-open-pair (substring open-pair -1)))
-                (delete-char -1)
                 (--when-let (sp-get-thing t)
+                  (delete-char -1)
                   (save-excursion
                     (sp-get it
                       (delete-region :end-in :end)
