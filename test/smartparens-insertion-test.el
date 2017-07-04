@@ -64,6 +64,17 @@
     (sp-test-insertion "\"foo | bar\"" "%" "\"foo %|$ bar\"")
     (sp-test-insertion "foo | bar" "%" "foo %| bar")))
 
+(ert-deftest sp-test-insertion-pair-replace-existing-ending-for-pair-with-shared-prefix ()
+  "If the to-be-inserted pair has a prefix which is also a pair
+we migth be extending the opener of a sexp with this opener.  In
+which case we should probably rewrap."
+  (let ((sp-pairs sp-pairs))
+    (sp-test-with-temp-elisp-buffer "{| foo }"
+      (sp-update-local-pairs '(:open "{" :close "}" :actions (insert navigate)))
+      (sp-update-local-pairs '(:open "{-" :close "-}" :actions (insert navigate)))
+      (execute-kbd-macro "-")
+      (sp-buffer-equals "{-| foo -}"))))
+
 (defun sp-test-latex-insertion (initial keys result)
   (sp-test-with-temp-buffer initial
       (latex-mode)
