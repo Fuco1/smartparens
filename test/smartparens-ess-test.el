@@ -42,3 +42,9 @@
    (sp-test--ess-mode)
    (sp-raise-sexp)
    (should (equal (buffer-string) "v[,2]"))))
+
+(ert-deftest sp-test-ess-dont-pair-quote-in-comment ()
+  (sp-test-with-temp-buffer "# foo|"
+      (sp-test--ess-mode)
+    (execute-kbd-macro "'")
+    (sp-buffer-equals "# foo'|")))
