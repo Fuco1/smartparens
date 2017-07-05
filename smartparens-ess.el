@@ -161,7 +161,7 @@ ID, ACTION, CONTEXT."
                  :pre-handlers '(sp-ess-pre-handler)
                  :post-handlers '((sp-ess-open-sexp-indent "M-j")))
   (sp-local-pair "'" nil
-                 :unless '(sp-ess-roxy-str-p)))
+                 :unless '(sp-ess-roxy-str-p sp-in-comment-p sp-in-string-quotes-p)))
 
 ;;; roxygen2 markup
 ;; see https://cran.r-project.org/web/packages/roxygen2/vignettes/formatting.html
