@@ -4034,13 +4034,16 @@ is remove the just added wrapping."
               (setq sp-last-operation 'sp-delete-pair-opening))))
            ;; we're inside a pair
            ((and inside-pair sp-autodelete-pair)
-            (let* ((end (save-excursion
+            (let* ((beg (save-excursion
+                          (search-backward (car inside-pair))))
+                   (end (save-excursion
                           (search-forward (cdr inside-pair))))
                    (cs (sp--get-context p))
                    (ce (sp--get-context end))
                    (current-sexp (sp-get-sexp)))
               (when (and (or (not (eq cs 'comment)) ;; a => b <=> ~a v b
                              (eq ce 'comment))
+                         (eq beg (sp-get current-sexp :beg))
                          (eq end (sp-get current-sexp :end))
                          (equal (sp-get current-sexp :op) (car inside-pair))
                          (equal (sp-get current-sexp :cl) (cdr inside-pair)))
