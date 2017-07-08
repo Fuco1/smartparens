@@ -447,6 +447,20 @@ be."
     ("(foo |bar baz)" "(foo) |(bar) (baz)")
     ("\"foo |bar baz\"" "\"foo\" |\"bar\" \"baz\""))))
 
+(sp-test-command sp-extract-before-sexp
+  ((nil
+    ("(foo\n |bar\n baz\n )" "|bar\n(foo\n baz\n )")
+    ("(foo\n |bar\n baz)" "|bar\n(foo\n baz)")
+    ("(foo\n bar\n |baz\n )" "|baz\n(foo\n bar\n )")
+    ("(foo\n bar\n |baz)" "|baz\n(foo\n bar)"))))
+
+(sp-test-command sp-extract-after-sexp
+  ((nil
+    ("(foo\n |bar\n baz\n )" "(foo\n baz\n )\nbar|")
+    ("(foo\n |bar\n baz)" "(foo\n baz)\nbar|")
+    ("(foo\n bar\n |baz\n )" "(foo\n bar\n )\nbaz|")
+    ("(foo\n bar\n |baz)" "(foo\n bar)\nbaz|"))))
+
 (sp-test-command sp-join-sexp
   ((nil
     ("(foo bar) |(baz)" "(foo bar |baz)")
