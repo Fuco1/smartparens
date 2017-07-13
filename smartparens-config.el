@@ -120,7 +120,7 @@ ID, ACTION, CONTEXT."
 (eval-after-load 'tex-mode                 '(require 'smartparens-latex))
 (eval-after-load 'tuareg                   '(require 'smartparens-ml))
 (eval-after-load 'fsharp-mode              '(require 'smartparens-ml))
-(--each '(javascript-mode js2-mode)
+(--each '(js js2-mode)
   (eval-after-load it                      '(require 'smartparens-javascript)))
 (provide 'smartparens-config)
 
