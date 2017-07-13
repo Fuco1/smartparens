@@ -19,6 +19,7 @@
   (depends-on "auctex")
   (depends-on "clojure-mode")
   (depends-on "lua-mode")
+  (depends-on "js2-mode")
   (depends-on "ess")
   (depends-on "tuareg")
   (depends-on "scala-mode")

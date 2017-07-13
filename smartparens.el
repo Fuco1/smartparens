@@ -544,7 +544,6 @@ Symbol is defined as a chunk of text recognized by
 (defcustom sp-no-reindent-after-kill-modes '(
                                              python-mode
                                              coffee-mode
-                                             js2-mode
                                              asm-mode
                                              makefile-gmake-mode
                                              )
