@@ -238,3 +238,20 @@
     (sp-test-wrapping-python "'foo Mbar \\\" baz| qux'"
                              "\""
                              "'foo \"bar \\\\\" baz\"| qux'")))
+
+(ert-deftest sp-test-wrap-autodelete-wrap nil
+  "Delete the last wrapping pair if DEL is pressed immediately
+  after wrapping."
+  (let ((sp-autodelete-wrap t))
+    (sp-test-with-temp-elisp-buffer "|fooM"
+      (execute-kbd-macro (kbd "( DEL"))
+      (sp-buffer-equals "|foo"))))
+
+(ert-deftest sp-test-wrap-autodelete-wrap-strict-mode nil
+  "Delete the last wrapping pair if DEL is pressed immediately
+  after wrapping."
+  (let ((sp-autodelete-wrap t))
+    (sp-test-with-temp-elisp-buffer "|fooM"
+      (smartparens-strict-mode 1)
+      (execute-kbd-macro (kbd "( DEL"))
+      (sp-buffer-equals "|foo"))))

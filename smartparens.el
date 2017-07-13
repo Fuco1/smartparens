@@ -8522,58 +8522,61 @@ Examples:
 
  (foo bar)| -> (foo bar|)"
   (interactive "P")
-  (sp--with-case-sensitive
-    (let* ((raw (sp--raw-argument-p arg))
-           ;; if you edit 10 gigabyte files in Emacs, you're gonna have
-           ;; a bad time.
-           (n (if raw 100000000
-                (prefix-numeric-value arg))))
-      (cond
-       ((> n 0)
-        (while (> n 0)
-          (cond
-           ((let ((ok (sp-point-in-empty-sexp)))
-              (when ok
-                (backward-char (length (car ok)))
-                (delete-char (+ (length (car ok)) (length (cdr ok)))))
-              ok)
-            ;; make this customizable
-            (setq n (1- n)))
-           ((and (sp-point-in-string)
-                 (save-excursion (backward-char) (not (sp-point-in-string))))
-            (setq n 0))
-           ((sp--looking-back (sp--get-closing-regexp (sp--get-pair-list-context 'navigate)))
-            (-if-let (thing (save-match-data (sp-get-thing t)))
-                (cond
-                 ((= (sp-get thing :end) (point))
-                  (goto-char (sp-get thing :end-in)))
-                 ((= (sp-get thing :beg-in) (point))
-                  (setq n 0))
-                 (t
-                  (delete-char (- (length (match-string 0))))))
-              (delete-char (- (length (match-string 0)))))
-            ;; make this customizable
-            (setq n (1- n)))
-           ((and (not (sp-point-in-string))
-                 (save-excursion (backward-char) (sp-point-in-string)))
-            (backward-char)
-            ;; make this customizable
-            (setq n (1- n)))
-           ((sp--looking-back (sp--get-opening-regexp (sp--get-pair-list-context 'navigate)))
-            (if (save-match-data (sp-get-thing t))
-                ;; make this customizable -- maybe we want to skip and
-                ;; continue deleting
-                (setq n 0)
-              (delete-char (- (length (match-string 0))))
-              (setq n (1- n))))
-           ((bound-and-true-p hungry-delete-mode)
-            (hungry-delete-backward 1)
-            (setq n (1- n)))
-           (t
-            (delete-char -1)
-            (setq n (1- n))))))
-       ((= n 0) (delete-char -1))
-       (t (sp-delete-char (sp--negate-argument arg)))))))
+  (if (and sp-autodelete-wrap
+           (eq sp-last-operation 'sp-wrap-region))
+      (sp-backward-unwrap-sexp)
+    (sp--with-case-sensitive
+      (let* ((raw (sp--raw-argument-p arg))
+             ;; if you edit 10 gigabyte files in Emacs, you're gonna have
+             ;; a bad time.
+             (n (if raw 100000000
+                  (prefix-numeric-value arg))))
+        (cond
+         ((> n 0)
+          (while (> n 0)
+            (cond
+             ((let ((ok (sp-point-in-empty-sexp)))
+                (when ok
+                  (backward-char (length (car ok)))
+                  (delete-char (+ (length (car ok)) (length (cdr ok)))))
+                ok)
+              ;; make this customizable
+              (setq n (1- n)))
+             ((and (sp-point-in-string)
+                   (save-excursion (backward-char) (not (sp-point-in-string))))
+              (setq n 0))
+             ((sp--looking-back (sp--get-closing-regexp (sp--get-pair-list-context 'navigate)))
+              (-if-let (thing (save-match-data (sp-get-thing t)))
+                  (cond
+                   ((= (sp-get thing :end) (point))
+                    (goto-char (sp-get thing :end-in)))
+                   ((= (sp-get thing :beg-in) (point))
+                    (setq n 0))
+                   (t
+                    (delete-char (- (length (match-string 0))))))
+                (delete-char (- (length (match-string 0)))))
+              ;; make this customizable
+              (setq n (1- n)))
+             ((and (not (sp-point-in-string))
+                   (save-excursion (backward-char) (sp-point-in-string)))
+              (backward-char)
+              ;; make this customizable
+              (setq n (1- n)))
+             ((sp--looking-back (sp--get-opening-regexp (sp--get-pair-list-context 'navigate)))
+              (if (save-match-data (sp-get-thing t))
+                  ;; make this customizable -- maybe we want to skip and
+                  ;; continue deleting
+                  (setq n 0)
+                (delete-char (- (length (match-string 0))))
+                (setq n (1- n))))
+             ((bound-and-true-p hungry-delete-mode)
+              (hungry-delete-backward 1)
+              (setq n (1- n)))
+             (t
+              (delete-char -1)
+              (setq n (1- n))))))
+         ((= n 0) (delete-char -1))
+         (t (sp-delete-char (sp--negate-argument arg))))))))
 
 (put 'sp-backward-delete-char 'delete-selection 'supersede)
 (put 'sp-delete-char 'delete-selection 'supersede)
