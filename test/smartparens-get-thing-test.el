@@ -56,3 +56,15 @@
 
   (sp-test-get-thing-invalid "foo |[ bar \"foo\"")
   (sp-test-get-thing-invalid "\"bar\" foo ]| bar" t))
+
+(ert-deftest sp-test-get-thing-with-skip-match-on-closing-delim ()
+  (let ((sp-pairs '((t . ((:open "(" :close ")"
+                           :actions (insert wrap autoskip navigate)
+                           :skip-match (lambda (ms mb me)
+                                         (save-excursion
+                                           (goto-char mb)
+                                           (sp--looking-back-p "skip" 4)))))))))
+    (sp-test-with-temp-elisp-buffer "(fo skip|) o)"
+      (should
+       (equal (sp-get-thing)
+              '(:beg 11 :end 12 :op "" :cl "" :prefix "" :suffix ""))))))

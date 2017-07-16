@@ -4233,11 +4233,20 @@ the test functions as keyword arguments to speed up the lookup."
   "Test the last match using `sp--skip-match-p'.  The form should
 be a function call that sets the match data."
   (declare (debug (form)))
-  `(and ,form
-        (not (sp--skip-match-p
-              (match-string 0)
-              (match-beginning 0)
-              (match-end 0)))))
+  (let ((match (make-symbol "match"))
+        (pair-skip (make-symbol "pair-skip")))
+    `(and ,form
+          (let* ((,match (match-string 0))
+                 (,pair-skip (or (sp-get-pair ,match :skip-match)
+                                 (sp-get-pair (car (--first
+                                                    (equal (cdr it) ,match)
+                                                    sp-pair-list))
+                                              :skip-match))))
+            (not (sp--skip-match-p
+                  ,match
+                  (match-beginning 0)
+                  (match-end 0)
+                  :pair-skip ,pair-skip))))))
 
 (defun sp--elisp-skip-match (ms mb _me)
   "Function used to test for escapes in lisp modes.
