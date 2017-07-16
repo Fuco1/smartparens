@@ -8843,15 +8843,6 @@ of the point."
         (indent-sexp))
       (sp--back-to-indentation column indentation))))
 
-(defun sp--balanced-context-p (count start-context end-context)
-  (let ((string-or-comment-count (cl-first count))
-        (normal-count (cl-second count)))
-    (cond
-     ((and start-context (eq start-context end-context))
-      (zerop string-or-comment-count))
-     ((eq start-context end-context) (zerop normal-count))
-     (t (= string-or-comment-count normal-count 0)))))
-
 (cl-defun sp-region-ok-p (start end)
   "Test if region between START and END is balanced.
 
@@ -8864,28 +8855,14 @@ properly balanced."
   (save-excursion
     (save-restriction
       (narrow-to-region start end)
-      (when (ignore-errors (scan-sexps (point-min) (point-max)) t)
-        (let ((count (list 0 0))
-              (start-context (progn (goto-char start) (sp-point-in-string-or-comment)))
-              (end-context (progn (goto-char end) (sp-point-in-string-or-comment))))
-          (dolist (pairs (sp--get-allowed-pair-list))
-            (goto-char (point-min))
-            (while (re-search-forward (sp--strict-regexp-quote (car pairs)) end :noerror)
-              (save-excursion
-                (backward-char)
-                (if (sp-point-in-string-or-comment)
-                    (cl-incf (cl-first count))
-                  (cl-incf (cl-second count)))))
-            (goto-char (point-min))
-            (while (re-search-forward (sp--strict-regexp-quote (cdr pairs)) end :noerror)
-              (save-excursion
-                (backward-char)
-                (if (sp-point-in-string-or-comment)
-                    (cl-decf (cl-first count))
-                  (cl-decf (cl-second count)))))
-            (unless (sp--balanced-context-p count start-context end-context)
-              (cl-return-from sp-region-ok-p)))
-          t)))))
+      (when (eq (sp-point-in-string start) (sp-point-in-string end))
+        (let ((regex (sp--get-allowed-regexp (-difference sp-pair-list (sp--get-allowed-pair-list)))))
+          (goto-char (point-min))
+          (while (or (sp-forward-sexp)
+                     ;; skip impossible delimiters
+                     (when (looking-at-p regex)
+                       (goto-char (match-end 0)))))
+          (looking-at-p "[[:blank:]]*\\'"))))))
 
 (defun sp-newline ()
   "Insert a newline and indent it.
