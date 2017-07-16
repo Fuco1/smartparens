@@ -60,9 +60,10 @@ delimiter."
     (should (sp-char-is-escaped-p (1- (point))))))
 
 (ert-deftest sp-test-sp--strict-regexp-opt-no-strings ()
-  "`sp--strict-regexp-opt' on nil input should return empty
-string to be consistent with `regexp-opt'."
-  (should (equal "" (sp--strict-regexp-opt nil))))
+  "`sp--strict-regexp-opt' on nil input should return unmatchable regexp.
+
+This is not consistent with `regexp-opt' which returns empty string."
+  (should (equal "^\\<$" (sp--strict-regexp-opt nil))))
 
 (ert-deftest sp-test-sp--get-stringlike-regexp-with-delimiter ()
   "In case there are string-like delimiters we should return a

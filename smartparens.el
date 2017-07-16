@@ -3175,7 +3175,7 @@ that the strings are not matched in-symbol."
                         it)
              (mapconcat (lambda (g) (apply 'sp--regexp-for-group g)) it "\\|")
              (concat "\\(?:" it "\\)")))
-    ""))
+    "^\\<$"))
 
 (defun sp--strict-regexp-quote (string)
   "Like regexp-quote, but make sure that the string is not
