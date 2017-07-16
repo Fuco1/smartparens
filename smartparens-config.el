@@ -118,6 +118,7 @@ ID, ACTION, CONTEXT."
 (eval-after-load 'rust-mode                '(require 'smartparens-rust))
 (eval-after-load 'scala-mode               '(require 'smartparens-scala))
 (eval-after-load 'tex-mode                 '(require 'smartparens-latex))
+(eval-after-load 'text-mode                '(require 'smartparens-text))
 (eval-after-load 'tuareg                   '(require 'smartparens-ml))
 (eval-after-load 'fsharp-mode              '(require 'smartparens-ml))
 (--each '(js js2-mode)
