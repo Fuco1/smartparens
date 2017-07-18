@@ -636,6 +636,19 @@ be."
     (sp-test--sp-backward-delete-char-textmode "\"this\" doesn'|" "\"this\" doesn|")
     (sp-test--sp-backward-delete-char-textmode "\"don't\"|" "|" 7)))
 
+(ert-deftest sp-test-command-sp-backward-delete-pair-with-skip-match ()
+  (let ((sp-pairs '((t . ((:open "`" :close "'" :actions (insert wrap autoskip navigate)
+                           :skip-match (lambda (ms mb me)
+                                         (when (equal ms "'")
+                                           (save-excursion
+                                             (goto-char me)
+                                             (looking-at-p "\\sw"))))))))))
+    (sp-test-with-temp-buffer "`foo'|bar'"
+        (latex-mode)
+      (smartparens-strict-mode 1)
+      (sp-backward-delete-char 1)
+      (sp-buffer-equals "`foo|bar'"))))
+
 (sp-test-command sp-delete-char
   ((nil
     ("|[foo]" "[|foo]")
