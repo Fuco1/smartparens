@@ -8858,11 +8858,12 @@ properly balanced."
       (when (eq (sp-point-in-string start) (sp-point-in-string end))
         (let ((regex (sp--get-allowed-regexp (-difference sp-pair-list (sp--get-allowed-pair-list)))))
           (goto-char (point-min))
-          (while (or (sp-forward-sexp)
+          (while (or (prog1 (sp-forward-sexp)
+                       (sp-skip-forward-to-symbol))
                      ;; skip impossible delimiters
                      (when (looking-at-p regex)
                        (goto-char (match-end 0)))))
-          (looking-at-p "[[:blank:]]*\\'"))))))
+          (looking-at-p "[[:blank:]\n]*\\'"))))))
 
 (defun sp-newline ()
   "Insert a newline and indent it.
