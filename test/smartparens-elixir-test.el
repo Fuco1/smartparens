@@ -115,3 +115,31 @@ end"))
 (ert-deftest sp-test-elixir-case-block-insertion ()
   (sp-test-insertion-elixir "|" "case " "case | do
 end"))
+
+(ert-deftest sp-test-elixir-forward-slurp ()
+  "Ensure that commas are handled properly when slurping forward"
+  (sp-test-with-temp-buffer "[1, [|2], :a]"
+      (elixir-mode)
+    (sp-forward-slurp-sexp)
+    (should (equal (buffer-string) "[1, [2, :a]]"))))
+
+(ert-deftest sp-test-elixir-backward-slurp ()
+  "Ensure that commas are handled properly when slurping backward"
+  (sp-test-with-temp-buffer "[1,[|2],:a]"
+      (elixir-mode)
+    (sp-backward-slurp-sexp)
+    (should (equal (buffer-string) "[[1,2],:a]"))))
+
+(ert-deftest sp-test-elixir-forward-barf ()
+  "Ensure that commas are handled properly when barfing forward"
+  (sp-test-with-temp-buffer "{1, {2,|:a}}"
+      (elixir-mode)
+    (sp-forward-barf-sexp)
+    (should (equal (buffer-string) "{1, {2},:a}"))))
+
+(ert-deftest sp-test-elixir-backward-barf ()
+  "Ensure that commas are handled properly when barfing backward"
+  (sp-test-with-temp-buffer "{1,{2,|:a}}"
+      (elixir-mode)
+    (sp-backward-barf-sexp)
+    (should (equal (buffer-string) "{1,2,{:a}}"))))

@@ -27,6 +27,9 @@
 
 (require 'smartparens)
 
+(--each '(elixir-mode)
+  (add-to-list 'sp-sexp-suffix (list it 'regexp "")))
+
 (defun sp-elixir-def-p (id)
   "Return non-nil if the \"do\" keyword is part of definition.
 
