@@ -83,13 +83,31 @@
       (delete-char 2)
       (forward-char 2))))
 
+(defun sp-number-of-backslashes-before-point ()
+  (let ((p (point)))
+    (while (and (> p 0) (equal (char-before p) ?\\ ))
+      (setq p (- p 1)))
+    (- (point) p)))
+
+(defun sp--latex-backslash-skip-match (ms mb _me)
+  "Skips a match if preceeded by uneven number of backslashes."
+  (and ms
+       (save-excursion
+         (goto-char mb)
+         (not (evenp (sp-number-of-backslashes-before-point))))))
+
 (defun sp-latex-point-after-backslash (id action context)
-  "Return t if point follows a backslash, nil otherwise.
-This predicate is only tested on \"insert\" action.
+  "Return t if point follows an uneven number of backslashes (a
+double backslash is a newline; we'd like to ignore those), nil
+otherwise. This predicate is only tested on \"insert\" action.
 ID, ACTION, CONTEXT."
   (when (eq action 'insert)
-    (let ((trigger (sp-get-pair id :trigger)))
-      (looking-back (concat "\\\\" (regexp-quote (if trigger trigger id)))))))
+    (let* ((trigger (sp-get-pair id :trigger))
+           (start (- (point) (length (if trigger trigger id)))))
+      (when (> start 1)
+        (save-excursion
+          (goto-char start)
+          (not (evenp (sp-number-of-backslashes-before-point))))))))
 
 (defun sp-latex-point-before-word-p (id action context)
   "Return t if point is before a word while in navigate action.
@@ -98,7 +116,7 @@ ID, ACTION, CONTEXT."
     (looking-at-p "\\sw")))
 
 (add-to-list 'sp-navigate-skip-match
-             '((tex-mode plain-tex-mode latex-mode) . sp--backslash-skip-match))
+             '((tex-mode plain-tex-mode latex-mode) . sp--latex-backslash-skip-match))
 
 (sp-with-modes '(
                  tex-mode
@@ -111,9 +129,11 @@ ID, ACTION, CONTEXT."
                  :skip-match 'sp-latex-skip-match-apostrophe
                  :unless '(sp-latex-point-after-backslash
                            sp-latex-point-before-word-p))
+
   ;; math modes, yay.  The :actions are provided automatically if
   ;; these pairs do not have global definitions.
-  (sp-local-pair "$" "$")
+  (sp-local-pair "$" "$"
+                 :unless '(sp-latex-point-after-backslash))
   (sp-local-pair "\\[" "\\]"
                  :unless '(sp-latex-point-after-backslash))
 
@@ -131,64 +151,104 @@ ID, ACTION, CONTEXT."
                  :post-handlers '(sp-latex-skip-double-quote))
 
   ;; add the prefix function sticking to {} pair
-  (sp-local-pair "{" nil :prefix "\\\\\\(\\sw\\|\\s_\\)*")
-
+  (sp-local-pair "{" "}"
+                 :prefix "\\\\\\(\\sw\\|\\s_\\)*"
+                 :unless '(sp-latex-point-after-backslash))
+  
   ;; do not add more space when slurping
-  (sp-local-pair "{" "}")
-  (sp-local-pair "(" ")")
-  (sp-local-pair "[" "]")
+  (sp-local-pair "\\{" "\\}"
+                 :unless '(sp-latex-point-after-backslash))
+  (sp-local-pair "[" "]"
+                 :unless '(sp-latex-point-after-backslash))
+  (sp-local-pair "(" ")"
+                 :unless '(sp-latex-point-after-backslash))
+  (sp-local-pair "\\(" "\\)"
+                 :unless '(sp-latex-point-after-backslash))
 
   ;; pairs for big brackets.  Needs more research on what pairs are
   ;; useful to add here.  Post suggestions if you know some.
   (sp-local-pair "\\left(" "\\right)"
                  :trigger "\\l("
                  :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\left[" "\\right]"
                  :trigger "\\l["
                  :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\left\\{" "\\right\\}"
                  :trigger "\\l{"
                  :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\left|" "\\right|"
                  :trigger "\\l|"
                  :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\bigl(" "\\bigr)"
+                 :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\biggl(" "\\biggr)"
+                 :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\Bigl(" "\\Bigr)"
+                 :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\Biggl(" "\\Biggr)"
+                 :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\bigl[" "\\bigr]"
+                 :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\biggl[" "\\biggr]"
+                 :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\Bigl[" "\\Bigr]"
+                 :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\Biggl[" "\\Biggr]"
+                 :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\bigl\\{" "\\bigr\\}"
+                 :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\biggl\\{" "\\biggr\\}"
+                 :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\Bigl\\{" "\\Bigr\\}"
+                 :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\Biggl\\{" "\\Biggr\\}"
+                 :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\lfloor" "\\rfloor"
+                 :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\lceil" "\\rceil"
+                 :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair "\\langle" "\\rangle"
+                 :when '(sp-in-math-p)
+                 :unless '(sp-latex-point-after-backslash)
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
 
   ;; some common wrappings
-  (sp-local-tag "\"" "``" "''" :actions '(wrap))
   (sp-local-tag "\\b" "\\begin{_}" "\\end{_}")
   (sp-local-tag "bi" "\\begin{itemize}" "\\end{itemize}")
   (sp-local-tag "be" "\\begin{enumerate}" "\\end{enumerate}"))
