@@ -1353,6 +1353,12 @@ The value of `comment-start' is used if the major mode is not found."
   :type 'boolean
   :group 'smartparens)
 
+(defcustom sp-echo-match-when-invisible t
+  "If non-nil, show-smartparens-mode prints the line of the
+matching paren in the echo area if not visible on screen."
+  :type 'boolean
+  :group 'smartparens)
+
 (defcustom sp-message-width 'frame
   "Length of information and error messages to display.
 
@@ -8983,6 +8989,10 @@ the opening delimiter or before the closing delimiter."
 
 (defvar sp-show-pair-overlays nil)
 
+(defvar sp-show-pair-previous-match-positions nil)
+
+(defvar sp-show-pair-previous-point nil)
+
 (defvar sp-show-pair-enc-overlays nil)
 
 ;;;###autoload
@@ -9038,7 +9048,8 @@ support custom pairs."
       (execute-kbd-macro cmd))))
 
 (defun sp-show--pair-function ()
-  "Display the show pair overlays."
+  "Display the show pair overlays and print the line of the
+matching paren in the echo area if not visible on screen."
   (when show-smartparens-mode
     (sp--with-case-sensitive
       (save-match-data
@@ -9054,11 +9065,15 @@ support custom pairs."
                                      (and (not back)
                                           (or (= :beg (point))
                                               (= :end-in (point)))))
-                             (sp-show--pair-create-overlays :beg :end :op-l :cl-l)))
+                             (sp-show--pair-create-overlays :beg :end :op-l :cl-l)
+                             (when (and sp-echo-match-when-invisible (not (minibuffer-prompt)))
+                               (sp-show--pair-echo-match :beg :end :op-l :cl-l back))))
                        (if back
                            (sp-show--pair-create-mismatch-overlay (- (point) (length match))
                                                                   (length match))
-                         (sp-show--pair-create-mismatch-overlay (point) (length match))))))
+                         (sp-show--pair-create-mismatch-overlay (point) (length match)))
+                       (setq sp-show-pair-previous-match-positions nil)
+                       (setq sp-show-pair-previous-point nil))))
           (let* ((pair-list (sp--get-allowed-pair-list))
                  (opening (sp--get-opening-regexp pair-list))
                  (closing (sp--get-closing-regexp pair-list))
@@ -9086,7 +9101,9 @@ support custom pairs."
                        (sp--looking-back ">")))
               (scan-and-place-overlays (match-string 0) :back))
              (sp-show-pair-overlays
-              (sp-show--pair-delete-overlays)))))))))
+              (sp-show--pair-delete-overlays)
+              (setq sp-show-pair-previous-match-positions nil)
+              (setq sp-show-pair-previous-point nil)))))))))
 
 (defun sp-show--pair-enc-function (&optional thing)
   "Display the show pair overlays for enclosing expression."
@@ -9106,6 +9123,38 @@ support custom pairs."
     (overlay-put oleft 'priority 1000)
     (overlay-put oright 'priority 1000)
     (overlay-put oleft 'type 'show-pair)))
+
+(defun sp-show--pair-echo-match (start end olen clen back)
+  "Print the line of the matching paren in the echo area if not
+visible on screen. Needs to be called after the show-pair overlay
+has been created."
+  (let ((match-positions (list start end olen clen)))
+    (when (not (and (equal sp-show-pair-previous-match-positions match-positions)
+                    (equal sp-show-pair-previous-point (point))))
+      (setq sp-show-pair-previous-match-positions match-positions)
+      (setq sp-show-pair-previous-point (point))
+      (let* ((where (if back start end))
+             (visible (pos-visible-in-window-p where)))
+        (when (not visible)
+          (save-excursion
+            (let* ((from (progn (goto-char where) (beginning-of-line) (point)))
+                   (to (progn (end-of-line) (point)))
+                   (line (buffer-substring from to))
+                   (message-log-max)) ;; don't log in messages
+              ;; Add smartparens overlay for opening parens
+              (let* ((i1 (- start from))
+                     (i2 (+ i1 olen)))
+                (when (and (< i1 (length line)) (>= i2 0))
+                  (add-face-text-property (max i1 0) (min i2 (length line))
+                                          'sp-show-pair-match-face nil line)))
+              ;; Add smartparens overlay for closing parens
+              (let* ((i1 (- end from 1))
+                     (i2 (+ i1 clen)))
+                (when (and (< i1 (length line)) (>= i2 0))
+                  (add-face-text-property (max i1 0) (min i2 (length line))
+                                          'sp-show-pair-match-face nil line)))
+              ;; echo line of match
+              (message "Matches: %s" (string-trim line)))))))))
 
 (defun sp-show--pair-create-enc-overlays (start end olen clen)
   "Create the show pair enclosing overlays"
