@@ -9067,7 +9067,7 @@ matching paren in the echo area if not visible on screen."
                                               (= :end-in (point)))))
                              (sp-show--pair-create-overlays :beg :end :op-l :cl-l)
                              (when (and sp-echo-match-when-invisible
-                                        (not (active-minibuffer-window)))
+                                        (not (or (active-minibuffer-window) cursor-in-echo-area)))
                                (sp-show--pair-echo-match :beg :end :op-l :cl-l back))))
                        (if back
                            (sp-show--pair-create-mismatch-overlay (- (point) (length match))
