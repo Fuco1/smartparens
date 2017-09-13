@@ -78,6 +78,8 @@ ARGS."
    ((eq context 'code)
     (let ((on-fn-return-type
            (looking-back (rx "->") nil))
+          (on-match-branch
+           (looking-back (rx "=>") nil))
           (on-comparison
            (looking-back (rx (or
                               (seq space "<")
@@ -89,18 +91,18 @@ ARGS."
        ;; Only insert a matching > if we're not looking at a
        ;; comparison.
        ((eq action 'insert)
-        (and (not on-comparison) (not on-fn-return-type)))
+        (and (not on-comparison) (not on-fn-return-type) (not on-match-branch)))
        ;; Always allow wrapping in a pair if the region is active.
        ((eq action 'wrap)
-        t)
+        (not on-match-branch))
        ;; When pressing >, autoskip if we're not looking at a
        ;; comparison.
        ((eq action 'autoskip)
-        (and (not on-comparison) (not on-fn-return-type)))
+        (and (not on-comparison) (not on-fn-return-type) (not on-match-branch)))
        ;; Allow navigation, highlighting and strictness checks if it's
        ;; not a comparison.
        ((eq action 'navigate)
-        (and (not on-comparison) (not on-fn-return-type))))))))
+        (and (not on-comparison) (not on-fn-return-type) (not on-match-branch))))))))
 
 (sp-with-modes '(rust-mode)
   (sp-local-pair "'" "'"
