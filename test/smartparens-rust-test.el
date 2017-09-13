@@ -131,3 +131,10 @@ fn bar(x: u64) -> bool {
     (execute-kbd-macro "<Rc<RefCell<T>>>")
     ;; We should have inserted a pair without an extra chevron.
     (should (equal (buffer-string) "E<Rc<RefCell<T>>>"))))
+
+(ert-deftest sp-test-rust-insert-match-branch ()
+  "Inserting a match branch with a rocket (=>) operator."
+  (sp-test-with-temp-buffer "match Some(1) { Some(n) =| }"
+                            (rust-mode)
+                            (execute-kbd-macro "> n")
+                            (should (equal (buffer-string) "match Some(1) { Some(n) => n }"))))
