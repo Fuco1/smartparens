@@ -705,6 +705,12 @@ after the smartparens indicator in the mode list."
                    (eq (get major-mode 'mode-class) 'special)))
     (smartparens-strict-mode 1)))
 
+;;;###autoload
+(defun turn-off-smartparens-strict-mode ()
+  "Turn off `smartparens-strict-mode'."
+  (interactive)
+  (smartparens-strict-mode -1))
+
 (defun sp--init ()
   "Initialize the buffer local smartparens state.
 
