@@ -9068,7 +9068,7 @@ matching paren in the echo area if not visible on screen."
                              (sp-show--pair-create-overlays :beg :end :op-l :cl-l)
                              (when (and sp-echo-match-when-invisible
                                         (not (or (active-minibuffer-window) cursor-in-echo-area)))
-                               (sp-show--pair-echo-match :beg :end :op-l :cl-l back))))
+                               (sp-show--pair-echo-match :beg :end :op-l :cl-l))))
                        (if back
                            (sp-show--pair-create-mismatch-overlay (- (point) (length match))
                                                                   (length match))
@@ -9125,7 +9125,7 @@ matching paren in the echo area if not visible on screen."
     (overlay-put oright 'priority 1000)
     (overlay-put oleft 'type 'show-pair)))
 
-(defun sp-show--pair-echo-match (start end olen clen back)
+(defun sp-show--pair-echo-match (start end olen clen)
   "Print the line of the matching paren in the echo area if not
 visible on screen. Needs to be called after the show-pair overlay
 has been created."
@@ -9134,9 +9134,13 @@ has been created."
                     (equal sp-show-pair-previous-point (point))))
       (setq sp-show-pair-previous-match-positions match-positions)
       (setq sp-show-pair-previous-point (point))
-      (let* ((where (if back start end))
-             (visible (pos-visible-in-window-p where)))
-        (when (not visible)
+      (let* ((visible-start (pos-visible-in-window-p start))
+             (visible-end (pos-visible-in-window-p end))
+             (where (cond
+                     ((not visible-start) start)
+                     ((not visible-end) end)
+                     nil)))
+        (when where
           (save-excursion
             (let* ((from (progn (goto-char where) (beginning-of-line) (point)))
                    (to (progn (end-of-line) (point)))
