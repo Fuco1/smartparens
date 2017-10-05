@@ -50,6 +50,20 @@ executing `sp-skip-closing-pair'."
     (execute-kbd-macro "[]|")
     (should (equal (buffer-string) "from sys import stdin, \\\n    stdout\n\na = \"[]|\""))))
 
+;; #778
+(ert-deftest sp-test-reindent-after-skip-closing-pair-in-strict-mode ()
+  (sp-test-with-temp-elisp-buffer "(foo\n | \n)"
+    (smartparens-strict-mode 1)
+    (execute-kbd-macro ")")
+    (sp-buffer-equals "(foo)|")))
+
+;; #778
+(ert-deftest sp-test-reindent-after-skip-closing-pair-with-autoskip-disabled ()
+  (sp-test-with-temp-elisp-buffer "(foo\n | \n)"
+    (let ((sp-autoskip-closing-pair nil))
+      (execute-kbd-macro ")")
+      (sp-buffer-equals "(foo\n )| \n)"))))
+
 ;; #421
 ;; If we are in a balanced context and hit a closing delimiter for
 ;; an autoskip pair which is not enclosing (so we would jump out of

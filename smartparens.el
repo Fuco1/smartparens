@@ -1161,6 +1161,12 @@ The whitespace between the closing delimiter and last \"thing\"
 inside the expression is removed.  It works analogically for the
 `sp-backward-up-sexp'.
 
+Note that this also happens when `sp-skip-closing-pair' is
+invoked (usually in strict mode when the closing delimiter is
+typed) as it calls `sp-up-sexp' internally.  This behaviour can
+be customized by various settings of `sp-autoskip-closing-pair'
+and `sp-autoskip-opening-pair'.
+
 If the mode is in the list \"interactive\", only reindent the sexp
 if the command was called interactively.  This is recommended for
 general use.
@@ -3943,7 +3949,7 @@ achieve this by using `sp-pair' or `sp-local-pair' with
                                             (< (point) :end-in)))
                                      (if test-only t
                                        (delete-char -1)
-                                       (sp-up-sexp)))))
+                                       (sp-up-sexp nil t)))))
                       (unless (or test-only
                                   sp-buffer-modified-p)
                         (set-buffer-modified-p nil))
