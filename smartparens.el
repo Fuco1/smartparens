@@ -1398,7 +1398,9 @@ kill \"subwords\" when `subword-mode' is active."
 
 (defadvice delete-selection-pre-hook (around fix-sp-wrap activate)
   "Fix `sp-wrap' in `delete-selection-mode'."
-  (unless (and smartparens-mode (sp-wrap--can-wrap-p))
+  (unless (and smartparens-mode
+               (sp--delete-selection-p) (use-region-p) (not buffer-read-only)
+               (sp-wrap--can-wrap-p))
     ad-do-it))
 
 
