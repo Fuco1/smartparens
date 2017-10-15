@@ -4511,8 +4511,11 @@ and the skip-match predicate."
                                  (not (sp-point-in-string))
                                  (sp--looking-back-p "?" 1)))))
                     ;; TODO: HACK: global-skip is hack here!!!
-                    (sp--skip-match-p match (match-beginning 0) (match-end 0) :pair-skip skip-fn :global-skip nil))
-          (setq hit t))))
+                    (sp--skip-match-p match (match-beginning 0) (match-end 0)
+                                      :pair-skip (or skip-fn
+                                                     (sp-get-pair match :skip-match))
+                                      :global-skip nil))
+          (setq hit (match-data)))))
     hit))
 
 (defun sp-get-stringlike-expression (&optional back)
