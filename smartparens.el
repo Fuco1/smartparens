@@ -4723,9 +4723,13 @@ By default, this is enabled in all modes derived from
     (setq ps (if (equal pre "") ps
                (or (save-excursion (funcall search-fn pre nil t)) ps)))
     (setq ss (if (equal sre "") ss
-               (or (--when-let (save-excursion (funcall search-fn sre nil t))
+               (or (--when-let (save-excursion
+                                 (sp--find-next-stringlike-delimiter sre search-fn))
                      (setq string-delim (match-string 0))
-                     it) ss)))
+                     (save-match-data
+                       (set-match-data it)
+                       (if back (match-beginning 0) (match-end 0))))
+                   ss)))
     ;; TODO: simplify this logic somehow... (this really depends
     ;; on a rewrite of the core parser logic: separation of "find
     ;; the valid opening" and "parse it")
