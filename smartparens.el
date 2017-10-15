@@ -5047,11 +5047,12 @@ is used to retrieve the prefix instead of the global setting."
         ;; closing delimiter which is allowed for parsing in current
         ;; context
         (goto-char p)
-        (if (or (sp--do-action-p prefix 'navigate)
-                (sp--do-action-p
-                 (car (--first (equal (cdr it) prefix)
-                               sp-pair-list))
-                 'navigate))
+        (if (and (< 0 (length prefix))
+                 (or (sp--do-action-p prefix 'navigate)
+                     (sp--do-action-p
+                      (car (--first (equal (cdr it) prefix)
+                                    sp-pair-list))
+                      'navigate)))
             ""
           prefix)))))
 
@@ -5088,11 +5089,12 @@ is used to retrieve the suffix instead of the global setting."
         ;; closing delimiter which is allowed for parsing in current
         ;; context
         (goto-char p)
-        (if (or (sp--do-action-p suffix 'navigate)
-                (sp--do-action-p
-                 (car (--first (equal (cdr it) suffix)
-                               sp-pair-list))
-                 'navigate))
+        (if (and (< 0 (length suffix))
+                 (or (sp--do-action-p suffix 'navigate)
+                     (sp--do-action-p
+                      (car (--first (equal (cdr it) suffix)
+                                    sp-pair-list))
+                      'navigate)))
             ""
           suffix)))))
 
