@@ -45,3 +45,10 @@
       (haskell-mode)
     (sp-unwrap-sexp)
     (sp-buffer-equals "|a")))
+
+(ert-deftest sp-test-haskell-sp-backward-kill-words-respects-pairs-in-strict-mode ()
+  (sp-test-with-temp-buffer "foo a = foldr (+) []| b"
+      (haskell-mode)
+    (smartparens-strict-mode 1)
+    (sp-backward-kill-word 1)
+    (sp-buffer-equals "foo a = | (+) [] b")))
