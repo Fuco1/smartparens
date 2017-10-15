@@ -3116,12 +3116,6 @@ last form; otherwise do nothing."
 
 (add-hook 'pre-command-hook 'sp--save-pre-command-state)
 
-(defun sp--pre-command-hook-handler ()
-  "Main handler of pre-command-hook.
-
-Handle the `delete-selection-mode' or `cua-delete-selection'
-stuff here.")
-
 (defun sp--get-pair-list ()
   "Get all non-stringlike pairs.
 
@@ -9225,7 +9219,6 @@ has been created."
   (save-match-data
     (sp-delete-pair (ad-get-arg 0))))
 (add-hook 'post-command-hook 'sp--post-command-hook-handler)
-(add-hook 'pre-command-hook 'sp--pre-command-hook-handler)
 (sp--set-base-key-bindings)
 (sp--update-override-key-bindings)
 
