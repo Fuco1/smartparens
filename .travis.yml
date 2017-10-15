@@ -4,6 +4,7 @@ env:
   - EVM_EMACS=emacs-24.4-travis
   - EVM_EMACS=emacs-24.5-travis
   - EVM_EMACS=emacs-25.1-travis
+  - EVM_EMACS=emacs-25.2-travis
   - EVM_EMACS=emacs-git-snapshot-travis
 before_install:
   - curl -fsSkL https://gist.github.com/rejeep/ebcd57c3af83b049833b/raw > x.sh && source ./x.sh
@@ -20,3 +21,4 @@ matrix:
   allow_failures:
     - env: EVM_EMACS=emacs-git-snapshot-travis
     - env: EVM_EMACS=emacs-25.1-travis
+    - env: EVM_EMACS=emacs-25.2-travis
