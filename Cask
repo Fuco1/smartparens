@@ -24,6 +24,7 @@
   (depends-on "tuareg")
   (depends-on "scala-mode")
   (depends-on "elixir-mode")
+  (depends-on "haskell-mode")
   (depends-on "markdown-mode")
   (depends-on "hungry-delete")
   (depends-on "evil"))

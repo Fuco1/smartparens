@@ -46,10 +46,35 @@
 ;;; Code:
 (require 'smartparens)
 
+(defun sp-haskell-skip-apostrophe (ms mb me)
+  (save-excursion
+    ;; We test the syntax class because haskell mode overrides
+    ;; the class for ' on the fly when it run the syntax pass of
+    ;; font-lock... so that if '' is a valid string (char) it
+    ;; gets an override via 'syntax-table property.  In which
+    ;; case we just agree with haskell mode and let it be used as
+    ;; a pair.
+    (not (eq (syntax-class (syntax-after mb)) 7))))
+
+(defun sp-haskell-strict-ignore-apostrophe-after-word (_id action _context)
+  "Ignore trailing ' when navigating.
+
+Because ' in haskell is symbol class it gets picked up as part of
+a words such as myFunction', and then strict mode won't allow us
+to delete it.  Also show-smartparens-mode incorrectly highlights
+it as missing an opener.
+
+So we ignore that pair when at the end of word."
+  (when (eq action 'navigate)
+    (sp--looking-back-p (concat "\\(\\sw\\|\\s_\\)'+"))))
+
 (sp-with-modes '(haskell-mode haskell-interactive-mode)
   (sp-local-pair "{-" "-}")
   (sp-local-pair "{-#" "#-}")
-  (sp-local-pair "'" nil :unless '(sp-point-after-word-p))
+  (sp-local-pair "'" nil
+                 :unless '(sp-point-after-word-p
+                           sp-haskell-strict-ignore-apostrophe-after-word)
+                 :skip-match 'sp-haskell-skip-apostrophe)
   (sp-local-pair "\\(" nil :actions nil))
 
 (defun sp--inferior-haskell-mode-backward-bound-fn ()
