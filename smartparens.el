@@ -5460,7 +5460,7 @@ expressions are considered."
                   (sp-get-sexp t))
                  ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-opening-regexp (sp--get-allowed-pair-list)) nil))
                   (sp-get-sexp t))
-                 ((and (eq (char-syntax (preceding-char)) 34)
+                 ((and (eq (syntax-class (syntax-after (1- (point)))) 7)
                        (not (sp-char-is-escaped-p (1- (point)))))
                   (if (eq t (sp-point-in-string))
                       (save-excursion
@@ -5506,7 +5506,7 @@ expressions are considered."
                 (sp-get-sexp nil))
                ;; TODO: merge the following two conditions and use
                ;; `sp-get-stringlike-or-textmode-expression'
-               ((and (eq (char-syntax (following-char)) 34)
+               ((and (eq (syntax-class (syntax-after (point))) 7)
                      (not (sp-char-is-escaped-p)))
                 ;; It might happen that the string delimiter we are
                 ;; looking at is nested inside another string
