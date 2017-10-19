@@ -63,6 +63,23 @@ ARGS."
             (goto-char paren-pos)
             (looking-at "<"))))))
 
+(defun sp-rust-skip-match-angle-bracket (ms mb me)
+  "Non-nil if we should ignore the bracket as valid delimiter."
+  (save-excursion
+    (goto-char me)
+    (let ((on-fn-return-type
+           (sp--looking-back-p (rx "->") nil))
+          (on-match-branch
+           (sp--looking-back-p (rx "=>") nil))
+          (on-comparison
+           (sp--looking-back-p (rx (or
+                                    (seq space "<")
+                                    (seq space ">")
+                                    (seq space "<<")
+                                    (seq space ">>")))
+                               nil)))
+      (or on-comparison on-fn-return-type on-match-branch))))
+
 (defun sp-rust-filter-angle-brackets (id action context)
   "Non-nil if we should allow ID's ACTION in CONTEXT for angle brackets."
   ;; See the docstring for `sp-pair' for the possible values of ID,
@@ -109,7 +126,8 @@ ARGS."
                  :unless '(sp-in-comment-p sp-in-string-quotes-p sp-in-rust-lifetime-context)
                  :post-handlers'(:rem sp-escape-quotes-after-insert))
   (sp-local-pair "<" ">"
-                 :when '(sp-rust-filter-angle-brackets)))
+                 :when '(sp-rust-filter-angle-brackets)
+                 :skip-match 'sp-rust-skip-match-angle-bracket))
 
 ;; Rust has no sexp suffices.  This fixes slurping
 ;; (|foo).bar -> (foo.bar)

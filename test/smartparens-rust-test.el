@@ -138,3 +138,31 @@ fn bar(x: u64) -> bool {
                             (rust-mode)
                             (execute-kbd-macro "> n")
                             (should (equal (buffer-string) "match Some(1) { Some(n) => n }"))))
+
+;; #793
+(ert-deftest sp-test-rust-skip-forward-over-return-type ()
+  "Moving forward over a function's return type."
+  (sp-test-with-temp-buffer "fn foo() |-> u32"
+      (rust-mode)
+    (sp-forward-sexp)
+    (execute-kbd-macro "{")
+    (sp-buffer-equals "fn foo() -> u32{|}")))
+
+;; #793
+(ert-deftest sp-test-rust-skip-backward-over-return-type ()
+  "Moving backward over a function's return type."
+  (sp-test-with-temp-buffer "foo() -> |u32 {}"
+      (rust-mode)
+    (smartparens-strict-mode 1)
+    (sp-backward-sexp)
+    (execute-kbd-macro "fn ")
+    (sp-buffer-equals "fn |foo() -> u32 {}")))
+
+;; #793
+(ert-deftest sp-test-rust-kill-defun ()
+  "Deleting a region containing a rust function definition."
+  (sp-test-with-temp-buffer "|fn foo() ->u32 {}"
+      (rust-mode)
+    (mark-whole-buffer)
+    (call-interactively 'sp-kill-region)
+    (should (equal (buffer-string) ""))))
