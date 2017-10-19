@@ -7,8 +7,7 @@
     (should (equal (sp-get-thing) result))))
 
 (ert-deftest sp-test-get-thing-latex nil
-  (let ((sp-navigate-consider-stringlike-sexp '(latex-mode))
-        (sp-sexp-prefix '((latex-mode syntax "\\/")))
+  (let ((sp-sexp-prefix '((latex-mode syntax "\\/")))
         (sp-pairs '((t . ((:open "$" :close "$" :actions (insert wrap autoskip navigate))
                           (:open "'" :close "'" :actions (insert wrap autoskip navigate))
                           (:open "[" :close "]" :actions (insert wrap autoskip navigate))

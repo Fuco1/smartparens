@@ -37,12 +37,6 @@
 ;; into your configuration.  You can use this in conjunction with the
 ;; default config or your own configuration.
 
-;; It is advised that you add `latex-mode' to the list
-;; `sp-navigate-consider-stringlike-sexp'.  This will tell
-;; smartparens to treat the $$ math blocks as sexps, and enable you
-;; to use all the sexp-based commands on them (such as
-;; `sp-down-sexp', `sp-up-sexp' etc.)
-
 ;; If you have good ideas about what should be added please file an
 ;; issue on the github tracker.
 

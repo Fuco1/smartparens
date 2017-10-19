@@ -405,25 +405,19 @@ be."
     ;; keep comment before the form from which we are splicing if it is on a separate line
     ("(\n    ;; foo bar\n |asd\n as\n ;; asds (asdasd asd hgujirjf) asd\n asd\n )" "|;; foo bar\nasd")
     ("(\n    ;; foo bar\n asd\n as\n ;; asds (asdasd asd hgujirjf) asd\n |asd\n )" "|;; asds (asdasd asd hgujirjf) asd\nasd")
-    )
-   ;; from #243
-   (((sp-navigate-consider-stringlike-sexp '(emacs-lisp-mode)))
+
+    ;; from #243
     (";; \"quote\" here\nand \"|here\"" ";; \"quote\" here\nand |here")
     (";; \"|quote\" here\nand here" ";; |quote here\nand here")
 
-    ;; from #580, should also work without sp-navigate-consider-stringlike-sexp
+    ;; from #580
     ("(foo \"|bar\")" "(foo |bar)")
 
     ;; from #569
     ("(\" \" f|oo)" "|foo")
     ("(\" \" |foo)" "|foo")
-    ("(\"x\" |foo)" "|foo"))
-   ;; TODO: this should also work without sp-navigate-consider-stringlike-sexp
-   ;; (nil
-   ;;  ("(\" \" f|oo)" "|foo")
-   ;;  ("(\" \" |foo)" "|foo")
-   ;;  ("(\"x\" |foo)" "|foo"))
-   ))
+    ("(\"x\" |foo)" "|foo")
+    )))
 
 (sp-test-command sp-split-sexp
   ((nil
@@ -541,7 +535,7 @@ be."
     ("(define-key smartparens-mode-map (kbd | \"C-{\") 'sp-beginning-of-next-sexp)" "(define-key smartparens-mode-map (|kbd  \"C-{\") 'sp-beginning-of-next-sexp)" ))))
 
 (sp-test-command backward-delete-char
-  ((((sp-navigate-consider-stringlike-sexp '(emacs-lisp-mode)))
+  ((nil
     (";;asdas'|\n'asdasd'" ";;asdas|\n'asdasd'")
     ("foo \"|\" bar" "foo | bar")
     ("foo [|] bar" "foo | bar")

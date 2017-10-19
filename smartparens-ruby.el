@@ -393,9 +393,6 @@ MS, ME, MB."
                  :pre-handlers '(sp-ruby-pre-pipe-handler)
                  :suffix ""))
 
-(dolist (mode '(ruby-mode motion-mode))
-  (add-to-list 'sp-navigate-consider-stringlike-sexp mode))
-
 (provide 'smartparens-ruby)
 
 ;;; smartparens-ruby.el ends here

@@ -37,12 +37,6 @@
 ;; into your configuration.  You can use this in conjunction with the
 ;; default config or your own configuration.
 
-;; It is advised that you add `html-mode' to the list
-;; `sp-navigate-consider-stringlike-sexp'.  This will tell smartparens
-;; to treat the "" delimited strings as sexps, and enable you to use
-;; all the sexp-based commands on them (such as `sp-down-sexp',
-;; `sp-up-sexp' etc.)
-
 ;; This file provides these interactive functions:
 
 ;; `sp-html-next-tag'     - Recommended binding: C-c C-f

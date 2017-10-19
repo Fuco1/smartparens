@@ -29,8 +29,7 @@
 
 (ert-deftest sp-test-delete-pair-in-org-mode-truly-empty ()
   (let ((sp-pairs '((t (:open "\"" :close "\"" :actions (insert wrap autoskip navigate))
-                       (:open "(" :close ")" :actions (insert wrap autoskip navigate)))))
-        (sp-navigate-consider-stringlike-sexp '(org-mode)))
+                       (:open "(" :close ")" :actions (insert wrap autoskip navigate))))))
     (sp-test-with-temp-buffer "\"asdasd\"  \"|\"   \"asdad\""
         (org-mode)
       (smartparens-strict-mode -1)
