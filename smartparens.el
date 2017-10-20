@@ -166,6 +166,25 @@ better orientation."
         (goto-char (point-min))))
     (pop-to-buffer "*Smartparens cheat sheet*")))
 
+(defun sp-describe-system ()
+  "Describe user's system.
+
+The output of this function can be used in bug reports."
+  (interactive)
+  (kill-new
+   (format "- `smartparens` version: %s
+- Active major-mode: %s
+- Emacs version (`M-x emacs-version`): %s
+- Spacemacs/Evil/Other starterkit (specify which)/Vanilla: %s
+- OS: %s"
+           (--if-let (cadr (assoc 'smartparens package-alist))
+               (package-version-join (package-desc-version it))
+             "<Please specify manually>")
+           (symbol-name major-mode)
+           (replace-regexp-in-string "\n" "" (emacs-version))
+           "<Please specify manually>"
+           (symbol-name system-type))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Variables
