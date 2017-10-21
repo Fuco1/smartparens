@@ -399,7 +399,7 @@ Maximum length of opening or closing pair is
   last-syntax-ppss-point
   last-syntax-ppss-result)
 
-(defvar sp-state nil
+(defvar sp-state (make-sp-state)
   "Smartparens state for the current buffer.")
 (make-variable-buffer-local 'sp-state)
 
@@ -736,7 +736,6 @@ after the smartparens indicator in the mode list."
 
  This includes pair bindings and other buffer local variables
 that depend on the active `major-mode'."
-  ;; setup local state
   (setq sp-state (make-sp-state))
   ;; setup local pair replacements
   (sp--update-local-pairs)
