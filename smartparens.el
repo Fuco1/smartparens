@@ -3772,7 +3772,7 @@ default."
                           (sp--pair-to-uninsert))
               (let ((cl (plist-get it :close)))
                 (when (and (sp--looking-at-p (sp--strict-regexp-quote cl))
-                           (not (string-prefix-p cl close-pair)))
+                           (> (- (length close-pair) (length cl)) 0))
                   (delete-char (length cl)))))
             (insert close-pair)
             (backward-char (length close-pair))
