@@ -71,6 +71,7 @@ So we ignore that pair when at the end of word."
 (sp-with-modes '(haskell-mode haskell-interactive-mode)
   (sp-local-pair "{-" "-}")
   (sp-local-pair "{-#" "#-}")
+  (sp-local-pair "{-@" "@-}")
   (sp-local-pair "'" nil
                  :unless '(sp-point-after-word-p
                            sp-haskell-strict-ignore-apostrophe-after-word)
