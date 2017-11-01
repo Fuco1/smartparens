@@ -8900,8 +8900,8 @@ ordered, that is [(]) is correct even though it is not logically
 properly balanced."
   (save-excursion
     (save-restriction
-      (narrow-to-region start end)
       (when (eq (sp-point-in-string start) (sp-point-in-string end))
+        (narrow-to-region start end)
         (let ((regex (sp--get-allowed-regexp (-difference sp-pair-list (sp--get-allowed-pair-list)))))
           (goto-char (point-min))
           (while (or (prog1 (sp-forward-sexp)
