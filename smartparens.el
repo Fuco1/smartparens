@@ -594,7 +594,7 @@ Symbol is defined as a chunk of text recognized by
 
 (defvar sp-message-alist
   '((:unmatched-expression
-     "Search failed. This means there is unmatched expression somewhere or we are at the beginning/end of file."
+     "Search failed. This means there is an unmatched expression somewhere or we are at the beginning/end of file."
      "Unmatched expression.")
     (:delimiter-in-string
      "Opening or closing pair is inside a string or comment and matching pair is outside (or vice versa). Ignored.")
