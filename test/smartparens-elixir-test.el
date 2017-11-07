@@ -116,6 +116,9 @@ end"))
   (sp-test-insertion-elixir "|" "case " "case | do
 end"))
 
+(ert-deftest sp-test-elixir-if-block-insertion-in-comment ()
+  (sp-test-insertion-elixir "# comment |" "if " "# comment if |"))
+
 (ert-deftest sp-test-elixir-forward-slurp ()
   "Ensure that commas are handled properly when slurping forward"
   (sp-test-with-temp-buffer "[1, [|2], :a]"
