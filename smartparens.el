@@ -7576,6 +7576,23 @@ represent a valid object in a buffer!"
         (sp--keep-indentation
           (sp--indent-region indent-from indent-to))))))
 
+(defun sp-change-inner ()
+  "Change the inside of the next expression.
+
+First, kill the inside of the next balanced expression, then move
+point just after the opening delimiter.
+
+Examples:
+
+  (f|oo [bar] baz) -> (foo [|] baz)
+
+  {|'foo': 'bar'}  -> {'|': 'bar'}"
+  (interactive)
+  (-when-let (ok (sp-get-sexp))
+    (sp-get ok
+      (kill-region :beg-in :end-in)
+      (goto-char :beg-in))))
+
 (defun sp-unwrap-sexp (&optional arg)
   "Unwrap the following expression.
 

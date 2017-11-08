@@ -6,6 +6,7 @@
    ((eq mode 'elisp) (emacs-lisp-mode))
    ((eq mode 'racket) (racket-mode))
    ((eq mode 'c) (c-mode))
+   ((eq mode 'js) (js2-mode))
    ((eq mode 'python) (shut-up (python-mode))))
   (smartparens-mode 1))
 
@@ -708,6 +709,12 @@ be."
    (((mode 'c))
     ("void f() {\n  int a[] = {\n    foo(1,2),|\n    bar(3,4)\n  };   \n}"
      "void f() {\n  int a[] = {\n    bar(3,4),\n    foo(1,2)\n  |};   \n}"))))
+
+(sp-test-command sp-change-inner
+  ((nil
+    ("(f|oo [bar] baz)" "(foo [|] baz)"))
+   (((mode 'js))
+    ("{|'foo': 'bar'}" "{'|': 'bar'}"))))
 
 (defun sp--test-sp-rewrap-sexp (initial pair expected &optional keep)
   (sp-test-with-temp-elisp-buffer initial
