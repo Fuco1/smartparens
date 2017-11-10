@@ -43,10 +43,13 @@
 
 (defun sp--org-skip-asterisk (ms mb me)
   "Non-nil if the asterisk is part of the outline marker."
-  (or (and (= (line-beginning-position) mb)
-           (eq 32 (char-after (1+ mb))))
-      (and (= (1+ (line-beginning-position)) me)
-           (eq 32 (char-after me)))))
+  (save-excursion
+    (goto-char mb)
+    (beginning-of-line)
+    (let ((skip-distance (skip-chars-forward "*")))
+      (if (= skip-distance 1)
+          (not (memq (syntax-class (syntax-after (point))) '(2 3)))
+        (<= me (point))))))
 
 (sp-with-modes 'org-mode
   (sp-local-pair "*" "*"

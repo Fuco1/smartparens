@@ -38,6 +38,26 @@
     (execute-kbd-macro "*")
     (sp-buffer-equals "foo *|barM* baz")))
 
+(ert-deftest sp-test-org-skip-headline-asterisk ()
+  (sp-test-with-temp-buffer "|*** Foo"
+      (org-mode)
+    (should-not (sp-get-sexp))))
+
+(ert-deftest sp-test-org-do-not-skip-emphasis-asterisk ()
+  (sp-test-with-temp-buffer "some |*foo* text"
+      (org-mode)
+    (should (sp-get-sexp))))
+
+(ert-deftest sp-test-org-do-not-skip-emphasis-asterisk-at-bol ()
+  (sp-test-with-temp-buffer "|*foo* text"
+      (org-mode)
+    (should (sp-get-sexp))))
+
+(ert-deftest sp-test-org-do-not-skip-emphasis-asterisk-at-bol-backwards ()
+  (sp-test-with-temp-buffer "*foo*| text"
+      (org-mode)
+    (should (sp-get-sexp t))))
+
 
 ;;; slash pair
 (ert-deftest sp-test-org-insert-slash-pair ()
