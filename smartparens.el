@@ -7273,6 +7273,7 @@ Examples:
         (forward-fn (if forward 'forward-char 'backward-char))
         (next-char-fn (if forward 'following-char 'preceding-char))
         (looking (if forward 'sp--looking-at 'sp--looking-back))
+        (prefix-fn (if forward 'sp--get-suffix 'sp--get-prefix))
         (eob-test (if forward '(eobp) '(bobp)))
         (comment-bound (if forward 'cdr 'car)))
     `(let ((in-comment (sp-point-in-comment))
@@ -7280,7 +7281,8 @@ Examples:
            ;; pair that was not allowed before.  However, such a call is
            ;; never made in SP, so it's OK for now
            (allowed-pairs (sp--get-allowed-regexp))
-           (allowed-strings (sp--get-stringlike-regexp)))
+           (allowed-strings (sp--get-stringlike-regexp))
+           (prefix nil))
        (while (and (not (or ,eob-test
                             (and stop-after-string
                                  (not (sp-point-in-string))
@@ -7296,11 +7298,28 @@ Examples:
                             (and (,looking allowed-strings)
                                  (or in-comment (not (sp-point-in-comment))))))
                    (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\\ ?\" ?' ?.))
-                       (unless in-comment (sp-point-in-comment))))
-         (when (and (not in-comment)
-                    (sp-point-in-comment))
-           (goto-char (,comment-bound (sp-get-comment-bounds))))
-         (when (not ,eob-test) (,forward-fn 1))))))
+                       (unless in-comment (sp-point-in-comment))
+                       ;; This is the case where we are starting at
+                       ;; pair (looking at it) and there is some
+                       ;; prefix which is not recognized by syntax,
+                       ;; i.e. defined by regexp.  This should only be
+                       ;; tested once in principle before the next
+                       ;; time we land on a delimiter this whole loop
+                       ;; stops based on the first branch of the `and'
+                       ;; condition in `while' so using expensive
+                       ;; functions here is not a bg deal.
+                       (and (or (,(if forward 'sp--looking-back 'sp--looking-at) allowed-pairs)
+                                (,(if forward 'sp--looking-back 'sp--looking-at) allowed-strings))
+                            (progn
+                              (setq prefix (,prefix-fn))
+                              (> (length prefix) 0)))))
+         (if (and (not in-comment)
+                  (sp-point-in-comment))
+             (progn
+               (goto-char (,comment-bound (sp-get-comment-bounds)))
+               (unless ,eob-test (,forward-fn 1)))
+           (unless ,eob-test
+             (,forward-fn (max (length prefix) 1))))))))
 
 (defun sp-skip-forward-to-symbol (&optional stop-at-string stop-after-string stop-inside-string)
   "Skip whitespace and comments moving forward.
