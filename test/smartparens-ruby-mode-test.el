@@ -102,7 +102,12 @@ begin
 end
 ")
 
-  (sp-ruby-test-slurp-assert (if (version< emacs-version "24.4") 5 4) "
+  (sp-ruby-test-slurp-assert
+   (cond
+    ((version< emacs-version "24.4") 5)
+    ((version< emacs-version "25.0") 4)
+    (t 3))
+   "
 beginX
 end
 test ? a : b
@@ -347,7 +352,7 @@ end
 
   (sp-ruby-test-slurp-assert -1 "
 ::Class
-begin X
+beginX
 end
 " :=> "
 begin
@@ -394,7 +399,11 @@ begin
 end
 ")
 
-  (sp-ruby-test-slurp-assert (if (version< emacs-version "24.4") -5 -4) "
+  (sp-ruby-test-slurp-assert
+   (cond
+    ((version< emacs-version "24.4") -5)
+    ((version< emacs-version "25.0") -4)
+    (t -3)) "
 test ? a : b
 beginX
 end
@@ -574,12 +583,32 @@ test ? a : b
 
   (sp-ruby-test-barf-assert 1 "
 beginX
+  ::Class
+end
+" :=> "
+begin
+end
+::Class
+")
+
+  (sp-ruby-test-barf-assert 1 "
+beginX
   Module::Class
 end
 " :=> "
 begin
 end
 Module::Class
+")
+
+  (sp-ruby-test-barf-assert 1 "
+beginX
+  ::Module::Class
+end
+" :=> "
+begin
+end
+::Module::Class
 ")
   )
 
@@ -628,7 +657,11 @@ begin
 end
 ")
 
-  (sp-ruby-test-barf-assert (if (version< emacs-version "24.4") -5 -4) "
+  (sp-ruby-test-barf-assert
+   (cond
+    ((version< emacs-version "24.4") -5)
+    ((version< emacs-version "25.0") -4)
+    (t -3)) "
 begin
   test ? a : bX
 end
@@ -640,10 +673,30 @@ end
 
   (sp-ruby-test-barf-assert -1 "
 begin
+  ::ClassX
+end
+" :=> "
+::Class
+begin
+end
+")
+
+  (sp-ruby-test-barf-assert -1 "
+begin
   Module::ClassX
 end
 " :=> "
 Module::Class
+begin
+end
+")
+
+  (sp-ruby-test-barf-assert -1 "
+begin
+  ::Module::ClassX
+end
+" :=> "
+::Module::Class
 begin
 end
 ")
