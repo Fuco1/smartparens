@@ -783,17 +783,18 @@ be."
     (sp-buffer-equals "|(foo) (bar)M (baz)")))
 
 (ert-deftest sp-test-command-sp-mark-sexp-multiple-invocations ()
-  (sp-test-with-temp-elisp-buffer "|(foo) (bar) (baz)"
-    (call-interactively 'sp-mark-sexp)
-    (call-interactively 'sp-mark-sexp)
-    (sp-buffer-equals "|(foo) (bar)M (baz)")))
+  (let ((smartparens-mode-map smartparens-mode-map))
+    (sp-test-with-temp-elisp-buffer "|(foo) (bar) (baz)"
+      (execute-kbd-macro "mm")
+      (sp-buffer-equals "|(foo) (bar)M (baz)"))))
 
 (ert-deftest sp-test-command-sp-mark-sexp-invalid ()
-  (should-error
-   (sp-test-with-temp-elisp-buffer "(progn (foo) |(bar)) (baz)"
-     (call-interactively 'sp-mark-sexp)
-     (call-interactively 'sp-mark-sexp))
-   :type 'user-error))
+  (let ((smartparens-mode-map smartparens-mode-map))
+    (should-error
+     (sp-test-with-temp-elisp-buffer "(progn (foo) |(bar)) (baz)"
+       (define-key smartparens-mode-map "m" 'sp-mark-sexp)
+       (execute-kbd-macro "mm"))
+     :type 'user-error)))
 
 (ert-deftest sp-test-command-sp-convolute-sexp-inside-symbol ()
   "Calling `sp-convolute-sexp' with point inside of symbol moves
