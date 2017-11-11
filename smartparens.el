@@ -5157,8 +5157,6 @@ returned by `sp-get-sexp'."
     (unless last-or-first
       (list :beg b :end e :op "" :cl "" :prefix (sp--get-prefix b) :suffix (sp--get-suffix e)))))
 
-;; this +/- 1 nonsense comes from sp-get-quoted-string-bounds. That
-;; should go to hell after the parser rewrite
 (defun sp--get-string (bounds)
   "Return the `sp-get-sexp' format info about the string.
 
