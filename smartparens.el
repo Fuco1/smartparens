@@ -5071,7 +5071,7 @@ is used to retrieve the prefix instead of the global setting."
                       (skip-syntax-backward (cadr mmode-prefix))
                       (buffer-substring-no-properties (point) p))
                      (t ""))
-                  (skip-syntax-backward "'")
+                  (backward-prefix-chars)
                   (buffer-substring-no-properties (point) p)))))
         ;; do not consider it a prefix if it matches some opening or
         ;; closing delimiter which is allowed for parsing in current
@@ -7298,6 +7298,7 @@ Examples:
                             (and (,looking allowed-strings)
                                  (or in-comment (not (sp-point-in-comment))))))
                    (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\\ ?\" ?' ?.))
+                       (/= 0 (logand (lsh 1 20) (car (syntax-after (point)))))
                        (unless in-comment (sp-point-in-comment))
                        ;; This is the case where we are starting at
                        ;; pair (looking at it) and there is some
@@ -7473,6 +7474,10 @@ Examples:
                                  (sp--valid-initial-delimiter-p (sp--looking-back close))))
                         (memq (char-syntax (preceding-char)) '(?w ?_)))
               (backward-char))
+            ;; skip characters which are symbols with prefix flag
+            (while (and (not (eobp))
+                        (/= 0 (logand (lsh 1 20) (car (syntax-after (point))))))
+              (forward-char 1))
             (setq n (1- n)))
         (sp-forward-symbol n)))))
 

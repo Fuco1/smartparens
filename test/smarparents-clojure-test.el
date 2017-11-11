@@ -77,27 +77,26 @@
         (sp-wrap-with-pair "(")
         (forward-line)
         ;; FIXME: sp-wrap-with-pair keeps region active for no clear reason
-        (deactivate-mark) 
+        (deactivate-mark)
         (back-to-indentation))
       (should (equal (buffer-string) after)))))
 
-;; FIXME: this fails
-;; (ert-deftest sp-test-clojure-wrap-with-fence-prefix ()
-;;   "Ensure correct wrap-pair over #-prefixed expressions."
-;;   (let ((before "(do
-;;   |#\"...\"
-;;   #~xyzzy)")
-;;         (after "(do
-;;   (#\"...\")
-;;   (#~xyzzy))"))
-;;     (sp-test-with-temp-buffer before (clojure-mode)
-;;       (while (not (eobp))
-;;         (back-to-indentation)
-;;         (sp-wrap-with-pair "(")
-;;         (forward-line)
-;;         ;; FIXME: sp-wrap-with-pair keeps region active
-;;         (deactivate-mark))
-;;       (should (equal (buffer-string) after)))))
+(ert-deftest sp-test-clojure-wrap-with-fence-prefix ()
+  "Ensure correct wrap-pair over #-prefixed expressions."
+  (let ((before "(do
+  |#\"...\"
+  #~xyzzy)")
+        (after "(do
+  (#\"...\")
+  (#~xyzzy))"))
+    (sp-test-with-temp-buffer before (clojure-mode)
+      (while (not (eobp))
+        (back-to-indentation)
+        (sp-wrap-with-pair "(")
+        (forward-line)
+        ;; FIXME: sp-wrap-with-pair keeps region active
+        (deactivate-mark))
+      (should (equal (buffer-string) after)))))
 
 ;; FIXME: fails
 ;; (ert-deftest sp-test-clojure-barf-with-fence-prefix ()

@@ -36,3 +36,11 @@
     (sp-test-with-temp-elisp-buffer "(|_(abc))"
       (should (equal (sp-get-thing)
                      '(:beg 3 :end 8 :op "(" :cl ")" :prefix "_" :suffix ""))))))
+
+;; #812
+(ert-deftest sp-test-get-prefix-which-is-marked-with-special-prefix-flag ()
+  (let ((sp-sexp-prefix nil))
+    (sp-test-with-temp-elisp-buffer "?|foo"
+     (with-syntax-table (make-syntax-table)
+       (modify-syntax-entry ?? "_ p")
+       (should (equal (sp--get-prefix) "?"))))))

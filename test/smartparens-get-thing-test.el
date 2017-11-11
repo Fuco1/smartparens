@@ -85,3 +85,31 @@ picked up, causing `sp-get-thing' to take the 2nd previous one."
       (should
        (equal (sp-get-thing)
               '(:beg 11 :end 12 :op "" :cl "" :prefix "" :suffix ""))))))
+;; #812
+(ert-deftest sp-test-get-thing-symbol-with-prefix-syntax-before-prefix ()
+  (let ((sp-sexp-prefix nil))
+    (sp-test-with-temp-elisp-buffer "|?foo"
+      (with-syntax-table (make-syntax-table)
+        (modify-syntax-entry ?? "_ p")
+        (sp-get (sp-get-thing)
+          (should (equal :beg 2))
+          (should (equal :prefix "?")))))))
+
+;; #812
+(ert-deftest sp-test-get-thing-symbol-with-prefix-syntax-after-prefix ()
+  (let ((sp-sexp-prefix nil))
+    (sp-test-with-temp-elisp-buffer "?|foo"
+      (with-syntax-table (make-syntax-table)
+        (modify-syntax-entry ?? "_ p")
+        (sp-get (sp-get-thing)
+          (should (equal :beg 2))
+          (should (equal :prefix "?")))))))
+
+;; #812
+(ert-deftest sp-test-symbol-backward-should-skip-the-prefix ()
+  (let ((sp-sexp-prefix nil))
+    (sp-test-with-temp-elisp-buffer "?foo|"
+      (with-syntax-table (make-syntax-table)
+        (modify-syntax-entry ?? "_ p")
+        (sp-backward-symbol 1)
+        (sp-buffer-equals "?|foo")))))
