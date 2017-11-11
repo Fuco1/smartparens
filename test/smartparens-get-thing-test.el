@@ -85,6 +85,37 @@ picked up, causing `sp-get-thing' to take the 2nd previous one."
       (should
        (equal (sp-get-thing)
               '(:beg 11 :end 12 :op "" :cl "" :prefix "" :suffix ""))))))
+
+;; #811
+(ert-deftest sp-test-get-thing-string-with-prefix-syntax-before-prefix ()
+  (sp-test-with-temp-elisp-buffer "symbol |,\"string\""
+    (sp-get (sp-get-thing)
+      (should (equal :prefix ","))
+      (should (equal :op "\"")))))
+
+;; #811
+(ert-deftest sp-test-get-thing-string-with-prefix-syntax-after-prefix ()
+  (sp-test-with-temp-elisp-buffer "symbol ,|\"string\""
+    (sp-get (sp-get-thing)
+      (should (equal :prefix ","))
+      (should (equal :op "\"")))))
+
+;; #811
+(ert-deftest sp-test-get-thing-string-with-prefix-regexp-before-prefix ()
+  (let ((sp-sexp-prefix '((emacs-lisp-mode regexp "P"))))
+    (sp-test-with-temp-elisp-buffer "symbol |P\"foo\""
+      (sp-get (sp-get-thing)
+        (should (equal :prefix "P"))
+        (should (equal :op "\""))))))
+
+;; #811
+(ert-deftest sp-test-get-thing-string-with-prefix-regexp-after-prefix ()
+  (let ((sp-sexp-prefix '((emacs-lisp-mode regexp "P"))))
+    (sp-test-with-temp-elisp-buffer "symbol P|\"foo\""
+      (sp-get (sp-get-thing)
+        (should (equal :prefix "P"))
+        (should (equal :op "\""))))))
+
 ;; #812
 (ert-deftest sp-test-get-thing-symbol-with-prefix-syntax-before-prefix ()
   (let ((sp-sexp-prefix nil))
