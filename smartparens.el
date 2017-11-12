@@ -594,44 +594,48 @@ Symbol is defined as a chunk of text recognized by
 
 (defvar sp-message-alist
   '((:unmatched-expression
-     "Search failed. This means there is an unmatched expression somewhere or we are at the beginning/end of file."
-     "Unmatched expression.")
+     "Search failed: there is an unmatched expression somewhere or we are at the beginning/end of file"
+     "Unmatched expression")
+    (:unbalanced-region
+     "Can not kill the region: the buffer would end up in an unbalanced state after deleting the active region"
+     "Killing the region would make the buffer unbalanced"
+     "Unbalanced region")
     (:delimiter-in-string
-     "Opening or closing pair is inside a string or comment and matching pair is outside (or vice versa). Ignored.")
+     "Ignored: opening or closing pair is inside a string or comment and matching pair is outside (or vice versa)")
     (:no-matching-tag
-     "Search failed. No matching tag found."
-     "No matching tag.")
+     "Search failed: no matching tag found"
+     "No matching tag")
     (:invalid-context-prev
-     "Invalid context: previous h-sexp ends after the next one."
-     "Invalid context.")
+     "Invalid context: previous h-sexp ends after the next one"
+     "Invalid context")
     (:invalid-context-cur
-     "Invalid context: current h-sexp starts after the next one."
-     "Invalid context.")
+     "Invalid context: current h-sexp starts after the next one"
+     "Invalid context")
     (:no-structure-found
-     "Previous sexp starts after current h-sexp or no structure was found."
-     "No valid structure found.")
+     "Previous sexp starts after current h-sexp or no structure was found"
+     "No valid structure found")
     (:invalid-structure
-     "This operation would result in invalid structure. Ignored."
-     "Ignored because of invalid structure.")
+     "Ignored: this operation would result in invalid structure"
+     "Ignored because of invalid structure")
     (:cant-slurp
-     "We can't slurp without breaking strictly balanced expression. Ignored."
-     "Can't slurp without breaking balance.")
+     "Ignored: we can not slurp without breaking strictly balanced expression"
+     "Can not slurp without breaking balance")
     (:cant-slurp-context
-     "We can't slurp into different context (comment -> code). Ignored."
-     "Can't slurp into different context.")
+     "Ignored: we can not slurp into different context (comment -> code)"
+     "Can not slurp into different context")
     (:cant-insert-closing-delimiter
-     "We can not insert unbalanced closing delimiter in strict mode."
-     "Can't insert unbalanced delimiter.")
+     "We can not insert unbalanced closing delimiter in strict mode"
+     "Can not insert unbalanced delimiter")
     (:blank-sexp
-     "Point is in blank sexp, nothing to barf."
-     "Point is in blank sexp.")
+     "Point is in blank sexp, nothing to barf"
+     "Point is in blank sexp")
     (:point-not-deep-enough
-     "Point has to be at least two levels deep to swap the enclosing delimiters."
-     "Point has to be at least two levels deep."
-     "Point not deep enough.")
+     "Point has to be at least two levels deep to swap the enclosing delimiters"
+     "Point has to be at least two levels deep"
+     "Point not deep enough")
     (:different-type
-     "The expressions to be joined are of different type."
-     "Expressions are of different type."))
+     "The expressions to be joined are of different type"
+     "Expressions are of different type"))
   "List of predefined messages to be displayed by `sp-message'.
 
 Each element is a list consisting of a keyword and one or more
@@ -1915,19 +1919,21 @@ which to do the comparsion (default to WHAT-A)."
   (setq what-b (or what-b what-a))
   `(,fun (sp-get ,a ,what-a) (sp-get ,b ,what-b)))
 
-(defun sp-message (key)
+(defun sp-message (key &optional return)
   "Display a message.
 
 KEY is either a string or list of strings, or a keyword,
 in which case the string list is looked up in
 `sp-message-alist'.  The string to be displayed is chosen based on
-the `sp-message-width' variable."
+the `sp-message-width' variable.
+
+If RETURN is non-nil return the string instead of printing it."
   (let ((msgs (cond ((listp key) key)
                     ((stringp key) (list key))
                     (t (cdr (assq key sp-message-alist))))))
     (when (and msgs sp-message-width)
       (if (eq sp-message-width t)
-          (message (car msgs))
+          (if return (car msgs) (message "%s." (car msgs)))
         (let ((maxlen (if (eq sp-message-width 'frame)
                           (frame-width)
                         sp-message-width))
@@ -1937,7 +1943,7 @@ the `sp-message-width' variable."
                      (> (length msg) (length s)))
                 (setf s msg)))
           (when s
-            (message s)))))))
+            (if return s (message "%s." s))))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
