@@ -2756,12 +2756,13 @@ On escape action use the value of CONTEXT."
   "Return t if point is inside elisp docstring, nil otherwise."
   (and (eq context 'string)
        (save-excursion
-         (goto-char (car (sp-get-quoted-string-bounds)))
-         (ignore-errors (backward-sexp 3))
-         (looking-at-p (regexp-opt '("defun" "defmacro"
-                                     "cl-defun" "cl-defmacro"
-                                     "defun*" "defmacro*"
-                                     "lambda" "-lambda"))))))
+         (--when-let (car (sp-get-quoted-string-bounds))
+           (goto-char it)
+           (ignore-errors (backward-sexp 3))
+           (looking-at-p (regexp-opt '("defun" "defmacro"
+                                       "cl-defun" "cl-defmacro"
+                                       "defun*" "defmacro*"
+                                       "lambda" "-lambda")))))))
 
 (defun sp-in-code-p (_id _action context)
   "Return t if point is inside code, nil otherwise."
