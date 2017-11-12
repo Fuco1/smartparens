@@ -56,10 +56,9 @@
 (require 'thingatpt)
 (require 'help-mode) ;; for help-xref-following #85
 
-(eval-when-compile (defvar cua--region-keymap))
-(declare-function cua-replace-region "cua-base")
-(declare-function cua--pre-command-handler "cua-base")
-(declare-function delete-selection-pre-hook "delsel")
+(declare-function cua-replace-region "cua-base") ; FIXME: remove this when we drop support for old emacs
+(declare-function cua-delete-region "cua-base")
+(declare-function cua--fallback "cua-base")
 
 ;;; backport for older emacsen
 
@@ -97,7 +96,6 @@ better orientation."
                           smartparens-global-mode
                           turn-on-smartparens-mode
                           turn-off-smartparens-mode
-                          sp--cua-replace-region
                           sp-wrap-cancel
                           sp-remove-active-pair-overlay
                           sp-splice-sexp-killing-around ;; is aliased to `sp-raise-sexp'
@@ -668,7 +666,9 @@ You can enable pre-set bindings by customizing
   (if smartparens-mode
       (progn
         (sp--init)
+        (add-hook 'self-insert-uses-region-functions 'sp-wrap--can-wrap-p nil 'local)
         (run-hooks 'smartparens-enabled-hook))
+    (remove-hook 'self-insert-uses-region-functions 'sp-wrap--can-wrap-p 'local)
     (run-hooks 'smartparens-disabled-hook)))
 
 (defvar smartparens-strict-mode-map
@@ -709,9 +709,15 @@ after the smartparens indicator in the mode list."
         (unless (-find-indices (lambda (it) (eq (car it) 'smartparens-strict-mode)) minor-mode-overriding-map-alist)
           (setq minor-mode-overriding-map-alist
                 (cons `(smartparens-strict-mode . ,smartparens-strict-mode-map) minor-mode-overriding-map-alist)))
+        (put 'sp-backward-delete-char 'delete-selection 'sp--delete-selection-supersede-p)
+        (put 'sp-delete-char 'delete-selection 'sp--delete-selection-supersede-p)
+        (add-hook 'self-insert-uses-region-functions 'sp--self-insert-uses-region-strict-p nil 'local)
         (setq sp-autoskip-closing-pair 'always))
     (setq minor-mode-overriding-map-alist
           (-remove (lambda (it) (eq (car it) 'smartparens-strict-mode)) minor-mode-overriding-map-alist))
+    (put 'sp-backward-delete-char 'delete-selection 'supersede)
+    (put 'sp-delete-char 'delete-selection 'supersede)
+    (remove-hook 'self-insert-uses-region-functions 'sp--self-insert-uses-region-strict-p 'local)
     (let ((std-val (car (plist-get (symbol-plist 'sp-autoskip-closing-pair) 'standard-value)))
           (saved-val (car (plist-get (symbol-plist 'sp-autoskip-closing-pair) 'saved-value))))
       (setq sp-autoskip-closing-pair (eval (or saved-val std-val))))))
@@ -1419,17 +1425,54 @@ kill \"subwords\" when `subword-mode' is active."
   (or (and (boundp 'delete-selection-mode) delete-selection-mode)
       (and (boundp 'cua-delete-selection) cua-delete-selection cua-mode)))
 
+(defun sp--delete-selection-supersede-p ()
+  "Decide if the current command should delete the region or not.
+
+This check is used as value of 'delete-selection property on the
+command symbol."
+  (if (or (equal current-prefix-arg '(4))
+          (sp-region-ok-p (region-beginning) (region-end)))
+      'supersede
+    (sp-message :unbalanced-region)
+    ;; Since this check runs in the pre-command-hook we can change the
+    ;; command to be executed... in this case we set it to ignore
+    ;; because we don't want to do anything.
+    (setq this-command 'ignore)
+    nil))
+
+(defun sp--self-insert-uses-region-strict-p ()
+  "Decide if the current `self-insert-command' should be able to
+replace the region.
+
+This check is added to the special hook
+`self-insert-uses-region-functions' which is checked by
+`delete-selection-uses-region-p'."
+  (if (or (equal current-prefix-arg '(4))
+          (sp-region-ok-p (region-beginning) (region-end)))
+      ;; region is OK or we are allowed to replace it, just say nil so
+      ;; that delsel handles this
+      nil
+    ;; in case region is bad we interrupt the insertion
+    (setq this-command 'ignore)
+    t))
+
+;; TODO: this function was removed from Emacs, we should get rid of
+;; the advice in time.
 (defadvice cua-replace-region (around fix-sp-wrap activate)
   "Fix `sp-wrap' in `cua-selection-mode'."
   (if (sp-wrap--can-wrap-p)
       (cua--fallback)
     ad-do-it))
 
-(defadvice delete-selection-pre-hook (around fix-sp-wrap activate)
-  "Fix `sp-wrap' in `delete-selection-mode'."
-  (unless (and smartparens-mode
-               (sp--delete-selection-p) (use-region-p) (not buffer-read-only)
-               (sp-wrap--can-wrap-p))
+(defadvice cua-delete-region (around fix-sp-delete-region activate)
+  "If `smartparens-strict-mode' is enabled, perform a region
+check before deleting."
+  (if smartparens-strict-mode
+      (progn
+        (unless (or current-prefix-arg
+                    (sp-region-ok-p (region-beginning) (region-end)))
+          (user-error (sp-message :unbalanced-region :return)))
+        ad-do-it)
     ad-do-it))
 
 
@@ -8901,7 +8944,7 @@ With a prefix argument, skip the balance check."
   (interactive "r")
   (when (or current-prefix-arg
             (sp-region-ok-p beg end)
-            (user-error "Unbalanced region"))
+            (user-error (sp-message :unbalanced-region :return)))
     (setq this-command 'delete-region)
     (delete-region beg end)))
 
@@ -8915,7 +8958,7 @@ With a prefix argument, skip the balance check."
   (interactive "r")
   (when (or current-prefix-arg
             (sp-region-ok-p beg end)
-            (user-error "Unbalanced region"))
+            (user-error (sp-message :unbalanced-region :return)))
     (setq this-command 'kill-region)
     (kill-region beg end)))
 

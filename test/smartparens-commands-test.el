@@ -833,15 +833,17 @@ This is the behavior of `paredit-convolute-sexp'."
 
 (ert-deftest sp-test-kill-region ()
   (sp-test-with-temp-elisp-buffer "[fo|o] bar [bMaz]"
-    (should-error
-     (call-interactively 'sp-kill-region)
-     :type 'user-error)))
+    (let ((sp-message-width 1000)) ; need this for sp-message to retrieve the text
+      (should-error
+       (call-interactively 'sp-kill-region)
+       :type 'user-error))))
 
 (ert-deftest sp-test-delete-region ()
   (sp-test-with-temp-elisp-buffer "[fo|o] bar [bMaz]"
-    (should-error
-     (call-interactively 'sp-delete-region)
-     :type 'user-error)))
+    (let ((sp-message-width 1000)) ; need this for sp-message to retrieve the text
+      (should-error
+       (call-interactively 'sp-delete-region)
+       :type 'user-error))))
 
 ;; test for #452
 (ert-deftest sp-test-sp-kill-hybrid-sexp-excessive-whitespace-nil nil

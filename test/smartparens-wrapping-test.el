@@ -88,30 +88,30 @@
     (sp-test-wrapping "Ma|" "[[" "[[a]]|")))
 
 (ert-deftest sp-test-wrap-in-delete-selection-mode nil
-  (sp-test-with-temp-elisp-buffer "|fooM"
-    (delete-selection-mode 1)
-    ;; Inserting a character that pairs should wrap instead of
-    ;; replacing the selection.
-    (execute-kbd-macro "(")
-    (sp-buffer-equals "(|fooM)")))
+  (sp-test-with-delete-selection-mode
+    (sp-test-with-temp-elisp-buffer "|fooM"
+      ;; Inserting a character that pairs should wrap instead of
+      ;; replacing the selection.
+      (execute-kbd-macro "(")
+      (sp-buffer-equals "(|fooM)"))))
 
 (ert-deftest sp-test-delete-selection-mode-still-works nil
   "Test that `delete-selection-pre-hook' still works despite our advice on it."
-  (sp-test-with-temp-elisp-buffer "|fooM"
-    (delete-selection-mode 1)
-    ;; Inserting a character that does not pair should replace the
-    ;; selection when delete-selection-mode is on.
-    (execute-kbd-macro "x")
-    (sp-buffer-equals "x|")))
+  (sp-test-with-delete-selection-mode
+    (sp-test-with-temp-elisp-buffer "|fooM"
+      ;; Inserting a character that does not pair should replace the
+      ;; selection when delete-selection-mode is on.
+      (execute-kbd-macro "x")
+      (sp-buffer-equals "x|"))))
 
 ;; #763
 (ert-deftest sp-test-delete-selection-mode-after-turning-sp-off nil
   "Don't inhibit `delete-selection-mode' after smartparens is turned off."
-  (sp-test-with-temp-elisp-buffer "|fooM"
-    (delete-selection-mode 1)
-    (smartparens-mode -1)
-    (execute-kbd-macro "(")
-    (sp-buffer-equals "(|")))
+  (sp-test-with-delete-selection-mode
+    (sp-test-with-temp-elisp-buffer "|fooM"
+      (smartparens-mode -1)
+      (execute-kbd-macro "(")
+      (sp-buffer-equals "(|"))))
 
 (defun sp-test-wrapping-latex (initial keys result)
   (sp-test-with-temp-buffer initial

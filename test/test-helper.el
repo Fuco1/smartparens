@@ -142,6 +142,28 @@ should match."
                     "M" (replace-regexp-in-string "[|]" "" result)))
                (mark)))))
 
+(defmacro sp-test-with-delete-selection-mode (&rest forms)
+  "Enable `delete-selection-mode' for current test and disable it
+afterwards.
+
+This is necessary to keep tests isolated because it is a global
+minor mode."
+  (declare (indent 0))
+  `(unwind-protect
+       (progn
+         (delete-selection-mode 1)
+         ,@forms)
+     (delete-selection-mode -1)))
+
+(defmacro sp-test-with-temp-binding (binding &rest forms)
+  "Execute FORMS with temporary keybinding.
+
+BINDING is a list (kbd command)."
+  (declare (indent 1))
+  `(let ((smartparens-mode-map smartparens-mode-map))
+     (define-key smartparens-mode-map (kbd ,(car binding)) ,(cadr binding))
+     ,@forms))
+
 ;; put advice on `TeX-update-style' to silence its output
 (defadvice TeX-update-style (around fix-output-spam activate)
   (shut-up ad-do-it))
