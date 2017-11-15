@@ -7341,6 +7341,8 @@ Examples:
            ;; pair that was not allowed before.  However, such a call is
            ;; never made in SP, so it's OK for now
            (allowed-pairs (sp--get-allowed-regexp))
+           (allowed-open (sp--get-opening-regexp (sp--get-allowed-pair-list)))
+           (allowed-close (sp--get-closing-regexp (sp--get-allowed-pair-list)))
            (allowed-strings (sp--get-stringlike-regexp))
            (prefix nil))
        (while (and (not (or ,eob-test
@@ -7372,7 +7374,8 @@ Examples:
                        ;; stops based on the first branch of the `and'
                        ;; condition in `while' so using expensive
                        ;; functions here is not a bg deal.
-                       (and (or (,(if forward 'sp--looking-back 'sp--looking-at) allowed-pairs)
+                       (and (or (,(if forward 'sp--looking-back 'sp--looking-at)
+                                 ,(if forward 'allowed-close 'allowed-open))
                                 (,(if forward 'sp--looking-back 'sp--looking-at) allowed-strings))
                             (progn
                               (setq prefix (,prefix-fn))

@@ -48,3 +48,10 @@
       (sp-test--ess-mode)
     (execute-kbd-macro "'")
     (sp-buffer-equals "# foo'|")))
+
+;; #813
+(ert-deftest sp-test-ess-skip-to-pair-should-not-look-for-prefix-at-closing-delimiter ()
+  (sp-test-with-temp-buffer "mean(mtcars$mpg|)"
+      (sp-test--ess-mode)
+    (sp-backward-kill-word 1)
+    (sp-buffer-equals "mean(mtcars$|)")))

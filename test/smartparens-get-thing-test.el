@@ -144,3 +144,19 @@ picked up, causing `sp-get-thing' to take the 2nd previous one."
         (modify-syntax-entry ?? "_ p")
         (sp-backward-symbol 1)
         (sp-buffer-equals "?|foo")))))
+
+;; #813
+(ert-deftest sp-test-skip-backward-to-symbol-do-not-use-prefix-at-closing ()
+  (let ((sp-sexp-prefix '((emacs-lisp-mode regexp "P"))))
+    (sp-test-with-temp-elisp-buffer "(foo«P|)"
+      (sp-get (sp-get-symbol t)
+        (should (equal :beg 6))
+        (should (equal :end 7))))))
+
+;; #813
+(ert-deftest sp-test-skip-backward-to-symbol-do-not-use-suffix-at-opening ()
+  (let ((sp-sexp-suffix '((emacs-lisp-mode regexp "P"))))
+    (sp-test-with-temp-elisp-buffer "(|P«foo)"
+      (sp-get (sp-get-symbol)
+        (should (equal :beg 2))
+        (should (equal :end 3))))))
