@@ -113,7 +113,7 @@ ID, ACTION, CONTEXT."
 (eval-after-load 'markdown-mode            '(require 'smartparens-markdown))
 (--each '(python-mode python)
   (eval-after-load it                      '(require 'smartparens-python)))
-(eval-after-load 'org-mode                 '(require 'smartparens-org))
+(eval-after-load 'org                      '(require 'smartparens-org))
 (eval-after-load 'racket-mode              '(require 'smartparens-racket))
 (eval-after-load 'ruby-mode                '(require 'smartparens-ruby))
 (eval-after-load 'rust-mode                '(require 'smartparens-rust))
