@@ -9001,6 +9001,7 @@ by closing delimiters.
 This function does *not* check that the delimiters are correctly
 ordered, that is [(]) is correct even though it is not logically
 properly balanced."
+  (interactive "r")
   (save-excursion
     (save-restriction
       (when (eq (sp-point-in-string start) (sp-point-in-string end))
