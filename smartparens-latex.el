@@ -85,12 +85,6 @@ ID, ACTION, CONTEXT."
     (let ((trigger (sp-get-pair id :trigger)))
       (looking-back (concat "\\\\" (regexp-quote (if trigger trigger id)))))))
 
-(defun sp-latex-point-before-word-p (id action context)
-  "Return t if point is before a word while in navigate action.
-ID, ACTION, CONTEXT."
-  (when (eq action 'navigate)
-    (looking-at-p "\\sw")))
-
 (add-to-list 'sp-navigate-skip-match
              '((tex-mode plain-tex-mode latex-mode) . sp--backslash-skip-match))
 
@@ -103,8 +97,7 @@ ID, ACTION, CONTEXT."
   (sp-local-pair "`" "'"
                  :actions '(:rem autoskip)
                  :skip-match 'sp-latex-skip-match-apostrophe
-                 :unless '(sp-latex-point-after-backslash
-                           sp-latex-point-before-word-p))
+                 :unless '(sp-latex-point-after-backslash))
   ;; math modes, yay.  The :actions are provided automatically if
   ;; these pairs do not have global definitions.
   (sp-local-pair "$" "$")
