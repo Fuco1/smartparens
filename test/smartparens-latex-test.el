@@ -50,3 +50,17 @@
 ;;       (latex-mode)
 ;;     (should (equal (sp-get-thing t)
 ;;                    '(:beg 16 :end 19 :op "" :cl "" :prefix "" :suffix "")))))
+
+;; #820
+(ert-deftest sp-test-latex-do-not-fix-closing-delimiter-on-insert-when-inserting-more-than-one-char ()
+  "Some electric keys sometimes insert more than one character.
+In this case the behaviour is more complicated and we shouldn't
+try to fix the buffer.
+
+For example quote in latex inserts two backticks which messes up
+with the search logic (if inserted one-by-one they would pair by
+thesmeves and would not break unrelated pair)"
+  (sp-test-with-temp-buffer "quote: | $f' = 0$"
+      (latex-mode)
+    (execute-kbd-macro "\"")
+    (sp-buffer-equals "quote: ``|'' $f' = 0$")))

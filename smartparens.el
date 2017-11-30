@@ -3768,7 +3768,8 @@ default."
         ;; opener of a sexp with this opener.  In which case we should
         ;; probably rewrap.
         (unless (sp--looking-at-p (sp--get-closing-regexp))
-          (when open-pair
+          (when (and open-pair
+                     (= 1 (- (point) sp-pre-command-point)))
             (-when-let (prefix-pair (sp-get-pair (substring open-pair 0 -1)))
               (let ((last-char-of-open-pair (substring open-pair -1)))
                 (unwind-protect
@@ -4782,6 +4783,7 @@ on it when calling directly."
              ;; should probably use this one from `sp-get-thing')
              (eq (char-syntax (string-to-char delimiter)) 34))
         (if (eq t (sp-point-in-string))
+            ;; TODO: this is duplicated in `sp-get-thing', move to a function
             (save-excursion
               (save-restriction
                 (widen)
