@@ -695,6 +695,7 @@ You can enable pre-set bindings by customizing
     (define-key map [remap backward-kill-word] 'sp-backward-kill-word)
     (define-key map [remap kill-region] 'sp-kill-region)
     (define-key map [remap delete-region] 'sp-delete-region)
+    (define-key map [remap kill-whole-line] 'sp-kill-whole-line)
     map)
   "Keymap used for `smartparens-strict-mode'.")
 
