@@ -6678,6 +6678,7 @@ Examples:
     (some |long sexp))  ->    |)"
   (interactive)
   (beginning-of-line)
+  (sp-kill-hybrid-sexp nil)
   (sp-kill-hybrid-sexp nil))
 
 (defun sp--transpose-objects (first second)
