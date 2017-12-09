@@ -6680,7 +6680,7 @@ Examples:
   (beginning-of-line)
   (sp-kill-hybrid-sexp nil)
   (when (sp-point-in-blank-line)
-    (delete-char 1)))
+    (kill-whole-line)))
 
 (defun sp--transpose-objects (first second)
   "Transpose FIRST and SECOND object while preserving the
