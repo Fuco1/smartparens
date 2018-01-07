@@ -59,6 +59,8 @@
 (declare-function cua-replace-region "cua-base") ; FIXME: remove this when we drop support for old emacs
 (declare-function cua-delete-region "cua-base")
 (declare-function cua--fallback "cua-base")
+(declare-function package-version-join "package")
+(declare-function package-desc-version "package")
 
 (declare-function subword-kill "subword")
 (declare-function subword-forward "subword")
@@ -70,6 +72,7 @@
 (declare-function evil-get-register "evil-common")
 (declare-function evil-set-register "evil-common")
 (defvar evil-this-register)
+(defvar package-alist)
 
 
 ;;; backport for older emacsen
@@ -5422,7 +5425,7 @@ You can also bind the output of this function directly to a key, like:
 
 This will be a function that descends down only into { } pair,
 ignoring all others."
-  (lambda (&optional arg)
+  (lambda (&optional _arg)
     (interactive "P")
     (sp-restrict-to-pairs pairs function)))
 
@@ -5446,11 +5449,11 @@ You can also bind the output of this function directly to a key, like:
 
 This will be a function that navigates only by using paired
 expressions, ignoring strings and sgml tags."
-  (lambda (&optional arg)
+  (lambda (&optional _arg)
     (interactive "P")
     (sp-restrict-to-object object function)))
 
-(defun sp-prefix-tag-object (&optional arg)
+(defun sp-prefix-tag-object (&optional _arg)
   "Read the command and invoke it on the next tag object.
 
 If you specify a regular emacs prefix argument this is passed to
@@ -5468,7 +5471,7 @@ Tag object is anything delimited by sgml tag."
         (call-interactively com)
       (execute-kbd-macro cmd))))
 
-(defun sp-prefix-pair-object (&optional arg)
+(defun sp-prefix-pair-object (&optional _arg)
   "Read the command and invoke it on the next pair object.
 
 If you specify a regular emacs prefix argument this is passed to
@@ -5485,7 +5488,7 @@ Pair object is anything delimited by pairs from `sp-pair-list'."
         (call-interactively com)
       (execute-kbd-macro cmd))))
 
-(defun sp-prefix-symbol-object (&optional arg)
+(defun sp-prefix-symbol-object (&optional _arg)
   "Read the command and invoke it on the next pair object.
 
 If you specify a regular emacs prefix argument this is passed to
@@ -5503,7 +5506,7 @@ Symbol is defined as a chunk of text recognized by
         (call-interactively com)
       (execute-kbd-macro cmd))))
 
-(defun sp-prefix-save-excursion (&optional arg)
+(defun sp-prefix-save-excursion (&optional _arg)
   "Execute the command keeping the point fixed.
 
 If you specify a regular emacs prefix argument this is passed to
@@ -9189,7 +9192,7 @@ support custom pairs."
   "Highlight the enclosing pair around point."
   (interactive))
 
-(defun sp-highlight-current-sexp (arg)
+(defun sp-highlight-current-sexp ()
   "Highlight the expression returned by the next command, preserving point position."
   (interactive "P")
   (let* ((cmd (read-key-sequence "" t))
@@ -9291,8 +9294,7 @@ has been created."
              (visible-end (pos-visible-in-window-p end))
              (where (cond
                      ((not visible-start) start)
-                     ((not visible-end) end)
-                     nil)))
+                     ((not visible-end) end))))
         (when where
           (save-excursion
             (let* ((from (progn (goto-char where) (beginning-of-line) (point)))

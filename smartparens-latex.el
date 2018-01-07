@@ -83,7 +83,7 @@ This predicate is only tested on \"insert\" action.
 ID, ACTION, CONTEXT."
   (when (eq action 'insert)
     (let ((trigger (sp-get-pair id :trigger)))
-      (looking-back (concat "\\\\" (regexp-quote (if trigger trigger id)))))))
+      (looking-back (concat "\\\\" (regexp-quote (if trigger trigger id))) nil))))
 
 (add-to-list 'sp-navigate-skip-match
              '((tex-mode plain-tex-mode latex-mode) . sp--backslash-skip-match))

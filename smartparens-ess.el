@@ -39,6 +39,10 @@
 (require 'smartparens)
 (require 'rx)
 
+(defvar ess-roxy-str)
+
+(declare-function ess-roxy-indent-on-newline "ess-roxy")
+
 
 ;; avoid traveling commas when slurping
 ;; (|a, b), c ---> (|a, b, c)
@@ -62,7 +66,7 @@ ID, ACTION, CONTEXT."
         (goto-char (sp-get sxp :beg-prf))
         ;; (|)   x ---> (x)
         (when (looking-back (rx (syntax open-parenthesis)
-                                (one-or-more space)))
+                                (one-or-more space)) nil)
           (cycle-spacing 0 nil 'single-shot))
         (cond
           ;; (|)if(cond) ---> (|if (cond))
@@ -76,7 +80,7 @@ ID, ACTION, CONTEXT."
             (looking-back
              (rx (and (not-char "%" ",")
                       (not (syntax close-parenthesis)))
-                 (one-or-more space)))
+                 (one-or-more space)) nil)
             (not (member
                   (save-excursion
                     (sp-backward-sexp)
@@ -84,7 +88,7 @@ ID, ACTION, CONTEXT."
                   '("if" "for" "while"))))
            (cycle-spacing 0 nil 'single-shot))
           ;; (|[...])%in% ---> ([...] %in%|)
-          ((or (looking-at "%") (looking-back "%"))
+          ((or (looking-at "%") (looking-back "%" nil))
            (just-one-space))
           ;; (|)a , b,    c ---> (|a, b, c)
           ((looking-back
