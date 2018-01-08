@@ -9192,7 +9192,7 @@ support custom pairs."
   "Highlight the enclosing pair around point."
   (interactive))
 
-(defun sp-highlight-current-sexp ()
+(defun sp-highlight-current-sexp (_arg)
   "Highlight the expression returned by the next command, preserving point position."
   (interactive "P")
   (let* ((cmd (read-key-sequence "" t))
