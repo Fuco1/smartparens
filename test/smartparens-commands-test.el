@@ -751,6 +751,17 @@ be."
   (sp--test-sp-rewrap-sexp-python "\"foo 'bar' b|az\"" '("'" . "'") "'foo \\'bar\\' b|az'")
   (sp--test-sp-rewrap-sexp-python "'foo \\'b|ar\\' baz'" '("\"" . "\"") "'foo \"b|ar\" baz'"))
 
+;; #841
+(ert-deftest sp-test-command-sp-rewrap-empty-pair-should-unwrap ()
+  (sp--test-sp-rewrap-sexp "[fo|o]" nil "fo|o"))
+
+;; #841
+(ert-deftest sp-test-command-sp-rewrap-empty-pair-should-unwrap-interactive-spec ()
+  (sp-test-with-temp-elisp-buffer "[fo|o]"
+    (let ((unread-command-events (list 'return)))
+      (call-interactively 'sp-rewrap-sexp)
+      (sp-buffer-equals "fo|o"))))
+
 (ert-deftest sp-test-command-sp-rewrap-sexp-invalid-pair ()
   (should-error
    (sp-test-with-temp-elisp-buffer "(fo|o)"
