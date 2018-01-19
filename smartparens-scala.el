@@ -53,7 +53,7 @@
 (--each '(scala-mode inferior-scala-mode)
   (add-to-list 'sp-sexp-suffix (list it 'regexp "")))
 
-(defun sp-scala-wrap-with-indented-newlines (_ action _)
+(defun sp-scala-wrap-with-indented-newlines (_1 action _2)
   "Post handler for the wrap ACTION, putting the region on indented newlines."
   (when (eq action 'wrap)
     (sp-get sp-last-wrapped-region
