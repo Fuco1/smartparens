@@ -5911,6 +5911,31 @@ is the last child of the enclosing sexp as defined by
                  (sp-backward-sexp)))))))
       re)))
 
+;; TODO: skip empty lines?
+(defun sp-forward-hybrid-sexp (&optional arg)
+  "Move forward over one hybrid sexp.
+
+See `sp-get-hybrid-sexp'."
+  (interactive "^p")
+  (-when-let (sexp (sp-get-hybrid-sexp))
+    (sp-get sexp
+      ;; if we did not move forward at all, let's try one more time
+      (if (< (point) :end-suf)
+          (sp-get sexp (goto-char :end-suf))
+        (when (= (forward-line 1) 0)
+          (-when-let (sexp2 (sp-get-hybrid-sexp))
+            (sp-get sexp2 (goto-char :end-suf))))))))
+
+(defun sp-backward-hybrid-sexp (&optional arg)
+  "Move backward over one hybrid sexp.
+
+See `sp-get-hybrid-sexp'."
+  (interactive "^p")
+  (-when-let (sexp (save-excursion
+                     (when (sp-backward-sexp)
+                       (sp-get-hybrid-sexp))))
+    (sp-get sexp (goto-char :beg-prf))))
+
 (defun sp--raw-argument-p (arg)
   "Return t if ARG represents raw argument, that is a non-empty list."
   (and (listp arg) (car arg)))
