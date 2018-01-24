@@ -3029,14 +3029,7 @@ this value during execution of the handler."
       (if hook
           (let ((sp-handler-context context-values))
             (--each hook (sp--run-function-or-insertion it id action context)))
-        ;; TODO: WHAT THE FUCK IS THIS ???11?
-        (let ((tag-hook (plist-get
-                         (--first (string-match-p
-                                   (replace-regexp-in-string "_" ".*?" (plist-get it :open))
-                                   id)
-                                  (cdr (assq 'html-mode sp-tags))) ;; REALLY?
-                         type)))
-          (run-hook-with-args 'tag-hook id action context))))))
+        (run-hook-with-args 'tag-hook id action context)))))
 
 ;; TODO: add a test for a symbol property that would tell this handler
 ;; not to re=set `sp-last-operation'. Useful for example in "macro
