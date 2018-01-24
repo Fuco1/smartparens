@@ -71,8 +71,10 @@
 
 (declare-function evil-get-register "evil-common")
 (declare-function evil-set-register "evil-common")
-(defvar evil-this-register)
-(defvar package-alist)
+(eval-when-compile
+  (defvar evil-this-register)
+  (defvar package-alist)
+  (defvar sp-autoskip-closing-pair))
 
 
 ;;; backport for older emacsen
