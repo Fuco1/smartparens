@@ -74,7 +74,9 @@
 (eval-when-compile
   (defvar evil-this-register)
   (defvar package-alist)
-  (defvar sp-autoskip-closing-pair))
+  (defvar sp-autoskip-closing-pair)
+  (defvar sp-show-enclosing-pair-commands)
+  (defvar show-smartparens-mode))
 
 
 ;;; backport for older emacsen
