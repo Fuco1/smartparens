@@ -49,7 +49,6 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl)) ; for `lexical-let'
 (eval-when-compile (require 'subr-x)) ; for `string-trim'
 (require 'cl-lib)
 (require 'dash)
