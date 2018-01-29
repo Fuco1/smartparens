@@ -44,6 +44,8 @@
 ;;; Code:
 (require 'smartparens)
 
+(declare-function rust-mode "rust-mode")
+
 (defun sp-in-rust-lifetime-context (&rest args)
   "Return t if point is in a Rust context where ' represents a lifetime.
 If we return nil, ' should be used for character literals.

@@ -58,6 +58,8 @@
 (declare-function cua-replace-region "cua-base") ; FIXME: remove this when we drop support for old emacs
 (declare-function cua-delete-region "cua-base")
 (declare-function cua--fallback "cua-base")
+(declare-function package-version-join "package")
+(declare-function package-desc-version "package")
 
 (declare-function subword-kill "subword")
 (declare-function subword-forward "subword")
@@ -68,7 +70,12 @@
 
 (declare-function evil-get-register "evil-common")
 (declare-function evil-set-register "evil-common")
-(defvar evil-this-register)
+(eval-when-compile
+  (defvar evil-this-register)
+  (defvar package-alist)
+  (defvar sp-autoskip-closing-pair)
+  (defvar sp-show-enclosing-pair-commands)
+  (defvar show-smartparens-mode))
 
 
 ;;; backport for older emacsen
@@ -1488,6 +1495,176 @@ check before deleting."
     ad-do-it))
 
 
+
+(cl-eval-when (compile eval load)
+  (defun sp--get-substitute (struct list)
+    "Only ever call this from sp-get!  This function does the
+replacement of all the keywords with actual calls to sp-get."
+    (if (listp list)
+        (if (eq (car list) 'sp-get)
+            list
+          (mapcar (lambda (x) (sp--get-substitute struct x))
+                  (let ((command (car list)))
+                    (cond
+                     ((eq command 'sp-do-move-op)
+                      (let ((argument (make-symbol "--sp-argument--")))
+                        `(let ((,argument ,(cadr list)))
+                           (if (< ,argument :beg-prf)
+                               (progn
+                                 (goto-char :beg-prf)
+                                 (delete-char (+ :op-l :prefix-l))
+                                 (goto-char ,argument)
+                                 (insert :prefix :op))
+                             (goto-char ,argument)
+                             (insert :prefix :op)
+                             (goto-char :beg-prf)
+                             (delete-char (+ :op-l :prefix-l))))))
+                     ((eq command 'sp-do-move-cl)
+                      (let ((argument (make-symbol "--sp-argument--")))
+                        `(let ((,argument ,(cadr list)))
+                           (if (> ,argument :end-in)
+                               (progn
+                                 (goto-char ,argument)
+                                 (insert :cl :suffix)
+                                 (goto-char :end-in)
+                                 (delete-char (+ :cl-l :suffix-l)))
+                             (goto-char :end-in)
+                             (delete-char (+ :cl-l :suffix-l))
+                             (goto-char ,argument)
+                             (insert :cl :suffix)))))
+                     ((eq command 'sp-do-del-op)
+                      `(progn
+                         (goto-char :beg-prf)
+                         (delete-char (+ :op-l :prefix-l))))
+                     ((eq command 'sp-do-del-cl)
+                      `(progn
+                         (goto-char :end-in)
+                         (delete-char (+ :cl-l :suffix-l))))
+                     ((eq command 'sp-do-put-op)
+                      `(progn
+                         (goto-char ,(cadr list))
+                         (insert :prefix :op)))
+                     ((eq command 'sp-do-put-cl)
+                      `(progn
+                         (goto-char ,(cadr list))
+                         (insert :cl :suffix)))
+                     (t list)))))
+      (if (keywordp list)
+          (sp--get-replace-keyword struct list)
+        list)))
+
+  (defun sp--get-replace-keyword (struct keyword)
+    (cl-case keyword
+      ;; point in buffer before the opening delimiter
+      (:beg         `(plist-get ,struct :beg))
+      ;; point in the buffer after the closing delimiter
+      (:end         `(plist-get ,struct :end))
+      ;; point in buffer after the opening delimiter
+      (:beg-in      `(+ (plist-get ,struct :beg) (length (plist-get ,struct :op))))
+      ;; point in buffer before the closing delimiter
+      (:end-in      `(- (plist-get ,struct :end) (length (plist-get ,struct :cl))))
+      ;; point in buffer before the prefix of this expression
+      (:beg-prf     `(- (plist-get ,struct :beg) (length (plist-get ,struct :prefix))))
+      ;; point in the buffer after the suffix of this expression
+      (:end-suf     `(+ (plist-get ,struct :end) (length (plist-get ,struct :suffix))))
+      ;; opening delimiter
+      (:op          `(plist-get ,struct :op))
+      ;; closing delimiter
+      (:cl          `(plist-get ,struct :cl))
+      ;; length of the opening pair
+      (:op-l        `(length (plist-get ,struct :op)))
+      ;; length of the closing pair
+      (:cl-l        `(length (plist-get ,struct :cl)))
+      ;; length of the entire expression, including enclosing
+      ;; delimiters and the prefix and suffix
+      (:len         `(- (plist-get ,struct :end)
+                        (plist-get ,struct :beg)
+                        (- (length (plist-get ,struct :prefix)))
+                        (- (length (plist-get ,struct :suffix)))))
+      ;; length of the the pair ignoring the prefix, including delimiters
+      (:len-out     `(- (plist-get ,struct :end) (plist-get ,struct :beg)))
+      ;; length of the pair inside the delimiters
+      (:len-in      `(- (plist-get ,struct :end)
+                        (plist-get ,struct :beg)
+                        (length (plist-get ,struct :op))
+                        (length (plist-get ,struct :cl))))
+      ;; expression prefix
+      (:prefix      `(plist-get ,struct :prefix))
+      ;; expression prefix length
+      (:prefix-l    `(length (plist-get ,struct :prefix)))
+      (:suffix      `(plist-get ,struct :suffix))
+      (:suffix-l    `(length (plist-get ,struct :suffix)))
+      ;; combined op/cl and suffix/prefix
+      (:opp         `(concat (plist-get ,struct :prefix)
+                             (plist-get ,struct :op)))
+      (:opp-l       `(+ (length (plist-get ,struct :prefix))
+                        (length (plist-get ,struct :op))))
+      (:cls         `(concat (plist-get ,struct :cl)
+                             (plist-get ,struct :suffix)))
+      (:cls-l       `(+ (length (plist-get ,struct :cl))
+                        (length (plist-get ,struct :suffix))))
+      (t keyword))))
+
+
+;; TODO: rewrite this in terms of `symbol-macrolet' ??
+(defmacro sp-get (struct &rest forms)
+  "Get a property from a structure.
+
+STRUCT is a plist with the format as returned by `sp-get-sexp'.
+Which means this macro also works with `sp-get-symbol',
+`sp-get-string' and `sp-get-thing'.
+
+FORMS is an attribute we want to query.  Currently supported
+attributes are:
+
+:beg       - point in buffer before the opening delimiter
+:end       - point in the buffer after the closing delimiter
+:beg-in    - point in buffer after the opening delimiter
+:end-in    - point in buffer before the closing delimiter
+:beg-prf   - point in buffer before the prefix of this expression
+:end-suf   - point in buffer after the suffix of this expression
+:op        - opening delimiter
+:cl        - closing delimiter
+:op-l      - length of the opening pair
+:cl-l      - length of the closing pair
+:len       - length of the entire expression, including enclosing
+             delimiters, the prefix and the suffix
+:len-out   - length of the the pair ignoring the prefix and suffix,
+             including delimiters
+:len-in    - length of the pair inside the delimiters
+:prefix    - expression prefix
+:prefix-l  - expression prefix length
+:suffix    - expression suffix
+:suffix-l  - expression suffix length
+
+These special \"functions\" are expanded to do the selected
+action in the context of currently queried pair:
+
+Nullary:
+\(sp-do-del-op) - remove prefix and opening delimiter
+\(sp-do-del-cl) - remove closing delimiter and suffix
+
+Unary:
+\(sp-do-move-op p) - move prefix and opening delimiter to point p
+\(sp-do-move-cl p) - move closing delimiter and suffix to point p
+\(sp-do-put-op p) - put prefix and opening delimiter at point p
+\(sp-do-put-cl p) - put closing delimiter and suffix at point p
+
+In addition to these simple queries and commands, this macro
+understands arbitrary forms where any of the aforementioned
+attributes are used.  Therefore, you can for example query for
+\"(+ :op-l :cl-l)\".  This query would return the sum of lengths
+of opening and closing delimiter.  A query
+\"(concat :prefix :op)\" would return the string containing
+expression prefix and the opening delimiter.
+
+Special care is taken to only evaluate the STRUCT argument once."
+  (declare (indent 1)
+           (debug (form body)))
+  (let ((st (make-symbol "struct")))
+    (sp--get-substitute st `(let ((,st ,struct)) ,@forms))))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Misc/Utility functions
 
@@ -1776,115 +1953,6 @@ does not trigger `post-self-insert-hook'."
   "Return 1 if X is positive, -1 if negative, 0 if zero."
   (cond ((> x 0) 1) ((< x 0) -1) (t 0)))
 
-(cl-eval-when (compile eval load)
-  (defun sp--get-substitute (struct list)
-    "Only ever call this from sp-get!  This function does the
-replacement of all the keywords with actual calls to sp-get."
-    (if (listp list)
-        (if (eq (car list) 'sp-get)
-            list
-          (mapcar (lambda (x) (sp--get-substitute struct x))
-                  (let ((command (car list)))
-                    (cond
-                     ((eq command 'sp-do-move-op)
-                      (let ((argument (make-symbol "--sp-argument--")))
-                        `(let ((,argument ,(cadr list)))
-                           (if (< ,argument :beg-prf)
-                               (progn
-                                 (goto-char :beg-prf)
-                                 (delete-char (+ :op-l :prefix-l))
-                                 (goto-char ,argument)
-                                 (insert :prefix :op))
-                             (goto-char ,argument)
-                             (insert :prefix :op)
-                             (goto-char :beg-prf)
-                             (delete-char (+ :op-l :prefix-l))))))
-                     ((eq command 'sp-do-move-cl)
-                      (let ((argument (make-symbol "--sp-argument--")))
-                        `(let ((,argument ,(cadr list)))
-                           (if (> ,argument :end-in)
-                               (progn
-                                 (goto-char ,argument)
-                                 (insert :cl :suffix)
-                                 (goto-char :end-in)
-                                 (delete-char (+ :cl-l :suffix-l)))
-                             (goto-char :end-in)
-                             (delete-char (+ :cl-l :suffix-l))
-                             (goto-char ,argument)
-                             (insert :cl :suffix)))))
-                     ((eq command 'sp-do-del-op)
-                      `(progn
-                         (goto-char :beg-prf)
-                         (delete-char (+ :op-l :prefix-l))))
-                     ((eq command 'sp-do-del-cl)
-                      `(progn
-                         (goto-char :end-in)
-                         (delete-char (+ :cl-l :suffix-l))))
-                     ((eq command 'sp-do-put-op)
-                      `(progn
-                         (goto-char ,(cadr list))
-                         (insert :prefix :op)))
-                     ((eq command 'sp-do-put-cl)
-                      `(progn
-                         (goto-char ,(cadr list))
-                         (insert :cl :suffix)))
-                     (t list)))))
-      (if (keywordp list)
-          (sp--get-replace-keyword struct list)
-        list)))
-
-  (defun sp--get-replace-keyword (struct keyword)
-    (cl-case keyword
-      ;; point in buffer before the opening delimiter
-      (:beg         `(plist-get ,struct :beg))
-      ;; point in the buffer after the closing delimiter
-      (:end         `(plist-get ,struct :end))
-      ;; point in buffer after the opening delimiter
-      (:beg-in      `(+ (plist-get ,struct :beg) (length (plist-get ,struct :op))))
-      ;; point in buffer before the closing delimiter
-      (:end-in      `(- (plist-get ,struct :end) (length (plist-get ,struct :cl))))
-      ;; point in buffer before the prefix of this expression
-      (:beg-prf     `(- (plist-get ,struct :beg) (length (plist-get ,struct :prefix))))
-      ;; point in the buffer after the suffix of this expression
-      (:end-suf     `(+ (plist-get ,struct :end) (length (plist-get ,struct :suffix))))
-      ;; opening delimiter
-      (:op          `(plist-get ,struct :op))
-      ;; closing delimiter
-      (:cl          `(plist-get ,struct :cl))
-      ;; length of the opening pair
-      (:op-l        `(length (plist-get ,struct :op)))
-      ;; length of the closing pair
-      (:cl-l        `(length (plist-get ,struct :cl)))
-      ;; length of the entire expression, including enclosing
-      ;; delimiters and the prefix and suffix
-      (:len         `(- (plist-get ,struct :end)
-                        (plist-get ,struct :beg)
-                        (- (length (plist-get ,struct :prefix)))
-                        (- (length (plist-get ,struct :suffix)))))
-      ;; length of the the pair ignoring the prefix, including delimiters
-      (:len-out     `(- (plist-get ,struct :end) (plist-get ,struct :beg)))
-      ;; length of the pair inside the delimiters
-      (:len-in      `(- (plist-get ,struct :end)
-                        (plist-get ,struct :beg)
-                        (length (plist-get ,struct :op))
-                        (length (plist-get ,struct :cl))))
-      ;; expression prefix
-      (:prefix      `(plist-get ,struct :prefix))
-      ;; expression prefix length
-      (:prefix-l    `(length (plist-get ,struct :prefix)))
-      (:suffix      `(plist-get ,struct :suffix))
-      (:suffix-l    `(length (plist-get ,struct :suffix)))
-      ;; combined op/cl and suffix/prefix
-      (:opp         `(concat (plist-get ,struct :prefix)
-                             (plist-get ,struct :op)))
-      (:opp-l       `(+ (length (plist-get ,struct :prefix))
-                        (length (plist-get ,struct :op))))
-      (:cls         `(concat (plist-get ,struct :cl)
-                             (plist-get ,struct :suffix)))
-      (:cls-l       `(+ (length (plist-get ,struct :cl))
-                        (length (plist-get ,struct :suffix))))
-      (t keyword))))
-
 ;; The structure returned by sp-get-sexp is a plist with following properties:
 ;;
 ;; :beg    - point in the buffer before the opening delimiter (ignoring prefix)
@@ -1896,64 +1964,6 @@ replacement of all the keywords with actual calls to sp-get."
 ;; This structure should never be accessed directly and should only be
 ;; exposed by the sp-get macro.  This way, we can later change the
 ;; internal representation without much trouble.
-
-;; TODO: rewrite this in terms of `symbol-macrolet' ??
-(defmacro sp-get (struct &rest forms)
-  "Get a property from a structure.
-
-STRUCT is a plist with the format as returned by `sp-get-sexp'.
-Which means this macro also works with `sp-get-symbol',
-`sp-get-string' and `sp-get-thing'.
-
-FORMS is an attribute we want to query.  Currently supported
-attributes are:
-
-:beg       - point in buffer before the opening delimiter
-:end       - point in the buffer after the closing delimiter
-:beg-in    - point in buffer after the opening delimiter
-:end-in    - point in buffer before the closing delimiter
-:beg-prf   - point in buffer before the prefix of this expression
-:end-suf   - point in buffer after the suffix of this expression
-:op        - opening delimiter
-:cl        - closing delimiter
-:op-l      - length of the opening pair
-:cl-l      - length of the closing pair
-:len       - length of the entire expression, including enclosing
-             delimiters, the prefix and the suffix
-:len-out   - length of the the pair ignoring the prefix and suffix,
-             including delimiters
-:len-in    - length of the pair inside the delimiters
-:prefix    - expression prefix
-:prefix-l  - expression prefix length
-:suffix    - expression suffix
-:suffix-l  - expression suffix length
-
-These special \"functions\" are expanded to do the selected
-action in the context of currently queried pair:
-
-Nullary:
-\(sp-do-del-op) - remove prefix and opening delimiter
-\(sp-do-del-cl) - remove closing delimiter and suffix
-
-Unary:
-\(sp-do-move-op p) - move prefix and opening delimiter to point p
-\(sp-do-move-cl p) - move closing delimiter and suffix to point p
-\(sp-do-put-op p) - put prefix and opening delimiter at point p
-\(sp-do-put-cl p) - put closing delimiter and suffix at point p
-
-In addition to these simple queries and commands, this macro
-understands arbitrary forms where any of the aforementioned
-attributes are used.  Therefore, you can for example query for
-\"(+ :op-l :cl-l)\".  This query would return the sum of lengths
-of opening and closing delimiter.  A query
-\"(concat :prefix :op)\" would return the string containing
-expression prefix and the opening delimiter.
-
-Special care is taken to only evaluate the STRUCT argument once."
-  (declare (indent 1)
-           (debug (form body)))
-  (let ((st (make-symbol "struct")))
-    (sp--get-substitute st `(let ((,st ,struct)) ,@forms))))
 
 (defmacro sp-compare-sexps (a b &optional fun what-a what-b)
   "Return non-nil if the expressions A and B are equal.
@@ -3018,14 +3028,7 @@ this value during execution of the handler."
       (if hook
           (let ((sp-handler-context context-values))
             (--each hook (sp--run-function-or-insertion it id action context)))
-        ;; TODO: WHAT THE FUCK IS THIS ???11?
-        (let ((tag-hook (plist-get
-                         (--first (string-match-p
-                                   (replace-regexp-in-string "_" ".*?" (plist-get it :open))
-                                   id)
-                                  (cdr (assq 'html-mode sp-tags))) ;; REALLY?
-                         type)))
-          (run-hook-with-args 'tag-hook id action context))))))
+        (run-hook-with-args 'tag-hook id action context)))))
 
 ;; TODO: add a test for a symbol property that would tell this handler
 ;; not to re=set `sp-last-operation'. Useful for example in "macro
@@ -5421,7 +5424,7 @@ You can also bind the output of this function directly to a key, like:
 
 This will be a function that descends down only into { } pair,
 ignoring all others."
-  (lambda (&optional arg)
+  (lambda (&optional _arg)
     (interactive "P")
     (sp-restrict-to-pairs pairs function)))
 
@@ -5445,11 +5448,11 @@ You can also bind the output of this function directly to a key, like:
 
 This will be a function that navigates only by using paired
 expressions, ignoring strings and sgml tags."
-  (lambda (&optional arg)
+  (lambda (&optional _arg)
     (interactive "P")
     (sp-restrict-to-object object function)))
 
-(defun sp-prefix-tag-object (&optional arg)
+(defun sp-prefix-tag-object (&optional _arg)
   "Read the command and invoke it on the next tag object.
 
 If you specify a regular emacs prefix argument this is passed to
@@ -5467,7 +5470,7 @@ Tag object is anything delimited by sgml tag."
         (call-interactively com)
       (execute-kbd-macro cmd))))
 
-(defun sp-prefix-pair-object (&optional arg)
+(defun sp-prefix-pair-object (&optional _arg)
   "Read the command and invoke it on the next pair object.
 
 If you specify a regular emacs prefix argument this is passed to
@@ -5484,7 +5487,7 @@ Pair object is anything delimited by pairs from `sp-pair-list'."
         (call-interactively com)
       (execute-kbd-macro cmd))))
 
-(defun sp-prefix-symbol-object (&optional arg)
+(defun sp-prefix-symbol-object (&optional _arg)
   "Read the command and invoke it on the next pair object.
 
 If you specify a regular emacs prefix argument this is passed to
@@ -5502,7 +5505,7 @@ Symbol is defined as a chunk of text recognized by
         (call-interactively com)
       (execute-kbd-macro cmd))))
 
-(defun sp-prefix-save-excursion (&optional arg)
+(defun sp-prefix-save-excursion (&optional _arg)
   "Execute the command keeping the point fixed.
 
 If you specify a regular emacs prefix argument this is passed to
@@ -9188,7 +9191,7 @@ support custom pairs."
   "Highlight the enclosing pair around point."
   (interactive))
 
-(defun sp-highlight-current-sexp (arg)
+(defun sp-highlight-current-sexp (_arg)
   "Highlight the expression returned by the next command, preserving point position."
   (interactive "P")
   (let* ((cmd (read-key-sequence "" t))
@@ -9290,8 +9293,7 @@ has been created."
              (visible-end (pos-visible-in-window-p end))
              (where (cond
                      ((not visible-start) start)
-                     ((not visible-end) end)
-                     nil)))
+                     ((not visible-end) end))))
         (when where
           (save-excursion
             (let* ((from (progn (goto-char where) (beginning-of-line) (point)))
