@@ -1,4 +1,4 @@
-;;; smartparens-config.el --- Default configuration for smartparens package
+;;; smartparens-config.el --- Default configuration for smartparens package  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2013-2016 Matus Goljer
 

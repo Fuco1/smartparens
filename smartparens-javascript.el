@@ -1,4 +1,4 @@
-;;; smartparens-javascript.el --- Additional configuration for JavaScript based modes.
+;;; smartparens-javascript.el --- Additional configuration for JavaScript based modes.  -*- lexical-binding: t; -*-
 
 ;; Copyright (c) 2017 Marinin Tim
 ;; Author: Tim Marinin <mt@marinin.xyz>

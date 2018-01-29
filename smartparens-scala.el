@@ -1,4 +1,4 @@
-;;; smartparens-scala.el --- Additional configuration for Scala based modes.
+;;; smartparens-scala.el --- Additional configuration for Scala based modes.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2015 Greg Nwosu
 

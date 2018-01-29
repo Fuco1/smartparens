@@ -1,4 +1,4 @@
-;;; smartparens-html.el --- Additional configuration for HTML based modes.
+;;; smartparens-html.el --- Additional configuration for HTML based modes.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2013-2014 Matus Goljer
 

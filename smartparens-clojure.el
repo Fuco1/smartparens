@@ -1,4 +1,4 @@
-;;; smartparens-clojure.el --- Additional configuration for Clojure mode.
+;;; smartparens-clojure.el --- Additional configuration for Clojure mode.  -*- lexical-binding: t; -*-
 ;;
 ;; Author: Vitalie Spinu <spinuvit@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>

@@ -1,4 +1,4 @@
-;;; smartparens-org.el --- Configuration for Org mode.
+;;; smartparens-org.el --- Configuration for Org mode.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2017 Matúš Goljer
 

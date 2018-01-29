@@ -1,4 +1,4 @@
-;;; smartparens-elixir.el --- Configuration for Elixir.
+;;; smartparens-elixir.el --- Configuration for Elixir.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2017 Matúš Goljer
 
