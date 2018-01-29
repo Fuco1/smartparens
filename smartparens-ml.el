@@ -1,4 +1,4 @@
-;;; smartparens-ml.el --- Additional configuration for ML languages
+;;; smartparens-ml.el --- Additional configuration for ML languages  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2016-2017 Ta Quang Trung
 ;; Copyright (C) 2017 Matus Goljer

@@ -1,4 +1,4 @@
-;;; smartparens-racket.el --- Additional configuration for Racket based modes.
+;;; smartparens-racket.el --- Additional configuration for Racket based modes.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2015 Vikraman Choudhury
 

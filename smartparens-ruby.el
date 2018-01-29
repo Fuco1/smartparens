@@ -1,4 +1,4 @@
-;;; smartparens-ruby.el --- Additional configuration for Ruby based modes.
+;;; smartparens-ruby.el --- Additional configuration for Ruby based modes.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2013-2014 Jean-Louis Giordano
 

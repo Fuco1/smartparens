@@ -1,4 +1,4 @@
-;;; smartparens-lua.el --- Additional configuration for Lua based modes.
+;;; smartparens-lua.el --- Additional configuration for Lua based modes.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2013-2014 Matus Goljer
 

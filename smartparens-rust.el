@@ -1,4 +1,4 @@
-;;; smartparens-rust.el --- Additional configuration for Rust based modes.
+;;; smartparens-rust.el --- Additional configuration for Rust based modes.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2015 Wilfred Hughes
 
