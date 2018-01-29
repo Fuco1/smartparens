@@ -113,7 +113,7 @@ ID, ACTION, CONTEXT."
     (delete-char 1))
   (sp-ruby-post-handler id action context))
 
-(defun sp-ruby-post-handler (id action context)
+(defun sp-ruby-post-handler (_id action _context)
   "Ruby post handler.
 ID, ACTION, CONTEXT."
   (-let (((&plist :arg arg :enc enc) sp-handler-context))
@@ -135,7 +135,7 @@ ID, ACTION, CONTEXT."
             (sp-ruby-delete-indentation -1))
           (indent-according-to-mode))))))
 
-(defun sp-ruby-pre-handler (id action context)
+(defun sp-ruby-pre-handler (_id action _context)
   "Handler for ruby slurp and barf.
 ID, ACTION, CONTEXT."
   (let ((enc (plist-get sp-handler-context :enc)))
@@ -241,13 +241,13 @@ ID, ACTION, CONTEXT."
                       (search-backward ".")
                       (sp-point-in-comment))))))))
 
-(defun sp-ruby-skip-inline-match-p (ms mb me)
+(defun sp-ruby-skip-inline-match-p (ms _mb _me)
   "If non-nil, skip inline match.
 MS, MB, ME."
   (or (sp-ruby-method-p ms)
       (sp-ruby-inline-p ms)))
 
-(defun sp-ruby-skip-method-p (ms mb me)
+(defun sp-ruby-skip-method-p (ms _mb _me)
   "If non-nil, skip method.
 MS, MB, ME."
   (sp-ruby-method-p ms))
@@ -267,7 +267,7 @@ ID, ACTION, CONTEXT."
       (and (looking-back id nil)
            (sp-ruby-inline-p id))))
 
-(defun sp-ruby-pre-pipe-handler (id action context)
+(defun sp-ruby-pre-pipe-handler (id action _context)
   "Ruby pipe handler.
 ID, ACTION, CONTEXT."
   (when (equal action 'insert)
@@ -277,7 +277,7 @@ ID, ACTION, CONTEXT."
       (search-backward id)
       (just-one-space))))
 
-(defun sp-ruby-should-insert-pipe-close (id action context)
+(defun sp-ruby-should-insert-pipe-close (id action _context)
   "Test whether to insert the closing pipe for a lambda-binding pipe pair.
 ID, ACTION, CONTEXT"
   (if (eq action 'insert)

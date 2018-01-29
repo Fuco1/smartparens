@@ -41,7 +41,7 @@
 
 (require 'smartparens)
 
-(defun sp--org-skip-asterisk (ms mb me)
+(defun sp--org-skip-asterisk (_ms mb me)
   "Non-nil if the asterisk is part of the outline marker."
   (save-excursion
     (goto-char mb)

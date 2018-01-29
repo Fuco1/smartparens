@@ -47,7 +47,7 @@
 
 (require 'smartparens)
 
-(defun sp-latex-insert-spaces-inside-pair (id action context)
+(defun sp-latex-insert-spaces-inside-pair (_id action _context)
   "ID, ACTION, CONTEXT."
   (when (eq action 'insert)
     (insert "  ")
@@ -62,14 +62,14 @@
       (goto-char (sp-get sp-last-wrapped-region :beg-in))
       (insert " "))))
 
-(defun sp-latex-skip-match-apostrophe (ms mb me)
+(defun sp-latex-skip-match-apostrophe (ms _mb me)
   "MS, MB, ME."
   (when (equal ms "'")
     (save-excursion
       (goto-char me)
       (looking-at-p "\\sw"))))
 
-(defun sp-latex-skip-double-quote (id action context)
+(defun sp-latex-skip-double-quote (_id action _context)
   "ID, ACTION, CONTEXT."
   (when (eq action 'insert)
     (when (looking-at-p "''''")
@@ -77,7 +77,7 @@
       (delete-char 2)
       (forward-char 2))))
 
-(defun sp-latex-point-after-backslash (id action context)
+(defun sp-latex-point-after-backslash (id action _context)
   "Return t if point follows a backslash, nil otherwise.
 This predicate is only tested on \"insert\" action.
 ID, ACTION, CONTEXT."

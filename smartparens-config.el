@@ -45,7 +45,7 @@
 
 (require 'smartparens)
 
-(defun sp-lisp-invalid-hyperlink-p (id action context)
+(defun sp-lisp-invalid-hyperlink-p (_id action _context)
   "Test if there is an invalid hyperlink in a Lisp docstring.
 ID, ACTION, CONTEXT."
   (when (eq action 'navigate)
@@ -76,7 +76,7 @@ ID, ACTION, CONTEXT."
                  :when '(sp-in-string-p
                          sp-in-comment-p)
                  :unless '(sp-lisp-invalid-hyperlink-p)
-                 :skip-match (lambda (ms mb me)
+                 :skip-match (lambda (ms _mb _me)
                                (cond
                                 ((equal ms "'")
                                  (or (sp-lisp-invalid-hyperlink-p "`" 'navigate '_)

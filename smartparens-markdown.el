@@ -55,13 +55,13 @@
        markdown-gfm-use-electric-backquote
        (sp--looking-back-p "^```")))
 
-(defun sp--gfm-point-after-word-p (id action context)
+(defun sp--gfm-point-after-word-p (id action _context)
   "Return t if point is after a word, nil otherwise.
 This predicate is only tested on \"insert\" action."
   (when (eq action 'insert)
     (sp--looking-back-p (concat "\\(\\sw\\)" (regexp-quote id)))))
 
-(defun sp--gfm-skip-asterisk (ms mb me)
+(defun sp--gfm-skip-asterisk (_ms mb _me)
   "Non-nil if we should ignore this asterisk as a delimiter."
   (save-excursion
     (goto-char mb)

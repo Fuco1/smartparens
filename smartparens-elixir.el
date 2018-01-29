@@ -57,12 +57,12 @@ def-do-end and similar pairs."
                                 "try"
                                 ))))))
 
-(defun sp-elixir-skip-def-p (ms mb me)
+(defun sp-elixir-skip-def-p (ms _mb _me)
   "Test if \"do\" is part of definition.
 MS, MB, ME."
   (sp-elixir-def-p ms))
 
-(defun sp-elixir-do-block-post-handler (id action context)
+(defun sp-elixir-do-block-post-handler (_id action _context)
   "Insert \"do\" keyword and indent the new block.
 ID, ACTION, CONTEXT."
   (when (eq action 'insert)
@@ -75,7 +75,7 @@ ID, ACTION, CONTEXT."
       (indent-region (line-beginning-position) m)
       (move-marker m nil nil))))
 
-(defun sp-elixir-empty-do-block-post-handler (id action context)
+(defun sp-elixir-empty-do-block-post-handler (_id action _context)
   "Insert empty \"do\" keyword and indent the new block.
 
 This is used for receive-do-end expression.

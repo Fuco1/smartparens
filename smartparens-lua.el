@@ -47,7 +47,7 @@
 
 (require 'smartparens)
 
-(defun sp-lua-post-keyword-insert (id action context)
+(defun sp-lua-post-keyword-insert (id action _context)
   "ID, ACTION, CONTEXT."
   (cond
    ((eq action 'insert)
