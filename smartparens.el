@@ -49,8 +49,10 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'subr-x)) ; for `string-trim'
-(require 'cl-lib)
+(eval-when-compile
+  (require 'subr-x) ; for `string-trim'
+  (require 'cl-lib))
+
 (require 'dash)
 (require 'thingatpt)
 (require 'help-mode) ;; for help-xref-following #85
