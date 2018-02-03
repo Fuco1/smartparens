@@ -607,6 +607,8 @@ Symbol is defined as a chunk of text recognized by
                          web-mode
                          jinja2-mode
                          html-erb-mode
+                         js2-jsx-mode
+                         rjsx-mode
                          )
   "List of HTML modes.")
 
@@ -5551,7 +5553,11 @@ expressions are considered."
                  ;; the "pair" expression first. If this fails, follow
                  ;; up with regular sexps
                  ((and (memq major-mode sp-navigate-consider-sgml-tags)
-                       (sp--looking-back ">")
+                       (or (sp--looking-back ">")
+                           ;; sp-skip-backward-to-symbol moves the
+                           ;; point to the end of an element name in
+                           ;; js2-jsx-mode
+                           (looking-at ">"))
                        (sp-get-sgml-tag t)))
                  ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-closing-regexp (sp--get-allowed-pair-list)) nil))
                   (sp-get-sexp t))
@@ -5595,7 +5601,12 @@ expressions are considered."
               (sp-skip-forward-to-symbol t nil t)
               (cond
                ((and (memq major-mode sp-navigate-consider-sgml-tags)
-                     (looking-at "<")
+                     (or (looking-at "<")
+                         ;; sp-skip-forward-to-symbol moves the point
+                         ;; to the beginning of an element name in
+                         ;; js2-jsx-mode
+                         (and (sp--looking-back "</?" (- (point) 2))
+                              (goto-char (match-beginning 0))))
                      (sp-get-sgml-tag)))
                ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-opening-regexp (sp--get-allowed-pair-list))))
                 (sp-get-sexp nil))
