@@ -101,30 +101,30 @@ ID, ACTION, CONTEXT."
   (sp-local-pair "def" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :post-handlers '(sp-elixir-do-block-post-handler)
-                 :unless '(sp-in-comment-p))
+                 :unless '(sp-in-comment-p sp-in-string-p))
   (sp-local-pair "defp" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :post-handlers '(sp-elixir-do-block-post-handler)
-                 :unless '(sp-in-comment-p))
+                 :unless '(sp-in-comment-p sp-in-string-p))
   (sp-local-pair "defmodule" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :post-handlers '(sp-elixir-do-block-post-handler)
-                 :unless '(sp-in-comment-p))
+                 :unless '(sp-in-comment-p sp-in-string-p))
   (sp-local-pair "fn" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :post-handlers '("| "))
   (sp-local-pair "if" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :post-handlers '(sp-elixir-do-block-post-handler)
-                 :unless '(sp-in-comment-p))
+                 :unless '(sp-in-comment-p sp-in-string-p))
   (sp-local-pair "unless" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :post-handlers '(sp-elixir-do-block-post-handler)
-                 :unless '(sp-in-comment-p))
+                 :unless '(sp-in-comment-p sp-in-string-p))
   (sp-local-pair "case" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :post-handlers '(sp-elixir-do-block-post-handler)
-                 :unless '(sp-in-comment-p))
+                 :unless '(sp-in-comment-p sp-in-string-p))
   (sp-local-pair "receive" "end"
                  :when '(("RET" "<evil-ret>"))
                  :post-handlers '(sp-elixir-empty-do-block-post-handler))
