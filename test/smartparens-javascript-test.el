@@ -26,3 +26,20 @@
     |return 42;  // 2 spaces of indentation
 }
 ")))
+
+(ert-deftest sp-test-js2-jsx-html-element-as-sexp ()
+  (sp-test-with-temp-buffer "function render() {
+  return |<a href=\"/\">Top</a>;
+}
+"
+      (shut-up (js2-jsx-mode))
+    (sp-forward-sexp)
+    (sp-buffer-equals "function render() {
+  return <a href=\"/\">Top</a>|;
+}
+")
+    (sp-backward-sexp)
+    (sp-buffer-equals "function render() {
+  return |<a href=\"/\">Top</a>;
+}
+")))
