@@ -1,4 +1,6 @@
 # Smartparens
+
+[![Join the chat at https://gitter.im/smartparens/Lobby](https://badges.gitter.im/smartparens/Lobby.svg)](https://gitter.im/smartparens/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![MELPA](http://melpa.org/packages/smartparens-badge.svg)](http://melpa.org/#/smartparens)
 [![Documentation Status](https://readthedocs.org/projects/smartparens/badge/?version=latest)](http://smartparens.readthedocs.io/en/latest/?badge=latest)
 [![MELPA Stable](http://stable.melpa.org/packages/smartparens-badge.svg)](http://stable.melpa.org/#/smartparens)
