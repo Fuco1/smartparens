@@ -679,10 +679,11 @@ be."
 
 (sp-test-command sp-kill-whole-line
   ((nil
-    ("(progn (some |long sexp))" "|")
+    ("(progn (some |long sexp))\n" "|")
     ("(progn\n  (some |long sexp))" "(progn\n  |)")
     ("(progn\n | (some\nlong\nsexp))" "(progn\n  |)")
-    ("(progn\n  (so|me\nlong\nsexp))" "(progn\n  |)"))))
+    ("(progn\n  (so|me\nlong\nsexp))" "(progn\n  |)")
+    ("(progn\n  (line|1)\n  (line2))" "(progn\n|  (line2))"))))
 
 (sp-test-command sp-transpose-sexp
   ((nil
