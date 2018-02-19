@@ -679,6 +679,7 @@ be."
 
 (sp-test-command sp-kill-whole-line
   ((nil
+    ("(progn (some |long sexp))" "|")
     ("(progn (some |long sexp))\n" "|")
     ("(progn\n  (some |long sexp))" "(progn\n  |)")
     ("(progn\n | (some\nlong\nsexp))" "(progn\n  |)")
