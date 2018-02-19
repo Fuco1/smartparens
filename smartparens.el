@@ -6679,10 +6679,9 @@ Examples:
   (interactive)
   (beginning-of-line)
   (sp-kill-hybrid-sexp nil)
-  (let ((line-start (save-excursion (beginning-of-line) (point)))
-        (buffer-end (save-excursion (end-of-buffer) (point))))
+  (let ((empty-last-line (save-excursion (beginning-of-line) (eobp))))
     ;; We can't kill the line if it is empty and the last line
-    (when (and (sp-point-in-blank-line) (/= line-start buffer-end))
+    (when (and (sp-point-in-blank-line) (not empty-last-line))
       (kill-whole-line))))
 
 (defun sp--transpose-objects (first second)
