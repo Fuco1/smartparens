@@ -83,3 +83,38 @@
     (sp-test-with-temp-binding ("d" 'sp-backward-delete-char)
       (execute-kbd-macro "d"))
     (sp-buffer-equals "(fo|ar)")))
+
+;; #703
+(ert-deftest sp-test-delete-selection-mode/empty-sexp/point-before-mark ()
+  (sp-test-delsel "(|
+
+M)"
+    (sp-test-with-temp-binding ("d" 'sp-backward-delete-char)
+      (execute-kbd-macro "d"))
+    (sp-buffer-equals "(|M)")))
+
+(ert-deftest sp-test-delete-selection-mode/empty-sexp/point-after-mark ()
+  (sp-test-delsel "(M
+
+|)"
+    (sp-test-with-temp-binding ("d" 'sp-backward-delete-char)
+      (execute-kbd-macro "d"))
+    (sp-buffer-equals "(M|)")))
+
+(ert-deftest sp-test-delete-selection-mode/nonstrict/empty-sexp/point-before-mark ()
+  (sp-test-delsel "(|
+
+M)"
+    (smartparens-strict-mode -1)
+    (sp-test-with-temp-binding ("d" 'sp-backward-delete-char)
+      (execute-kbd-macro "d"))
+    (sp-buffer-equals "(|M)")))
+
+(ert-deftest sp-test-delete-selection-mode/nonstrict/empty-sexp/point-after-mark ()
+  (sp-test-delsel "(M
+
+|)"
+    (smartparens-strict-mode -1)
+    (sp-test-with-temp-binding ("d" 'sp-backward-delete-char)
+      (execute-kbd-macro "d"))
+    (sp-buffer-equals "(M|)")))
