@@ -184,23 +184,31 @@ better orientation."
         (goto-char (point-min))))
     (pop-to-buffer "*Smartparens cheat sheet*")))
 
-(defun sp-describe-system ()
+(defun sp-describe-system (starterkit)
   "Describe user's system.
 
 The output of this function can be used in bug reports."
-  (interactive)
+  (interactive
+   (list (completing-read "Starterkit/Distribution used: "
+                          (list
+                           "Spacemacs"
+                           "Evil"
+                           "Vanilla"
+                           ))))
   (kill-new
    (format "- `smartparens` version: %s
-- Active major-mode: %s
+- Active `major-mode`: `%s`
+- Smartparens strict mode: %s
 - Emacs version (`M-x emacs-version`): %s
-- Spacemacs/Evil/Other starterkit (specify which)/Vanilla: %s
+- Starterkit/Distribution: %s
 - OS: %s"
            (--if-let (cadr (assoc 'smartparens package-alist))
                (package-version-join (package-desc-version it))
              "<Please specify manually>")
            (symbol-name major-mode)
+           (bound-and-true-p smartparens-strict-mode)
            (replace-regexp-in-string "\n" "" (emacs-version))
-           "<Please specify manually>"
+           starterkit
            (symbol-name system-type))))
 
 
