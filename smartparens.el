@@ -4241,6 +4241,32 @@ pairs!"
   (sp--with-case-sensitive
     (search-forward-regexp regexp bound noerror count)))
 
+(defun sp--search-forward-in-context (regexp &optional bound noerror count)
+  "Just like `sp--search-forward-regexp' but only accept results in same context.
+
+The context at point is considered the reference context."
+  (let ((context (sp--get-context))
+        (re))
+    (--dotimes (or count 1)
+      (save-excursion
+        (while (and (setq re (sp--search-forward-regexp regexp bound noerror))
+                    (not (eq (sp--get-context) context)))))
+      (when re (goto-char re)))
+    re))
+
+(defun sp--search-backward-in-context (regexp &optional bound noerror count)
+  "Just like `sp--search-backward-regexp' but only accept results in same context.
+
+The context at point is considered the reference context."
+  (let ((context (sp--get-context))
+        (re))
+    (--dotimes (or count 1)
+      (save-excursion
+        (while (and (setq re (sp--search-backward-regexp regexp bound noerror))
+                    (not (eq (sp--get-context) context))))
+        (when re (goto-char re))))
+    re))
+
 (defun sp-get-quoted-string-bounds (&optional point)
   "Return the bounds of the string around POINT.
 
