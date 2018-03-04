@@ -1,3 +1,40 @@
+;; #860
+(ert-deftest sp-test-get-expression-pick-first-delimiter-in-same-context ()
+  "When we are deciding on string or regular expression we simply
+used to search for first delimiter after the current one and use
+the closer valid one as the returned expression.
+
+However, we need to preserve the original search context: if we
+start in code the first valid delimiters we pick up must also be
+in the code context, otherwise bad things happen.
+
+In particular a situation where there is a string delimiter in
+comment preceeding a regular delimiter in code context and we
+start the search from a code context: we will find the first
+valid expression after the comment but there is a string
+delimiter which is closer so we will try that instead.  If there
+is no string delimiter after the regular one or it is outside the
+parent sexp this ends with an error.
+
+Interestingly, I can not simulate the symatrical reversed
+situation."
+  (sp-test-with-temp-elisp-buffer "(co|nd
+ ;; \"asd\"
+ (foo))"
+    (should
+     (equal (sp-get-expression)
+            (list :beg 18 :end 23 :op "(" :cl ")" :prefix "" :suffix "")))))
+
+(ert-deftest sp-test-get-expression-pick-first-delimiter-in-same-context-with-string-after ()
+  "See `sp-test-get-expression-pick-first-delimiter-in-same-context'."
+  (sp-test-with-temp-elisp-buffer "(co|nd
+ ;; \"asd\"
+ (foo)
+ \"bar\")"
+    (should
+     (equal (sp-get-expression)
+            (list :beg 18 :end 23 :op "(" :cl ")" :prefix "" :suffix "")))))
+
 (defun sp-test--get-expression-skip-before-arrow (ms mb me)
   (save-excursion
     (goto-char me)
