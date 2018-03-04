@@ -152,3 +152,9 @@ Test https://github.com/Fuco1/smartparens/issues/653"
   ;; with sexp in front
   (sp-test--paired-expression-parse-in-elisp "(defun true () t)\n  ;; asd |(as d\n  ;; asd\n  ;; asd) as\n" '(:beg 28 :end 52 :op "(" :cl ")" :prefix "" :suffix ""))
   (sp-test--paired-expression-parse-in-elisp "(defun true () t)\n  ;; asd (as d\n  ;; asd\n  ;; asd)| as\n" '(:beg 28 :end 52 :op "(" :cl ")" :prefix "" :suffix "") t))
+
+;; #786
+(ert-deftest sp-test-get-paired-expression-valid-hyperlink ()
+  (sp-test--paired-expression-parse-in-elisp
+   ";; |`foo-bar'."
+   (list :beg 4 :end 13 :op "`" :cl "'" :prefix "" :suffix "")))
