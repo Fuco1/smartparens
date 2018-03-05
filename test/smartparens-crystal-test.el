@@ -103,21 +103,6 @@ begin
 end
 ")
 
-;;  (sp-crystal-test-slurp-assert
-;;   (cond
-;;    ((version< emacs-version "24.4") 5)
-;;    ((version< emacs-version "25.0") 4)
-;;    (t 3))
-;;   "
-;;beginX
-;;end
-;;test ? a : b
-;;" :=> "
-;;begin
-;;  test ? a : b
-;;end
-;;")
-
   (sp-crystal-test-slurp-assert 1 "
 beginX
 end
@@ -399,20 +384,6 @@ begin
   test(1).test[2].test
 end
 ")
-
-;;  (sp-crystal-test-slurp-assert
-;;   (cond
-;;    ((version< emacs-version "24.4") -5)
-;;    ((version< emacs-version "25.0") -4)
-;;    (t -3)) "
-;;test ? a : b
-;;beginX
-;;end
-;;" :=> "
-;;begin
-;;  test ? a : b
-;;end
-;;")
 
   (sp-crystal-test-slurp-assert -1 "
 Module::Class
