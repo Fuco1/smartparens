@@ -9059,7 +9059,8 @@ With a prefix argument, skip the balance check."
   (interactive "r")
   (when (or current-prefix-arg
             (-let [(&plist :ok ok :last-good-sexp last-good-sexp) (sp-get-region-info beg end)]
-              (if sp-auto-narrow-kill-region
+              (if (and (not ok)
+                       sp-auto-narrow-kill-region)
                   (when last-good-sexp
                     (setq end (sp-get last-good-sexp :end-suf))
                     (goto-char end))
