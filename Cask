@@ -27,4 +27,5 @@
   (depends-on "haskell-mode")
   (depends-on "markdown-mode")
   (depends-on "hungry-delete")
-  (depends-on "evil"))
+  (depends-on "evil")
+  (depends-on "crystal-mode"))
