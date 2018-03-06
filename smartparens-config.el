@@ -108,6 +108,7 @@ ID, ACTION, CONTEXT."
 ;; macro, you MUST supply the major mode argument.
 
 (eval-after-load 'clojure-mode             '(require 'smartparens-clojure))
+(eval-after-load 'crystal-mode             '(require 'smartparens-crystal))
 (eval-after-load 'elixir-mode              '(require 'smartparens-elixir))
 (eval-after-load 'enh-ruby-mode            '(require 'smartparens-ruby))
 (eval-after-load 'ess                      '(require 'smartparens-ess))
