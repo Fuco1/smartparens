@@ -4844,7 +4844,7 @@ By default, this is enabled in all modes derived from
 `sp-navigate-use-textmode-stringlike-parser'."
   (let ((pre (sp--get-allowed-regexp))
         (sre (sp--get-stringlike-regexp))
-        (search-fn (if (not back) 'sp--search-forward-in-context 'sp--search-backward-in-context))
+        (search-fn (if (not back) 'sp--search-forward-regexp 'sp--search-backward-regexp))
         (ps (if back (1- (point-min)) (1+ (point-max))))
         (ss (if back (1- (point-min)) (1+ (point-max))))
         (string-delim nil))
