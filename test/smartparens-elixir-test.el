@@ -122,6 +122,9 @@ end"))
 (ert-deftest sp-test-elixir-if-block-insertion-in-string ()
   (sp-test-insertion-elixir "\"a string |" "if " "\"a string if |"))
 
+(ert-deftest sp-test-elixir-do-block-insertion-in-string ()
+  (sp-test-insertion-elixir "\"a string |" "do " "\"a string do |"))
+
 (ert-deftest sp-test-elixir-forward-slurp ()
   "Ensure that commas are handled properly when slurping forward"
   (sp-test-with-temp-buffer "[1, [|2], :a]"

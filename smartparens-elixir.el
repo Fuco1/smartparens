@@ -97,7 +97,8 @@ ID, ACTION, CONTEXT."
 (sp-with-modes 'elixir-mode
   (sp-local-pair "do" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
-                 :skip-match 'sp-elixir-skip-def-p)
+                 :skip-match 'sp-elixir-skip-def-p
+                 :unless '(sp-in-comment-p sp-in-string-p))
   (sp-local-pair "def" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :post-handlers '(sp-elixir-do-block-post-handler)
