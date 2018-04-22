@@ -4205,7 +4205,9 @@ sequence, not necessarily the longest possible."
           (save-excursion
             (goto-char from)
             (save-match-data
-              (while (and (not has-match) (< (point) to))
+              (while (and (not (input-pending-p))
+                          (not has-match)
+                          (< (point) to))
                 ;; don't use looking-at because we can't limit that search
                 (if (and (save-excursion (re-search-forward regexp to t))
                          (= (match-end 0) to))
