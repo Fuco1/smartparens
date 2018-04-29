@@ -615,6 +615,7 @@ Symbol is defined as a chunk of text recognized by
                          web-mode
                          jinja2-mode
                          html-erb-mode
+                         js-jsx-mode
                          js2-jsx-mode
                          rjsx-mode
                          )
