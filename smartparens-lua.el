@@ -69,19 +69,19 @@
 (sp-with-modes '(lua-mode)
   (sp-local-pair "if" "end"
                  :when '(("SPC"))
-                 :unless '(sp-in-comment-p)
+                 :unless '(sp-in-comment-p sp-in-string-p)
                  :post-handlers '(sp-lua-post-keyword-insert))
   (sp-local-pair "function" "end"
                  :when '(("SPC"))
-                 :unless '(sp-in-comment-p)
+                 :unless '(sp-in-comment-p sp-in-string-p)
                  :post-handlers '(sp-lua-post-keyword-insert))
   (sp-local-pair "for" "end"
                  :when '(("SPC"))
-                 :unless '(sp-in-comment-p)
+                 :unless '(sp-in-comment-p sp-in-string-p)
                  :post-handlers '(sp-lua-post-keyword-insert))
   (sp-local-pair "while" "end"
                  :when '(("SPC"))
-                 :unless '(sp-in-comment-p)
+                 :unless '(sp-in-comment-p sp-in-string-p)
                  :post-handlers '(sp-lua-post-keyword-insert))
   )
 
