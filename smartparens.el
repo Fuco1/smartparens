@@ -253,6 +253,7 @@ function will be considered."
                               ("M-<up>" . sp-splice-sexp-killing-backward)
                               ("M-<down>" . sp-splice-sexp-killing-forward)
                               ("M-r" . sp-splice-sexp-killing-around)
+                              ("M-(" . sp-wrap-round)
                               ("C-)" . sp-forward-slurp-sexp) ;; barf/slurp
                               ("C-<right>" . sp-forward-slurp-sexp)
                               ("C-}" . sp-forward-barf-sexp)
@@ -262,6 +263,8 @@ function will be considered."
                               ("C-{" . sp-backward-barf-sexp)
                               ("C-M-<right>" . sp-backward-barf-sexp)
                               ("M-S" . sp-split-sexp) ;; misc
+                              ("M-j" . sp-join-sexp)
+                              ("M-?" . sp-convolute-sexp)
                               )
   "Paredit inspired bindings.
 
@@ -9144,6 +9147,21 @@ comment."
             (save-excursion
               (forward-line 1)
               (indent-according-to-mode))))))))
+
+(defun sp-wrap-round ()
+  "Wrap following sexp in round parentheses."
+  (interactive)
+  (sp-wrap-with-pair "("))
+
+(defun sp-wrap-square ()
+  "Wrap following sexp in square brackets."
+  (interactive)
+  (sp-wrap-with-pair "["))
+
+(defun sp-wrap-curly ()
+  "Wrap following sexp in curly braces."
+  (interactive)
+  (sp-wrap-with-pair "{"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
