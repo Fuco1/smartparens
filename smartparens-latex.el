@@ -83,12 +83,15 @@
       (setq p (- p 1)))
     (- (point) p)))
 
+(defun sp-evenp (num)
+  (eq (% num 2) 0))
+
 (defun sp--latex-backslash-skip-match (ms mb _me)
   "Skips a match if preceeded by uneven number of backslashes."
   (and ms
        (save-excursion
          (goto-char mb)
-         (not (evenp (sp-number-of-backslashes-before-point))))))
+         (not (sp-evenp (sp-number-of-backslashes-before-point))))))
 
 (defun sp-latex-point-after-backslash (id action context)
   "Return t if point follows an uneven number of backslashes (a
@@ -101,7 +104,7 @@ ID, ACTION, CONTEXT."
       (when (> start 1)
         (save-excursion
           (goto-char start)
-          (not (evenp (sp-number-of-backslashes-before-point))))))))
+          (not (sp-evenp (sp-number-of-backslashes-before-point))))))))
 
 (add-to-list 'sp-navigate-skip-match
              '((tex-mode plain-tex-mode latex-mode) . sp--latex-backslash-skip-match))
