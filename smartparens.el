@@ -2652,7 +2652,11 @@ works again as usual.")
 
 (defvar sp-pair-overlay-keymap (make-sparse-keymap)
   "Keymap for the pair overlays.")
-(define-key sp-pair-overlay-keymap (kbd "C-g") 'sp-remove-active-pair-overlay)
+(define-key sp-pair-overlay-keymap (kbd "C-g")
+  '(menu-item nil sp-remove-active-pair-overlay :filter
+              (lambda (cmd)
+                (unless (bound-and-true-p company-my-keymap)
+                  cmd))))
 
 (defvar sp-wrap-overlay-keymap (make-sparse-keymap)
   "Keymap for the wrap overlays.")
