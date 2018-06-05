@@ -46,7 +46,8 @@
 ;;; Code:
 
 (require 'smartparens)
-(require 'markdown-mode)
+(eval-when-compile
+  (defvar markdown-gfm-use-electric-backquote))
 
 
 (defun sp-gfm-electric-backquote-p (_id action _context)
