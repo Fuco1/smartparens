@@ -1,0 +1,89 @@
+* Basic troubleshooting
+** Start new emacs instance
+
+Start a new emacs instance by typing
+
+#+BEGIN_SRC bash
+emacs -nw -q <path-to-this-file>
+#+END_SRC
+
+in your terminal.  This will load =emacs= in text mode without any
+custom user configuration and load this =troubleshooting.org= file.
+
+From now on follow the instructions in the opened =org-mode= buffer.
+
+** package.el setup
+
+We currently support two "package layouts" out of the box:
+
+- default package.el elpa,
+- cask.
+
+If you use something else make sure you initialize it properly so that
+you can require smartparens and its dependencies.  We welcome pull
+requests for other systems.
+
+*** Default elpa
+
+For the default elpa with no customization the following usually
+works.  If you use some special directory to store packages managed by
+=package.el= edit the path below to the one that is currently in use.
+
+When done evaluate the block with ~C-c C-c~.
+
+#+BEGIN_SRC elisp
+(setq package-user-dir "~/.emacs.d/elpa")
+(package-initialize)
+#+END_SRC
+
+*** Cask
+
+If using [[https://github.com/cask/cask][Cask]] as package manager for =.emacs.d= evaluate the following
+block to set-up =package-user-dir=.  This assumes cask is installed in
+=~/.cask=.
+
+When done evaluate the block with ~C-c C-c~.
+
+#+BEGIN_SRC elisp
+(require 'cask "~/.cask/cask.el")
+(cask-initialize)
+#+END_SRC
+
+#+RESULTS:
+: [cl-struct-cask-bundle nil nil nil ([cl-struct-cask-dependency yasnippet nil nil nil nil nil nil] [cl-struct-cask-dependency yarn-mode nil nil nil nil nil nil] [cl-struct-cask-dependency yaml-mode nil nil nil nil nil nil] [cl-struct-cask-dependency world-time-mode nil nil nil nil nil nil] [cl-struct-cask-dependency which-key nil nil nil nil nil nil] [cl-struct-cask-dependency wgrep-ag nil nil nil nil nil nil] [cl-struct-cask-dependency web-server nil nil nil nil nil nil] [cl-struct-cask-dependency web-mode nil nil nil nil nil nil] [cl-struct-cask-dependency visual-regexp nil nil nil nil nil nil] [cl-struct-cask-dependency use-package nil nil nil nil nil nil] [cl-struct-cask-dependency undo-tree nil nil nil nil nil nil] [cl-struct-cask-dependency undercover nil nil nil nil nil nil] [cl-struct-cask-dependency tuareg nil nil nil nil nil nil] [cl-struct-cask-dependency transpose-frame nil nil nil nil nil nil] [cl-struct-cask-dependency textile-mode nil nil nil nil nil nil] [cl-struct-cask-dependency suggest nil nil nil nil nil nil] [cl-struct-cask-dependency string-edit nil nil nil nil nil nil] [cl-struct-cask-dependency smex nil nil nil nil nil nil] [cl-struct-cask-dependency smartscan nil nil nil nil nil nil] [cl-struct-cask-dependency smartparens nil nil nil nil nil nil] [cl-struct-cask-dependency smart-jump nil nil nil nil nil nil] [cl-struct-cask-dependency shell-pop nil nil nil nil nil nil] [cl-struct-cask-dependency shackle nil nil nil nil nil nil] [cl-struct-cask-dependency scf-mode nil nil nil nil nil nil] [cl-struct-cask-dependency scala-mode nil nil nil nil nil nil] [cl-struct-cask-dependency rjsx-mode nil nil nil nil nil nil] [cl-struct-cask-dependency restclient nil nil nil nil nil nil] [cl-struct-cask-dependency rainbow-mode nil nil nil nil nil nil] [cl-struct-cask-dependency puppet-mode nil nil nil nil nil nil] [cl-struct-cask-dependency psysh nil nil nil nil nil nil] [cl-struct-cask-dependency projectile nil nil nil nil nil nil] [cl-struct-cask-dependency prodigy nil nil nil nil nil nil] [cl-struct-cask-dependency pos-tip nil nil nil nil nil nil] [cl-struct-cask-dependency poporg nil nil nil nil nil nil] [cl-struct-cask-dependency php-refactor-mode nil nil nil nil nil nil] [cl-struct-cask-dependency php-mode nil nil nil nil nil nil] [cl-struct-cask-dependency php-eldoc nil nil nil nil nil nil] [cl-struct-cask-dependency password-generator nil nil nil nil nil nil] [cl-struct-cask-dependency parse-csv nil nil nil nil nil nil] [cl-struct-cask-dependency paren-face nil nil nil nil nil nil] [cl-struct-cask-dependency paredit nil nil nil nil nil nil] [cl-struct-cask-dependency pandoc-mode nil nil nil nil nil nil] [cl-struct-cask-dependency pallet nil nil nil nil nil nil] [cl-struct-cask-dependency package-lint nil nil nil nil nil nil] [cl-struct-cask-dependency overseer nil nil nil nil nil nil] [cl-struct-cask-dependency ov nil nil nil nil nil nil] [cl-struct-cask-dependency outshine nil nil nil nil nil nil] [cl-struct-cask-dependency org-super-agenda nil nil nil nil nil nil] [cl-struct-cask-dependency org-plus-contrib nil nil nil nil nil nil] [cl-struct-cask-dependency org-brain nil nil nil nil nil nil] [cl-struct-cask-dependency omnisharp nil nil nil nil nil nil] [cl-struct-cask-dependency ob-mongo nil nil nil nil nil nil] [cl-struct-cask-dependency ob-elixir nil nil nil nil nil nil] [cl-struct-cask-dependency ob-async nil nil nil nil nil nil] [cl-struct-cask-dependency nvm nil nil nil nil nil nil] [cl-struct-cask-dependency nov nil nil nil nil nil nil] [cl-struct-cask-dependency notmuch nil nil nil nil nil nil] [cl-struct-cask-dependency noflet nil nil nil nil nil nil] [cl-struct-cask-dependency nginx-mode nil nil nil nil nil nil] [cl-struct-cask-dependency multiple-cursors nil nil nil nil nil nil] [cl-struct-cask-dependency mocha nil nil nil nil nil nil] [cl-struct-cask-dependency markdown-toc nil nil nil nil nil nil] [cl-struct-cask-dependency markdown-mode+ nil nil nil nil nil nil] [cl-struct-cask-dependency markdown-mode nil nil nil nil nil nil] [cl-struct-cask-dependency make-it-so nil nil nil nil nil nil] [cl-struct-cask-dependency magithub nil nil nil nil nil nil] [cl-struct-cask-dependency magit-annex nil nil nil nil nil nil] [cl-struct-cask-dependency magit nil nil nil nil nil nil] [cl-struct-cask-dependency macrostep nil nil nil nil nil nil] [cl-struct-cask-dependency lsp-ui nil nil nil nil nil nil] [cl-struct-cask-dependency lsp-mode nil nil nil nil nil nil] [cl-struct-cask-dependency less-css-mode nil nil nil nil nil nil] [cl-struct-cask-dependency legalese nil nil nil nil nil nil] [cl-struct-cask-dependency ledger-mode nil nil nil nil nil nil] [cl-struct-cask-dependency keyfreq nil nil nil nil nil nil] [cl-struct-cask-dependency jump-char nil nil nil nil nil nil] [cl-struct-cask-dependency json-mode nil nil nil nil nil nil] [cl-struct-cask-dependency js2-refactor nil nil nil nil nil nil] [cl-struct-cask-dependency js2-mode nil nil nil nil nil nil] [cl-struct-cask-dependency jq-mode nil nil nil nil nil nil] [cl-struct-cask-dependency jdee nil nil nil nil nil nil] [cl-struct-cask-dependency inf-mongo nil nil nil nil nil nil] [cl-struct-cask-dependency indium nil nil nil nil nil nil] [cl-struct-cask-dependency impatient-mode nil nil nil nil nil nil] [cl-struct-cask-dependency ido-ubiquitous nil nil nil nil nil nil] [cl-struct-cask-dependency ibuffer-vc nil nil nil nil nil nil] [cl-struct-cask-dependency hydra nil nil nil nil nil nil] [cl-struct-cask-dependency htmlize nil nil nil nil nil nil] [cl-struct-cask-dependency highlight-thing nil nil nil nil nil nil] [cl-struct-cask-dependency helm-xref nil nil nil nil nil nil] [cl-struct-cask-dependency helm-gtags nil nil nil nil nil nil] [cl-struct-cask-dependency helm-descbinds nil nil nil nil nil nil] [cl-struct-cask-dependency helm-dash nil nil nil nil nil nil] [cl-struct-cask-dependency haskell-mode nil nil nil nil nil nil] [cl-struct-cask-dependency gnus-alias nil nil nil nil nil nil] [cl-struct-cask-dependency gnuplot nil nil nil nil nil nil] [cl-struct-cask-dependency glsl-mode nil nil nil nil nil nil] [cl-struct-cask-dependency gitignore-mode nil nil nil nil nil nil] [cl-struct-cask-dependency ggtags nil nil nil nil nil nil] [cl-struct-cask-dependency fold-this nil nil nil nil nil nil] [cl-struct-cask-dependency fold-dwim nil nil nil nil nil nil] [cl-struct-cask-dependency flycheck-yamllint nil nil nil nil nil nil] [cl-struct-cask-dependency flycheck-ledger nil nil nil nil nil nil] [cl-struct-cask-dependency flycheck-haskell nil nil nil nil nil nil] [cl-struct-cask-dependency flycheck-flow nil nil nil nil nil nil] [cl-struct-cask-dependency flycheck-elixir nil nil nil nil nil nil] [cl-struct-cask-dependency flycheck-credo nil nil nil nil nil nil] [cl-struct-cask-dependency flycheck-cask nil nil nil nil nil nil] [cl-struct-cask-dependency flycheck nil nil nil nil nil nil] [cl-struct-cask-dependency flx-ido nil nil nil nil nil nil] [cl-struct-cask-dependency flow-minor-mode nil nil nil nil nil nil] [cl-struct-cask-dependency fish-mode nil nil nil nil nil nil] [cl-struct-cask-dependency fish-completion nil nil nil nil nil nil] [cl-struct-cask-dependency firestarter nil nil nil nil nil nil] [cl-struct-cask-dependency feature-mode nil nil nil nil nil nil] [cl-struct-cask-dependency expand-region nil nil nil nil nil nil] [cl-struct-cask-dependency exec-path-from-shell nil nil nil nil nil nil] [cl-struct-cask-dependency evil-cleverparens nil nil nil nil nil nil] [cl-struct-cask-dependency evil nil nil nil nil nil nil] [cl-struct-cask-dependency ess nil nil nil nil nil nil] [cl-struct-cask-dependency emmet-mode nil nil nil nil nil nil] [cl-struct-cask-dependency elpy nil nil nil nil nil nil] [cl-struct-cask-dependency elixir-mode nil nil nil nil nil nil] [cl-struct-cask-dependency elfeed nil nil nil nil nil nil] [cl-struct-cask-dependency eldoc-eval nil nil nil nil nil nil] [cl-struct-cask-dependency eimp nil nil nil nil nil nil] [cl-struct-cask-dependency editorconfig nil nil nil nil nil nil] [cl-struct-cask-dependency edit-indirect nil nil nil nil nil nil] [cl-struct-cask-dependency dumb-jump nil nil nil nil nil nil] [cl-struct-cask-dependency download-region nil nil nil nil nil nil] [cl-struct-cask-dependency dotenv-mode nil nil nil nil nil nil] [cl-struct-cask-dependency dockerfile-mode nil nil nil nil nil nil] [cl-struct-cask-dependency docker-tramp nil nil nil nil nil nil] [cl-struct-cask-dependency docker nil nil nil nil nil nil] [cl-struct-cask-dependency dired+ nil nil nil nil nil nil] [cl-struct-cask-dependency diminish nil nil nil nil nil nil] [cl-struct-cask-dependency deferred nil nil nil nil nil nil] [cl-struct-cask-dependency czech-holidays nil nil nil nil nil nil] [cl-struct-cask-dependency csharp-mode nil nil nil nil nil nil] [cl-struct-cask-dependency copy-as-format nil nil nil nil nil nil] [cl-struct-cask-dependency conkeror-minor-mode nil nil nil nil nil nil] [cl-struct-cask-dependency concurrent nil nil nil nil nil nil] [cl-struct-cask-dependency company-statistics nil nil nil nil nil nil] [cl-struct-cask-dependency company-lsp nil nil nil nil nil nil] [cl-struct-cask-dependency company nil nil nil nil nil nil] [cl-struct-cask-dependency cmake-mode nil nil nil nil nil nil] [cl-struct-cask-dependency clojure-mode nil nil nil nil nil nil] [cl-struct-cask-dependency cask-mode nil nil nil nil nil nil] [cl-struct-cask-dependency cask nil nil nil nil nil nil] [cl-struct-cask-dependency camcorder nil nil nil nil nil nil] [cl-struct-cask-dependency buttercup nil nil nil nil nil nil] [cl-struct-cask-dependency browse-kill-ring nil nil nil nil nil nil] [cl-struct-cask-dependency browse-at-remote nil nil nil nil nil nil] [cl-struct-cask-dependency auctex nil nil nil nil nil nil] [cl-struct-cask-dependency assess nil nil nil nil nil nil] [cl-struct-cask-dependency alchemist nil nil nil nil nil nil] [cl-struct-cask-dependency ag nil nil nil nil nil nil]) nil "/home/matus/.emacs.d/" nil ([cl-struct-cask-source "org" "http://orgmode.org/elpa/"] [cl-struct-cask-source "melpa-stable" "http://stable.melpa.org/packages/"] [cl-struct-cask-source "melpa" "http://melpa.org/packages/"] [cl-struct-cask-source "marmalade" "http://marmalade-repo.org/packages/"] [cl-struct-cask-source "gnu" "http://elpa.gnu.org/packages/"])]
+
+** Load smartparens and dependencies
+
+Smartparens only depends on =dash.el=.  Evaluate the block with ~C-c C-c~.
+
+#+BEGIN_SRC elisp :results list
+  (list (require 'dash nil t)
+        (require 'smartparens nil t))
+#+END_SRC
+
+#+RESULTS:
+- dash
+- nil
+- smartparens
+
+Smartparens should now be loaded. If any of the items in the resulting
+list is =nil= there was a problem finding the package.  Go over the
+package.el setup once more.
+
+** Reproduce your configuration
+
+Add your configuration to the following block and then evaluate it.
+This will setup the smartparens configuration for reproduction.
+
+When done adding your configuration evaluate the block with ~C-c C-c~.
+
+#+BEGIN_SRC elisp
+;; your smartparens configuration for reproduction goes here
+#+END_SRC
+
+** Submit the report
+
+When done save this file along with the results and attach it to your
+bug report or issue.
+
+* Common issues
