@@ -1,3 +1,4 @@
+(require 'markdown-mode)
 (require 'smartparens-markdown)
 
 (ert-deftest sp-test-markdown-gfm-electric-backquote-disabled ()
