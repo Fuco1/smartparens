@@ -5,6 +5,7 @@
    ((not (boundp 'mode)) (emacs-lisp-mode))
    ((eq mode 'elisp) (emacs-lisp-mode))
    ((eq mode 'racket) (racket-mode))
+   ((eq mode 'clojure) (clojure-mode))
    ((eq mode 'c) (c-mode))
    ((eq mode 'js) (js2-mode))
    ((eq mode 'python) (shut-up (python-mode))))
@@ -474,13 +475,34 @@ be."
    (((current-prefix-arg '(4)))
     ("(foo bar (baz)| (quux) (blob bluq))" "(foo bar (baz| quux blob bluq))"))))
 
+
 (sp-test-command sp-kill-word
   ((nil
     ("|  'foo-bar-baz" "|-bar-baz")
     ("|'foo-bar-baz" "|-bar-baz")
     ("'|foo-bar-baz" "'|-bar-baz")
     ("'f|oo-bar-baz" "'f|-bar-baz")
-    ("'foo-|bar-baz" "'foo-|-baz"))))
+    ("'foo-|bar-baz" "'foo-|-baz")
+    ("|(foo-bar-baz)" "(|-bar-baz)")
+    ("(foo-bar-baz|) foo" "(foo-bar-baz) |")
+    )
+   (((mode 'clojure))
+    ("|(-> (first (secord)))" "(| (first (secord)))" "( (| (secord)))" "( ( (|)))")
+    ("(|-> (first (secord)))" "(| (first (secord)))"))))
+
+(sp-test-command sp-backward-kill-word
+  ((nil
+    ("'foo-bar-baz  |" "'foo-bar-|" "'foo-|" "'|")
+    ("'foo-|bar-baz" "'|bar-baz")
+    ("'foo|-bar-baz" "'|-bar-baz")
+    ("'f|oo-bar-baz" "'|oo-bar-baz")
+    ("'foo-b|ar-baz" "'foo-|ar-baz")
+    ("(foo-bar-baz)|" "(foo-bar-|)")
+    ("foo (|foo-bar-baz)" "|(foo-bar-baz)")
+    )
+   (((mode 'clojure))
+    ("(-> (first (secord)))|" "(-> (first (|)))" "(-> (| ()))" "(| ( ()))")
+    ("(-> |(first (secord)))" "(|(first (secord)))"))))
 
 (sp-test-command sp-kill-symbol
   ((nil

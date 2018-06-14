@@ -8888,15 +8888,19 @@ See `sp-forward-symbol' for what constitutes a symbol."
                   (p (point)))
               (when s
                 (sp-get s
-                  (let ((delims (buffer-substring :beg-prf p)))
+                  (cl-letf ((delims (buffer-substring :beg-prf p))
+                            ((symbol-function 'sp--get-kill-end)
+                             (lambda (s)
+                               (min (save-excursion (sp--forward-word) (point))
+                                    (sp-get s :end-suf)))))
                     (if (string-match-p "\\`\\(\\s.\\|\\s-\\)*\\'" delims)
                         (if word
-                            (kill-region p (save-excursion (sp--forward-word) (point)))
+                            (kill-region p (sp--get-kill-end s))
                           (kill-region p :end))
                       (let ((kill-from (if (> p :beg-prf) :beg :beg-prf)))
                         (goto-char kill-from)
                         (if word
-                            (kill-region kill-from (save-excursion (sp--forward-word) (point)))
+                            (kill-region kill-from (sp--get-kill-end s))
                           (kill-region kill-from :end)))))))))
           (sp--cleanup-after-kill)
           (setq arg (1- arg)))
@@ -8959,7 +8963,11 @@ See `sp-backward-symbol' for what constitutes a symbol."
                   (p (point)))
               (when s
                 (sp-get s
-                  (let ((delims (buffer-substring :end p)))
+                  (cl-letf ((delims (buffer-substring :end p))
+                            ((symbol-function 'sp--get-kill-beg)
+                             (lambda (s)
+                               (max (save-excursion (sp--backward-word) (point))
+                                    (sp-get s :beg-prf)))))
                     (if (string-match-p "\\`\\(\\s.\\|\\s-\\)*\\'" delims)
                         ;; Note: the arguments to kill-region are
                         ;; "reversed" (end before beg) so that the
@@ -8967,11 +8975,11 @@ See `sp-backward-symbol' for what constitutes a symbol."
                         ;; ring. See the implementation of
                         ;; `kill-region' for more info
                         (if word
-                            (kill-region p (save-excursion (sp--backward-word) (point)))
+                            (kill-region p (sp--get-kill-beg s))
                           (kill-region p :beg-prf))
                       (goto-char :end)
                       (if word
-                          (kill-region :end (save-excursion (sp--backward-word) (point)))
+                          (kill-region :end (sp--get-kill-beg s))
                         (kill-region :end :beg-prf))))))))
           (sp--cleanup-after-kill)
           (setq arg (1- arg)))
