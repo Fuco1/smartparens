@@ -5568,6 +5568,10 @@ the executed command."
             (call-interactively com)
           (execute-kbd-macro cmd))))))
 
+;; compat with org < 9
+(unless (fboundp 'org-src--get-lang-mode)
+  (defalias 'org-src--get-lang-mode 'org-src-get-lang-mode))
+
 (defun sp-org--is-src-block-p (&optional point)
   "Return non-nil if point is in the content part of a SRC block."
   (setq point (or point (point)))
