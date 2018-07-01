@@ -569,6 +569,7 @@ Symbol is defined as a chunk of text recognized by
                            emacs-lisp-mode
                            eshell-mode
                            geiser-repl-mode
+                           gerbil-mode
                            inf-clojure-mode
                            inferior-emacs-lisp-mode
                            inferior-lisp-mode
