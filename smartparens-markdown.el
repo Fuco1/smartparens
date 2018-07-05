@@ -46,6 +46,7 @@
 ;;; Code:
 
 (require 'smartparens)
+(require 'smartparens-text)
 (eval-when-compile
   (defvar markdown-gfm-use-electric-backquote))
 

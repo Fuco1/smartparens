@@ -40,6 +40,7 @@
 ;;; Code:
 
 (require 'smartparens)
+(require 'smartparens-text)
 
 (defun sp--org-skip-asterisk (_ms mb me)
   "Non-nil if the asterisk is part of the outline marker."
