@@ -5,6 +5,7 @@
 
 ;; Author: Ta Quang Trung <taquangtrungvn@gmail.com>
 ;;         Matus Goljer <matus.goljer@gmail.com>
+;;         Louis Roché <louis@louisroche.net>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
 ;; Created: 14 July 2016
 ;; Keywords: smartparens, ML, ocaml, reason
@@ -50,8 +51,23 @@
 (require 'smartparens)
 
 ;;; Local pairs for ML-family languages
-(sp-with-modes '(tuareg-mode fsharp-mode) (sp-local-pair "(*" "*)" ))
-(sp-with-modes '(reason-mode) (sp-local-pair "/*" "*/" ))
+
+(sp-with-modes '(fsharp-mode)
+  (sp-local-pair "(*" "*)" ))
+
+(sp-with-modes '(tuareg-mode)
+  ;; Disable ` because it is used in polymorphic variants
+  (sp-local-pair "`" nil :actions nil)
+  ;; Disable ' because it is used in value names and types
+  (sp-local-pair "'" nil :actions nil)
+  (sp-local-pair "(*" "*)" ))
+
+(sp-with-modes '(reason-mode)
+  ;; Disable ` because it is used in polymorphic variants
+  (sp-local-pair "`" nil :actions nil)
+  ;; Disable ' because it is used in value names and types
+  (sp-local-pair "'" nil :actions nil)
+  (sp-local-pair "/*" "*/" ))
 
 (provide 'smartparens-ml)
 ;;; smartparens-ml.el ends here
