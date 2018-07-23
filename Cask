@@ -10,6 +10,7 @@
 (development
   (depends-on "f")
   (depends-on "ert-runner")
+  (depends-on "buttercup")
   (depends-on "undercover")
   (depends-on "shut-up")
   (depends-on "ruby-mode")
