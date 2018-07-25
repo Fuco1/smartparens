@@ -9223,6 +9223,11 @@ the opening delimiter or before the closing delimiter."
   "The face used to highlight pair overlays."
   :group 'show-smartparens)
 
+(defface sp-show-pair-match-content-face
+  '()
+  "`show-smartparens-mode' face used for a matching pair's content."
+  :group 'show-smartparens)
+
 (defvar sp-show-pair-idle-timer nil)
 
 (defvar sp-show-pair-overlays nil)
@@ -9355,11 +9360,14 @@ matching paren in the echo area if not visible on screen."
   (when sp-show-pair-overlays
     (sp-show--pair-delete-overlays))
   (let* ((oleft (make-overlay start (+ start olen) nil t nil))
+         (omiddle (make-overlay (+ start olen) (- end clen) nil t nil))
          (oright (make-overlay (- end clen) end nil t nil)))
-    (setq sp-show-pair-overlays (cons oleft oright))
+    (setq sp-show-pair-overlays (list oleft omiddle oright))
     (overlay-put oleft 'face 'sp-show-pair-match-face)
+    (overlay-put omiddle 'face 'sp-show-pair-match-content-face)
     (overlay-put oright 'face 'sp-show-pair-match-face)
     (overlay-put oleft 'priority 1000)
+    (overlay-put omiddle 'priority 1000)
     (overlay-put oright 'priority 1000)
     (overlay-put oleft 'type 'show-pair)))
 
@@ -9416,7 +9424,7 @@ has been created."
   (when sp-show-pair-overlays
     (sp-show--pair-delete-overlays))
   (let ((o (make-overlay start (+ start len) nil t nil)))
-    (setq sp-show-pair-overlays (cons o nil))
+    (setq sp-show-pair-overlays (list o))
     (overlay-put o 'face 'sp-show-pair-mismatch-face)
     (overlay-put o 'priority 1000)
     (overlay-put o 'type 'show-pair)))
@@ -9424,10 +9432,8 @@ has been created."
 (defun sp-show--pair-delete-overlays ()
   "Remove both show pair overlays."
   (when sp-show-pair-overlays
-    (when (car sp-show-pair-overlays)
-      (delete-overlay (car sp-show-pair-overlays)))
-    (when (cdr sp-show-pair-overlays)
-      (delete-overlay (cdr sp-show-pair-overlays)))
+    (dolist (overlay sp-show-pair-overlays)
+      (delete-overlay overlay))
     (setq sp-show-pair-overlays nil)))
 
 (defun sp-show--pair-delete-enc-overlays ()
