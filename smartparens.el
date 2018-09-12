@@ -7755,6 +7755,38 @@ Examples:
       (kill-region :beg-in :end-in)
       (goto-char :beg-in))))
 
+(defun sp-change-enclosing ()
+  "Change the inside of the enclosing expression.
+
+Whitespace on both sides of the inner items is preserved if it
+contains newlines.  Invoking this function on a blank sexp will
+wipe out remaining whitespace (see `sp-point-in-blank-sexp').
+
+Move the point to the beginning of the original content.
+
+Examples:
+
+  (f|oo [bar] baz) -> (|)
+
+  {'f|oo': 'bar'}  -> {'|': 'bar'}"
+  (interactive)
+  (-when-let (ok (sp-get-enclosing-sexp))
+    (sp-get ok
+      (if (sp-point-in-blank-sexp)
+          (progn
+            (kill-region :beg-in :end-in)
+            (goto-char :beg-in))
+        (let ((beg (progn
+                     (goto-char :beg-in)
+                     (skip-chars-forward "\t\n ")
+                     (point)))
+              (end (progn
+                     (goto-char :end-in)
+                     (skip-chars-backward "\t\n ")
+                     (point))))
+          (kill-region beg end)
+          (goto-char beg))))))
+
 (defun sp-unwrap-sexp (&optional arg)
   "Unwrap the following expression.
 
