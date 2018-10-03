@@ -195,21 +195,31 @@ The output of this function can be used in bug reports."
                            "Evil"
                            "Vanilla"
                            ))))
-  (kill-new
-   (format "- `smartparens` version: %s
+  (let ((text (format "- `smartparens` version: %s
 - Active `major-mode`: `%s`
 - Smartparens strict mode: %s
 - Emacs version (`M-x emacs-version`): %s
 - Starterkit/Distribution: %s
 - OS: %s"
-           (--if-let (cadr (assoc 'smartparens package-alist))
-               (package-version-join (package-desc-version it))
-             "<Please specify manually>")
-           (symbol-name major-mode)
-           (bound-and-true-p smartparens-strict-mode)
-           (replace-regexp-in-string "\n" "" (emacs-version))
-           starterkit
-           (symbol-name system-type))))
+                      (--if-let (cadr (assoc 'smartparens package-alist))
+                          (package-version-join (package-desc-version it))
+                        "<Please specify manually>")
+                      (symbol-name major-mode)
+                      (bound-and-true-p smartparens-strict-mode)
+                      (replace-regexp-in-string "\n" "" (emacs-version))
+                      starterkit
+                      (symbol-name system-type))))
+    (pop-to-buffer
+     (with-current-buffer (get-buffer-create "*sp-describe-system*")
+       (erase-buffer)
+       (insert "The content of the buffer underneath the line was
+copied to your clipboard.  You can also edit it in this buffer
+and then copy the results manually.
+------------------------------------------------
+")
+       (insert text)
+       (current-buffer)))
+    (kill-new text)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
