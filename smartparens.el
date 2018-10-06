@@ -611,6 +611,14 @@ Symbol is defined as a chunk of text recognized by
   :type '(repeat symbol)
   :group 'smartparens)
 
+(defcustom sp-no-reindent-after-kill-indent-line-functions
+  '(
+    insert-tab
+    )
+  "List of `indent-line-function's that should not reindent after kill."
+  :type '(repeat symbol)
+  :group 'smartparens)
+
 (defvar sp--html-modes '(
                          sgml-mode
                          html-mode
@@ -6564,7 +6572,9 @@ Note: prefix argument is shown after the example in
       ;; less whitespace than there actually is because the indent
       ;; might further eat some up
       (indent-according-to-mode)
-    (unless (memq major-mode sp-no-reindent-after-kill-modes)
+    (unless (or (memq major-mode sp-no-reindent-after-kill-modes)
+                (memq indent-line-function
+                      sp-no-reindent-after-kill-indent-line-functions))
       (save-excursion
         (sp--indent-region (line-beginning-position) (line-end-position)))
       (when (> (save-excursion
@@ -7734,7 +7744,9 @@ represent a valid object in a buffer!"
           (let ((b (bounds-of-thing-at-point 'line)))
             (delete-region (car b) (cdr b))))
         (setq indent-from (point)))
-      (unless (memq major-mode sp-no-reindent-after-kill-modes)
+      (unless (or (memq major-mode sp-no-reindent-after-kill-modes)
+                  (memq indent-line-function
+                        sp-no-reindent-after-kill-indent-line-functions))
         (sp--keep-indentation
           (sp--indent-region indent-from indent-to))))))
 
