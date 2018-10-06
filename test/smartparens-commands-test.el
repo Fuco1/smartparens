@@ -504,6 +504,15 @@ be."
     ("(-> (first (secord)))|" "(-> (first (|)))" "(-> (| ()))" "(| ( ()))")
     ("(-> |(first (secord)))" "(|(first (secord)))"))))
 
+;; #936
+(ert-deftest sp-test-command-sp-backward-delete-kill-word-obeys-indent-line-function ()
+  (sp-test-with-temp-buffer "foo\nbar baz|"
+      (progn
+        (smartparens-strict-mode 1)
+        (setq indent-line-function 'insert-tab))
+    (sp-backward-kill-word 1)
+    (sp-buffer-equals "foo\nbar |")))))
+
 (sp-test-command sp-kill-symbol
   ((nil
     ("|  'foo-bar-baz" "|")
