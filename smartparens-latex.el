@@ -104,8 +104,7 @@ ID, ACTION, CONTEXT."
   (sp-local-pair "\\[" "\\]"
                  :unless '(sp-latex-point-after-backslash))
 
-  ;; disable useless pairs.  Maybe also remove " ' and \"?
-  (sp-local-pair "/*" nil :actions nil)
+  ;; disable useless pairs.
   (sp-local-pair "\\\\(" nil :actions nil)
   (sp-local-pair "'" nil :actions nil)
   (sp-local-pair "\\\"" nil :actions nil)
