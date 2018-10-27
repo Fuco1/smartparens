@@ -174,14 +174,14 @@ ID, ACTION, CONTEXT."
   (sp-local-pair "\\langle" "\\rangle"
                  :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair  "\\lVert" "\\rVert"
-		  :when '(sp-in-math-p)
-		  :trigger "\\lVert"
-		  :post-handlers '(sp-latex-insert-spaces-inside-pair))
+          :when '(sp-in-math-p)
+          :trigger "\\lVert"
+          :post-handlers '(sp-latex-insert-spaces-inside-pair))
   (sp-local-pair  "\\lvert" "\\rvert"
-		  :when '(sp-in-math-p)
-		  :trigger "\\lvert"
-		  :post-handlers '(sp-latex-insert-spaces-inside-pair))
-  
+          :when '(sp-in-math-p)
+          :trigger "\\lvert"
+          :post-handlers '(sp-latex-insert-spaces-inside-pair))
+
   ;; some common wrappings
   (sp-local-tag "\"" "``" "''" :actions '(wrap))
   (sp-local-tag "\\b" "\\begin{_}" "\\end{_}")
