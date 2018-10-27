@@ -435,7 +435,7 @@ Maximum length of opening or closing pair is
   delayed-insertion
   ;; The last point checked by sp--syntax-ppss and its result, used for
   ;; memoization
-  last-syntax-ppss-point
+  last-syntax-ppss-point ;; a list (point point-min point-max)
   last-syntax-ppss-result
   ;; Value of `sp-pair-list' for this buffer.  Note that this might
   ;; differ from `sp-pair-list' which is often changed by dynamic
@@ -1796,13 +1796,17 @@ POINT defaults to `point'."
   "Memoize the last result of `syntax-ppss'.
 
 P is the point at which we run `syntax-ppss'"
-  (let ((p (or p (point))))
-    (if (eq p (sp-state-last-syntax-ppss-point sp-state))
+  (let ((p (or p (point)))
+        (mem-p (sp-state-last-syntax-ppss-point sp-state)))
+    (if (and (eq p (nth 0 mem-p))
+             (eq (point-min) (nth 1 mem-p))
+             (eq (point-max) (nth 2 mem-p)))
         (sp-state-last-syntax-ppss-result sp-state)
       ;; Add hook to reset memoization if necessary
       (unless (sp-state-last-syntax-ppss-point sp-state)
         (add-hook 'before-change-functions 'sp--reset-memoization t t))
-      (setf (sp-state-last-syntax-ppss-point sp-state) p
+      (setf (sp-state-last-syntax-ppss-point sp-state)
+            (list p (point-min) (point-max))
             (sp-state-last-syntax-ppss-result sp-state) (syntax-ppss p)))))
 
 (defun sp-point-in-string (&optional p)
