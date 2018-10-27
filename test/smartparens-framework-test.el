@@ -5,6 +5,10 @@
   (sp-test-with-temp-elisp-buffer "foo-bar|"
     (should (not (sp-point-in-symbol)))))
 
+(ert-deftest sp-test-sp-point-in-comment-inside-string ()
+  (sp-test-with-temp-elisp-buffer "\"foo |;foo-bar\""
+    (should-not (sp-point-in-comment))))
+
 (ert-deftest sp-test-sp-point-in-symbol-inside-symbol ()
   "When the point is inside symbol it should be in symbol."
   (sp-test-with-temp-elisp-buffer "foo-|bar"
