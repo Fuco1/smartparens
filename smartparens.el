@@ -2137,11 +2137,13 @@ old definition with values from PAIR."
       ;; properties.  Open delimiter works as ID as usual.
       (let ((old-pair (--first (equal (plist-get pair :open)
                                       (plist-get it :open))
-                               (cdr struct))))
+                               (cdr struct)))
+            (open (plist-get pair :open)))
         (if (not old-pair)
             (progn
-              (unless (plist-get pair :close)
-                (error "Pair %s was never defined, please specify closing delimiter in instead of passing `nil'" (plist-get pair :open)))
+              (unless (or (plist-get pair :close)
+                          (sp--get-pair open (assq t sp-pairs)))
+                (error "Pair %s was never defined, please specify closing delimiter in instead of passing `nil'" open))
               (setcdr struct (cons pair (cdr struct))))
           (sp--update-pair pair old-pair)))))
   sp-pairs)
