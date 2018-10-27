@@ -8973,26 +8973,28 @@ See `sp-forward-symbol' for what constitutes a symbol."
   (sp--with-case-sensitive
     (if (> arg 0)
         (while (> arg 0)
-          (if (and word (sp-point-in-symbol))
-              (sp--kill-word 1)
-            (let ((s (sp-get-symbol))
-                  (p (point)))
-              (when s
-                (sp-get s
-                  (cl-letf ((delims (buffer-substring :beg-prf p))
-                            ((symbol-function 'sp--get-kill-end)
-                             (lambda (s)
-                               (min (save-excursion (sp--forward-word) (point))
-                                    (sp-get s :end-suf)))))
-                    (if (string-match-p "\\`\\(\\s.\\|\\s-\\)*\\'" delims)
-                        (if word
-                            (kill-region p (sp--get-kill-end s))
-                          (kill-region p :end))
-                      (let ((kill-from (if (> p :beg-prf) :beg :beg-prf)))
-                        (goto-char kill-from)
-                        (if word
-                            (kill-region kill-from (sp--get-kill-end s))
-                          (kill-region kill-from :end)))))))))
+          (-when-let (s (sp-get-symbol))
+            (sp-get s
+              (let* ((beg
+                      (if (< :beg-prf (point))
+                          (if word (point) :beg-prf)
+                        (if (= (save-excursion
+                                 (sp-skip-forward-to-symbol)
+                                 (point))
+                               :beg-prf)
+                            (point)
+                          :beg-prf)))
+                     (end (if word
+                              (let ((fw-end
+                                     (save-excursion
+                                       (sp--forward-word)
+                                       (point))))
+                                (if (sp-region-ok-p beg fw-end)
+                                    fw-end
+                                  :end-suf))
+                            :end-suf)))
+                (goto-char beg)
+                (kill-region beg end))))
           (sp--cleanup-after-kill)
           (setq arg (1- arg)))
       (sp-backward-kill-symbol (sp--negate-argument arg) word))))
@@ -9048,30 +9050,28 @@ See `sp-backward-symbol' for what constitutes a symbol."
   (sp--with-case-sensitive
     (if (> arg 0)
         (while (> arg 0)
-          (if (and word (sp-point-in-symbol))
-              (sp--kill-word -1)
-            (let ((s (sp-get-symbol t))
-                  (p (point)))
-              (when s
-                (sp-get s
-                  (cl-letf ((delims (buffer-substring :end p))
-                            ((symbol-function 'sp--get-kill-beg)
-                             (lambda (s)
-                               (max (save-excursion (sp--backward-word) (point))
-                                    (sp-get s :beg-prf)))))
-                    (if (string-match-p "\\`\\(\\s.\\|\\s-\\)*\\'" delims)
-                        ;; Note: the arguments to kill-region are
-                        ;; "reversed" (end before beg) so that the
-                        ;; successive kills are prepended in the kill
-                        ;; ring. See the implementation of
-                        ;; `kill-region' for more info
-                        (if word
-                            (kill-region p (sp--get-kill-beg s))
-                          (kill-region p :beg-prf))
-                      (goto-char :end)
-                      (if word
-                          (kill-region :end (sp--get-kill-beg s))
-                        (kill-region :end :beg-prf))))))))
+          (-when-let (s (sp-get-symbol t))
+            (sp-get s
+              (let* ((end
+                      (if (< (point) :end-suf)
+                          (if word (point) :end-suf)
+                        (if (= (save-excursion
+                                 (sp-skip-backward-to-symbol)
+                                 (point))
+                               :end-suf)
+                            (point)
+                          :end-suf)))
+                     (beg (if word
+                              (let ((bw-start
+                                     (save-excursion
+                                       (sp--backward-word)
+                                       (point))))
+                                (if (sp-region-ok-p bw-start end)
+                                    bw-start
+                                  :beg-prf))
+                            :beg-prf)))
+                (goto-char end)
+                (kill-region end beg))))
           (sp--cleanup-after-kill)
           (setq arg (1- arg)))
       (sp-kill-symbol (sp--negate-argument arg) word))))
