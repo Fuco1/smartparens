@@ -2948,6 +2948,13 @@ This predicate is only tested on \"insert\" action."
   (and (sp--looking-at-p "\\s-*$")
        (sp--looking-back-p (concat "^\\s-*" (regexp-quote id)))))
 
+(defun sp-char-escaped-p (_id action _context)
+  "Return non-nil if character before point is escaped with \\."
+  (when (eq action 'insert)
+    (save-excursion
+      (backward-char 1)
+      (looking-back "\\\\" 1))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Pair insertion/deletion/skipping
