@@ -2139,7 +2139,10 @@ old definition with values from PAIR."
                                       (plist-get it :open))
                                (cdr struct))))
         (if (not old-pair)
-            (setcdr struct (cons pair (cdr struct)))
+            (progn
+              (unless (plist-get pair :close)
+                (error "Pair %s was never defined, please specify closing delimiter in instead of passing `nil'" (plist-get pair :open)))
+              (setcdr struct (cons pair (cdr struct))))
           (sp--update-pair pair old-pair)))))
   sp-pairs)
 
