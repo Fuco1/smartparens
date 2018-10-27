@@ -3367,10 +3367,15 @@ provided values."
   "Return non-nil if we can wrap a region.
 
 This is used in advices on various pre-command-hooks from
-\"selection deleting\" modes to intercept their actions."
-  (--any? (or (string-prefix-p (sp--single-key-description last-command-event) (car it))
-              (string-prefix-p (sp--single-key-description last-command-event) (cdr it)))
-          (sp--get-pair-list-wrap)))
+\"selection deleting\" modes to intercept their actions.
+
+Also added to `self-insert-uses-region-functions' to prevent
+`delete-selection-mode' from replacing the region."
+  (let* ((list (sp--get-pair-list-wrap))
+         (desc (sp--single-key-description last-command-event)))
+    (--any? (or (string-prefix-p desc (car it))
+                (string-prefix-p desc (cdr it)))
+            list)))
 
 (defun sp--pair-to-wrap-comparator (prop a b)
   "Comparator for wrapping pair selection.
