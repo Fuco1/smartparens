@@ -165,6 +165,9 @@ specifies if we are inside a string or code."
 (--each sp--html-modes
   (add-to-list 'sp-navigate-consider-sgml-tags it))
 
+(--each '(web-mode)
+  (add-to-list 'sp-sexp-suffix (list it 'regexp "")))
+
 (provide 'smartparens-html)
 
 ;;; smartparens-html.el ends here
