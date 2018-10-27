@@ -215,3 +215,18 @@
       (sp-update-local-pairs 'foo)
       (should (sp-test-config--equal-sets
                sp-pair-list '(("(" . ")") ("[" . "]") ("'" . "'")))))))
+
+;; #932
+(ert-deftest sp-test-config--remove-local-pair ()
+  (let ((sp-pairs (-clone sp-pairs)))
+    (sp-test-with-temp-elisp-buffer ""
+      (should (--some? (equal (plist-get it :open) "[") sp-local-pairs))
+      (sp-local-pair 'emacs-lisp-mode "[" nil :actions :rem)
+      (should-not (--some? (equal (plist-get it :open) "[") sp-local-pairs)))))
+
+(ert-deftest sp-test-config--remove-global-pair ()
+  (let ((sp-pairs (-clone sp-pairs)))
+    (sp-test-with-temp-elisp-buffer ""
+      (should (--some? (equal (plist-get it :open) "[") sp-local-pairs))
+      (sp-pair "[" nil :actions :rem)
+      (should-not (--some? (equal (plist-get it :open) "[") sp-local-pairs)))))

@@ -829,6 +829,12 @@ See `sp--init'."
   (unless sp-pair-list
     (sp--init)))
 
+(defun sp--remove-local-pair (open)
+  "Remove OPEN from `sp-local-pairs'."
+  (setq sp-local-pairs
+        (--remove (equal (plist-get it :open) open)
+                  sp-local-pairs)))
+
 (defun sp--update-sp-pair-list ()
   "Update `sp-pair-list' according to current value of `sp-local-pairs'."
   (setq sp-pair-list
@@ -879,6 +885,14 @@ or a list of such property lists."
   (sp--update-sp-pair-list)
   (setf (sp-state-local-pairs sp-state) sp-local-pairs)
   (setf (sp-state-pair-list sp-state) sp-pair-list))
+
+(defmacro sp-with-buffers-using-mode (mode &rest body)
+  "Execute BODY in every existing buffer using `major-mode' MODE."
+  (declare (indent 1))
+  `(--each (buffer-list)
+     (with-current-buffer it
+       (when (derived-mode-p ,mode)
+         ,@body))))
 
 (defun sp--update-local-pairs-everywhere (&rest modes)
   "Run `sp--update-local-pairs' in all buffers.
@@ -2397,7 +2411,9 @@ a similar lambda manually.  To only bind this in specific major
 modes, use this property on `sp-local-pair' instead."
   (if (eq actions :rem)
       (let ((global-list (assq t sp-pairs)))
-        (setcdr global-list (--remove (equal (plist-get it :open) open) (cdr global-list))))
+        (setcdr global-list (--remove (equal (plist-get it :open) open) (cdr global-list)))
+        (--each (buffer-list)
+          (with-current-buffer it (sp--remove-local-pair open))))
     (let ((pair nil))
       (setq pair (plist-put pair :open open))
       (when close (plist-put pair :close close))
@@ -2508,15 +2524,13 @@ markdown when it signifies list item instead of emphasis.  In
 addition, there is a global per major-mode option, see
 `sp-navigate-skip-match'."
   (if (eq actions :rem)
-      (let ((remove ""))
-        (dolist (m (-flatten (list modes)))
-          (setq remove (concat remove
-                               (sp-get-pair-definition open m :open)
-                               (sp-get-pair-definition open m :close)))
-          (let ((mode-pairs (assq m sp-pairs)))
-            (setcdr mode-pairs
-                    (--remove (equal (plist-get it :open) open)
-                              (cdr mode-pairs))))))
+      (dolist (m (-flatten (list modes)))
+        (let ((mode-pairs (assq m sp-pairs)))
+          (setcdr mode-pairs
+                  (--remove (equal (plist-get it :open) open)
+                            (cdr mode-pairs))))
+        (sp-with-buffers-using-mode m
+          (sp--remove-local-pair open)))
     (dolist (m (-flatten (list modes)))
       (let* ((pair nil))
         (setq pair (plist-put pair :open open))
