@@ -511,7 +511,7 @@ be."
         (smartparens-strict-mode 1)
         (setq indent-line-function 'insert-tab))
     (sp-backward-kill-word 1)
-    (sp-buffer-equals "foo\nbar |")))))
+    (sp-buffer-equals "foo\nbar |")))
 
 (sp-test-command sp-kill-symbol
   ((nil
