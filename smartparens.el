@@ -4810,6 +4810,8 @@ to non-stringlike matching and we can use a simple
 counting (stack) algorithm."
   (save-excursion
     (let ((restart-from (point))
+          (bounds (or (sp-get-comment-bounds)
+                      (cons (point-min) (point-max))))
           hit re)
       (while (not hit)
         (goto-char restart-from)
@@ -4818,9 +4820,11 @@ counting (stack) algorithm."
             (if back (forward-char) (backward-char)))
           (let* ((delimiters (-map 'car (sp--get-allowed-stringlike-list)))
                  (needle (sp--textmode-stringlike-regexp delimiters))
-                 (search-fn-f (if (not back) 'sp--search-forward-regexp 'sp--search-backward-regexp)))
-            (-if-let ((delim type) (sp--find-next-textmode-stringlike-delimiter needle search-fn-f))
+                 (search-fn-f (if (not back) 'sp--search-forward-regexp 'sp--search-backward-regexp))
+                 (limit-f (if (not back) (cdr bounds) (car bounds))))
+            (-if-let ((delim type) (sp--find-next-textmode-stringlike-delimiter needle search-fn-f limit-f))
                 (let ((search-fn (if (eq type :open) 'sp--search-forward-regexp 'sp--search-backward-regexp))
+                      (limit (if (eq type :open) (cdr bounds) (car bounds)))
                       (needle (sp--textmode-stringlike-regexp (list delim) (if (eq type :open) :close :open))))
                   (setq restart-from (point))
                   ;; this adjustments are made because elisp regexp
@@ -4832,7 +4836,7 @@ counting (stack) algorithm."
                     (when (and back (eq type :close)) (forward-char (1+ (length delim))))
                     (when (and back (eq type :open) (not (bobp))) (forward-char 1)))
                   (let ((other-end (point)))
-                    (when (sp--find-next-textmode-stringlike-delimiter needle search-fn)
+                    (when (sp--find-next-textmode-stringlike-delimiter needle search-fn limit)
                       ;; Beware, we also need to test the beg/end of
                       ;; buffer, because we have that variant in the
                       ;; regexp.  In that case the match does not

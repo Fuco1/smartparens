@@ -213,3 +213,17 @@
     (sp-test-get-textmode-stringlike-expression-in-org "/bar/ asd ~a|sd~" '(:beg 11 :end 16 :op "~" :cl "~" :prefix "" :suffix ""))
     (sp-test-get-textmode-stringlike-expression-in-org "|//" '(:beg 1 :end 3 :op "/" :cl "/" :prefix "" :suffix ""))
     (sp-test-get-textmode-stringlike-expression-in-org "//|" '(:beg 1 :end 3 :op "/" :cl "/" :prefix "" :suffix "") t)))
+
+(defun sp-test-get-textmode-stringlike-expression-in-html (initial result &optional back)
+  (sp-test-with-temp-buffer initial
+      (html-mode)
+    (should (equal (sp-get-textmode-stringlike-expression back) result))))
+
+(ert-deftest sp-test-get-textmode-stringlike-expression-html nil
+  (let ((sp-pairs '((t . ((:open "'" :close "'" :actions (insert wrap autoskip navigate)))))))
+    (sp-test-get-textmode-stringlike-expression-in-html
+     "<style> 'foo.png' </style> <!-- foodoett'| -->" nil t)
+    (sp-test-get-textmode-stringlike-expression-in-html
+     "<style> 'foo.png'| </style> <!-- foodoett' -->" '(:beg 9 :end 18 :op "'" :cl "'" :prefix "" :suffix "") t)
+    (sp-test-get-textmode-stringlike-expression-in-html
+     "<style> |'foo.png' </style> <!-- foodoett' -->" '(:beg 9 :end 18 :op "'" :cl "'" :prefix "" :suffix ""))))
