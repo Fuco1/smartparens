@@ -8983,7 +8983,7 @@ See `sp-forward-symbol' for what constitutes a symbol."
             (sp-get s
               (let* ((beg
                       (if (< :beg-prf (point))
-                          (if word (point) :beg-prf)
+                          (if word (point) :beg)
                         (if (= (save-excursion
                                  (sp-skip-forward-to-symbol)
                                  (point))
