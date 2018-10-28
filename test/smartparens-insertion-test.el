@@ -9,6 +9,7 @@
     (execute-kbd-macro keys)
     (sp-buffer-equals result)))
 
+;; DONE
 (ert-deftest sp-test-insertion-basic nil
   (let ((sp-pairs sp--test-basic-pairs))
     (sp-test-insertion "|" "(" "()")
@@ -20,9 +21,9 @@
     (sp-test-insertion "|" "\\langle" "\\langle\\rangle")
     (sp-test-insertion "|" "foo \\langle" "foo \\langle\\rangle")
     (sp-test-insertion "foo |" "\\b" "foo \\big(\\big)")
-    (sp-test-insertion "|" "[[][" "[[][]]")
     (sp-test-insertion "|" "\\{" "\\{\\}")))
 
+;; DONE
 (ert-deftest sp-test-insertion-pairs-with-shared-prefix ()
   (let ((sp-pairs '((t . ((:open "`" :close "'" :actions (insert wrap autoskip navigate))
                           (:open "``" :close "''" :actions (insert wrap autoskip navigate))
@@ -41,6 +42,7 @@
     (sp-test-insertion ".;|-+" ":" ".;:-+_")
     ))
 
+;; DONE
 (ert-deftest sp-test-insertion-stringlike-pairs-with-shared-suffix ()
   (let ((sp-pairs '((t . ((:open "*" :close "*" :actions (insert wrap autoskip navigate))
                           (:open "**" :close "**" :actions (insert wrap autoskip navigate)))))))
@@ -51,6 +53,7 @@
     (sp-test-insertion "*|*" "*" "****")
     (sp-test-insertion "***|***" "*" "********")))
 
+;; DONE
 (ert-deftest sp-test-insertion-pairs-with-shared-suffix ()
   (let ((sp-pairs '((t . ((:open "{" :close "}" :actions (insert wrap autoskip navigate))
                           (:open "{-" :close "-}" :actions (insert wrap autoskip navigate))
@@ -60,10 +63,12 @@
     (sp-test-insertion "{-|-}" "-" "{----}")
     (sp-test-insertion "|" "{--" "{----}")))
 
+;; DONE
 (ert-deftest sp-test-insertion-pair-with-spaces ()
   (let ((sp-pairs '((t . ((:open "[ " :close " ]" :actions (insert wrap autoskip navigate)))))))
     (sp-test-insertion "|" "[ " "[ | ]")))
 
+;; DONE
 (ert-deftest sp-test-insertion-pair-when-in-string ()
   (let ((sp-pairs '((t . ((:open "[" :close "]"
                            :actions (insert wrap autoskip navigate)
@@ -71,6 +76,7 @@
     (sp-test-insertion "\"foo | bar\"" "[" "\"foo [|] bar\"")
     (sp-test-insertion "foo | bar" "[" "foo [| bar")))
 
+;; DONE
 (ert-deftest sp-test-insertion-pair-unless-in-string ()
   (let ((sp-pairs '((t . ((:open "[" :close "]"
                            :actions (insert wrap autoskip navigate)
@@ -78,6 +84,7 @@
     (sp-test-insertion "\"foo | bar\"" "[" "\"foo [| bar\"")
     (sp-test-insertion "foo | bar" "[" "foo [|] bar")))
 
+;; DONE
 (ert-deftest sp-test-insertion-pair-when-in-string-override-setting ()
   (let ((sp-pairs sp-pairs))
     (sp-local-pair '(emacs-lisp-mode lisp-mode) "%" "$")
@@ -86,6 +93,7 @@
     (sp-test-insertion "\"foo | bar\"" "%" "\"foo %|$ bar\"")
     (sp-test-insertion "foo | bar" "%" "foo %| bar")))
 
+;; DONE
 (ert-deftest sp-test-insertion-pair-replace-existing-ending-for-pair-with-shared-prefix ()
   "If the to-be-inserted pair has a prefix which is also a pair
 we migth be extending the opener of a sexp with this opener.  In
@@ -106,6 +114,7 @@ which case we should probably rewrap."
 ;; TODO: ideally, we would figure out why that doesn't work on 24.1
 ;; and 24.2 but it's a waste of time.  If some users are on those
 ;; versions, they are welcome to figure it out for us :)
+;; DONE
 (ert-deftest sp-test-insertion-latex nil
   (shut-up (load "auctex-autoloads"))
   (let ((sp-undo-pairs-separately nil)
@@ -136,6 +145,7 @@ which case we should probably rewrap."
              (r (and actual (cons (plist-get actual :open) (plist-get actual :close)))))
         (should (equal r expected))))))
 
+;; TODO
 (ert-deftest sp-test-insertion-pair-to-insert nil
   (sp-test--pair-to-insert "[|" (cons "[" "]"))
   (sp-test--pair-to-insert "[|]" (cons "[" "]"))
@@ -152,25 +162,31 @@ which case we should probably rewrap."
   ;; test trigger
   (sp-test--pair-to-insert "foo \\b|" (cons "\\big(" "\\big)")))
 
+;; TODO
 (ert-deftest sp-test-insert-pair-skip-closing ()
   "Typing ) should step over the closing paren."
   (sp-test-insertion "|" "(abc)" "(abc)")
   (should (eobp)))
 
+;; TODO
 (ert-deftest sp-test-insert-pair-skip-active-quotes nil
   (sp-test-insertion "|" "\"abc\"" "\"abc\"")
   (should (eobp)))
 
+;; TODO
 (ert-deftest sp-test-insert-pair-dont-skip-escaped-quotes nil
   (sp-test-insertion "\"abc|\"" "\\\"" "\"abc\\\"|\\\"\""))
 
+;; TODO
 (ert-deftest sp-test-insert-pair-skip-inactive-quotes nil
   (sp-test-insertion "|" "\"ab\C-b\C-dc\"" "\"ac\"|"))
 
+;; TODO
 (ert-deftest sp-test-insert-sp-autoskip-opening-pair nil
   (let ((sp-autoskip-opening-pair t))
     (sp-test-insertion "foo |\"bar\" baz" "\"" "foo \"|bar\" baz")))
 
+;; TODO
 (ert-deftest sp-test-insert-pair-skip-inactive-quotes-with-escape-enabled nil
   (let ((sp-pairs
          '((t (:open "\"" :close "\""
@@ -178,6 +194,7 @@ which case we should probably rewrap."
                :unless (sp-in-string-quotes-p))))))
     (sp-test-insertion "|" "\"ab\C-b\C-dc\"" "\"ac\"|")))
 
+;; TODO
 (ert-deftest sp-test-insert-quote-escape-enabled nil
   (let ((sp-pairs
          '((t (:open "\"" :close "\""
@@ -185,6 +202,7 @@ which case we should probably rewrap."
                :unless (sp-in-string-quotes-p))))))
     (sp-test-insertion "\"foo | bar\"" "\"" "\"foo \\\" bar\"")))
 
+;; TODO
 (ert-deftest sp-test-insert-quote-escape-quote-after-insert nil
   (let ((sp-pairs
          '((t
@@ -194,6 +212,7 @@ which case we should probably rewrap."
             (:open "[" :close "]" :actions (insert wrap autoskip navigate))))))
     (sp-test-insertion "\"foo | bar\"" "\"" "\"foo \\\"|\\\" bar\"")))
 
+;; TODO
 (ert-deftest sp-test-insert-quote-dont-escape-quote-in-rst-mode nil
   "In text modes where ' and \" are not string syntax, do not
 escape them on the top level."
@@ -208,6 +227,7 @@ escape them on the top level."
       (execute-kbd-macro "\"")
       (sp-buffer-equals "foo \"|\" bar"))))
 
+;; TODO
 (ert-deftest sp-test-insert-quote-dont-escape-in-contraction nil
   "Do not escape ' after a word when it is used as a contraction"
   (let ((sp-pairs
@@ -223,6 +243,7 @@ escape them on the top level."
       (sp-buffer-equals "foo's| bar"))))
 
 ;; #665
+;; TODO
 (ert-deftest sp-test-insert-quote-dont-escape-if-not-in-string-before-insertion nil
   "In `scala-mode' and modes where the syntax classes are hacked
 on-the-fly it can happen that the quote character \" is not
@@ -246,6 +267,7 @@ and therefore we should not escape the just-inserted quote."
       (execute-kbd-macro "\"|")
       (should (equal (buffer-string) result)))))
 
+;; TODO
 (ert-deftest sp-test-insert-quote-do-not-escape-if-string-unbalanced ()
   "When we have an unbalanced string we should sometimes just close it.
 
@@ -256,6 +278,7 @@ of the buffer is correct, we escape, otherwise we close."
   (sp-test-insertion "\"foo |] bar\"" "\"" "\"foo \\\"|] bar\"")
   (sp-test-insertion "\"first| \"second\"" "\"" "\"first\"| \"second\""))
 
+;; TODO
 (ert-deftest sp-test-insert-dont-insert-in-overwrite-mode ()
   (sp-test-with-temp-buffer "foo = |\"\""
       (shut-up (python-mode))

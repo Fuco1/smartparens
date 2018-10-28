@@ -112,6 +112,15 @@ Finally, FORMS are run."
            (delete-char -1))
          ,@forms))))
 
+(defmacro sp-test-with-temp-buffer-in-mode (mode initial &rest forms)
+  "Setup a new temp buffer in major-mode MODE then run FORMS.
+
+See `sp-test-with-temp-buffer'."
+  (declare (indent 2))
+  `(sp-test-with-temp-buffer ,initial
+       (funcall ,mode)
+     ,@forms))
+
 (defmacro sp-test-with-temp-elisp-buffer (initial &rest forms)
   "Setup a new `emacs-lisp-mode' test buffer.
 
