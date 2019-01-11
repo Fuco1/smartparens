@@ -5828,7 +5828,7 @@ Examples: (prefix arg in comment)
 
   (foo bar| baz)   -> (|foo bar baz) ;; 2
 
-  (|(foo bar) baz) -> ((|foo bar) baz)"
+  ((|foo bar) baz) -> (|(foo bar) baz)"
   (interactive "^p")
   (setq arg (or arg 1))
   (if (< arg 0)
