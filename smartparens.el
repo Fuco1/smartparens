@@ -110,7 +110,6 @@ the previous/next entry.
 Examples are fontified using the `font-lock-string-face' for
 better orientation."
   (interactive "P")
-  (setq arg (not arg))
   (let ((do-not-display '(
                           smartparens-mode
                           smartparens-global-mode
@@ -124,10 +123,10 @@ better orientation."
                           turn-on-show-smartparens-mode
                           turn-off-show-smartparens-mode
                           ))
-        (do-not-display-with-arg '(
-                                   sp-use-paredit-bindings
-                                   sp-use-smartparens-bindings
-                                   ))
+        (do-not-display-without-arg '(
+                                      sp-use-paredit-bindings
+                                      sp-use-smartparens-bindings
+                                      ))
         (commands (cl-loop for i in (cdr (assoc-string (file-truename (locate-library "smartparens")) load-history))
                            if (and (consp i) (eq (car i) 'defun) (commandp (cdr i)))
                            collect (cdr i))))
@@ -138,11 +137,11 @@ better orientation."
         (erase-buffer)
         (help-mode)
         (smartparens-mode 1)
-        (help-setup-xref (list #'sp-cheat-sheet)
+        (help-setup-xref (cons #'sp-cheat-sheet (list arg))
                          (called-interactively-p 'interactive))
         (read-only-mode -1)
         (--each (--remove (or (memq it do-not-display)
-                              (and arg (memq it do-not-display-with-arg)))
+                              (and (not arg) (memq it do-not-display-without-arg)))
                           commands)
           (unless (equal (symbol-name it) "advice-compilation")
             (let ((start (point)) kill-from)
@@ -150,7 +149,7 @@ better orientation."
               (insert " is ")
               (describe-function-1 it)
               (save-excursion
-                (when arg
+                (unless arg
                   (goto-char start)
                   (forward-paragraph 1)
                   (forward-line 1)
