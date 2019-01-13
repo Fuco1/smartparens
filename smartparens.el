@@ -142,7 +142,7 @@ better orientation."
         (erase-buffer)
         (help-mode)
         (smartparens-mode 1)
-        (help-setup-xref (cons #'sp-cheat-sheet (list arg))
+        (help-setup-xref (list #'sp-cheat-sheet arg)
                          (called-interactively-p 'interactive))
         (read-only-mode -1)
         (--each commands
