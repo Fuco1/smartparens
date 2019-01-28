@@ -117,6 +117,7 @@ ID, ACTION, CONTEXT."
   (eval-after-load it                      '(require 'smartparens-python)))
 (eval-after-load 'org                      '(require 'smartparens-org))
 (eval-after-load 'racket-mode              '(require 'smartparens-racket))
+(eval-after-load 'rst                      '(require 'smartparens-rst))
 (eval-after-load 'ruby-mode                '(require 'smartparens-ruby))
 (eval-after-load 'rust-mode                '(require 'smartparens-rust))
 (eval-after-load 'scala-mode               '(require 'smartparens-scala))
