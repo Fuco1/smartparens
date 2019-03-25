@@ -1485,6 +1485,12 @@ kill \"subwords\" when `subword-mode' is active."
   :type 'boolean
   :group 'smartparens)
 
+(defcustom sp-delete-blank-sexps nil
+  "If non-nil, allow deletion of enclosing pair when it only
+  contains whitespace."
+  :type 'boolean
+  :group 'smartparens)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Selection mode handling
@@ -1786,14 +1792,18 @@ If optional argument P is present test this instead of point."
 
 If optional argument P is present test this instead of point.
 
+Returns a cons containing the position of the beginning and end
+delimiters.
+
 Warning: it is only safe to call this when point is inside a
 sexp, otherwise the call may be very slow."
   (save-excursion
     (when p (goto-char p))
     (-when-let (enc (sp-get-enclosing-sexp))
-      (sp-get enc (string-match-p
-                   "\\`[ \t\n]*\\'"
-                   (buffer-substring-no-properties :beg-in :end-in))))))
+      (sp-get enc (when (string-match-p
+                         "\\`[ \t\n]*\\'"
+                         (buffer-substring-no-properties :beg-in :end-in))
+                    (cons :beg :end))))))
 
 (defun sp-char-is-escaped-p (&optional point)
   "Test if the char at POINT is escaped or not.
@@ -8825,6 +8835,8 @@ If on a closing delimiter, move backward into balanced expression.
 
 If on a opening delimiter, refuse to delete unless the balanced
 expression is empty, in which case delete the entire expression.
+If `sp-delete-blank-sexps' is non-nil, the expression is also
+considered empty if it contains only white-space.
 
 If the delimiter does not form a balanced expression, it will be
 deleted normally.
@@ -8869,6 +8881,13 @@ Examples:
                   (delete-char (+ (length (car ok)) (length (cdr ok)))))
                 ok)
               ;; make this customizable
+              (setq n (1- n)))
+             ((and sp-delete-blank-sexps
+                   (sp--looking-back (sp--get-opening-regexp (sp--get-pair-list-context 'navigate)))
+                   (-when-let ((beg . end) (sp-point-in-blank-sexp))
+                     (goto-char beg)
+                     (delete-char (- end beg))
+                     t))
               (setq n (1- n)))
              ((and (sp-point-in-string)
                    (save-excursion (backward-char) (not (sp-point-in-string))))
