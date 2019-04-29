@@ -3260,9 +3260,10 @@ last form; otherwise do nothing."
 ;; why we need each of these.
 (defun sp--save-pre-command-state ()
   "Save some of the buffer state before `pre-command-hook'."
-  (setq sp-point-inside-string (sp-point-in-string))
-  (setq sp-pre-command-point (point))
-  (setq sp-buffer-modified-p (buffer-modified-p)))
+  (when smartparens-mode
+    (setq sp-point-inside-string (sp-point-in-string))
+    (setq sp-pre-command-point (point))
+    (setq sp-buffer-modified-p (buffer-modified-p))))
 
 (add-hook 'pre-command-hook 'sp--save-pre-command-state)
 
