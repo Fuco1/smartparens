@@ -5089,7 +5089,7 @@ See `sp-get-hybrid-sexp' for definition."
             ;; case we got parent sexp, which began before point) then return
             ;; up to line end (or end of parent sexp, if it is before line end)
             (if (sp-point-in-blank-line) le
-              (skip-prefix-backward (min le (1- (sp-get cur :end)))))
+              (skip-prefix-backward (min le (sp-get cur :end-in))))
           (while (sp-get cur
                    (and cur
                         (< :beg le)
