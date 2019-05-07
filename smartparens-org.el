@@ -52,12 +52,18 @@
           (not (memq (syntax-class (syntax-after (point))) '(2 3)))
         (<= me (point))))))
 
+(defun sp-org-point-after-left-square-bracket-p (id action _context)
+  "Return t if point is after a left square bracket, nil otherwise.
+This predicate is only tested on \"insert\" action."
+  (when (eq action 'insert)
+    (sp--looking-back-p (concat "\\[" (regexp-quote id)))))
+
 (sp-with-modes 'org-mode
   (sp-local-pair "*" "*"
                  :unless '(sp-point-after-word-p sp-point-at-bol-p)
                  :skip-match 'sp--org-skip-asterisk)
   (sp-local-pair "_" "_" :unless '(sp-point-after-word-p))
-  (sp-local-pair "/" "/" :unless '(sp-point-after-word-p) :post-handlers '(("[d1]" "SPC")))
+  (sp-local-pair "/" "/" :unless '(sp-point-after-word-p sp-org-point-after-left-square-bracket-p) :post-handlers '(("[d1]" "SPC")))
   (sp-local-pair "~" "~" :unless '(sp-point-after-word-p) :post-handlers '(("[d1]" "SPC")))
   (sp-local-pair "=" "=" :unless '(sp-point-after-word-p) :post-handlers '(("[d1]" "SPC")))
   (sp-local-pair "«" "»"))
