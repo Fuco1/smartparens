@@ -9305,6 +9305,11 @@ the opening delimiter or before the closing delimiter."
   :type 'boolean
   :group 'show-smartparens)
 
+(defcustom sp-show-pair-match-priority 1000
+  "Priority of matching pair highlighting overlays."
+  :type 'integer
+  :group 'show-smartparens)
+
 (defface sp-show-pair-match-face
   '((t (:inherit show-paren-match)))
   "`show-smartparens-mode' face used for a matching pair."
@@ -9464,9 +9469,9 @@ matching paren in the echo area if not visible on screen."
     (unless (use-region-p)
       (overlay-put omiddle 'face 'sp-show-pair-match-content-face))
     (overlay-put oright 'face 'sp-show-pair-match-face)
-    (overlay-put oleft 'priority 1000)
+    (overlay-put oleft 'priority sp-show-pair-match-priority)
     (overlay-put omiddle 'priority 1000)
-    (overlay-put oright 'priority 1000)
+    (overlay-put oright 'priority sp-show-pair-match-priority)
     (overlay-put oleft 'type 'show-pair)))
 
 (defun sp-show--pair-echo-match (start end olen clen)
