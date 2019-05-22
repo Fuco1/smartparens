@@ -6338,6 +6338,8 @@ The argument INTERACTIVE is for internal use only.
 If called interactively and `sp-navigate-reindent-after-up' is
 enabled for current major-mode, remove the whitespace between end
 of the expression and the last \"thing\" inside the expression.
+This behaviour can be suppressed for syntactic string sexps by
+setting `sp-navigate-reindent-after-up-in-string' to nil.
 
 If `sp-navigate-close-if-unbalanced' is non-nil, close the
 unbalanced expressions automatically.
