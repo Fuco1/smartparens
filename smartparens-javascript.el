@@ -52,4 +52,4 @@
   (add-to-list 'sp-sexp-suffix (list it 'regexp "")))
 
 (provide 'smartparens-javascript)
-;;; smartparens-javasript.el ends here
+;;; smartparens-javascript.el ends here
