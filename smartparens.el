@@ -610,6 +610,14 @@ Symbol is defined as a chunk of text recognized by
   :type '(repeat symbol)
   :group 'smartparens)
 
+(defcustom sp-c-modes '(
+                        c-mode
+                        c++-mode
+                        )
+  "List of C-related modes."
+  :type '(repeat symbol)
+  :group 'smartparens)
+
 (defcustom sp-no-reindent-after-kill-modes '(
                                              python-mode
                                              coffee-mode
