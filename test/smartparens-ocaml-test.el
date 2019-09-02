@@ -32,3 +32,10 @@
       (sp-test--ocaml-mode)
     (sp-backward-slurp-sexp 2)
     (should (equal (buffer-string) "[List.map foo]"))))
+
+(ert-deftest sp-test-ocaml-splice-sexp-tilde ()
+  "Ensure ~ isn't removed when removing parentheses"
+  (sp-test-with-temp-buffer "let foo ~(|x) = x"
+      (sp-test--ocaml-mode)
+    (sp-splice-sexp)
+    (should (equal (buffer-string) "let foo ~x = x"))))

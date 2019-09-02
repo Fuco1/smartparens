@@ -62,6 +62,9 @@
   (sp-local-pair "'" nil :actions nil)
   (sp-local-pair "(*" "*)" ))
 
+;; Ignore punctuation, so we can split ~(foo) to ~foo.
+(add-to-list 'sp-sexp-prefix (list 'tuareg-mode 'syntax ""))
+
 (sp-with-modes '(reason-mode)
   ;; Disable ` because it is used in polymorphic variants
   (sp-local-pair "`" nil :actions nil)
