@@ -40,7 +40,7 @@
 (require 'smartparens)
 
 (defvar sp-clojure-prefix "\\(?:[@`'#~,_?^]+\\)"
-  "Prefix used in `sp-sepx-prefix' for clojure modes.")
+  "Prefix used in `sp-sexp-prefix' for clojure modes.")
 
 (dolist (mode '(clojure-mode clojurescript-mode clojurec-mode cider-repl-mode))
   (add-to-list 'sp-sexp-prefix `(,mode regexp ,sp-clojure-prefix)))
