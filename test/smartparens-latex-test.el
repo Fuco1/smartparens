@@ -64,3 +64,31 @@ thesmeves and would not break unrelated pair)"
       (latex-mode)
     (execute-kbd-macro "\"")
     (sp-buffer-equals "quote: ``|'' $f' = 0$")))
+
+;; #990
+(ert-deftest sp-test-latex-do-parse-string-quotes-outside-math ()
+  (sp-test-with-temp-buffer "foo ``bar''| baz"
+      (latex-mode)
+    (sp-backward-sexp)
+    (sp-buffer-equals "foo |``bar'' baz")))
+
+;; #990
+(ert-deftest sp-test-latex-dont-parse-string-quotes-in-math ()
+  (sp-test-with-temp-buffer "$foo ``bar''| baz$"
+      (latex-mode)
+    (sp-backward-sexp)
+    (sp-buffer-equals "$foo ``|bar'' baz$")))
+
+;; #990
+(ert-deftest sp-test-latex-do-pair-string-quotes-outside-math ()
+  (sp-test-with-temp-buffer "foo | baz"
+      (latex-mode)
+    (execute-kbd-macro "``")
+    (sp-buffer-equals "foo ``|'' baz")))
+
+;; #990
+(ert-deftest sp-test-latex-dont-pair-string-quotes-in-math ()
+  (sp-test-with-temp-buffer "$foo | baz$"
+      (latex-mode)
+    (execute-kbd-macro "``")
+    (sp-buffer-equals "$foo ``| baz$")))

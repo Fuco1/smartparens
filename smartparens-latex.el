@@ -97,7 +97,7 @@ ID, ACTION, CONTEXT."
   (sp-local-pair "`" "'"
                  :actions '(:rem autoskip)
                  :skip-match 'sp-latex-skip-match-apostrophe
-                 :unless '(sp-latex-point-after-backslash))
+                 :unless '(sp-latex-point-after-backslash sp-in-math-p))
   ;; math modes, yay.  The :actions are provided automatically if
   ;; these pairs do not have global definitions.
   (sp-local-pair "$" "$")
@@ -113,7 +113,7 @@ ID, ACTION, CONTEXT."
   ;; need to insert ", C-q is our friend.
   (sp-local-pair "``" "''"
                  :trigger "\""
-                 :unless '(sp-latex-point-after-backslash)
+                 :unless '(sp-latex-point-after-backslash sp-in-math-p)
                  :post-handlers '(sp-latex-skip-double-quote))
 
   ;; add the prefix function sticking to {} pair
