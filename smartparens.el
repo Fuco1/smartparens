@@ -7570,9 +7570,9 @@ Examples:
 
 With BACK non-nil, move backwards."
   (if back
-      (while (not (sp-point-in-string))
+      (while (and (not (sp-point-in-string)) (> (point) (point-min)))
         (backward-char))
-    (while (not (sp-point-in-string))
+    (while (and (not (sp-point-in-string)) (< (point) (point-max)))
       (forward-char))))
 
 ;; TODO: in ruby, "foo |if bar" now moves correctly, but there's a
