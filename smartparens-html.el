@@ -1,12 +1,10 @@
-;;; smartparens-html.el --- Additional configuration for HTML based modes.  -*- lexical-binding: t; -*-
+;;; smartparens-html.el --- Additional configuration for HTML based modes  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2013-2014 Matus Goljer
 
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
 ;; Created: 14 Sep 2013
-;; Keywords: abbrev convenience editing
-;; URL: https://github.com/Fuco1/smartparens
 
 ;; This file is not part of GNU Emacs.
 
@@ -31,9 +29,9 @@
 
 ;; This file provides some additional configuration for HTML based
 ;; modes.  To use it, simply add:
-;;
+
 ;; (require 'smartparens-html)
-;;
+
 ;; into your configuration.  You can use this in conjunction with the
 ;; default config or your own configuration.
 
@@ -41,7 +39,7 @@
 
 ;; `sp-html-next-tag'     - Recommended binding: C-c C-f
 ;; `sp-html-previous-tag' - Recommended binding: C-c C-b
-;;
+
 ;; (These two bindings are used for navigation by tags forward or
 ;;  backward, but `sp-forward-sexp' already does that.)
 

@@ -1,12 +1,10 @@
-;;; smartparens-haskell.el --- Additional configuration for Haskell based modes.  -*- lexical-binding: t; -*-
+;;; smartparens-haskell.el --- Additional configuration for Haskell based modes  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2015 Michael Xavier
 
 ;; Author: Michael Xavier <michael@michaelxavier.net>
 ;; Maintainer: Michael Xavier <michael@michaelxavier.net>
 ;; Created: 29 Apr 2016
-;; Keywords: abbrev convenience editing
-;; URL: https://github.com/Fuco1/smartparens
 
 ;; This file is not part of GNU Emacs.
 
@@ -31,9 +29,9 @@
 
 ;; This file provides some additional configuration for Haskell based
 ;; modes.  To use it, simply add:
-;;
+
 ;; (require 'smartparens-haskell)
-;;
+
 ;; into your configuration.  You can use this in conjunction with the
 ;; default config or your own configuration.
 

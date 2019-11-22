@@ -1,11 +1,10 @@
-;;; smartparens-javascript.el --- Additional configuration for JavaScript based modes.  -*- lexical-binding: t; -*-
+;;; smartparens-javascript.el --- Additional configuration for JavaScript based modes  -*- lexical-binding: t; -*-
 
 ;; Copyright (c) 2017 Marinin Tim
+
 ;; Author: Tim Marinin <mt@marinin.xyz>
 ;; Maintainer: Tim Marinin <mt@marinin.xyz>
-;; Created: 2017-03-03
-;; Keywords: abbrev convenience editing javascript
-;; URL: https://github.com/Fuco1/smartparens
+;; Created: 3 Mar 2017
 
 ;; This file is not part of GNU Emacs.
 
@@ -30,15 +29,15 @@
 
 ;; This file provides some additional configuration for JavaScript based
 ;; modes.  To use it, simply add:
-;;
+
 ;; (require 'smartparens-javascript)
-;;
+
 ;; into your configuration.  You can use this in conjunction with the
 ;; default config or your own configuration.
-;;
+
 ;; If you have good ideas about what should be added please file an
 ;; issue on the github tracker.
-;;
+
 ;; For more info, see github readme at
 ;; https://github.com/Fuco1/smartparens
 

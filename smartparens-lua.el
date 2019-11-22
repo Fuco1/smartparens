@@ -1,12 +1,10 @@
-;;; smartparens-lua.el --- Additional configuration for Lua based modes.  -*- lexical-binding: t; -*-
+;;; smartparens-lua.el --- Additional configuration for Lua based modes  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2013-2014 Matus Goljer
 
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
-;; Created: 3 August 2013
-;; Keywords: abbrev convenience editing
-;; URL: https://github.com/Fuco1/smartparens
+;; Created: 3 Aug 2013
 
 ;; This file is not part of GNU Emacs.
 
@@ -31,15 +29,15 @@
 
 ;; This file provides some additional configuration for Lua based
 ;; modes.  To use it, simply add:
-;;
+
 ;; (require 'smartparens-lua)
-;;
+
 ;; into your configuration.  You can use this in conjunction with the
 ;; default config or your own configuration.
-;;
+
 ;; If you have good ideas about what should be added please file an
 ;; issue on the github tracker.
-;;
+
 ;; For more info, see github readme at
 ;; https://github.com/Fuco1/smartparens
 

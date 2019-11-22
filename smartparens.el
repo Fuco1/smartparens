@@ -1,4 +1,4 @@
-;;; smartparens.el --- Automatic insertion, wrapping and paredit-like navigation with user defined pairs. -*- lexical-binding: t -*-
+;;; smartparens.el --- Automatic insertion, wrapping and paredit-like navigation with user defined pairs  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012-2016 Matus Goljer
 
