@@ -3331,8 +3331,8 @@ extra boundary conditions depending on parens."
     (sp--wrap-regexp (regexp-opt strings) start end)))
 
 (defun sp--strict-regexp-opt (strings &optional ignored)
-  "Like regexp-opt, but with extra boundary conditions to ensure
-that the strings are not matched in-symbol."
+  "Like `regexp-opt', but with extra boundary conditions to ensure
+that the STRINGS are not matched in-symbol."
   (if strings
       (with-syntax-table
           ;; HACK: this is a terrible hack to make ' be treated as a
@@ -3351,7 +3351,7 @@ that the strings are not matched in-symbol."
     "^\\<$"))
 
 (defun sp--strict-regexp-quote (string)
-  "Like regexp-quote, but make sure that the string is not
+  "Like `regexp-quote', but make sure that the STRING is not
 matched in-symbol."
   (sp--wrap-regexp (regexp-quote string)
                    (string-match-p "\\`\\<" string)
@@ -4262,12 +4262,12 @@ is remove the just added wrapping."
     (looking-at-p regexp)))
 
 (defun sp--looking-back (regexp &optional limit not-greedy)
-  "Return non-nil if text before point matches regular expression REGEXP.
+  "Return non-nil if text before point matche regular expression REGEXP.
 
 With optional argument LIMIT search only that many characters
 backward.  If LIMIT is nil, default to `sp-max-pair-length'.
 
-If optional argument NON-GREEDY is t search for any matching
+If optional argument NOT-GREEDY is t search for any matching
 sequence, not necessarily the longest possible."
   (setq limit (or limit sp-max-pair-length))
   (sp--with-case-sensitive
@@ -4297,7 +4297,7 @@ sequence, not necessarily the longest possible."
     (sp--looking-back regexp limit not-greedy)))
 
 (defun sp--search-backward-regexp (regexp &optional bound noerror count)
-  "Works just like `search-backward-regexp', but returns the
+  "Works just like `search-backward-regexp', but return the
 longest possible match.  That means that searching for
 \"defun|fun\" backwards would return \"defun\" instead of
 \"fun\", which would be matched first.
@@ -4464,7 +4464,7 @@ be a function call that sets the match data."
                   :pair-skip ,pair-skip))))))
 
 (defun sp--elisp-skip-match (ms mb _me)
-  "Function used to test for escapes in lisp modes.
+  "Function used to test for escapes in Lisp modes.
 
 Non-nil return value means to skip the result."
   (and ms
@@ -4759,7 +4759,7 @@ opening and closing delimiter, such as *...*, \"...\", `...` etc."
               (list :beg b :end e :op m :cl m :prefix (sp--get-prefix b m) :suffix (sp--get-suffix e m)))))))))
 
 (defun sp--textmode-stringlike-regexp (delimiters &optional direction)
-  "Get a regexp matching text-mode string-like DELIMITERS.
+  "Get a regexp matching `text-mode' string-like DELIMITERS.
 
 Capture group 1 or 2 has the delimiter itself, depending on the
 direction (forward, backward).
@@ -4797,7 +4797,7 @@ and the skip-match predicate."
     hit))
 
 (defun sp-get-textmode-stringlike-expression (&optional back)
-  "Find the nearest text-mode string-like expression.
+  "Find the nearest `text-mode' string-like expression.
 
 If BACK is non-nil search in the backwards direction.
 
@@ -5401,7 +5401,7 @@ and newline."
   (not (equal "/" (substring tag 1 2))))
 
 (defun sp--sgml-ignore-tag (tag)
-  "Return non-nil if tag should be ignored in search, nil otherwise."
+  "Return non-nil if TAG should be ignored in search, nil otherwise."
   (member tag '("!--" "!DOCTYPE")))
 
 (defun sp-get-sgml-tag (&optional back)
@@ -5523,13 +5523,13 @@ the pairs for easier navigation of blocks in C-like languages."
 
 ;; TODO: add shorter alias?
 (defun sp-restrict-to-pairs-interactive (pairs function)
-  "Return an interactive lambda that calls FUNCTION restricted to PAIRS.
+  "Return an interactive lambda that call FUNCTION restricted to PAIRS.
 
 See `sp-restrict-to-pairs'.
 
 This function implements a \"decorator pattern\", that is, you
 can apply another scoping function to the output of this function
-and the effects will added together. In particular, you can
+and the effects will added together.  In particular, you can
 combine it with:
 
 - `sp-restrict-to-object-interactive'
@@ -5545,7 +5545,7 @@ ignoring all others."
     (sp-restrict-to-pairs pairs function)))
 
 (defun sp-restrict-to-object-interactive (object function)
-  "Return an interactive lambda that calls FUNCTION restricted to OBJECT.
+  "Return an interactive lambda that call FUNCTION restricted to OBJECT.
 
 See `sp-restrict-to-object'.
 
@@ -5571,7 +5571,7 @@ expressions, ignoring strings and sgml tags."
 (defun sp-prefix-tag-object (&optional _arg)
   "Read the command and invoke it on the next tag object.
 
-If you specify a regular emacs prefix argument this is passed to
+If you specify a regular Emacs prefix argument this is passed to
 the executed command.  Therefore, executing
 \"\\[universal-argument] 2 \\[sp-prefix-tag-object] \\[sp-forward-sexp]\" will move two tag
 expressions forward, ignoring possible symbols or paired
@@ -5589,7 +5589,7 @@ Tag object is anything delimited by sgml tag."
 (defun sp-prefix-pair-object (&optional _arg)
   "Read the command and invoke it on the next pair object.
 
-If you specify a regular emacs prefix argument this is passed to
+If you specify a regular Emacs prefix argument this is passed to
 the executed command.  Therefore, executing
 \"\\[universal-argument] 2 \\[sp-prefix-pair-object] \\[sp-forward-sexp]\" will move two paired
 expressions forward, ignoring possible symbols inbetween.
@@ -5606,7 +5606,7 @@ Pair object is anything delimited by pairs from `sp-pair-list'."
 (defun sp-prefix-symbol-object (&optional _arg)
   "Read the command and invoke it on the next pair object.
 
-If you specify a regular emacs prefix argument this is passed to
+If you specify a regular Emacs prefix argument this is passed to
 the executed command.  Therefore, executing
 \"\\[universal-argument] 2 \\[sp-prefix-symbol-object] \\[sp-forward-sexp]\" will move two symbols
 forward, ignoring any structure.
@@ -5624,7 +5624,7 @@ Symbol is defined as a chunk of text recognized by
 (defun sp-prefix-save-excursion (&optional _arg)
   "Execute the command keeping the point fixed.
 
-If you specify a regular emacs prefix argument this is passed to
+If you specify a regular Emacs prefix argument this is passed to
 the executed command."
   (interactive "P")
   (let* ((cmd (read-key-sequence "" t))
@@ -5777,7 +5777,7 @@ expressions are considered."
 
 (defun sp-narrow-to-sexp (arg)
   "Make text outside current balanced expression invisible.
-A numeric arg specifies to move up by that many enclosing expressions.
+A numeric ARG specifies to move up by that many enclosing expressions.
 
 See also `narrow-to-region' and `narrow-to-defun'."
   (interactive "p")
@@ -6344,7 +6344,7 @@ move backward but still to a less deep spot.
 The argument INTERACTIVE is for internal use only.
 
 If called interactively and `sp-navigate-reindent-after-up' is
-enabled for current major-mode, remove the whitespace between end
+enabled for current `major-mode', remove the whitespace between end
 of the expression and the last \"thing\" inside the expression.
 This behaviour can be suppressed for syntactic string sexps by
 setting `sp-navigate-reindent-after-up-in-string' to nil.
@@ -6442,7 +6442,7 @@ move forward but still to a less deep spot.
 The argument INTERACTIVE is for internal use only.
 
 If called interactively and `sp-navigate-reindent-after-up' is
-enabled for current major-mode, remove the whitespace between
+enabled for current `major-mode', remove the whitespace between
 beginning of the expression and the first \"thing\" inside the
 expression.
 
@@ -6663,7 +6663,7 @@ Examples:
   (sp-kill-sexp (sp--negate-argument arg) dont-kill))
 
 (defun sp-copy-sexp (&optional arg)
-  "Copy the following ARG expressions to the kill-ring.
+  "Copy the following ARG expressions to the `kill-ring'.
 
 This is exactly like calling `sp-kill-sexp' with second argument
 t.  All the special prefix arguments work the same way."
@@ -6672,7 +6672,7 @@ t.  All the special prefix arguments work the same way."
     (sp-kill-sexp arg t)))
 
 (defun sp-backward-copy-sexp (&optional arg)
-  "Copy the previous ARG expressions to the kill-ring.
+  "Copy the previous ARG expressions to the `kill-ring'.
 
 This is exactly like calling `sp-backward-kill-sexp' with second argument
 t.  All the special prefix arguments work the same way."
@@ -6816,8 +6816,7 @@ Examples:
       (kill-whole-line))))
 
 (defun sp--transpose-objects (first second)
-  "Transpose FIRST and SECOND object while preserving the
-whitespace between them."
+  "Transpose FIRST and SECOND object while preserving the whitespace between them."
   (save-excursion
     (goto-char (sp-get second :beg-prf))
     (let ((ins (sp-get second (delete-and-extract-region :beg-prf :end)))
@@ -6831,10 +6830,10 @@ whitespace between them."
 The operation will move the point after the transposed block, so
 the next transpose will \"drag\" it forward.
 
-With arg positive N, apply that many times, dragging the
+With ARG positive N, apply that many times, dragging the
 expression forward.
 
-With arg negative -N, apply N times backward, pushing the word
+With ARG negative -N, apply N times backward, pushing the word
 before cursor backward.  This will therefore not transpose the
 expressions before and after point, but push the expression
 before point over the one before it.
@@ -6934,10 +6933,12 @@ Examples:
 ;; package available at
 ;; http://elpa.gnu.org/packages/adjust-parens-1.0.el
 (defun sp-indent-adjust-sexp ()
-  "Add the hybrid sexp at line into previous sexp.  All forms
-between the two are also inserted.  Specifically, if the point is
-on empty line, move the closing delimiter there, so the next
-typed text will become the last item of the previous sexp.
+  "Add the hybrid sexp at line into previous sexp.
+
+All forms between the two are also inserted.  Specifically, if
+the point is on empty line, move the closing delimiter there, so
+the next typed text will become the last item of the previous
+sexp.
 
 This acts similarly to `sp-add-to-previous-sexp' but with special
 handling of empty lines."
@@ -6960,11 +6961,12 @@ handling of empty lines."
       (sp--run-hook-with-args (sp-get prev-sexp :op) :post-handlers 'indent-adjust-sexp))))
 
 (defun sp-dedent-adjust-sexp ()
-  "Remove the hybrid sexp at line from previous sexp.  All
-sibling forms after it are also removed (not deleted, just placed
-outside of the enclosing list).  Specifically, if the point is on
-empty line followed by closing delimiter of enclosing list, move
-the closing delimiter after the last item in the list.
+  "Remove the hybrid sexp at line from previous sexp.
+
+All sibling forms after it are also removed (not deleted, just
+placed outside of the enclosing list).  Specifically, if the
+point is on empty line followed by closing delimiter of enclosing
+list, move the closing delimiter after the last item in the list.
 
 This acts similarly to `sp-forward-barf-sexp' but with special
 handling of empty lines."
@@ -7749,7 +7751,7 @@ Examples:
 (defun sp-swap-enclosing-sexp (&optional arg)
   "Swap the enclosing delimiters of this and the parent expression.
 
-With N > 0 numeric argument, ascend that many levels before
+With ARG > 0 numeric argument, ascend that many levels before
 swapping.
 
 Examples:
@@ -7931,7 +7933,7 @@ Examples:
   "Save the text in the region between BEG and END inside EXPR,
 then delete EXPR and insert the saved text.
 
-If optional argument JUPM-END is equal to the symbol 'end move
+If optional argument JUMP-END is equal to the symbol 'end move
 the point after the re-inserted text."
   (let (str p)
     (setq str (buffer-substring-no-properties beg end))
@@ -8921,7 +8923,7 @@ Examples:
 (put 'sp-delete-char 'delete-selection 'supersede)
 
 (defun sp-point-in-empty-sexp (&optional pos)
-  "Return non-nil if point is in empty sexp or string.
+  "Return non-nil if POS is in empty sexp or string.
 
 The return value is active cons pair of opening and closing sexp
 delimiter enclosing this sexp."
@@ -8935,7 +8937,7 @@ delimiter enclosing this sexp."
      ((sp-point-in-empty-string pos)))))
 
 (defun sp-point-in-empty-string (&optional pos)
-  "Return non-nil if point is in empty string.
+  "Return non-nil if POS is in empty string.
 
 The return value is actually cons pair of opening and closing
 string delimiter enclosing this string."
@@ -9227,7 +9229,7 @@ comment."
 
 (defun sp-comment ()
   "Insert the comment character and adjust hanging sexps such
-  that it doesn't break structure."
+that it doesn't break structure."
   (interactive)
   (if (sp-point-in-string-or-comment)
       (if (= 1 (length (single-key-description last-command-event))) ;; pretty hacky
@@ -9486,7 +9488,7 @@ matching paren in the echo area if not visible on screen."
 
 (defun sp-show--pair-echo-match (start end olen clen)
   "Print the line of the matching paren in the echo area if not
-visible on screen. Needs to be called after the show-pair overlay
+visible on screen.  Needs to be called after the show-pair overlay
 has been created."
   (let ((match-positions (list start end olen clen)))
     (when (not (and (equal sp-show-pair-previous-match-positions match-positions)
@@ -9582,8 +9584,7 @@ has a pair definition.  If so, we insert the closing pair."
     (sp-insert-pair)))
 
 (defvar sp--mc/cursor-specific-vars
-  '(
-    sp-wrap-point
+  '(sp-wrap-point
     sp-wrap-mark
     sp-last-wrapped-region
     sp-pair-overlay-list
