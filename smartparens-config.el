@@ -122,6 +122,7 @@ ID, ACTION, CONTEXT."
 (eval-after-load 'rst                      '(require 'smartparens-rst))
 (eval-after-load 'ruby-mode                '(require 'smartparens-ruby))
 (eval-after-load 'rust-mode                '(require 'smartparens-rust))
+(eval-after-load 'rustic-mode              '(require 'smartparens-rust))
 (eval-after-load 'scala-mode               '(require 'smartparens-scala))
 (eval-after-load 'tex-mode                 '(require 'smartparens-latex))
 (eval-after-load 'text-mode                '(require 'smartparens-text))
