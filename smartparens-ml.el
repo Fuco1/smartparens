@@ -55,6 +55,14 @@
 (sp-with-modes '(fsharp-mode)
   (sp-local-pair "(*" "*)" ))
 
+(sp-with-modes '(coq-mode)
+  ;; Disable ` because it is used in implicit generalization
+  (sp-local-pair "`" nil :actions nil)
+  (sp-local-pair "(*" "*)" :actions nil)
+  (sp-local-pair "(*" "*"
+                 :actions '(insert)
+                 :post-handlers '(("| " "SPC") ("|\n[i]*)[d-2]" "RET"))) )
+
 (sp-with-modes '(tuareg-mode)
   ;; Disable ` because it is used in polymorphic variants
   (sp-local-pair "`" nil :actions nil)
