@@ -2,7 +2,7 @@
   (sp-test-with-temp-elisp-buffer initial
     (should (equal (sp-get-paired-expression back) result))))
 
-(ert-deftest sp-test-get-paired-expression-elisp ()
+(sp-ert-deftest sp-test-get-paired-expression-elisp
   "Test basic paired expressions in `emacs-lisp-mode'."
   (sp-test--paired-expression-parse-in-elisp "|(foo bar)" '(:beg 1 :end 10 :op "(" :cl ")" :prefix "" :suffix ""))
   (sp-test--paired-expression-parse-in-elisp "(foo bar|)" '(:beg 1 :end 10 :op "(" :cl ")" :prefix "" :suffix ""))
@@ -36,7 +36,7 @@
   (sp-test--paired-expression-parse-in-elisp "|(foo bar \\?)" '(:beg 1 :end 13 :op "(" :cl ")" :prefix "" :suffix ""))
   )
 
-(ert-deftest sp-test-get-paired-expression-elisp-backward ()
+(sp-ert-deftest sp-test-get-paired-expression-elisp-backward
   "Test basic paired expressions in `emacs-lisp-mode' in backwards."
   (sp-test--paired-expression-parse-in-elisp "(|foo bar)" '(:beg 1 :end 10 :op "(" :cl ")" :prefix "" :suffix "") t)
   (sp-test--paired-expression-parse-in-elisp "(foo bar|)" '(:beg 1 :end 10 :op "(" :cl ")" :prefix "" :suffix "") t)
@@ -70,7 +70,7 @@
   (sp-test--paired-expression-parse-in-elisp "(foo bar \\?)|" '(:beg 1 :end 13 :op "(" :cl ")" :prefix "" :suffix "") t)
   )
 
-(ert-deftest sp-test-get-paired-expression-elisp-fail ()
+(sp-ert-deftest sp-test-get-paired-expression-elisp-fail
   "Test that we fail on incomplete pairs."
   (sp-test--paired-expression-parse-in-elisp "|(foo bar" nil)
   (sp-test--paired-expression-parse-in-elisp "(foo |bar" nil)
@@ -91,7 +91,7 @@
   (sp-test--paired-expression-parse-in-elisp "|,@foo)" nil)
   )
 
-(ert-deftest sp-test-get-paired-expression-elisp-backward-fail ()
+(sp-ert-deftest sp-test-get-paired-expression-elisp-backward-fail
   "Test that we fail on incomplete pairs parsing backwards."
   (sp-test--paired-expression-parse-in-elisp "foo| bar)" nil t)
   (sp-test--paired-expression-parse-in-elisp "foo bar)|" nil t)
@@ -114,7 +114,7 @@
   )
 
 ;; Regression tests
-(ert-deftest sp-test-get-paired-expression-505 ()
+(sp-ert-deftest sp-test-get-paired-expression-505
   "Test https://github.com/Fuco1/smartparens/issues/505"
   (sp-test--paired-expression-parse-in-elisp "(foo (|bar \"baz(\"))" '(:beg 6 :end 18 :op "(" :cl ")" :prefix "" :suffix ""))
   (sp-test--paired-expression-parse-in-elisp "(foo (|bar \"baz(\" ))" '(:beg 6 :end 19 :op "(" :cl ")" :prefix "" :suffix ""))
@@ -133,14 +133,14 @@
   (sp-test--paired-expression-parse-in-elisp "(foo (|bar ;baz(\n      ))" '(:beg 6 :end 24 :op "(" :cl ")" :prefix "" :suffix ""))
   )
 
-(ert-deftest sp-test-get-paired-expression-556 ()
+(sp-ert-deftest sp-test-get-paired-expression-556
   "Test https://github.com/Fuco1/smartparens/issues/556"
   (sp-test--paired-expression-parse-in-elisp "(f| ; ()\n  'x)" '(:beg 1 :end 14 :op "(" :cl ")" :prefix "" :suffix ""))
   (sp-test--paired-expression-parse-in-elisp "(f ; ()\n  |'x)" '(:beg 1 :end 14 :op "(" :cl ")" :prefix "" :suffix ""))
   (sp-test--paired-expression-parse-in-elisp "(f ; ()\n  '|x)" '(:beg 1 :end 14 :op "(" :cl ")" :prefix "" :suffix ""))
   )
 
-(ert-deftest sp-test-get-paired-expression-653 ()
+(sp-ert-deftest sp-test-get-paired-expression-653
   "If the point is in a multi-line comment, we should be able to
 parse a multi-line sexp.
 

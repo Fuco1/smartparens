@@ -58,7 +58,7 @@ picked up, causing `sp-get-thing' to take the 2nd previous one."
   (sp-test-with-temp-elisp-buffer initial
     (should-not (sp-get-thing back))))
 
-(ert-deftest sp-test-get-thing-invalid-sexp ()
+(sp-ert-deftest sp-test-get-thing-invalid-sexp
   (sp-test-get-thing-invalid "\"foo |\\\" bar\"")
   (sp-test-get-thing-invalid "\"foo \\\"| bar\"" t)
 

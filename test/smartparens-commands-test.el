@@ -295,12 +295,7 @@ be."
      "(f|oo)\nbar ;; baz (foo) baz\n(quux)")
 
     ("(foo)\nbar ;; baz (f|oo baz)\n(quux)"
-     "(foo)\nbar ;; baz (f|oo) baz\n(quux)")
-
-    ;; #634
-    ("(let ((a 4)\n      ;; (fail)\n      |(+ 1)\n      ))\n"
-     "(let ((a 4))\n  ;; (fail)\n|  (+ 1)\n  )\n"
-     "(let ((a 4)))\n;; (fail)\n|(+ 1)\n\n"))
+     "(foo)\nbar ;; baz (f|oo) baz\n(quux)"))
 
    (((mode 'racket)
      (sp-sexp-prefix '((racket-mode regexp "#?['`,]@?"))))
@@ -1020,3 +1015,10 @@ This is the behavior of `paredit-convolute-sexp'."
       (sp-buffer-equals "(foo)
 (progn
   |(bar))"))))
+
+(ert-deftest sp-test-sp-forward-barf-sexp-634 ()
+  (sp-test-with-temp-elisp-buffer "(let ((a 4)\n      ;; (fail)\n      |(+ 1)\n      ))\n"
+    (call-interactively 'sp-forward-barf-sexp)
+    (sp-buffer-equals "(let ((a 4))\n  ;; (fail)\n  (+ 1)\n  )\n")
+    (call-interactively 'sp-forward-barf-sexp)
+    (sp-buffer-equals "(let ((a 4)))\n;; (fail)\n|(+ 1)\n\n")))

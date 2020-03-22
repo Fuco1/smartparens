@@ -5,7 +5,7 @@
 [![Documentation Status](https://readthedocs.org/projects/smartparens/badge/?version=latest)](http://smartparens.readthedocs.io/en/latest/?badge=latest)
 [![MELPA Stable](http://stable.melpa.org/packages/smartparens-badge.svg)](http://stable.melpa.org/#/smartparens)
 [![Documentation Status](https://readthedocs.org/projects/smartparens/badge/?version=stable)](http://smartparens.readthedocs.io/en/latest/?badge=stable)
-[![Build Status](https://travis-ci.org/Fuco1/smartparens.png?branch=master)](https://travis-ci.org/Fuco1/smartparens)
+[![Build Status](https://github.com/Fuco1/smartparens/workflows/CI/badge.svg)](https://github.com/Fuco1/smartparens/actions?query=workflow%3ACI)
 [![Coverage Status](https://coveralls.io/repos/github/Fuco1/smartparens/badge.svg)](https://coveralls.io/github/Fuco1/smartparens)
 [![Paypal logo](https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=A5PMGVKCQBT88)
 [![Patreon](https://c5.patreon.com/external/logo/logomarkOrange.svg)](https://www.patreon.com/user?u=3282358&ty=h)

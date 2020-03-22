@@ -168,4 +168,20 @@ BINDING is a list (kbd command)."
 (defadvice TeX-update-style (around fix-output-spam activate)
   (shut-up ad-do-it))
 
+(defmacro sp-ert-deftest (name &rest forms)
+  "Generate `ert-deftest' declarations out of FORMS.
+
+Each form of FORMS represents a single test.  NAME is suffixed by
+the dash and numeric index of the test."
+  (declare (indent 1))
+  (let* ((index 0)
+         (forms
+          (mapcar
+           (lambda (form)
+             (setq index (1+ index))
+             `(ert-deftest ,(intern (concat (symbol-name name) "-" (number-to-string index))) ()
+                ,form))
+           (if (stringp (car forms)) (cdr forms) forms))))
+    `(progn ,@forms)))
+
 ;;; test-helper.el ends here
