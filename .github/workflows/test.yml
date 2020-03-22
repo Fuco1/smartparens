@@ -1,0 +1,41 @@
+name: CI
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        emacs_version:
+          - '25.1'
+          - '25.2'
+          - '25.3'
+          - '26.1'
+          - '26.2'
+          - '26.3'
+          - 'snapshot'
+        include:
+          - emacs_version: 'snapshot'
+            allow_failure: true
+    steps:
+    - uses: actions/checkout@v1
+    - uses: purcell/setup-emacs@master
+      with:
+        version: ${{ matrix.emacs_version }}
+    - uses: actions/setup-python@v1.1.1
+    - uses: conao3/setup-cask@master
+
+    - name: Install dependencies
+      run: 'cask install'
+
+    - name: Run tests
+      if: matrix.allow_failure != true
+      run: |
+        cask exec ert-runner --reporter ert+duration
+        cask exec emacs --eval "(setq byte-compile-error-on-warn t)" -L . --batch -f batch-byte-compile smartparens.el smartparens-*[^pkg].el
+
+    - name: Run tests (allow failure)
+      if: matrix.allow_failure == true
+      run: |
+        cask exec ert-runner --reporter ert+duration || true
+        cask exec emacs --eval "(setq byte-compile-error-on-warn t)" -L . --batch -f batch-byte-compile smartparens.el smartparens-*[^pkg].el || true
