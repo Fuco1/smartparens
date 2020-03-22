@@ -30,13 +30,28 @@ that are used to test the resulting state after running the
 command. Each string must contain | to specify where point should
 be."
   (declare (indent 1))
-  `(ert-deftest ,(intern (concat "sp-test-command-"
-                                 (symbol-name command))) ()
-     ,@(mapcar
-        (lambda (example-group)
-          `(let ,(car example-group)
-             (sp--test-command ',command ',(cdr example-group))))
-        examples)))
+  (let* ((group-index 0)
+         (forms
+          (-mapcat
+           (lambda (example-group)
+             (setq group-index (1+ group-index))
+             (let ((example-index 0))
+               (mapcar
+                (lambda (test-sequence)
+                  (setq example-index (1+ example-index))
+                  `(ert-deftest
+                       ,(intern (concat "sp-test-command-"
+                                        (symbol-name command)
+                                        "-"
+                                        (number-to-string group-index)
+                                        "-"
+                                        (number-to-string example-index)
+                                        )) ()
+                     (let ,(car example-group)
+                       (sp--test-command ',command ',(list test-sequence)))))
+                (cdr example-group))))
+           examples)))
+    `(progn ,@forms)))
 
 (defun sp--test-command (command examples)
   "Run the test for COMMAND."
