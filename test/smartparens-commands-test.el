@@ -452,6 +452,14 @@ be."
     ("\"(foo |bar) baz\"" "\"(foo \"|\"bar) baz\"")
     )
 
+   (((mode 'python))
+    ("\"foo |bar baz\"" "\"foo \"|\"bar baz\"")
+    ("'foo |bar baz'" "'foo '|'bar baz'")
+    ("'foo bar|'" "'foo bar'|''")
+
+    ("\"\"\"foo|bar\"\"\"" "\"\"\"foo\"\"\"|\"\"\"bar\"\"\"")
+    )
+
    (((sp-split-sexp-always-split-as-string nil))
     ("\"foo |bar baz\"" "\"foo\" |\"bar baz\"")
     ("\"foo bar|\"" "\"foo bar\"|\"\"")

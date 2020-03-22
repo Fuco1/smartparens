@@ -8421,8 +8421,8 @@ Examples:
                 (sp-point-in-string))))
       (-when-let (ok (if should-split-as-string
                          (save-excursion
-                           (goto-char (1- (cdr (sp-get-quoted-string-bounds))))
-                           (sp-get-enclosing-sexp 1))
+                           (goto-char (car (sp-get-quoted-string-bounds)))
+                           (sp-get-sexp))
                        (sp-get-enclosing-sexp 1)))
         (sp-get ok
           (sp--run-hook-with-args :op :pre-handlers 'split-sexp)
