@@ -44,15 +44,14 @@
 (declare-function ess-roxy-indent-on-newline "ess-roxy")
 
 
-;; avoid traveling commas when slurping
-;; (|a, b), c ---> (|a, b, c)
-(dolist (mode '(ess-mode inferior-ess-mode))
-  (add-to-list 'sp-sexp-suffix (list mode 'regexp "")))
-
-;; `sp-sexp-prefix' for ESS
-(add-to-list 'sp-sexp-prefix
-             (list 'ess-mode 'regexp
-                   (rx (zero-or-more (or word (syntax symbol))))))
+(dolist (mode '(ess-mode ess-r-mode inferior-ess-mode inferior-ess-r-mode))
+  ;; avoid traveling commas when slurping
+  ;; (|a, b), c ---> (|a, b, c)
+  (add-to-list 'sp-sexp-suffix (list mode 'regexp ""))
+  ;; `sp-sexp-prefix' for ESS
+  (add-to-list 'sp-sexp-prefix
+               (list mode 'regexp
+                     (rx (zero-or-more (or word (syntax symbol)))))))
 
 ;; slurping follows Google's R style guide
 ;; see https://google.github.io/styleguide/Rguide.xml
