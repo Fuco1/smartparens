@@ -160,3 +160,17 @@ picked up, causing `sp-get-thing' to take the 2nd previous one."
       (sp-get (sp-get-symbol)
         (should (equal :beg 2))
         (should (equal :end 3))))))
+
+(prog1 "#1010"
+
+  (ert-deftest sp-test-get-symbol-with-char-escape--forward ()
+    (sp-test-with-temp-elisp-buffer "|?\\;"
+      (sp-get (sp-get-symbol)
+        (should (equal :beg 1))
+        (should (equal :end 4)))))
+
+  (ert-deftest sp-test-get-symbol-with-char-escape--backward ()
+    (sp-test-with-temp-elisp-buffer "?\\;|"
+      (sp-get (sp-get-symbol t)
+        (should (equal :beg 1))
+        (should (equal :end 4))))))

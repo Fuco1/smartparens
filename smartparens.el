@@ -7627,7 +7627,13 @@ Examples:
                         (or (not allowed)
                             (not (or (sp--valid-initial-delimiter-p (sp--looking-at open))
                                      (sp--valid-initial-delimiter-p (sp--looking-at close)))))
-                        (memq (char-syntax (following-char)) '(?w ?_)))
+                        (or (memq (char-syntax (following-char)) '(?w ?_))
+                            ;; Specifically for lisp, we consider
+                            ;; sequences of ?\<ANYTHING> a symbol
+                            ;; sequence
+                            (and (eq (char-before) ??)
+                                 (eq (char-syntax (following-char)) ?\\))
+                            (and (eq (char-syntax (char-before)) ?\\))))
               (forward-char))
             (setq n (1- n)))
         (sp-backward-symbol n)))))
@@ -7676,7 +7682,13 @@ Examples:
             (while (and (not (bobp))
                         (not (or (sp--valid-initial-delimiter-p (sp--looking-back open))
                                  (sp--valid-initial-delimiter-p (sp--looking-back close))))
-                        (memq (char-syntax (preceding-char)) '(?w ?_)))
+                        (or (memq (char-syntax (preceding-char)) '(?w ?_))
+                            ;; Specifically for lisp, we consider
+                            ;; sequences of ?\<ANYTHING> a symbol
+                            ;; sequence
+                            (and (eq (char-before (1- (point))) ??)
+                                 (eq (char-syntax (preceding-char)) ?\\))
+                            ))
               (backward-char))
             ;; skip characters which are symbols with prefix flag
             (while (and (not (eobp))

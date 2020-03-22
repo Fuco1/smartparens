@@ -225,6 +225,15 @@ be."
     ("(foo)\nbar ;; baz (f|oo) baz\n(quux)"
      "(foo)\nbar ;; baz (f|oo baz)\n(quux)")
 
+    ;; #1010
+    ("(foo (baz|) ;; bar\n     moo\n     mee)"
+     "(foo (baz| ;; bar\n      moo)\n     mee)"
+     "(foo (baz| ;; bar\n      moo\n      mee))")
+
+    ("(foo (gah|) ?\\; bar baz)"
+     "(foo (gah| ?\\;) bar baz)"
+     "(foo (gah| ?\\; bar) baz)")
+
     ;; do not slurp outside of comment
     ("(foo)\nbar ;; (|foo) baz\n(asd)\n\n"
      "(foo)\nbar ;; (|foo baz)\n(asd)\n\n"
