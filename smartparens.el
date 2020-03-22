@@ -7412,7 +7412,8 @@ Examples: (prefix arg in comment)
                   (list :arg arg :enc enc)))
               (sp-get (sp-get-enclosing-sexp)
                 (sp-do-move-cl (point))
-                (sp--indent-region :beg :end)
+                (sp--keep-indentation
+                  (sp--indent-region :beg :end))
                 (sp--run-hook-with-args :op :post-handlers 'barf-forward
                   (list :arg arg :enc enc))))))
       (sp-backward-barf-sexp (sp--negate-argument old-arg)))))
