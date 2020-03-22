@@ -7480,8 +7480,9 @@ Examples:
            ;; pair that was not allowed before.  However, such a call is
            ;; never made in SP, so it's OK for now
            (allowed-pairs (sp--get-allowed-regexp))
-           (allowed-open (sp--get-opening-regexp (sp--get-allowed-pair-list)))
-           (allowed-close (sp--get-closing-regexp (sp--get-allowed-pair-list)))
+           ,(if forward
+                '(allowed-close (sp--get-closing-regexp (sp--get-allowed-pair-list)))
+              '(allowed-open (sp--get-opening-regexp (sp--get-allowed-pair-list))))
            (allowed-strings (sp--get-stringlike-regexp))
            (prefix nil))
        (while (and (not (or ,eob-test
