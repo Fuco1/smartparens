@@ -3645,8 +3645,13 @@ Return non-nil if at least one escaping was performed."
              ;; before inserting the "" pair it is now split into two
              ;; -> which moves us outside the pair
              (not (eq context 'string))
-             ;; the inserted character must have string syntax, otherwise no "context" flip happens
-             (eq (char-syntax (aref id 0)) ?\"))
+             ;; the inserted character must have string syntax,
+             ;; otherwise no "context" flip happens
+             (eq (syntax-class
+                  (syntax-after
+                   (save-excursion
+                     (backward-char (length id))
+                     (point)))) 7))
     (let ((open id)
           (close (sp-get-pair id :close)))
       (sp--escape-region (list open close)
