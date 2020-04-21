@@ -2289,7 +2289,10 @@ is wrapped instead.  This is useful with selection functions in
                    wrap
                    bind
                    insert)
-  "Add a pair definition.
+  "Add, remove or update a pair definition.
+
+The pair definition is removed if ACTIONS is :rem, added if it
+does not exist, and updated otherwise.
 
 OPEN is the opening delimiter.  Every pair is uniquely determined
 by this string.
