@@ -399,28 +399,23 @@ See `sp-base-key-bindings'."
   :set 'sp--update-override-key-bindings
   :group 'smartparens)
 
-(defvar sp-escape-char nil
+(defvar-local sp-escape-char nil
   "Character used to escape quotes inside strings.")
-(make-variable-buffer-local 'sp-escape-char)
 
-(defvar sp-comment-char nil
+(defvar-local sp-comment-char nil
   "Character used to start comments.")
-(make-variable-buffer-local 'sp-comment-char)
 
-(defvar sp-pair-list nil
+(defvar-local sp-pair-list nil
   "List of pairs for autoinsertion or wrapping.
 
 Maximum length of opening or closing pair is
 `sp-max-pair-length' characters.")
-(make-variable-buffer-local 'sp-pair-list)
 
-(defvar sp-local-pairs nil
+(defvar-local sp-local-pairs nil
   "List of pair definitions used for current buffer.")
-(make-variable-buffer-local 'sp-local-pairs)
 
-(defvar sp-last-operation nil
+(defvar-local sp-last-operation nil
   "Symbol holding the last successful operation.")
-(make-variable-buffer-local 'sp-last-operation)
 
 (cl-defstruct sp-state
   "Smartparens state for the current buffer."
@@ -447,57 +442,49 @@ Maximum length of opening or closing pair is
   local-pairs
   )
 
-(defvar sp-state (make-sp-state)
+(defvar-local sp-state (make-sp-state)
   "Smartparens state for the current buffer.")
-(make-variable-buffer-local 'sp-state)
 
 ;; TODO: get rid of this
-(defvar sp-previous-point -1
+(defvar-local sp-previous-point -1
   "Location of point before last command.
 
 This is only updated when some pair-overlay is active.  Do not
 rely on the value of this variable anywhere else!")
-(make-variable-buffer-local 'sp-previous-point)
 
 ;; TODO: get rid of this
-(defvar sp-wrap-point nil
+(defvar-local sp-wrap-point nil
   "Save the value of point before attemt to wrap a region.
 
 Used for restoring the original state if the wrapping is
 cancelled.")
-(make-variable-buffer-local 'sp-wrap-point)
 
 ;; TODO: get rid of this
-(defvar sp-wrap-mark nil
+(defvar-local sp-wrap-mark nil
   "Save the value of mark before attemt to wrap a region.
 
 Used for restoring the original state if the wrapping is
 cancelled.")
-(make-variable-buffer-local 'sp-wrap-mark)
 
-(defvar sp-last-inserted-characters ""
+(defvar-local sp-last-inserted-characters ""
   "Characters typed during the wrapping selection.
 
 If wrapping is cancelled, these characters are re-inserted to the
 location of point before the wrapping.")
-(make-variable-buffer-local 'sp-last-inserted-characters)
 
-(defvar sp-last-inserted-pair nil
+(defvar-local sp-last-inserted-pair nil
   "Last inserted pair.")
-(make-variable-buffer-local 'sp-last-inserted-pair)
 
-(defvar sp-delayed-pair nil
+(defvar-local sp-delayed-pair nil
   "The pair whose insertion is being delayed.
 
 The insertion of this pair is delayed to be carried out in
 `sp--post-command-hook-handler'.  The format is (opening delim
 .  beg of the opening delim)")
-(make-variable-buffer-local 'sp-delayed-pair)
 
-(defvar sp-last-wrapped-region nil
+(defvar-local sp-last-wrapped-region nil
   "Information about the last wrapped region.
 The format is the same as returned by `sp-get-sexp'.")
-(make-variable-buffer-local 'sp-last-wrapped-region)
 
 (defvar sp-point-inside-string nil
   "Non-nil if point is inside a string.
@@ -2686,22 +2673,19 @@ See `sp-wrap-overlay-face'."
   "The face used to highlight wrap tag overlays."
   :group 'smartparens)
 
-(defvar sp-pair-overlay-list '()
+(defvar-local sp-pair-overlay-list '()
   "List of overlays used for tracking inserted pairs.
 
 When a pair is inserted, an overlay is created over it.  When the
 user starts typing the closing pair we will not insert it again.
 If user leaves the overlay, it is canceled and the insertion
 works again as usual.")
-(make-variable-buffer-local 'sp-pair-overlay-list)
 
-(defvar sp-wrap-overlays nil
+(defvar-local sp-wrap-overlays nil
   "Cons pair of wrap overlays.")
-(make-variable-buffer-local 'sp-wrap-overlays)
 
-(defvar sp-wrap-tag-overlays nil
+(defvar-local sp-wrap-tag-overlays nil
   "Cons pair of tag wrap overlays.")
-(make-variable-buffer-local 'sp-wrap-tag-overlays)
 
 (defvar sp-pair-overlay-keymap (make-sparse-keymap)
   "Keymap for the pair overlays.")
