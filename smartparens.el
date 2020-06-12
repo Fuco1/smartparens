@@ -5374,7 +5374,11 @@ expression.
 The return value is a plist with the same format as the value
 returned by `sp-get-sexp'."
   (sp--maybe-init)
-  (if (sp-point-in-comment)
+  (if (and (sp-point-in-comment)
+	   (or (and back
+		    (not (eq (point) (car (sp-get-comment-bounds)))))
+	       (and (not back)
+		    (not (eq (point) (cdr (sp-get-comment-bounds)))))))
       (sp-get-stringlike-expression back)
     (if (sp-point-in-string)
         (let ((r (sp-get-quoted-string-bounds)))
