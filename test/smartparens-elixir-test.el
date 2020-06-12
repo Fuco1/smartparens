@@ -122,7 +122,10 @@ end"))
 (ert-deftest sp-test-elixir-if-block-insertion-in-string ()
   (sp-test-insertion-elixir "\"a string |" "if " "\"a string if |"))
 
-(ert-deftest sp-test-elixir-do-block-insertion-in-string ()
+;; The naming convention is broken but for some reason there is a
+;; race-condition which makes this test to fail later.  So we prefix
+;; with 1-
+(ert-deftest 1-sp-test-elixir-do-block-insertion-in-string ()
   (sp-test-insertion-elixir "\"a string |" "do " "\"a string do |"))
 
 (ert-deftest sp-test-elixir-forward-slurp ()

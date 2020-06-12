@@ -127,8 +127,7 @@ ID, ACTION, CONTEXT."
 
     (when (equal action 'barf-forward)
       (sp-get enc
-        (let ((beg-line (line-number-at-pos :beg-in))
-              (end-line (line-number-at-pos :end-in)))
+        (let ((beg-line (line-number-at-pos :beg-in)))
           (sp-forward-sexp arg)
           (sp-ruby-maybe-one-space)
           (when (not (= (line-number-at-pos) beg-line))
