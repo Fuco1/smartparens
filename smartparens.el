@@ -5676,10 +5676,6 @@ expressions are considered."
                            ;; js2-jsx-mode
                            (looking-at ">"))
                        (sp-get-sgml-tag t)))
-                 ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-closing-regexp (sp--get-allowed-pair-list)) nil))
-                  (sp-get-sexp t))
-                 ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-opening-regexp (sp--get-allowed-pair-list)) nil))
-                  (sp-get-sexp t))
                  ((and (memq (syntax-class
 			      (syntax-after (1- (point))))
 			     '(7 15))
@@ -5694,6 +5690,10 @@ expressions are considered."
                     (sp-get-string t)))
                  ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-stringlike-regexp) nil))
                   (sp-get-expression t))
+                 ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-closing-regexp (sp--get-allowed-pair-list)) nil))
+                  (sp-get-sexp t))
+                 ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-opening-regexp (sp--get-allowed-pair-list)) nil))
+                  (sp-get-sexp t))
                  ;; We might be somewhere inside the prefix of the
                  ;; sexp after the point.  Since the prefix can be
                  ;; specified as regexp and not syntax class, it might
