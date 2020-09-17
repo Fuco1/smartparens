@@ -9151,19 +9151,22 @@ With a prefix argument, skip the balance check."
     (setq this-command 'delete-region)
     (delete-region beg end)))
 
-(defun sp-kill-region (beg end)
+(defun sp-kill-region (beg end &optional region)
   "Kill the text between point and mark, like `kill-region'.
 
 BEG and END are the bounds of region to be killed.
 
 If that text is unbalanced, signal an error instead.
-With a prefix argument, skip the balance check."
+With a prefix argument, skip the balance check.
+
+If the optional argument REGION is non-nil, the function ignores
+BEG and END, and kills the current region instead."
   (interactive "r")
   (when (or current-prefix-arg
             (sp-region-ok-p beg end)
             (user-error (sp-message :unbalanced-region :return)))
     (setq this-command 'kill-region)
-    (kill-region beg end)))
+    (kill-region beg end region)))
 
 (defun sp-indent-defun (&optional arg)
   "Reindent the current defun.
