@@ -32,6 +32,15 @@ delimiter."
     (insert "|")
     (should (equal (buffer-string) "foo|\n;; \"bar\"\nbaz"))))
 
+(ert-deftest sp-test-sp-skip-backward-to-symbol-reset-prefix ()
+  "If the first skip was a prefix skip, we need to reset the
+prefix after jumping over it, otherwise each successive skip
+would move (length prefix) characters"
+  (let ((sp-sexp-prefix '((emacs-lisp-mode regexp "\\(?:aaa\\)"))))
+    (sp-test-with-temp-elisp-buffer "foo bar aaa|(baz)"
+      (sp-skip-backward-to-symbol)
+      (sp-buffer-equals "foo bar| aaa(baz)"))))
+
 (ert-deftest sp-test-looking-back ()
   (sp-test-with-temp-elisp-buffer "foo \\|\\ bar"
     (should (sp--looking-back "\\\\+"))

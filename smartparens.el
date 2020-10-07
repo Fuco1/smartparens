@@ -7517,7 +7517,8 @@ Examples:
                (goto-char (,comment-bound (sp-get-comment-bounds)))
                (unless ,eob-test (,forward-fn 1)))
            (unless ,eob-test
-             (,forward-fn (max (length prefix) 1))))))))
+             (,forward-fn (max (length prefix) 1))))
+         (setq prefix nil)))))
 
 (defun sp-skip-forward-to-symbol (&optional stop-at-string stop-after-string stop-inside-string)
   "Skip whitespace and comments moving forward.
