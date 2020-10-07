@@ -53,6 +53,13 @@
                (list mode 'regexp
                      (rx (zero-or-more (or word (syntax symbol)))))))
 
+(defadvice sp-backward-kill-symbol (around sp-ess-backward-kill-symbol activate)
+  "#821 For the purpose of killing words and symbols, we remove
+the prefix resolution because it is not necessary.  We want to
+treat function prefix as word or symbol to be deleted."
+  (let ((sp-sexp-prefix nil))
+    ad-do-it))
+
 ;; slurping follows Google's R style guide
 ;; see https://google.github.io/styleguide/Rguide.xml
 (defun sp-ess-pre-handler (_id action _context)

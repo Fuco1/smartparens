@@ -55,3 +55,17 @@
       (sp-test--ess-mode)
     (sp-backward-kill-word 1)
     (sp-buffer-equals "mean(mtcars$|)")))
+
+(prog1 "#821 sp-backward-kill-word skips over prefix and does not
+kill it as a word/symbol"
+  (ert-deftest sp-test-ess-prefix-resolution-ignored-for-backward-kill-symbol--string ()
+    (sp-test-with-temp-buffer "mean(\"foo|\")"
+        (sp-test--ess-mode)
+      (sp-backward-kill-word 1)
+      (sp-buffer-equals "mean(\"|\")")))
+
+  (ert-deftest sp-test-ess-prefix-resolution-ignored-for-backward-kill-symbol--function-call ()
+    (sp-test-with-temp-buffer "ggplot(mtcars, aes(mpg, am)) + facet_wrap|()"
+        (sp-test--ess-mode)
+      (sp-backward-kill-word 1)
+      (sp-buffer-equals "ggplot(mtcars, aes(mpg, am)) + facet_|()"))))
