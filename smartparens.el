@@ -7506,8 +7506,8 @@ Examples:
                        (and (or (,(if forward 'sp--looking-back 'sp--looking-at)
                                  ,(if forward 'allowed-close 'allowed-open))
                                 (,(if forward 'sp--looking-back 'sp--looking-at) allowed-strings))
-                            (progn
-                              (setq prefix (,prefix-fn))
+                            (let ((op (match-string 0)))
+                              (setq prefix (,prefix-fn (point) op))
                               (> (length prefix) 0)))))
          (if (and (not in-comment)
                   (sp-point-in-comment))

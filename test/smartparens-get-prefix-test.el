@@ -44,3 +44,19 @@
      (with-syntax-table (make-syntax-table)
        (modify-syntax-entry ?? "_ p")
        (should (equal (sp--get-prefix) "?"))))))
+
+(prog1 "sp-test-get-prefix-for-skip-backward-to-symbol-respects-pair-prefix"
+  (ert-deftest sp-test-get-prefix-for-skip-backward-to-symbol-respects-mode-prefix ()
+    (let ((sp-sexp-prefix '((emacs-lisp-mode regexp "\\(?:aaa\\)"))))
+      (sp-test-with-temp-elisp-buffer "asd (aaa|(abc))"
+        (sp-skip-backward-to-symbol)
+        (sp-buffer-equals "asd (|aaa(abc))"))))
+
+  (ert-deftest sp-test-get-prefix-for-skip-backward-to-symbol-respects-pair-prefix ()
+    (let ((sp-sexp-prefix '((emacs-lisp-mode regexp "\\(?:aaa\\)"))))
+      (sp-test-with-temp-elisp-buffer "asd (aaa|(abc))"
+        (let ((sp-pairs '((t (:open "(" :close ")" :actions (insert wrap autoskip navigate)))
+                          (emacs-lisp-mode (:open "(" :close ")" :actions (insert wrap autoskip navigate) :prefix "")))))
+          (sp--update-local-pairs)
+          (sp-skip-backward-to-symbol)
+          (sp-buffer-equals "asd (aaa|(abc))"))))))
