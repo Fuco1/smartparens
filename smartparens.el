@@ -5232,8 +5232,9 @@ is used to retrieve the prefix instead of the global setting."
       (let* ((pref (sp-get-pair op :prefix))
              (prefix
               (if pref
-                  (when (sp--looking-back pref sp-max-prefix-length)
-                    (match-string-no-properties 0))
+                  (if (sp--looking-back pref sp-max-prefix-length)
+                      (match-string-no-properties 0)
+                    "")
                 (-if-let (mmode-prefix (cdr (assoc major-mode sp-sexp-prefix)))
                     (cond
                      ((and (eq (car mmode-prefix) 'regexp)
@@ -5274,8 +5275,9 @@ is used to retrieve the suffix instead of the global setting."
       (let* ((suff (sp-get-pair op :suffix))
              (suffix
               (if suff
-                  (when (sp--looking-at suff)
-                    (match-string-no-properties 0))
+                  (if (sp--looking-at suff)
+                      (match-string-no-properties 0)
+                    "")
                 (-if-let (mmode-suffix (cdr (assoc major-mode sp-sexp-suffix)))
                     (cond
                      ((and (eq (car mmode-suffix) 'regexp)

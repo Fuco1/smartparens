@@ -60,3 +60,13 @@
           (sp--update-local-pairs)
           (sp-skip-backward-to-symbol)
           (sp-buffer-equals "asd (aaa|(abc))"))))))
+
+(ert-deftest sp-test-get-prefix-always-return-string ()
+  "Previously in case of a pair-specific prefix we could return
+nil if there was no match."
+    (let ((sp-sexp-prefix '((emacs-lisp-mode regexp "\\(?:aaa\\)"))))
+      (sp-test-with-temp-elisp-buffer "asd (aaa|(abc))"
+        (let ((sp-pairs '((t (:open "(" :close ")" :actions (insert wrap autoskip navigate)))
+                          (emacs-lisp-mode (:open "(" :close ")" :actions (insert wrap autoskip navigate) :prefix "x")))))
+          (sp--update-local-pairs)
+          (should (equal (sp--get-prefix (point) "(") ""))))))
