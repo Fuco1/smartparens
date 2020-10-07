@@ -49,13 +49,17 @@
 (require 'smartparens-text)
 (require 'smartparens-markdown)
 
+(defun sp-rst-point-after-backtick (_id action _context)
+  (when (eq action 'insert)
+    (sp--looking-back-p "`_")))
+
 (sp-with-modes 'rst-mode
   (sp-local-pair "*" "*"
                  :unless '(sp--gfm-point-after-word-p sp-point-at-bol-p)
                  :post-handlers '(("[d1]" "SPC"))
                  :skip-match 'sp--gfm-skip-asterisk)
   (sp-local-pair "**" "**")
-  (sp-local-pair "_" "_" :unless '(sp-point-after-word-p))
+  (sp-local-pair "_" "_" :unless '(sp-point-after-word-p sp-rst-point-after-backtick))
   (sp-local-pair "``" "``"))
 
 (provide 'smartparens-rst)
