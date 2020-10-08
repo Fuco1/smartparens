@@ -194,33 +194,23 @@ which case we should probably rewrap."
             (:open "[" :close "]" :actions (insert wrap autoskip navigate))))))
     (sp-test-insertion "\"foo | bar\"" "\"" "\"foo \\\"|\\\" bar\"")))
 
-(ert-deftest sp-test-insert-quote-dont-escape-quote-in-rst-mode nil
-  "In text modes where ' and \" are not string syntax, do not
-escape them on the top level."
-  (let ((sp-pairs
-         '((t
-            (:open "\"" :close "\""
-             :actions (insert wrap autoskip navigate)
-             :post-handlers (sp-escape-quotes-after-insert))
-            (:open "[" :close "]" :actions (insert wrap autoskip navigate))))))
-    (sp-test-with-temp-buffer "foo | bar"
-        (rst-mode)
-      (execute-kbd-macro "\"")
-      (sp-buffer-equals "foo \"|\" bar"))))
+(ert-deftest sp-test-insert-quote-dont-escape-quote-in-c-mode nil
+  "In C mode there is a complication where the mode sets single
+quote (') syntax as punctuation in all cases other than having
+exactly one character in between.  This causes SP to get the
+context wrong and escape the newly inserted pair.
 
-(ert-deftest sp-test-insert-quote-dont-escape-in-contraction nil
-  "Do not escape ' after a word when it is used as a contraction"
+Detailed analysis is available here:
+https://github.com/Fuco1/smartparens/issues/783#issuecomment-417841576"
   (let ((sp-pairs
          '((t
             (:open "'" :close "'"
-             :actions (insert wrap autoskip navigate escape)
-             :unless (sp-in-string-quotes-p sp-point-after-word-p)
-             :post-handlers (sp-escape-wrapped-region sp-escape-quotes-after-insert))
-            (:open "[" :close "]" :actions (insert wrap autoskip navigate))))))
-    (sp-test-with-temp-buffer "foo| bar"
-        (rst-mode)
-      (execute-kbd-macro "'s")
-      (sp-buffer-equals "foo's| bar"))))
+             :actions (insert wrap autoskip navigate)
+             :post-handlers (sp-escape-quotes-after-insert))))))
+    (sp-test-with-temp-buffer "char x = |"
+        (c-mode)
+      (execute-kbd-macro "'")
+      (sp-buffer-equals "char x = '|'"))))
 
 ;; #665
 (ert-deftest sp-test-insert-quote-dont-escape-if-not-in-string-before-insertion nil
