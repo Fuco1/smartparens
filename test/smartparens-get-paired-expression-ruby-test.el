@@ -48,5 +48,5 @@
 				'(:beg 5 :end 12 :op "%" :cl ")" :prefix "" :suffix ""))
   ;; It's not exactly reversible, but this way is backward compatible
   (sp-test--thing-parse-in-ruby "C = %w(asd)|#asdas"
-				'(:beg 7 :end 12 :op "%" :cl ")" :prefix "" :suffix "") t))
+				'(:beg 7 :end 12 :op "(" :cl ")" :prefix "" :suffix "") t))
   
