@@ -25,3 +25,13 @@
     (sp-test-with-temp-buffer "«asdasd»|«asdasd»"
         (text-mode)
       (should (equal (sp--get-suffix (point) "«") "")))))
+
+(ert-deftest sp-test-get-suffix-always-return-string ()
+  "Previously in case of a pair-specific suffix we could return
+nil if there was no match."
+  (let ((sp-sexp-suffix '((emacs-lisp-mode regexp "\\(?:aaa\\)"))))
+    (sp-test-with-temp-elisp-buffer "((abc)|aaa) asd"
+      (let ((sp-pairs '((t (:open "(" :close ")" :actions (insert wrap autoskip navigate)))
+                        (emacs-lisp-mode (:open "(" :close ")" :actions (insert wrap autoskip navigate) :suffix "x")))))
+        (sp--update-local-pairs)
+        (should (equal (sp--get-suffix (point) "(") ""))))))
