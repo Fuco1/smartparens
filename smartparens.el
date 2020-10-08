@@ -3645,13 +3645,8 @@ Return non-nil if at least one escaping was performed."
              ;; before inserting the "" pair it is now split into two
              ;; -> which moves us outside the pair
              (not (eq context 'string))
-             ;; the inserted character must have string syntax,
-             ;; otherwise no "context" flip happens
-             (eq (syntax-class
-                  (syntax-after
-                   (save-excursion
-                     (backward-char (length id))
-                     (point)))) 7))
+             ;; the inserted character must have string syntax, otherwise no "context" flip happens
+             (eq (char-syntax (aref id 0)) ?\"))
     (let ((open id)
           (close (sp-get-pair id :close)))
       (sp--escape-region (list open close)
@@ -5354,13 +5349,13 @@ This function simply transforms BOUNDS, which is a cons (BEG
          (cl (char-to-string (char-before (cdr bounds)))))
     ;; if the closing and opening isn't the same token, we should
     ;; return nil
-    ;; (when (equal op cl)
+    (when (equal op cl)
       (list :beg (car bounds)
             :end (cdr bounds)
-            :op op
+            :op cl
             :cl cl
             :prefix (sp--get-prefix (car bounds) op)
-            :suffix (sp--get-suffix (cdr bounds) cl))));)
+            :suffix (sp--get-suffix (cdr bounds) cl)))))
 
 (defun sp-get-string (&optional back)
   "Find the nearest string after point, or before if BACK is non-nil.
@@ -5374,11 +5369,7 @@ expression.
 The return value is a plist with the same format as the value
 returned by `sp-get-sexp'."
   (sp--maybe-init)
-  (if (and (sp-point-in-comment)
-	   (or (and back
-		    (not (eq (point) (car (sp-get-comment-bounds)))))
-	       (and (not back)
-		    (not (eq (point) (cdr (sp-get-comment-bounds)))))))
+  (if (sp-point-in-comment)
       (sp-get-stringlike-expression back)
     (if (sp-point-in-string)
         (let ((r (sp-get-quoted-string-bounds)))
@@ -5680,9 +5671,11 @@ expressions are considered."
                            ;; js2-jsx-mode
                            (looking-at ">"))
                        (sp-get-sgml-tag t)))
-                 ((and (memq (syntax-class
-			      (syntax-after (1- (point))))
-			     '(7 15))
+                 ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-closing-regexp (sp--get-allowed-pair-list)) nil))
+                  (sp-get-sexp t))
+                 ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-opening-regexp (sp--get-allowed-pair-list)) nil))
+                  (sp-get-sexp t))
+                 ((and (eq (syntax-class (syntax-after (1- (point)))) 7)
                        (not (sp-char-is-escaped-p (1- (point)))))
                   (if (eq t (sp-point-in-string))
                       (save-excursion
@@ -5694,10 +5687,6 @@ expressions are considered."
                     (sp-get-string t)))
                  ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-stringlike-regexp) nil))
                   (sp-get-expression t))
-                 ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-closing-regexp (sp--get-allowed-pair-list)) nil))
-                  (sp-get-sexp t))
-                 ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-opening-regexp (sp--get-allowed-pair-list)) nil))
-                  (sp-get-sexp t))
                  ;; We might be somewhere inside the prefix of the
                  ;; sexp after the point.  Since the prefix can be
                  ;; specified as regexp and not syntax class, it might
@@ -5731,10 +5720,13 @@ expressions are considered."
                          (and (sp--looking-back "</?" (- (point) 2))
                               (goto-char (match-beginning 0))))
                      (sp-get-sgml-tag)))
+               ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-opening-regexp (sp--get-allowed-pair-list))))
+                (sp-get-sexp nil))
+               ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-closing-regexp (sp--get-allowed-pair-list))))
+                (sp-get-sexp nil))
                ;; TODO: merge the following two conditions and use
                ;; `sp-get-stringlike-or-textmode-expression'
-               ((and (memq (syntax-class (syntax-after (point)))
-			   '(7 15))
+               ((and (eq (syntax-class (syntax-after (point))) 7)
                      (not (sp-char-is-escaped-p)))
                 ;; It might happen that the string delimiter we are
                 ;; looking at is nested inside another string
@@ -5757,10 +5749,6 @@ expressions are considered."
                ;; it can still be that we are looking at a /prefix/ of a
                ;; sexp.  We should skip a symbol forward and check if it
                ;; is a sexp, and then maybe readjust the output.
-               ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-opening-regexp (sp--get-allowed-pair-list))))
-                (sp-get-sexp nil))
-               ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-closing-regexp (sp--get-allowed-pair-list))))
-                (sp-get-sexp nil))
                (t (let* ((sym (sp-get-symbol nil))
                          (sym-string (and sym (sp-get sym (buffer-substring-no-properties :beg :end))))
                          (point-before-prefix (point)))
@@ -7424,8 +7412,7 @@ Examples: (prefix arg in comment)
                   (list :arg arg :enc enc)))
               (sp-get (sp-get-enclosing-sexp)
                 (sp-do-move-cl (point))
-                (sp--keep-indentation
-                  (sp--indent-region :beg :end))
+                (sp--indent-region :beg :end)
                 (sp--run-hook-with-args :op :post-handlers 'barf-forward
                   (list :arg arg :enc enc))))))
       (sp-backward-barf-sexp (sp--negate-argument old-arg)))))
@@ -7492,9 +7479,8 @@ Examples:
            ;; pair that was not allowed before.  However, such a call is
            ;; never made in SP, so it's OK for now
            (allowed-pairs (sp--get-allowed-regexp))
-           ,(if forward
-                '(allowed-close (sp--get-closing-regexp (sp--get-allowed-pair-list)))
-              '(allowed-open (sp--get-opening-regexp (sp--get-allowed-pair-list))))
+           (allowed-open (sp--get-opening-regexp (sp--get-allowed-pair-list)))
+           (allowed-close (sp--get-closing-regexp (sp--get-allowed-pair-list)))
            (allowed-strings (sp--get-stringlike-regexp))
            (prefix nil))
        (while (and (not (or ,eob-test
@@ -7641,13 +7627,7 @@ Examples:
                         (or (not allowed)
                             (not (or (sp--valid-initial-delimiter-p (sp--looking-at open))
                                      (sp--valid-initial-delimiter-p (sp--looking-at close)))))
-                        (or (memq (char-syntax (following-char)) '(?w ?_))
-                            ;; Specifically for lisp, we consider
-                            ;; sequences of ?\<ANYTHING> a symbol
-                            ;; sequence
-                            (and (eq (char-before) ??)
-                                 (eq (char-syntax (following-char)) ?\\))
-                            (and (eq (char-syntax (char-before)) ?\\))))
+                        (memq (char-syntax (following-char)) '(?w ?_)))
               (forward-char))
             (setq n (1- n)))
         (sp-backward-symbol n)))))
@@ -7696,13 +7676,7 @@ Examples:
             (while (and (not (bobp))
                         (not (or (sp--valid-initial-delimiter-p (sp--looking-back open))
                                  (sp--valid-initial-delimiter-p (sp--looking-back close))))
-                        (or (memq (char-syntax (preceding-char)) '(?w ?_))
-                            ;; Specifically for lisp, we consider
-                            ;; sequences of ?\<ANYTHING> a symbol
-                            ;; sequence
-                            (and (eq (char-before (1- (point))) ??)
-                                 (eq (char-syntax (preceding-char)) ?\\))
-                            ))
+                        (memq (char-syntax (preceding-char)) '(?w ?_)))
               (backward-char))
             ;; skip characters which are symbols with prefix flag
             (while (and (not (eobp))
@@ -8433,8 +8407,8 @@ Examples:
                 (sp-point-in-string))))
       (-when-let (ok (if should-split-as-string
                          (save-excursion
-                           (goto-char (car (sp-get-quoted-string-bounds)))
-                           (sp-get-sexp))
+                           (goto-char (1- (cdr (sp-get-quoted-string-bounds))))
+                           (sp-get-enclosing-sexp 1))
                        (sp-get-enclosing-sexp 1)))
         (sp-get ok
           (sp--run-hook-with-args :op :pre-handlers 'split-sexp)

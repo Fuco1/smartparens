@@ -30,28 +30,13 @@ that are used to test the resulting state after running the
 command. Each string must contain | to specify where point should
 be."
   (declare (indent 1))
-  (let* ((group-index 0)
-         (forms
-          (-mapcat
-           (lambda (example-group)
-             (setq group-index (1+ group-index))
-             (let ((example-index 0))
-               (mapcar
-                (lambda (test-sequence)
-                  (setq example-index (1+ example-index))
-                  `(ert-deftest
-                       ,(intern (concat "sp-test-command-"
-                                        (symbol-name command)
-                                        "-"
-                                        (number-to-string group-index)
-                                        "-"
-                                        (number-to-string example-index)
-                                        )) ()
-                     (let ,(car example-group)
-                       (sp--test-command ',command ',(list test-sequence)))))
-                (cdr example-group))))
-           examples)))
-    `(progn ,@forms)))
+  `(ert-deftest ,(intern (concat "sp-test-command-"
+                                 (symbol-name command))) ()
+     ,@(mapcar
+        (lambda (example-group)
+          `(let ,(car example-group)
+             (sp--test-command ',command ',(cdr example-group))))
+        examples)))
 
 (defun sp--test-command (command examples)
   "Run the test for COMMAND."
@@ -240,15 +225,6 @@ be."
     ("(foo)\nbar ;; baz (f|oo) baz\n(quux)"
      "(foo)\nbar ;; baz (f|oo baz)\n(quux)")
 
-    ;; #1010
-    ("(foo (baz|) ;; bar\n     moo\n     mee)"
-     "(foo (baz| ;; bar\n      moo)\n     mee)"
-     "(foo (baz| ;; bar\n      moo\n      mee))")
-
-    ("(foo (gah|) ?\\; bar baz)"
-     "(foo (gah| ?\\;) bar baz)"
-     "(foo (gah| ?\\; bar) baz)")
-
     ;; do not slurp outside of comment
     ("(foo)\nbar ;; (|foo) baz\n(asd)\n\n"
      "(foo)\nbar ;; (|foo baz)\n(asd)\n\n"
@@ -295,7 +271,12 @@ be."
      "(f|oo)\nbar ;; baz (foo) baz\n(quux)")
 
     ("(foo)\nbar ;; baz (f|oo baz)\n(quux)"
-     "(foo)\nbar ;; baz (f|oo) baz\n(quux)"))
+     "(foo)\nbar ;; baz (f|oo) baz\n(quux)")
+
+    ;; #634
+    ("(let ((a 4)\n      ;; (fail)\n      |(+ 1)\n      ))\n"
+     "(let ((a 4))\n  ;; (fail)\n|  (+ 1)\n  )\n"
+     "(let ((a 4)))\n;; (fail)\n|(+ 1)\n\n"))
 
    (((mode 'racket)
      (sp-sexp-prefix '((racket-mode regexp "#?['`,]@?"))))
@@ -450,14 +431,6 @@ be."
     ("\"foo bar|\"" "\"foo bar\"|\"\"")
 
     ("\"(foo |bar) baz\"" "\"(foo \"|\"bar) baz\"")
-    )
-
-   (((mode 'python))
-    ("\"foo |bar baz\"" "\"foo \"|\"bar baz\"")
-    ("'foo |bar baz'" "'foo '|'bar baz'")
-    ("'foo bar|'" "'foo bar'|''")
-
-    ("\"\"\"foo|bar\"\"\"" "\"\"\"foo\"\"\"|\"\"\"bar\"\"\"")
     )
 
    (((sp-split-sexp-always-split-as-string nil))
@@ -1023,10 +996,3 @@ This is the behavior of `paredit-convolute-sexp'."
       (sp-buffer-equals "(foo)
 (progn
   |(bar))"))))
-
-(ert-deftest sp-test-sp-forward-barf-sexp-634 ()
-  (sp-test-with-temp-elisp-buffer "(let ((a 4)\n      ;; (fail)\n      |(+ 1)\n      ))\n"
-    (call-interactively 'sp-forward-barf-sexp)
-    (sp-buffer-equals "(let ((a 4))\n  ;; (fail)\n  (+ 1)\n  )\n")
-    (call-interactively 'sp-forward-barf-sexp)
-    (sp-buffer-equals "(let ((a 4)))\n;; (fail)\n|(+ 1)\n\n")))

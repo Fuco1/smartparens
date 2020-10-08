@@ -34,7 +34,7 @@ end"))))
       (should
        (sp-crystal-eq-ignore-indent (buffer-string) expected)))))
 
-(sp-ert-deftest sp-test-crystal-slurp-forward
+(ert-deftest sp-test-crystal-slurp-forward ()
   (sp-crystal-test-slurp-assert 1 "
 if teXst
 end
@@ -196,6 +196,16 @@ end
   (sp-crystal-test-slurp-assert 1 "
 beginX
 end
+?x
+" :=> "
+begin
+  ?x
+end
+")
+
+  (sp-crystal-test-slurp-assert 1 "
+beginX
+end
 !x
 " :=> "
 begin
@@ -225,7 +235,7 @@ end
 
   )
 
-(sp-ert-deftest sp-test-crystal-slurp-backward
+(ert-deftest sp-test-crystal-slurp-backward ()
   (sp-crystal-test-slurp-assert -1 "
 foo.bar
 begin X
@@ -283,6 +293,16 @@ end
 " :=> "
 begin
   !foo
+end
+")
+
+  (sp-crystal-test-slurp-assert -1 "
+?f
+begin X
+end
+" :=> "
+begin
+  ?f
 end
 ")
 
@@ -377,7 +397,7 @@ end
 
   )
 
-(sp-ert-deftest sp-test-crystal-slurp-on-single-line
+(ert-deftest sp-test-crystal-slurp-on-single-line ()
   (sp-crystal-test-slurp-assert 1 "
 test {X} test
 " :=> "
@@ -404,7 +424,7 @@ test { test; test }
 
 )
 
-(sp-ert-deftest sp-test-crystal-slurp-with-inline-blocks
+(ert-deftest sp-test-crystal-slurp-with-inline-blocks ()
   (sp-crystal-test-slurp-assert 1 "
 if teXst
 end
@@ -454,7 +474,7 @@ end
       (should
        (sp-crystal-eq-ignore-indent (buffer-string) expected)))))
 
-(sp-ert-deftest sp-test-crystal-barf-forward
+(ert-deftest sp-test-crystal-barf-forward ()
   (sp-crystal-test-barf-assert 1 "
 if teXst
   foo
@@ -564,7 +584,7 @@ end
 ")
   )
 
-(sp-ert-deftest sp-test-crystal-barf-backward
+(ert-deftest sp-test-crystal-barf-backward ()
   (sp-crystal-test-barf-assert -1 "
 begin
   fooX
@@ -654,7 +674,7 @@ end
 ")
   )
 
-(sp-ert-deftest sp-test-crystal-barf-on-single-line
+(ert-deftest sp-test-crystal-barf-on-single-line ()
   (sp-crystal-test-barf-assert 1 "
 test { Xtest }
 " :=> "
@@ -680,7 +700,7 @@ test test; test { }
 ")
 
 )
-(sp-ert-deftest sp-test-crystal-barf-with-inline-blocks
+(ert-deftest sp-test-crystal-barf-with-inline-blocks ()
 ;;   (sp-crystal-test-barf-assert 2 "
 ;; if teXst
 ;;   foo if true
@@ -720,7 +740,7 @@ foo = if true
       (should
        (sp-crystal-eq-ignore-indent (buffer-string) expected)))))
 
-(sp-ert-deftest sp-test-crystal-splice
+(ert-deftest sp-test-crystal-splice ()
   (sp-crystal-test-splice-assert 1 "
 if teXst
 end
