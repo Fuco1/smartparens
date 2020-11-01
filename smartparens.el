@@ -9408,42 +9408,44 @@ support custom pairs."
             (sp-show--pair-enc-function ok)))
       (execute-kbd-macro cmd))))
 
-;; Ripped from Emacs 27.0 subr.el.
-;; See Github Issue#946 and Emacs bug#31692.
-(defmacro sp--while-no-input (&rest body)
-  "Execute BODY only as long as there's no pending input.
+(defalias 'sp--while-no-input 'while-no-input)
+(when (version< emacs-version "27")
+  ;; Ripped from Emacs 27.0 subr.el.
+  ;; See Github Issue#946 and Emacs bug#31692.
+  (defmacro sp--while-no-input (&rest body)
+    "Execute BODY only as long as there's no pending input.
 If input arrives, that ends the execution of BODY,
 and `while-no-input' returns t.  Quitting makes it return nil.
 If BODY finishes, `while-no-input' returns whatever value BODY produced."
-  (declare (debug t) (indent 0))
-  (let ((catch-sym (make-symbol "input")))
-    `(with-local-quit
-       (catch ',catch-sym
-	 (let ((throw-on-input ',catch-sym)
-               val)
-           (setq val (or (input-pending-p)
-	                 (progn ,@body)))
-           (cond
-            ;; When input arrives while throw-on-input is non-nil,
-            ;; kbd_buffer_store_buffered_event sets quit-flag to the
-            ;; value of throw-on-input.  If, when BODY finishes,
-            ;; quit-flag still has the same value as throw-on-input, it
-            ;; means BODY never tested quit-flag, and therefore ran to
-            ;; completion even though input did arrive before it
-            ;; finished.  In that case, we must manually simulate what
-            ;; 'throw' in process_quit_flag would do, and we must
-            ;; reset quit-flag, because leaving it set will cause us
-            ;; quit to top-level, which has undesirable consequences,
-            ;; such as discarding input etc.  We return t in that case
-            ;; because input did arrive during execution of BODY.
-            ((eq quit-flag throw-on-input)
-             (setq quit-flag nil)
-             t)
-            ;; This is for when the user actually QUITs during
-            ;; execution of BODY.
-            (quit-flag
-             nil)
-            (t val)))))))
+    (declare (debug t) (indent 0))
+    (let ((catch-sym (make-symbol "input")))
+      `(with-local-quit
+         (catch ',catch-sym
+           (let ((throw-on-input ',catch-sym)
+                 val)
+             (setq val (or (input-pending-p)
+                           (progn ,@body)))
+             (cond
+              ;; When input arrives while throw-on-input is non-nil,
+              ;; kbd_buffer_store_buffered_event sets quit-flag to the
+              ;; value of throw-on-input.  If, when BODY finishes,
+              ;; quit-flag still has the same value as throw-on-input, it
+              ;; means BODY never tested quit-flag, and therefore ran to
+              ;; completion even though input did arrive before it
+              ;; finished.  In that case, we must manually simulate what
+              ;; 'throw' in process_quit_flag would do, and we must
+              ;; reset quit-flag, because leaving it set will cause us
+              ;; quit to top-level, which has undesirable consequences,
+              ;; such as discarding input etc.  We return t in that case
+              ;; because input did arrive during execution of BODY.
+              ((eq quit-flag throw-on-input)
+               (setq quit-flag nil)
+               t)
+              ;; This is for when the user actually QUITs during
+              ;; execution of BODY.
+              (quit-flag
+               nil)
+              (t val))))))))
 
 (defun sp-show--pair-function ()
   "Display the show pair overlays and print the line of the
@@ -9452,58 +9454,58 @@ matching paren in the echo area if not visible on screen."
     (sp--with-case-sensitive
       (save-match-data
         (sp--while-no-input
-         (cl-labels ((scan-and-place-overlays
-                      (match &optional back)
-                      ;; we can use `sp-get-thing' here because we *are* at some
-                      ;; pair opening, and so only the tag or the sexp can trigger.
-                      (-if-let (ok (sp-get-thing back))
-                          (sp-get ok
-                            (when (or (and back
-                                           (or (= :end (point))
-                                               (= :beg-in (point))))
-                                      (and (not back)
-                                           (or (= :beg (point))
-                                               (= :end-in (point)))))
-                              (sp-show--pair-create-overlays :beg :end :op-l :cl-l)
-                              (when (and sp-echo-match-when-invisible
-                                         (not (or (active-minibuffer-window) cursor-in-echo-area)))
-                                (sp-show--pair-echo-match :beg :end :op-l :cl-l))))
-                        (if back
-                            (sp-show--pair-create-mismatch-overlay (- (point) (length match))
-                                                                   (length match))
-                          (sp-show--pair-create-mismatch-overlay (point) (length match)))
-                        (setq sp-show-pair-previous-match-positions nil)
-                        (setq sp-show-pair-previous-point nil))))
-           (let* ((pair-list (sp--get-allowed-pair-list))
-                  (opening (sp--get-opening-regexp pair-list))
-                  (closing (sp--get-closing-regexp pair-list))
-                  (allowed (and sp-show-pair-from-inside (sp--get-allowed-regexp))))
-             (cond
-              ;; if we are in a situation "()|", we should highlight the
-              ;; regular pair and not the string pair "from inside"
-              ((and (not (sp--evil-normal-state-p))
-                    (not (sp--evil-motion-state-p))
-                    (not (sp--evil-visual-state-p))
-                    (sp--looking-back (if sp-show-pair-from-inside allowed closing)))
-               (scan-and-place-overlays (match-string 0) :back))
-              ((or (and (or (sp--evil-normal-state-p)
-                            (sp--evil-motion-state-p)
-                            (sp--evil-visual-state-p))
-                        (sp--looking-at (sp--get-allowed-regexp)))
-                   (sp--looking-at (if sp-show-pair-from-inside allowed opening))
-                   (looking-at (sp--get-stringlike-regexp))
-                   (and (memq major-mode sp-navigate-consider-sgml-tags)
-                        (looking-at "<")))
-               (scan-and-place-overlays (match-string 0)))
-              ((or (sp--looking-back (if sp-show-pair-from-inside allowed closing))
-                   (sp--looking-back (sp--get-stringlike-regexp))
-                   (and (memq major-mode sp-navigate-consider-sgml-tags)
-                        (sp--looking-back ">")))
-               (scan-and-place-overlays (match-string 0) :back))
-              (sp-show-pair-overlays
-               (sp-show--pair-delete-overlays)
-               (setq sp-show-pair-previous-match-positions nil)
-               (setq sp-show-pair-previous-point nil))))))))))
+          (cl-labels ((scan-and-place-overlays
+                       (match &optional back)
+                       ;; we can use `sp-get-thing' here because we *are* at some
+                       ;; pair opening, and so only the tag or the sexp can trigger.
+                       (-if-let (ok (sp-get-thing back))
+                           (sp-get ok
+                             (when (or (and back
+                                            (or (= :end (point))
+                                                (= :beg-in (point))))
+                                       (and (not back)
+                                            (or (= :beg (point))
+                                                (= :end-in (point)))))
+                               (sp-show--pair-create-overlays :beg :end :op-l :cl-l)
+                               (when (and sp-echo-match-when-invisible
+                                          (not (or (active-minibuffer-window) cursor-in-echo-area)))
+                                 (sp-show--pair-echo-match :beg :end :op-l :cl-l))))
+                         (if back
+                             (sp-show--pair-create-mismatch-overlay (- (point) (length match))
+                                                                    (length match))
+                           (sp-show--pair-create-mismatch-overlay (point) (length match)))
+                         (setq sp-show-pair-previous-match-positions nil)
+                         (setq sp-show-pair-previous-point nil))))
+            (let* ((pair-list (sp--get-allowed-pair-list))
+                   (opening (sp--get-opening-regexp pair-list))
+                   (closing (sp--get-closing-regexp pair-list))
+                   (allowed (and sp-show-pair-from-inside (sp--get-allowed-regexp))))
+              (cond
+               ;; if we are in a situation "()|", we should highlight the
+               ;; regular pair and not the string pair "from inside"
+               ((and (not (sp--evil-normal-state-p))
+                     (not (sp--evil-motion-state-p))
+                     (not (sp--evil-visual-state-p))
+                     (sp--looking-back (if sp-show-pair-from-inside allowed closing)))
+                (scan-and-place-overlays (match-string 0) :back))
+               ((or (and (or (sp--evil-normal-state-p)
+                             (sp--evil-motion-state-p)
+                             (sp--evil-visual-state-p))
+                         (sp--looking-at (sp--get-allowed-regexp)))
+                    (sp--looking-at (if sp-show-pair-from-inside allowed opening))
+                    (looking-at (sp--get-stringlike-regexp))
+                    (and (memq major-mode sp-navigate-consider-sgml-tags)
+                         (looking-at "<")))
+                (scan-and-place-overlays (match-string 0)))
+               ((or (sp--looking-back (if sp-show-pair-from-inside allowed closing))
+                    (sp--looking-back (sp--get-stringlike-regexp))
+                    (and (memq major-mode sp-navigate-consider-sgml-tags)
+                         (sp--looking-back ">")))
+                (scan-and-place-overlays (match-string 0) :back))
+               (sp-show-pair-overlays
+                (sp-show--pair-delete-overlays)
+                (setq sp-show-pair-previous-match-positions nil)
+                (setq sp-show-pair-previous-point nil))))))))))
 
 (defun sp-show--pair-enc-function (&optional thing)
   "Display the show pair overlays for enclosing expression."
