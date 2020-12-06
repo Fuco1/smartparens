@@ -30,6 +30,16 @@
 (--each '(elixir-mode)
   (add-to-list 'sp-sexp-suffix (list it 'regexp "")))
 
+(defun sp-elixir-do-keyword-p (id _action _context)
+  "Return non-nil if the \"do:\" keyword is part of definition.
+
+ID is the opening delimiter.
+
+Skips the definition if it contains \"do:\" because such syntax
+has no \"end\" delimiter."
+  (let ((line (thing-at-point 'line t)))
+    (string-match-p "\\bdo:" line)))
+
 (defun sp-elixir-def-p (id)
   "Return non-nil if the \"do\" keyword is part of definition.
 
@@ -60,7 +70,8 @@ def-do-end and similar pairs."
 (defun sp-elixir-skip-def-p (ms _mb _me)
   "Test if \"do\" is part of definition.
 MS, MB, ME."
-  (sp-elixir-def-p ms))
+  (or (sp-elixir-def-p ms)
+      (sp-elixir-do-keyword-p ms _mb _me)))
 
 (defun sp-elixir-do-block-post-handler (_id action _context)
   "Insert \"do\" keyword and indent the new block.
@@ -102,14 +113,17 @@ ID, ACTION, CONTEXT."
   (sp-local-pair "def" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :post-handlers '(sp-elixir-do-block-post-handler)
+                 :skip-match 'sp-elixir-do-keyword-p
                  :unless '(sp-in-comment-p sp-in-string-p))
   (sp-local-pair "defp" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :post-handlers '(sp-elixir-do-block-post-handler)
+                 :skip-match 'sp-elixir-do-keyword-p
                  :unless '(sp-in-comment-p sp-in-string-p))
   (sp-local-pair "defmodule" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :post-handlers '(sp-elixir-do-block-post-handler)
+                 :skip-match 'sp-elixir-do-keyword-p
                  :unless '(sp-in-comment-p sp-in-string-p))
   (sp-local-pair "fn" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
@@ -117,10 +131,12 @@ ID, ACTION, CONTEXT."
   (sp-local-pair "if" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :post-handlers '(sp-elixir-do-block-post-handler)
+                 :skip-match 'sp-elixir-do-keyword-p
                  :unless '(sp-in-comment-p sp-in-string-p))
   (sp-local-pair "unless" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :post-handlers '(sp-elixir-do-block-post-handler)
+                 :skip-match 'sp-elixir-do-keyword-p
                  :unless '(sp-in-comment-p sp-in-string-p))
   (sp-local-pair "case" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
@@ -128,6 +144,7 @@ ID, ACTION, CONTEXT."
                  :unless '(sp-in-comment-p sp-in-string-p))
   (sp-local-pair "receive" "end"
                  :when '(("RET" "<evil-ret>"))
+                 :skip-match 'sp-elixir-do-keyword-p
                  :post-handlers '(sp-elixir-empty-do-block-post-handler))
   )
 
