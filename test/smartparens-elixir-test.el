@@ -107,6 +107,91 @@ end"
 end"
     '(:beg 56 :end 97 :op "unless" :cl "end" :prefix "" :suffix "")))
 
+
+(ert-deftest sp-test-elixir-parse-bodyless-def ()
+  "Parse bodyless def correctly"
+  (sp-test-elixir-parse "|defmodule HelloWorld do
+  def hello
+  def hello do
+    IO.puts \"Hello world\"
+  end
+end"
+    '(:beg 1 :end 87 :op "defmodule" :cl "end" :prefix "" :suffix "")))
+
+(ert-deftest sp-test-elixir-parse-bodyless-defp-w-keyword-list ()
+  "Parse bodyless defp correctly with keyword-list body"
+  (sp-test-elixir-parse "|defmodule HelloWorld do
+  def hello
+  def hello, do: IO.puts \"Hello world\"
+end"
+    '(:beg 1 :end 79 :op "defmodule" :cl "end" :prefix "" :suffix "")))
+
+(ert-deftest sp-test-elixir-parse-bodyless-defp ()
+  "Parse bodyless defp correctly"
+  (sp-test-elixir-parse "|defmodule HelloWorld do
+  defp hello
+  defp hello do
+    IO.puts \"Hello world\"
+  end
+end"
+    '(:beg 1 :end 89 :op "defmodule" :cl "end" :prefix "" :suffix "")))
+
+(ert-deftest sp-test-elixir-parse-bodyless-defp-w-keyword-list ()
+  "Parse bodyless defp correctly with keyword-list body"
+  (sp-test-elixir-parse "|defmodule HelloWorld do
+  defp hello
+  defp hello, do: IO.puts \"Hello world\"
+end"
+    '(:beg 1 :end 81 :op "defmodule" :cl "end" :prefix "" :suffix "")))
+
+(ert-deftest sp-test-elixir-parse-keyword-def ()
+  "Parse def with do: keyword correctly"
+  (sp-test-elixir-parse "|defmodule HelloWorld do
+  def hello, do: IO.puts \"Hello world\"
+end"
+    '(:beg 1 :end 67 :op "defmodule" :cl "end" :prefix "" :suffix "")))
+
+(ert-deftest sp-test-elixir-parse-multiline-keyword-def ()
+  "Parse multiline def with do: keyword correctly"
+  (sp-test-elixir-parse "|defmodule HelloWorld do
+  def hello,
+  do:
+    IO.puts \"Hello world\"
+end"
+    '(:beg 1 :end 73 :op "defmodule" :cl "end" :prefix "" :suffix "")))
+
+(ert-deftest sp-test-elixir-parse-keyword-defp ()
+  "Parse oneline defp with do: keyword correctly"
+  (sp-test-elixir-parse "|defmodule HelloWorld do
+  defp hello, do: IO.puts \"Hello world\"
+end"
+    '(:beg 1 :end 68 :op "defmodule" :cl "end" :prefix "" :suffix "")))
+
+(ert-deftest sp-test-elixir-parse-multiline-keyword-defp ()
+  "Parse multiline defp with do: keyword correctly"
+  (sp-test-elixir-parse "|defmodule HelloWorld do
+  defp hello,
+  do:
+    IO.puts \"Hello world\"
+end"
+    '(:beg 1 :end 74 :op "defmodule" :cl "end" :prefix "" :suffix "")))
+
+(ert-deftest sp-test-elixir-parse-defimpl-with-for-keyword ()
+  "Parse defimpl with for: keyword."
+  (sp-test-elixir-parse "|defimpl Type, for: OtherType do
+  for n <- [1, 2, 3], do: n * n
+end"
+    '(:beg 1 :end 68 :op "defimpl" :cl "end" :prefix "" :suffix "")))
+
+(ert-deftest sp-test-elixir-parse-with ()
+  "Parse with statement."
+  (sp-test-elixir-parse "|with {:ok, val} <- foo() do
+  val
+else
+  :err
+end"
+    '(:beg 1 :end 50 :op "with" :cl "end" :prefix "" :suffix "")))
+
 (ert-deftest sp-test-elixir-receive-block-insertion ()
   (sp-test-insertion-elixir "|" "receive" "receive do
   |
