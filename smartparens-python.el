@@ -47,18 +47,42 @@
 
 (require 'smartparens)
 
+(defgroup smartparens-python ()
+  "smartparens settings for python-mode"
+  :group 'smartparens)
+
+(defcustom sp-python-insert-colon-in-function-definitions t
+  "Whether to auto-insert a colon when parens insertion is
+triggered while typing a function definition"
+  :group 'smartparens-python
+  :type  'boolean)
+
 ;; Python has no sexp suffices.  This fixes slurping
 ;; (|sys).path.append---the dot should not travel with the closing
 ;; paren
 (--each '(python-mode inferior-python-mode)
   (add-to-list 'sp-sexp-suffix (list it 'regexp "")))
 
+(defun sp-python-maybe-add-colon-python (_id action _context)
+  "Adds a colon after parentheses in a python function definition"
+  ;; here, caret supposed to be in between parens, i.e. (|)
+  (when (and sp-python-insert-colon-in-function-definitions
+             (eq action 'insert)
+             (looking-at ")\\s-*$")
+             (save-excursion
+               (goto-char (line-beginning-position))
+               (re-search-forward "^\\s-*def\\b" (line-end-position))))
+    (save-excursion
+      (forward-char) ;; skip closing paren
+      (insert ":"))))
+
 (sp-with-modes 'python-mode
   (sp-local-pair "'" "'" :unless '(sp-in-comment-p sp-in-string-quotes-p) :post-handlers '(:add sp-python-fix-tripple-quotes))
   (sp-local-pair "\"" "\"" :post-handlers '(:add sp-python-fix-tripple-quotes))
   (sp-local-pair "'''" "'''")
   (sp-local-pair "\\'" "\\'")
-  (sp-local-pair "\"\"\"" "\"\"\""))
+  (sp-local-pair "\"\"\"" "\"\"\"")
+  (sp-local-pair "(" ")" :post-handlers '(:add sp-python-maybe-add-colon-python)))
 
 (defun sp-python-fix-tripple-quotes (id action _context)
   "Properly rewrap tripple quote pairs.
