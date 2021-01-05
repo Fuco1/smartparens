@@ -757,9 +757,10 @@ after the smartparens indicator in the mode list."
       (progn
         (unless smartparens-mode
           (smartparens-mode 1))
-        (unless (-find-indices (lambda (it) (eq (car it) 'smartparens-strict-mode)) minor-mode-overriding-map-alist)
-          (setq minor-mode-overriding-map-alist
-                (cons `(smartparens-strict-mode . ,smartparens-strict-mode-map) minor-mode-overriding-map-alist)))
+        (add-to-list 'minor-mode-overriding-map-alist
+                     `(smartparens-strict-mode . ,smartparens-strict-mode-map)
+                     nil
+                     (-lambda ((lhs . _) (rhs . _)) (eq lhs rhs)))
         (put 'sp-backward-delete-char 'delete-selection 'sp--delete-selection-supersede-p)
         (put 'sp-delete-char 'delete-selection 'sp--delete-selection-supersede-p)
         (add-hook 'self-insert-uses-region-functions 'sp--self-insert-uses-region-strict-p nil 'local)
@@ -843,14 +844,13 @@ See `sp--init'."
 
 This commands load all the parent major mode definitions and
 merges them into current buffer's `sp-local-pairs'."
-  (let ((parent-modes (-fix (lambda (x)
-                              (--if-let (get (car x) 'derived-mode-parent)
-                                  (cons it x)
-                                x))
-                            (list major-mode))))
-    ;; Combine all the definitions from the most ancient parent to the
-    ;; most recent parent
-    (--each parent-modes (sp-update-local-pairs it))))
+  ;; Combine all the definitions from the most ancient parent to the
+  ;; most recent parent
+  (-each (nreverse
+          (--unfold (when it
+                      (cons it (get it 'derived-mode-parent)))
+                    major-mode))
+    #'sp-update-local-pairs))
 
 (defun sp-update-local-pairs (configuration)
   "Update `sp-local-pairs' with CONFIGURATION.
@@ -2098,27 +2098,25 @@ The list OLD-PAIR must not be nil."
 (defun sp--merge-pairs (old-pair new-pair)
   "Merge OLD-PAIR and NEW-PAIR.
 This modifies the OLD-PAIR by side effect."
-  (let ((ind 0))
-    (--each new-pair
-      (when (= 0 (% ind 2))
-        (sp--merge-prop it new-pair old-pair))
-      (setq ind (1+ ind))))
+  (--each new-pair
+    ;; In plists, items at even positions are keys
+    (when (= 0 (% it-index 2))
+      (sp--merge-prop it new-pair old-pair)))
   old-pair)
 
 (defun sp--update-pair (new-pair old-pair)
   "Copy properties from NEW-PAIR to OLD-PAIR.
 
 The list OLD-PAIR must not be nil."
-  (let ((ind 0))
-    (--each new-pair
-      (when (= 0 (% ind 2))
-        (when (or (not (plist-get old-pair it))
-                  ;; HACK: we don't want to overwrite list properties
-                  ;; that aren't just :add with :add because this
-                  ;; would break the "idempotency".
-                  (not (equal '(:add) (plist-get new-pair it))))
-          (plist-put old-pair it (plist-get new-pair it))))
-      (setq ind (1+ ind))))
+  (--each new-pair
+    ;; In plists, items at even positions are keys
+    (when (= 0 (% it-index 2))
+      (when (or (not (plist-get old-pair it))
+                ;; HACK: we don't want to overwrite list properties
+                ;; that aren't just :add with :add because this
+                ;; would break the "idempotency".
+                (not (equal '(:add) (plist-get new-pair it))))
+        (plist-put old-pair it (plist-get new-pair it)))))
   old-pair)
 
 (defun sp--update-pair-list (pair mode)
@@ -2155,24 +2153,21 @@ old definition with values from PAIR."
 
 If PROP is non-nil, return the value of that property instead."
   (let ((pair (sp--get-pair open list)))
-    (if prop
-        (cond
-         ((eq prop :op-l)
-          (length (plist-get pair :open)))
-         ((eq prop :cl-l)
-          (length (plist-get pair :close)))
-         ((eq prop :len)
-          (+ (length (plist-get pair :open)) (length (plist-get pair :close))))
-         ((eq prop :post-handlers)
-          (--filter (not (listp it)) (plist-get pair prop)))
-         ((eq prop :post-handlers-cond)
-          (--filter (listp it) (plist-get pair :post-handlers)))
-         ((eq prop :when)
-          (--filter (not (listp it)) (plist-get pair :when)))
-         ((eq prop :when-cond)
-          (-flatten (-concat (--filter (listp it) (plist-get pair :when)))))
-         (t (plist-get pair prop)))
-      pair)))
+    (cl-case prop
+      ((nil) pair)
+      (:op-l (length (plist-get pair :open)))
+      (:cl-l (length (plist-get pair :close)))
+      (:len (+ (length (plist-get pair :open))
+               (length (plist-get pair :close))))
+      (:post-handlers
+       (-remove #'listp (plist-get pair :post-handlers)))
+      (:post-handlers-cond
+       (-filter #'listp (plist-get pair :post-handlers)))
+      (:when
+       (-remove #'listp (plist-get pair :when)))
+      (:when-cond
+       (-flatten (-concat (-filter #'listp (plist-get pair :when)))))
+      (t (plist-get pair prop)))))
 
 (defun sp-get-pair-definition (open mode &optional prop)
   "Get the definition of pair identified by OPEN.
@@ -8389,25 +8384,18 @@ Examples:
   (interactive "P")
   (cond
    ((equal arg '(4))
-    (-when-let (items (sp-get-list-items))
-      (let ((op (sp-get (car items) :op))
-            (cl (sp-get (car items) :cl))
-            (beg (sp-get (car items) :beg))
-            (end (sp-get (car items) :end)))
-        (!cdr items)
-        (setq items (nreverse items))
+    (-when-let [(first-item . rest-items) (sp-get-list-items)]
+      (sp-get first-item
         (save-excursion
-          (goto-char end)
-          (delete-char (- (length cl)))
-          (while items
-            (sp-get (car items)
-              (goto-char :end)
-              (insert cl)
-              (goto-char :beg)
-              (insert op))
-            (!cdr items))
-          (goto-char beg)
-          (delete-char (length op))))))
+          (goto-char :end)
+          (delete-char (- (length :cl)))
+          (--each (nreverse rest-items)
+            (goto-char (sp-get it :end))
+            (insert :cl)
+            (goto-char (sp-get it :beg))
+            (insert :op))
+          (goto-char :beg)
+          (delete-char (length :op))))))
    (t
     (let ((should-split-as-string
            (and sp-split-sexp-always-split-as-string
