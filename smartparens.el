@@ -246,11 +246,12 @@ function will be considered."
   (and sp-backward-bound-fn (funcall sp-backward-bound-fn)))
 
 
+(defvaralias 'sp-keymap 'smartparens-mode-map)
+(make-obsolete-variable 'sp-keymap 'smartparens-mode-map "2015-01-01")
+
 ;;;###autoload
 (defvar smartparens-mode-map (make-sparse-keymap)
   "Keymap used for `smartparens-mode'.")
-(defvaralias 'sp-keymap 'smartparens-mode-map)
-(make-obsolete-variable 'sp-keymap 'smartparens-mode-map "2015-01-01")
 
 (defvar sp-paredit-bindings '(
                               ("C-M-f" . sp-forward-sexp) ;; navigation
@@ -4145,11 +4146,11 @@ just-inserted character."
 position of point.
 
 If the point is inside an empty pair, automatically delete both.  That
-is, [(|) turns to [|, [\{|\} turns to [|.  Can be disabled by setting
+is, [(|) turns to [|, [{|} turns to [|.  Can be disabled by setting
 `sp-autodelete-pair' to nil.
 
 If the point is behind a closing pair or behind an opening pair delete
-it as a whole.  That is, \{\}| turns to \{|, \{| turns to |.  Can be
+it as a whole.  That is, {}| turns to {|, {| turns to |.  Can be
 disabled by setting `sp-autodelete-closing-pair' and
 `sp-autodelete-opening-pair' to nil.
 
