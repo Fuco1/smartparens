@@ -245,7 +245,6 @@ If it returns nil, the original bound passed to the search
 function will be considered."
   (and sp-backward-bound-fn (funcall sp-backward-bound-fn)))
 
-
 ;;;###autoload
 (defvar smartparens-mode-map (make-sparse-keymap)
   "Keymap used for `smartparens-mode'.")
@@ -698,6 +697,585 @@ default, which should be the most verbose option available.")
   "Smartparens minor mode."
   :group 'editing
   :prefix "sp-")
+
+(when (ignore-errors (require 'easymenu))
+  (easy-menu-define smartparens-menu smartparens-mode-map "Smartparens Mode menu"
+    `("Smartparens"
+      ("Move"
+       ("Backward"
+	("Previous"
+	 ["Previous sexp" sp-previous-sexp
+	  :help " `sp-previous-sexp'
+Move backward to the end of previous balanced expression.
+
+With ARG, do it that many times.  If there is no next
+expression at current level, jump one level up (effectively
+doing `sp-up-sexp').  Negative arg -N means move to the end of"])
+	["Backward barf sexp" sp-backward-barf-sexp
+	 :help " `sp-backward-barf-sexp'
+This is exactly like calling `sp-forward-barf-sexp' with minus ARG.
+In other words, instead of contracting the closing pair, the
+opening pair is contracted.  For more information, see the
+documentation of `sp-forward-barf-sexp'."]
+	["Backward copy sexp" sp-backward-copy-sexp
+	 :help " `sp-backward-copy-sexp'
+Copy the previous ARG expressions to the kill-ring.
+
+This is exactly like calling `sp-backward-kill-sexp' with second argument
+t.  All the special prefix arguments work the same way."]
+	["Backward delete char" sp-backward-delete-char
+	 :help " `sp-backward-delete-char'
+Delete a character backward or move backward over a delimiter.
+
+If on a closing delimiter, move backward into balanced expression.
+
+If on a opening delimiter, refuse to delete unless the balanced
+expression is empty, in which case delete the entire expression."]
+	["Backward down sexp" sp-backward-down-sexp
+	 :help " `sp-backward-down-sexp'
+Move backward down one level of sexp.
+
+With ARG, do this that many times.  A negative argument -N means
+move forward but still go down a level."]
+	["Backward kill sexp" sp-backward-kill-sexp
+	 :help " `sp-backward-kill-sexp'
+Kill the balanced expression preceding point.
+
+This is exactly like calling `sp-kill-sexp' with minus ARG.
+In other words, the direction of all commands is reversed.  For
+more information, see the documentation of `sp-kill-sexp'."]
+	["Backward kill symbol" sp-backward-kill-symbol
+	 :help " `sp-backward-kill-symbol'
+Kill a symbol backward, skipping over any intervening delimiters.
+
+With ARG being positive number N, repeat that many times.
+
+With ARG being Negative number -N, repeat that many times in
+forward direction."]
+	["Backward kill word" sp-backward-kill-word
+	 :help " `sp-backward-kill-word'
+Kill a word backward, skipping over intervening delimiters.
+
+With ARG being positive number N, repeat that many times.
+
+With ARG being Negative number -N, repeat that many times in"]
+	["Backward sexp" sp-backward-sexp
+	 :help " `sp-backward-sexp'
+Move backward across one balanced expression (sexp).
+
+With ARG, do it that many times.  Negative arg -N means move
+forward across N balanced expressions.  If there is no previous
+expression, jump out of the current one (effectively doing"]
+	["Backward slurp sexp" sp-backward-slurp-sexp
+	 :help " `sp-backward-slurp-sexp'
+Add the sexp preceding the current list in it by moving the opening delimiter.
+
+If the current list is the first in a parent list, extend that
+list (and possibly apply recursively until we can extend a list
+or beginning of file)."]
+	["Backward symbol" sp-backward-symbol
+	 :help " `sp-backward-symbol'
+Move point to the next position that is the beginning of a symbol.
+
+With ARG being positive number N, repeat that many times.
+
+With ARG being Negative number -N, repeat that many times in"]
+	["Backward unwrap sexp" sp-backward-unwrap-sexp
+	 :help " `sp-backward-unwrap-sexp'
+Unwrap the previous expression.
+
+With ARG N, unwrap Nth expression as returned by
+`sp-backward-sexp'.  If ARG is negative -N, unwrap Nth expression
+forward as returned by `sp-forward-sexp'."]
+	["Backward up sexp" sp-backward-up-sexp
+	 :help " `sp-backward-up-sexp'
+Move backward out of one level of parentheses.
+
+With ARG, do this that many times.  A negative argument means
+move forward but still to a less deep spot."]
+	["Backward whitespace" sp-backward-whitespace
+	 :help " `sp-backward-whitespace'
+Skip backward past the whitespace characters.
+With non-nil ARG return number of characters skipped."]
+
+	"-"
+
+	["Beginning of next sexp" sp-beginning-of-next-sexp
+	 :help " `sp-beginning-of-next-sexp'
+Jump to the beginning of next sexp on the same depth.
+
+This acts exactly as `sp-beginning-of-sexp' but adds 1 to the
+numeric argument.
+
+Examples:"]
+	["Beginning of previous sexp" sp-beginning-of-previous-sexp
+	 :help " `sp-beginning-of-previous-sexp'
+Jump to the beginning of previous sexp on the same depth.
+
+This acts exactly as `sp-beginning-of-sexp' with negative
+argument but subtracts 1 from it."]
+	["Beginning of sexp" sp-beginning-of-sexp
+	 :help " `sp-beginning-of-sexp'
+Jump to beginning of the sexp the point is in.
+
+The beginning is the point after the opening delimiter.
+
+With no argument, this is the same as calling
+C-u C-u `sp-down-sexp'"])
+
+       ("Forward"
+	["Next sexp" sp-next-sexp
+	 :help " `sp-next-sexp'
+Move forward to the beginning of next balanced expression.
+
+With ARG, do it that many times.  If there is no next expression
+at current level, jump one level up (effectively doing
+`sp-backward-up-sexp').  Negative arg -N means move to the"]
+
+	["Forward barf sexp" sp-forward-barf-sexp
+	 :help " `sp-forward-barf-sexp'
+Remove the last sexp in the current list by moving the closing delimiter.
+
+If ARG is positive number N, barf that many expressions.
+
+If ARG is negative number -N, contract the opening pair instead."]
+	["Forward sexp" sp-forward-sexp
+	 :help " `sp-forward-sexp'
+Move forward across one balanced expression.
+
+With ARG, do it that many times.  Negative arg -N means move
+backward across N balanced expressions.  If there is no forward
+expression, jump out of the current one (effectively doing"]
+	["Forward slurp sexp" sp-forward-slurp-sexp
+	 :help " `sp-forward-slurp-sexp'
+Add sexp following the current list in it by moving the closing delimiter.
+
+If the current list is the last in a parent list, extend that
+list (and possibly apply recursively until we can extend a list
+or end of file)."]
+	["Forward symbol" sp-forward-symbol
+	 :help " `sp-forward-symbol'
+Move point to the next position that is the end of a symbol.
+
+With ARG being positive number N, repeat that many times.
+
+With ARG being Negative number -N, repeat that many times in"]
+	["Forward whitespace" sp-forward-whitespace
+	 :help " `sp-forward-whitespace'
+Skip forward past the whitespace characters.
+With non-nil ARG return number of characters skipped."]
+
+	"-"
+
+	["End of next sexp" sp-end-of-next-sexp
+	 :help " `sp-end-of-next-sexp'
+Jump to the end of next sexp on the same depth.
+
+This acts exactly as `sp-end-of-sexp' but adds 1 to the
+numeric argument."]
+	["End of previous sexp" sp-end-of-previous-sexp
+	 :help " `sp-end-of-previous-sexp'
+Jump to the end of previous sexp on the same depth.
+
+This acts exactly as `sp-end-of-sexp' with negative
+argument but subtracts 1 from it.
+
+Examples:"]
+	["End of sexp" sp-end-of-sexp
+	 :help " `sp-end-of-sexp'
+Jump to end of the sexp the point is in.
+
+The end is the point before the closing delimiter.
+
+With no argument, this is the same as calling"])
+
+       ["Up sexp" sp-up-sexp
+	:help " `sp-up-sexp'
+Move forward out of one level of parentheses.
+
+With ARG, do this that many times.  A negative argument means
+move backward but still to a less deep spot.
+
+The argument INTERACTIVE is for internal use only."]
+
+       ["Down sexp" sp-down-sexp
+	:help " `sp-down-sexp'
+Move forward down one level of sexp.
+
+With ARG, do this that many times.  A negative argument -N means
+move backward but still go down a level."]
+
+       ("Skip"
+	["Skip backward to symbol" sp-skip-backward-to-symbol
+	 :help " `sp-skip-backward-to-symbol'
+Skip whitespace and comments moving backward.
+If STOP-AT-STRING is non-nil, stop before entering a string (if
+not already in a string).
+
+If STOP-AFTER-STRING is non-nil, stop after exiting a string."]
+	["Skip forward to symbol" sp-skip-forward-to-symbol
+	 :help " `sp-skip-forward-to-symbol'
+Skip whitespace and comments moving forward.
+
+If STOP-AT-STRING is non-nil, stop before entering a string (if
+not already in a string)."])
+       ("Html"
+	["Html next tag" sp-html-next-tag
+	 :help " `sp-html-next-tag'
+Move point to the beginning of next SGML tag.
+
+With ARG positive N > 1, move N tags forward.
+
+With ARG raw prefix argument C-u move out of"]
+	["Html previous tag" sp-html-previous-tag
+	 :help " `sp-html-previous-tag'
+Move point to the beginning of previous SGML tag.
+
+With ARG positive N > 1, move N tags backward.
+
+With ARG raw prefix argument C-u move out of"]))
+
+      ("Edit"
+       ["Newline" sp-newline
+	:help " `sp-newline'
+Insert a newline and indent it.
+
+This is like `newline-and-indent', but it not only indents the
+line that the point is on but also the S-expression following the
+point, if there is one."]
+
+       ["Dedent adjust sexp" sp-dedent-adjust-sexp
+	:help " `sp-dedent-adjust-sexp'
+Remove the hybrid sexp at line from previous sexp.  All
+sibling forms after it are also removed (not deleted, just placed
+outside of the enclosing list).  Specifically, if the point is on
+empty line followed by closing delimiter of enclosing list, move
+the closing delimiter after the last item in the list."]
+
+       ["Copy sexp" sp-copy-sexp
+	:help " `sp-copy-sexp'
+Copy the following ARG expressions to the kill-ring.
+
+This is exactly like calling `sp-kill-sexp' with second argument
+t.  All the special prefix arguments work the same way."]
+
+       ["Delete char" sp-delete-char
+	:help " `sp-delete-char'
+Delete a character forward or move forward over a delimiter.
+
+If on an opening delimiter, move forward into balanced expression.
+
+If on a closing delimiter, refuse to delete unless the balanced"]
+
+       ["Emit sexp" sp-emit-sexp
+	:help " `sp-emit-sexp'
+Move all expression preceding point except the first one out of the current list.
+
+With ARG positive N, keep that many expressions from the start of
+the current list.
+
+This is similar as `sp-backward-barf-sexp' but it also drags the"]
+
+       ["Extract after sexp" sp-extract-after-sexp
+	:help " `sp-extract-after-sexp'
+Move the expression after point after the enclosing balanced expression.
+
+The point moves with the extracted expression.
+
+With ARG positive N, extract N expressions after point."]
+
+       ["Extract before sexp" sp-extract-before-sexp
+	:help " `sp-extract-before-sexp'
+Move the expression after point before the enclosing balanced expression.
+
+The point moves with the extracted expression.
+
+With ARG positive N, extract N expressions after point."]
+
+       ("Indent"
+	["Indent adjust sexp" sp-indent-adjust-sexp
+	 :help " `sp-indent-adjust-sexp'
+Add the hybrid sexp at line into previous sexp.  All forms
+between the two are also inserted.  Specifically, if the point is
+on empty line, move the closing delimiter there, so the next
+typed text will become the last item of the previous sexp."]
+	["Indent defun" sp-indent-defun
+	 :help " `sp-indent-defun'
+Reindent the current defun.
+
+If point is inside a string or comment, fill the current
+paragraph instead, and with ARG, justify as well.
+
+Otherwise, reindent the current defun, and adjust the position"])
+
+       ["Join sexp" sp-join-sexp
+	:help " `sp-join-sexp'
+Join the sexp before and after point if they are of the same type.
+
+If ARG is positive N, join N expressions after the point with the
+one before the point."]
+
+       ("Kill"
+	["Kill hybrid sexp" sp-kill-hybrid-sexp
+	 :help " `sp-kill-hybrid-sexp'
+Kill a line as if with `kill-line', but respecting delimiters.
+
+With ARG being raw prefix C-u C-u, kill the hybrid sexp
+the point is in (see `sp-get-hybrid-sexp').
+
+With ARG numeric prefix 0 (zero) just call `kill-line'."]
+	["Kill sexp" sp-kill-sexp
+	 :help " `sp-kill-sexp'
+Kill the balanced expression following point.
+
+If point is inside an expression and there is no following
+expression, kill the topmost enclosing expression."]
+	["Kill symbol" sp-kill-symbol
+	 :help " `sp-kill-symbol'
+Kill a symbol forward, skipping over any intervening delimiters.
+
+With ARG being positive number N, repeat that many times.
+
+With ARG being Negative number -N, repeat that many times in
+backward direction."]
+	["Kill word" sp-kill-word
+	 :help " `sp-kill-word'
+Kill a word forward, skipping over intervening delimiters.
+
+With ARG being positive number N, repeat that many times.
+
+With ARG being Negative number -N, repeat that many times in"])
+
+       ["Push hybrid sexp" sp-push-hybrid-sexp
+	:help " `sp-push-hybrid-sexp'
+Push the hybrid sexp after point over the following one.
+
+`sp-forward-sexp' is used to enter the following hybrid sexp.
+
+Examples:"]
+
+       ["Raise sexp" sp-raise-sexp
+	:help " `sp-raise-sexp'
+Unwrap the current list and kill everything inside except next expression.
+
+With ARG save that many next expressions.  With ARG negative -N,
+save that many expressions backward."]
+
+       ["Remove active pair overlay" sp-remove-active-pair-overlay
+	:help " `sp-remove-active-pair-overlay'
+Deactivate the active overlay.  See `sp--get-active-overlay'."]
+
+       ["Rewrap sexp" sp-rewrap-sexp
+	:help " `sp-rewrap-sexp'
+Rewrap the enclosing expression with a different pair.
+
+The new pair is specified in minibuffer by typing the *opening*
+delimiter, same way as with pair wrapping.
+
+With raw prefix argument C-u do not remove the"]
+
+       ["Slurp hybrid sexp" sp-slurp-hybrid-sexp
+	:help " `sp-slurp-hybrid-sexp'
+Add hybrid sexp following the current list in it by moving the
+closing delimiter.
+
+This is philosophically similar to `sp-forward-slurp-sexp' but
+works better in \"line-based\" languages like C or Java."]
+
+       ("Splice"
+	["Splice sexp" sp-splice-sexp
+	 :help " `sp-splice-sexp'
+Unwrap the current list.
+
+With ARG N, unwrap Nth list as returned by applying `sp-up-sexp'
+N times.  This function expect positive arg.
+
+Examples:"]
+	["Splice sexp killing around" sp-splice-sexp-killing-around
+	 :help " `sp-splice-sexp-killing-around'
+Unwrap the current list and kill everything inside except next expression.
+
+With ARG save that many next expressions.  With ARG negative -N,
+save that many expressions backward."]
+	["Splice sexp killing backward" sp-splice-sexp-killing-backward
+	 :help " `sp-splice-sexp-killing-backward'
+Unwrap the current list and kill all the expressions
+between start of this list and the point.
+
+With the optional argument ARG, repeat that many times.  This
+argument should be positive number."]
+	["Splice sexp killing forward" sp-splice-sexp-killing-forward
+	 :help " `sp-splice-sexp-killing-forward'
+Unwrap the current list and kill all the expressions between
+the point and the end of this list.
+
+With the optional argument ARG, repeat that many times.  This
+argument should be positive number."])
+       ["Sp split sexp" sp-split-sexp
+	:help " `sp-split-sexp'
+Split the list or string the point is on into two.
+
+If ARG is a raw prefix C-u split all the sexps in current expression
+in separate lists enclosed with delimiters of the current
+expression."]
+
+       ["Swap enclosing sexp" sp-swap-enclosing-sexp
+	:help " `sp-swap-enclosing-sexp'
+Swap the enclosing delimiters of this and the parent expression.
+
+With N > 0 numeric argument, ascend that many levels before
+swapping.
+
+Examples:"]
+
+       ("Transpose"
+	["Transpose hybrid sexp" sp-transpose-hybrid-sexp
+	 :help " `sp-transpose-hybrid-sexp'
+Transpose the hybrid sexps around point.
+
+`sp-backward-sexp' is used to enter the previous hybrid sexp.
+
+With ARG numeric prefix call `transpose-lines' with this"]
+	["Transpose sexp" sp-transpose-sexp
+	 :help " `sp-transpose-sexp'
+Transpose the expressions around point.
+
+The operation will move the point after the transposed block, so
+the next transpose will \"drag\" it forward."])
+
+       ["Unwrap sexp" sp-unwrap-sexp
+	:help " `sp-unwrap-sexp'
+Unwrap the following expression.
+
+With ARG N, unwrap Nth expression as returned by
+`sp-forward-sexp'.  If ARG is negative -N, unwrap Nth expression
+backwards as returned by `sp-backward-sexp'."]
+
+       ["Convolute sexp" sp-convolute-sexp
+	:help " `sp-convolute-sexp'
+Convolute balanced expressions.
+
+Save the expressions preceding point and delete them.  Then
+splice the resulting expression.  Wrap the current enclosing list
+with the delimiters of the spliced list and insert the saved"]
+
+       ["Absorb sexp" sp-absorb-sexp
+	:help " `sp-absorb-sexp'
+Absorb previous expression.
+
+Save the expressions preceding point and delete them.  Then slurp
+an expression backward and insert the saved expressions."]
+
+       ["Add to next sexp" sp-add-to-next-sexp
+	:help " `sp-add-to-next-sexp'
+Add the expressions around point to the first list following point.
+
+With ARG positive N add that many expressions to the following
+list."]
+       ["Add to previous sexp" sp-add-to-previous-sexp
+	:help " `sp-add-to-previous-sexp'
+Add the expression around point to the first list preceding point.
+
+With ARG positive N add that many expressions to the preceding
+list.
+
+If ARG is raw prefix argument C-u add all expressions until"])
+
+      ["Highlight current sexp" sp-highlight-current-sexp
+       :help " `sp-highlight-current-sexp'
+Highlight the expression returned by the next command, preserving point position."]
+
+      ["Narrow to sexp" sp-narrow-to-sexp
+       :help " `sp-narrow-to-sexp'
+Make text outside current balanced expression invisible.
+A numeric arg specifies to move up by that many enclosing expressions.
+
+See also `narrow-to-region' and `narrow-to-defun'."]
+
+      ("Prefix"
+       ["Prefix pair object" sp-prefix-pair-object
+	:help " `sp-prefix-pair-object'
+Read the command and invoke it on the next pair object.
+
+If you specify a regular emacs prefix argument this is passed to
+the executed command.  Therefore, executing
+\"C-u 2 M-x sp-prefix-pair-object M-x sp-forward-sexp\" will move two paired"]
+       ["Prefix save excursion" sp-prefix-save-excursion
+	:help " `sp-prefix-save-excursion'
+Execute the command keeping the point fixed.
+
+If you specify a regular emacs prefix argument this is passed to
+the executed command."]
+       ["Prefix symbol object" sp-prefix-symbol-object
+	:help " `sp-prefix-symbol-object'
+Read the command and invoke it on the next pair object.
+
+If you specify a regular emacs prefix argument this is passed to
+the executed command.  Therefore, executing
+\"C-u 2 M-x sp-prefix-symbol-object M-x sp-forward-sexp\" will move two symbols"]
+       ["Prefix tag object" sp-prefix-tag-object
+	:help " `sp-prefix-tag-object'
+Read the command and invoke it on the next tag object.
+
+If you specify a regular emacs prefix argument this is passed to
+the executed command.  Therefore, executing
+\"C-u 2 M-x sp-prefix-tag-object M-x sp-forward-sexp\" will move two tag"])
+
+      ("Select"
+       ["Select next thing" sp-select-next-thing
+	:help " `sp-select-next-thing'
+Set active region over next thing as recognized by `sp-get-thing'.
+
+If ARG is positive N, select N expressions forward.
+
+If ARG is negative -N, select N expressions backward."]
+       ["Select next thing exchange" sp-select-next-thing-exchange
+	:help " `sp-select-next-thing-exchange'
+Just like `sp-select-next-thing' but run `exchange-point-and-mark' afterwards."]
+       ["Select previous thing" sp-select-previous-thing
+	:help " `sp-select-previous-thing'
+Set active region over ARG previous things as recognized by `sp-get-thing'.
+
+If ARG is negative -N, select that many expressions forward.
+
+With `sp-navigate-consider-symbols' symbols and strings are also"]
+       ["Select previous thing exchange" sp-select-previous-thing-exchange
+	:help " `sp-select-previous-thing-exchange'
+Just like `sp-select-previous-thing' but run `exchange-point-and-mark' afterwards."])
+
+      ["Show enclosing pair" sp-show-enclosing-pair
+       :help " `sp-show-enclosing-pair'
+Highlight the enclosing pair around point."]
+
+      ["Use paredit bindings" sp-use-paredit-bindings
+       :help " `sp-use-paredit-bindings'
+Initiate `smartparens-mode-map' with paredit-compatible bindings for
+corresponding functions provided by smartparens.  See variable
+`sp-paredit-bindings'."]
+      ["Use smartparens bindings" sp-use-smartparens-bindings
+       :help " `sp-use-smartparens-bindings'
+Initiate `smartparens-mode-map' with smartparens bindings for navigation functions.
+See variable `sp-smartparens-bindings'."]
+
+      ["Wrap cancel" sp-wrap-cancel
+       :help " `sp-wrap-cancel'
+Cancel the active wrapping."]
+
+      ["Cheat sheet" sp-cheat-sheet
+       :help " `sp-cheat-sheet'
+Generate a cheat sheet of all the smartparens interactive functions.
+
+Without a prefix argument, print only the short documentation and examples.
+
+With non-nil prefix argument, show the full documentation for each function."]
+
+      ["Clone sexp" sp-clone-sexp
+       :help " `sp-clone-sexp'"]
+
+      ["Comment" sp-comment
+       :help " `sp-comment'
+Insert the comment character and adjust hanging sexps such
+  that it doesn't break structure."])))
 
 ;;;###autoload
 (define-minor-mode smartparens-mode
@@ -6874,7 +7452,6 @@ Examples:
   foo bar            baz (quux
   |baz (quux   ->         quack)
         quack)       foo bar\\n|
-
 
   [(foo) (bar) -> [(baz)
   |(baz)]          (foo) (bar)|]
