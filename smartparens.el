@@ -579,6 +579,7 @@ Symbol is defined as a chunk of text recognized by
                            scheme-interaction-mode
                            scheme-mode
                            slime-repl-mode
+                           sly-mrepl-mode
                            stumpwm-mode
                            )
   "List of Lisp-related modes."
