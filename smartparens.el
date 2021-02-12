@@ -757,16 +757,15 @@ after the smartparens indicator in the mode list."
       (progn
         (unless smartparens-mode
           (smartparens-mode 1))
-        (add-to-list 'minor-mode-overriding-map-alist
-                     `(smartparens-strict-mode . ,smartparens-strict-mode-map)
-                     nil
-                     (-lambda ((lhs . _) (rhs . _)) (eq lhs rhs)))
+        (unless (assq 'smartparens-strict-mode minor-mode-overriding-map-alist)
+          (push `(smartparens-strict-mode . ,smartparens-strict-mode-map)
+                minor-mode-overriding-map-alist))
         (put 'sp-backward-delete-char 'delete-selection 'sp--delete-selection-supersede-p)
         (put 'sp-delete-char 'delete-selection 'sp--delete-selection-supersede-p)
         (add-hook 'self-insert-uses-region-functions 'sp--self-insert-uses-region-strict-p nil 'local)
         (setq sp-autoskip-closing-pair 'always))
     (setq minor-mode-overriding-map-alist
-          (-remove (lambda (it) (eq (car it) 'smartparens-strict-mode)) minor-mode-overriding-map-alist))
+          (assq-delete-all 'smartparens-strict-mode minor-mode-overriding-map-alist))
     (put 'sp-backward-delete-char 'delete-selection 'supersede)
     (put 'sp-delete-char 'delete-selection 'supersede)
     (remove-hook 'self-insert-uses-region-functions 'sp--self-insert-uses-region-strict-p 'local)
