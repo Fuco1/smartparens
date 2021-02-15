@@ -8383,7 +8383,7 @@ Examples:
   (interactive "P")
   (cond
    ((equal arg '(4))
-    (-when-let [(first-item . rest-items) (sp-get-list-items)]
+    (-when-let ((first-item . rest-items) (sp-get-list-items))
       (sp-get first-item
         (save-excursion
           (goto-char :end)
