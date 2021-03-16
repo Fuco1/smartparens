@@ -1,12 +1,10 @@
-;;; smartparens-scala.el --- Additional configuration for Scala based modes.  -*- lexical-binding: t; -*-
+;;; smartparens-scala.el --- Additional configuration for Scala based modes  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2015 Greg Nwosu
 
 ;; Author: Greg Nwosu <greg.nwosu@gmail.com>
 ;; Maintainer: Greg Nwosu <greg.nwosu@gmail.com>
 ;; Created: 8 July 2015
-;; Keywords: abbrev convenience editing
-;; URL: https://github.com/Fuco1/smartparens
 
 ;; This file is not part of GNU Emacs.
 
@@ -31,15 +29,15 @@
 
 ;; This file provides some additional configuration for Scala based
 ;; modes.  To use it, simply add:
-;;
+
 ;; (require 'smartparens-scala)
-;;
+
 ;; into your configuration.  You can use this in conjunction with the
 ;; default config or your own configuration.
-;;
+
 ;; If you have good ideas about what should be added please file an
 ;; issue on the github tracker.
-;;
+
 ;; For more info, see github readme at
 ;; https://github.com/Fuco1/smartparens
 

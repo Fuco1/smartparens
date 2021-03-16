@@ -1,27 +1,46 @@
-;;; smartparens-elixir.el --- Configuration for Elixir.  -*- lexical-binding: t; -*-
+;;; smartparens-elixir.el --- Additional configuration for Elixir based modes  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2017 Matúš Goljer
 
 ;; Author: Matúš Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matúš Goljer <matus.goljer@gmail.com>
-;; Version: 0.0.1
 ;; Created: 15th January 2017
-;; Keywords: languages
 
-;; This program is free software; you can redistribute it and/or
-;; modify it under the terms of the GNU General Public License
-;; as published by the Free Software Foundation; either version 3
-;; of the License, or (at your option) any later version.
+;; This file is not part of GNU Emacs.
 
-;; This program is distributed in the hope that it will be useful,
+;;; License:
+
+;; This file is part of Smartparens.
+
+;; Smartparens is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; Smartparens is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with this program. If not, see <http://www.gnu.org/licenses/>.
+;; along with Smartparens.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
+
+;; This file provides some additional configuration for elixir
+;; based modes.  To use it, simply add:
+
+;; (require 'smartparens-elixir)
+
+;; into your configuration.  You can use this in conjunction with the
+;; default config or your own configuration.
+
+;; If you have good ideas about what should be added please file an
+;; issue on the github tracker.
+
+;; For more info, see github readme at
+;; https://github.com/Fuco1/smartparens
+
 
 ;;; Code:
 

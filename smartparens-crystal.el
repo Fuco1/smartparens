@@ -1,12 +1,10 @@
-;;; smartparens-crystal.el --- Additional configuration for Crystal based modes.  -*- lexical-binding: t; -*-
+;;; smartparens-crystal.el --- Additional configuration for Crystal based modes  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2018 Brantou
 
 ;; Author: Brantou <brantou89@gmail.com>
 ;; Maintainer: Brantou <brantou89@gmail.com>
 ;; Created: 5 March 2018
-;; Keywords: abbrev convenience editing
-;; URL: https://github.com/Fuco1/smartparens
 
 ;; Based on smartparens-ruby.el
 
@@ -33,12 +31,11 @@
 
 ;; This file provides some additional configuration for Crystal based
 ;; modes.  To use it, simply add:
-;;
+
 ;; (require 'smartparens-crystal)
-;;
+
 ;; into your configuration.  You can use this in conjunction with the
 ;; default config or your own configuration.
-;;
 
 ;; If you have good ideas about what should be added please file an
 ;; issue on the github tracker.

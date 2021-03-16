@@ -1,12 +1,10 @@
-;;; smartparens-markdown.el --- Additional configuration for Markdown based modes.  -*- lexical-binding: t; -*-
+;;; smartparens-markdown.el --- Additional configuration for Markdown based modes  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2017 Matus Goljer
 
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
-;; Created: 11th May 2017
-;; Keywords: abbrev convenience editing
-;; URL: https://github.com/Fuco1/smartparens
+;; Created: 11 May 2017
 
 ;; This file is not part of GNU Emacs.
 
@@ -31,15 +29,15 @@
 
 ;; This file provides some additional configuration for Markdown based
 ;; modes.  To use it, simply add:
-;;
+
 ;; (require 'smartparens-markdown)
-;;
+
 ;; into your configuration.  You can use this in conjunction with the
 ;; default config or your own configuration.
-;;
+
 ;; If you have good ideas about what should be added please file an
 ;; issue on the github tracker.
-;;
+
 ;; For more info, see github readme at
 ;; https://github.com/Fuco1/smartparens
 

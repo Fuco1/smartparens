@@ -1,12 +1,10 @@
-;;; smartparens-ruby.el --- Additional configuration for Ruby based modes.  -*- lexical-binding: t; -*-
+;;; smartparens-ruby.el --- Additional configuration for Ruby based modes  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2013-2014 Jean-Louis Giordano
 
 ;; Author: Jean-Louis Giordano <jean-louis@jawaninja.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
 ;; Created: 16 June 2013
-;; Keywords: abbrev convenience editing
-;; URL: https://github.com/Fuco1/smartparens
 
 ;; This file is not part of GNU Emacs.
 
@@ -31,12 +29,11 @@
 
 ;; This file provides some additional configuration for Ruby based
 ;; modes.  To use it, simply add:
-;;
+
 ;; (require 'smartparens-ruby)
-;;
+
 ;; into your configuration.  You can use this in conjunction with the
 ;; default config or your own configuration.
-;;
 
 ;; If you have good ideas about what should be added please file an
 ;; issue on the github tracker.

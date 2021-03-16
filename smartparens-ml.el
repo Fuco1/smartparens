@@ -8,8 +8,6 @@
 ;;         Louis Roché <louis@louisroche.net>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
 ;; Created: 14 July 2016
-;; Keywords: smartparens, ML, ocaml, reason
-;; URL: https://github.com/Fuco1/smartparens
 
 ;; This file is not part of GNU Emacs.
 
@@ -34,15 +32,15 @@
 
 ;; This file provides some additional configuration for ML languages.
 ;; To use it, simply add:
-;;
+
 ;; (require 'smartparens-ml)
-;;
+
 ;; into your configuration.  You can use this in conjunction with the
 ;; default config or your own configuration.
-;;
+
 ;; If you have good ideas about what should be added please file an
 ;; issue on the github tracker.
-;;
+
 ;; For more info, see github readme at
 ;; https://github.com/Fuco1/smartparens
 

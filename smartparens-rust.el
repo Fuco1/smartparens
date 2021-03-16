@@ -1,10 +1,10 @@
-;;; smartparens-rust.el --- Additional configuration for Rust based modes.  -*- lexical-binding: t; -*-
+;;; smartparens-rust.el --- Additional configuration for Rust based modes  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2015 Wilfred Hughes
 
-;; Created: 3 November 2015
-;; Keywords: abbrev convenience editing
-;; URL: https://github.com/Fuco1/smartparens
+;; Author: Wilfred Hughes
+;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
+;; Created: 3 Nov 2015
 
 ;; This file is not part of GNU Emacs.
 
@@ -27,19 +27,24 @@
 
 ;;; Commentary:
 
-;; This file provides some additional configuration for Rust.  To use
-;; it, simply add:
-;;
+;; This file provides some additional configuration for Rust based
+;; modes.  To use it, simply add:
+
 ;; (require 'smartparens-config)
-;;
+
 ;; alternatively, you can explicitly load these preferences:
-;;
+
 ;; (require 'smartparens-rust)
-;;
-;; in your configuration.
+
+;; into your configuration.  You can use this in conjunction with the
+;; default config or your own configuration.
+
+;; If you have good ideas about what should be added please file an
+;; issue on the github tracker.
 
 ;; For more info, see github readme at
 ;; https://github.com/Fuco1/smartparens
+
 
 ;;; Code:
 (require 'smartparens)
