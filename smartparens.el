@@ -6804,7 +6804,9 @@ Examples:
   (let ((empty-last-line (save-excursion (beginning-of-line) (eobp))))
     ;; We can't kill the line if it is empty and the last line
     (when (and (sp-point-in-blank-line) (not empty-last-line))
-      (kill-whole-line))))
+      (append-next-kill)
+      (kill-whole-line)
+      (append-next-kill))))
 
 (defun sp--transpose-objects (first second)
   "Transpose FIRST and SECOND object while preserving the
