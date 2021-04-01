@@ -93,6 +93,22 @@ buffer-local wherever it is set."
     (list 'progn (list 'defvar var val docstring)
           (list 'make-variable-buffer-local (list 'quote var)))))
 
+(defalias 'sp-ppss-string-terminator
+  (if (version<= "27.1" emacs-version)
+      'ppss-string-terminator
+    (lambda (parse-data) (nth 3 parse-data))))
+
+(defalias 'sp-ppss-comment-depth
+  (if (version<= "27.1" emacs-version)
+      'ppss-comment-depth
+    (lambda (parse-data) (nth 4 parse-data))))
+
+(defalias 'sp-ppss-comment-or-string-start
+  (if (version<= "27.1" emacs-version)
+      'ppss-comment-or-string-start
+    (lambda (parse-data) (nth 8 parse-data))))
+
+
 ;;;###autoload
 (defun sp-cheat-sheet (&optional arg)
   "Generate a cheat sheet of all the smartparens interactive functions.
@@ -1834,7 +1850,7 @@ fences.
 If optional argument P is present test this instead of point."
   (ignore-errors
     (save-excursion
-      (nth 3 (sp--syntax-ppss p)))))
+      (sp-ppss-string-terminator (sp--syntax-ppss p)))))
 
 (defun sp-point-in-comment (&optional p)
   "Return non-nil if point is inside comment.
@@ -1844,8 +1860,8 @@ If optional argument P is present test this instead off point."
   (ignore-errors
     (save-excursion
       ;; We cannot be in a comment if we are inside a string
-      (unless (nth 3 (sp--syntax-ppss p))
-        (or (nth 4 (sp--syntax-ppss p))
+      (unless (sp-ppss-string-terminator (sp--syntax-ppss p))
+        (or (sp-ppss-comment-depth (sp--syntax-ppss p))
             ;; this also test opening and closing comment delimiters... we
             ;; need to chack that it is not newline, which is in "comment
             ;; ender" class in elisp-mode, but we just want it to be
@@ -1859,13 +1875,13 @@ If optional argument P is present test this instead off point."
             ;; division or comment starter...).
             (-when-let (s (car (syntax-after p)))
               (or (and (/= 0 (logand (lsh 1 16) s))
-                       (nth 4 (syntax-ppss (+ p 2))))
+                       (sp-ppss-comment-depth (syntax-ppss (+ p 2))))
                   (and (/= 0 (logand (lsh 1 17) s))
-                       (nth 4 (syntax-ppss (+ p 1))))
+                       (sp-ppss-comment-depth (syntax-ppss (+ p 1))))
                   (and (/= 0 (logand (lsh 1 18) s))
-                       (nth 4 (syntax-ppss (- p 1))))
+                       (sp-ppss-comment-depth (syntax-ppss (- p 1))))
                   (and (/= 0 (logand (lsh 1 19) s))
-                       (nth 4 (syntax-ppss (- p 2)))))))))))
+                       (sp-ppss-comment-depth (syntax-ppss (- p 2)))))))))))
 
 (defun sp-point-in-string-or-comment (&optional p)
   "Return non-nil if point is inside string, documentation string or a comment.
@@ -3654,7 +3670,7 @@ string, that is, the string state at the end of the buffer is
       (goto-char (point-max))
       (let ((syntax (sp--syntax-ppss)))
         (or (< (car syntax) 0)
-            (nth 3 syntax))))))
+            (sp-ppss-string-terminator syntax))))))
 
 (defun sp-escape-open-delimiter ()
   "Escape just inserted opening pair if `sp-insert-pair' was skipped.
@@ -4344,18 +4360,14 @@ The context at point is considered the reference context."
 POINT defaults to `point'.
 
 If the point is not inside a quoted string, return nil."
-  (setq point (or point (point)))
   (save-excursion
-    (goto-char point)
-    (let ((parse-data (syntax-ppss)))
-      (when (nth 3 parse-data)
-        (let* ((open (nth 8 parse-data))
-               (close (save-excursion
-                        (parse-partial-sexp
-                         (point) (point-max)
-                         nil nil parse-data 'syntax-table)
-                        (point))))
-          (cons open close))))))
+    (let ((parse-data (syntax-ppss point)))
+      (when (sp-ppss-string-terminator parse-data)
+        (cons (sp-ppss-comment-or-string-start parse-data)
+              (progn
+                (parse-partial-sexp
+                 (point) (point-max) nil nil parse-data 'syntax-table)
+                (point)))))))
 
 ;; TODO: the repeated conditions are ugly, refactor this!
 (defun sp-get-comment-bounds ()
@@ -4363,7 +4375,7 @@ If the point is not inside a quoted string, return nil."
   (when (or (sp-point-in-comment)
             (looking-at "[[:space:]]+\\s<"))
     (let ((open (save-excursion
-                  (--when-let (nth 8 (sp--syntax-ppss))
+                  (--when-let (sp-ppss-comment-or-string-start (sp--syntax-ppss))
                     (goto-char it))
                   (while (and (not (bobp))
                               (or (when (sp-point-in-comment)
@@ -8945,7 +8957,7 @@ string delimiter enclosing this string."
                                (forward-char) (not (sp-point-in-string))))
              (save-excursion (backward-char) (not (sp-point-in-string))))
     (save-excursion
-      (let* ((syntax (nth 3 (syntax-ppss pos)))
+      (let* ((syntax (sp-ppss-string-terminator (syntax-ppss pos)))
              (c (char-to-string (if (eq syntax t) (following-char) syntax))))
         (cons c c)))))
 
