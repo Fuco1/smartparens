@@ -82,17 +82,6 @@
 
 ;;; backport for older emacsen
 
-;; introduced in 24.3
-(unless (fboundp 'defvar-local)
-  (defmacro defvar-local (var val &optional docstring)
-    "Define VAR as a buffer-local variable with default value VAL.
-Like `defvar' but additionally marks the variable as being automatically
-buffer-local wherever it is set."
-    (declare (debug defvar) (doc-string 3))
-    ;; Can't use backquote here, it's too early in the bootstrap.
-    (list 'progn (list 'defvar var val docstring)
-          (list 'make-variable-buffer-local (list 'quote var)))))
-
 (defalias 'sp-ppss-string-terminator
   (if (version<= "27.1" emacs-version)
       'ppss-string-terminator
