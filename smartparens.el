@@ -785,6 +785,7 @@ after the smartparens indicator in the mode list."
   :group 'smartparens)
 
 (defcustom sp-ignore-modes-list '(
+                                  minibuffer-mode
                                   minibuffer-inactive-mode
                                   )
   "Modes where smartparens mode is inactive if allowed globally."
