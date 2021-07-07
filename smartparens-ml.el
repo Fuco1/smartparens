@@ -60,7 +60,48 @@
   (sp-local-pair "`" nil :actions nil)
   ;; Disable ' because it is used in value names and types
   (sp-local-pair "'" nil :actions nil)
-  (sp-local-pair "(*" "*)" ))
+  (sp-local-pair "(*" "*)" )
+  ;; Because we want to support strings like {| { |}, this pair has to
+  ;; be disabled in strings. Is this behavior complete? It has to
+  ;; detect correctly the matching pairs when using the {id| |id}
+  ;; syntax.
+  (sp-local-pair "{" "}" :unless '(sp-in-string-p))
+  (sp-local-pair "if" "then"
+                 :when '(("SPC"))
+                 :unless '(sp-in-comment-p sp-in-string-p)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "while" "done"
+                 :when '(("SPC"))
+                 :unless '(sp-in-comment-p sp-in-string-p)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "for" "done"
+                 :when '(("SPC"))
+                 :unless '(sp-in-comment-p sp-in-string-p)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "begin" "end"
+                 :when '(("SPC"))
+                 :unless '(sp-in-comment-p sp-in-string-p)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "struct" "end"
+                 :when '(("SPC"))
+                 :unless '(sp-in-comment-p sp-in-string-p)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "sig" "end"
+                 :when '(("SPC"))
+                 :unless '(sp-in-comment-p sp-in-string-p)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "object" "end"
+                 :when '(("SPC"))
+                 :unless '(sp-in-comment-p sp-in-string-p)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "match" "with"
+                 :when '(("SPC"))
+                 :unless '(sp-in-comment-p sp-in-string-p)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair "try" "with"
+                 :when '(("SPC"))
+                 :unless '(sp-in-comment-p sp-in-string-p)
+                 :post-handlers '(sp-latex-insert-spaces-inside-pair)))
 
 ;; Ignore punctuation, so we can split ~(foo) to ~foo.
 (add-to-list 'sp-sexp-prefix (list 'tuareg-mode 'syntax ""))
