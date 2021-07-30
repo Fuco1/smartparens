@@ -73,7 +73,7 @@ Inside Emacs, `M-x sp-cheat-sheet` will show you all the commands
 available, with examples.
 
 There's also a
-[great article demonstrating movement and editing in smartparens](http://ebzzry.io/en/emacs-pairs/)
+[great article demonstrating movement and editing in smartparens](https://ebzzry.com/en/emacs-pairs/)
 and [extensive documentation in the wiki](https://github.com/Fuco1/smartparens/wiki).
 
 ## Contributing
