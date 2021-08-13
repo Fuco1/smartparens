@@ -43,3 +43,10 @@
       (scala-mode)
     (execute-kbd-macro "{")
     (should (equal (buffer-string) "{\n  foo\n}"))))
+
+(ert-deftest sp-test-scala-triple-quotes ()
+  "Close triple quotes"
+  (sp-test-with-temp-buffer "sql|"
+      (scala-mode)
+    (execute-kbd-macro (kbd "\"\"\"SELECT"))
+    (should (equal (buffer-string) "sql\"\"\"SELECT\"\"\""))))

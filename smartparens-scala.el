@@ -76,5 +76,7 @@
                                 ("| " "SPC")
                                 sp-scala-wrap-with-indented-newlines))
 
+(sp-local-pair 'scala-mode "\"\"\"" "\"\"\"")
+
 (provide 'smartparens-scala)
 ;;; smartparens-scala.el ends here
