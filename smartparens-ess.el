@@ -229,6 +229,9 @@ ID, ACTION, CONTEXT."
                  :post-handlers '((sp-ess-open-sexp-indent "M-j"))
                  :suffix "{[^}]*}"))
 
+(sp-with-modes '(ess-r-mode inferior-ess-r-mode)
+  (sp-local-pair "\\(" nil
+                 :unless '(:add sp-in-code-p)))
 
 (provide 'smartparens-ess)
 ;;; smartparens-ess ends here

@@ -69,3 +69,16 @@ kill it as a word/symbol"
         (sp-test--ess-mode)
       (sp-backward-kill-word 1)
       (sp-buffer-equals "ggplot(mtcars, aes(mpg, am)) + facet_|()"))))
+
+(prog1 "Test the new R lambda function syntax"
+  (ert-deftest sp-test-ess-short-lambda-function-in-code ()
+    (sp-test-with-temp-buffer "|"
+        (sp-test--ess-mode)
+      (execute-kbd-macro "\\(foo")
+      (sp-buffer-equals "\\(foo|)")))
+
+  (ert-deftest sp-test-ess-short-lambda-function-in-string ()
+    (sp-test-with-temp-buffer "\"|\""
+        (sp-test--ess-mode)
+      (execute-kbd-macro "\\(foo")
+      (sp-buffer-equals "\"\\(foo|\\)\""))))
