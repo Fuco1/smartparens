@@ -155,7 +155,7 @@ ARGS."
 (defun sp-ess-roxy-str-p (_id action _context)
   "Test if looking back at `ess-roxy-re'.
 ID, ACTION, CONTEXT."
-  (when (and (boundp 'ess-roxy-re) (eq action 'insert))
+  (when (and (bound-and-true-p ess-roxy-re) (eq action 'insert))
     (sp--looking-back-p ess-roxy-re)))
 
 (sp-with-modes 'ess-mode
