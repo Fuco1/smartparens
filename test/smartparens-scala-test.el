@@ -44,6 +44,13 @@
     (execute-kbd-macro "{")
     (should (equal (buffer-string) "{\n  foo\n}"))))
 
+(ert-deftest sp-test-scala-curly-wrap-indent ()
+  "Wrap an indented region in an indented block"
+  (sp-test-with-temp-buffer "if (true)\n  |fooM"
+      (scala-mode)
+    (execute-kbd-macro "{")
+    (should (equal (buffer-string) "if (true)\n{\n  foo\n}"))))
+
 (ert-deftest sp-test-scala-triple-quotes ()
   "Close triple quotes"
   (sp-test-with-temp-buffer "sql|"
