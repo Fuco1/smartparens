@@ -7570,6 +7570,14 @@ With BACK non-nil, move backwards."
     (while (and (not (sp-point-in-string)) (< (point) (point-max)))
       (forward-char))))
 
+(defun sp-inside-comment-p (&optional pos)
+  "Return non-nil if point ins inside a comment, nil otherwise.
+
+When inside comment, return t if inside non-nestable comment,
+otherwise return an integer indicating the current comment nesting."
+  (let ((syntax (syntax-ppss pos)))
+    (nth 4 syntax)))
+
 ;; TODO: in ruby, "foo |if bar" now moves correctly, but there's a
 ;; noticable lag before it jumps over "if".  This is probably caused
 ;; by :skip-match handlers.  Investigate!
@@ -7597,41 +7605,44 @@ Examples:
   (interactive "^p")
   (setq arg (or arg 1))
   (sp--with-case-sensitive
-    (let* ((n (abs arg))
-           (fw (> arg 0))
-           (allowed (sp--get-allowed-pair-list))
-           (open (sp--get-opening-regexp allowed))
-           (close (sp--get-closing-regexp allowed)))
-      (if fw
-          (while (> n 0)
-            ;; First we need to get to the beginning of a symbol.  This means
-            ;; skipping all whitespace and pair delimiters until we hit
-            ;; something in \sw or \s_
-            (while (cond
-                    ((eobp) nil)
-                    ((not (memq (char-syntax (following-char)) '(?w ?_)))
-                     (forward-char)
-                     t)
-                    ;; if allowed is empty, the regexp matches anything
-                    ;; and we go into infinite loop, cf. Issue #400
-                    ((and allowed (sp--valid-initial-delimiter-p (sp--looking-at open)))
-                     (goto-char (match-end 0)))
-                    ((and allowed (sp--valid-initial-delimiter-p (sp--looking-at close)))
-                     (goto-char (match-end 0)))))
-            (while (and (not (eobp))
-                        (or (not allowed)
-                            (not (or (sp--valid-initial-delimiter-p (sp--looking-at open))
-                                     (sp--valid-initial-delimiter-p (sp--looking-at close)))))
-                        (or (memq (char-syntax (following-char)) '(?w ?_))
-                            ;; Specifically for lisp, we consider
-                            ;; sequences of ?\<ANYTHING> a symbol
-                            ;; sequence
-                            (and (eq (char-before) ??)
-                                 (eq (char-syntax (following-char)) ?\\))
-                            (and (eq (char-syntax (char-before)) ?\\))))
-              (forward-char))
-            (setq n (1- n)))
-        (sp-backward-symbol n)))))
+   (let* ((n (abs arg))
+          (fw (> arg 0))
+          (allowed (sp--get-allowed-pair-list))
+          (open (sp--get-opening-regexp allowed))
+          (close (sp--get-closing-regexp allowed)))
+     (if fw
+         (while (> n 0)
+           ;; First we need to get to the beginning of a symbol.  This means
+           ;; skipping all whitespace and pair delimiters until we hit
+           ;; something in \sw or \s_
+           (while (cond
+                   ((eobp) nil)
+                   ((not (memq (char-syntax (following-char)) '(?w ?_)))
+                    (forward-char)
+                    t)
+                   ((sp-inside-comment-p)
+                    (forward-char)
+                    t)
+                   ;; if allowed is empty, the regexp matches anything
+                   ;; and we go into infinite loop, cf. Issue #400
+                   ((and allowed (sp--valid-initial-delimiter-p (sp--looking-at open)))
+                    (goto-char (match-end 0)))
+                   ((and allowed (sp--valid-initial-delimiter-p (sp--looking-at close)))
+                    (goto-char (match-end 0)))))
+           (while (and (not (eobp))
+                       (or (not allowed)
+                           (not (or (sp--valid-initial-delimiter-p (sp--looking-at open))
+                                    (sp--valid-initial-delimiter-p (sp--looking-at close)))))
+                       (or (memq (char-syntax (following-char)) '(?w ?_))
+                           ;; Specifically for lisp, we consider
+                           ;; sequences of ?\<ANYTHING> a symbol
+                           ;; sequence
+                           (and (eq (char-before) ??)
+                                (eq (char-syntax (following-char)) ?\\))
+                           (and (eq (char-syntax (char-before)) ?\\))))
+             (forward-char))
+           (setq n (1- n)))
+       (sp-backward-symbol n)))))
 
 (put 'sp-forward-symbol 'CUA 'move)
 
@@ -7668,6 +7679,9 @@ Examples:
             (while (cond
                     ((bobp) nil)
                     ((not (memq (char-syntax (preceding-char)) '(?w ?_)))
+                     (backward-char)
+                     t)
+                    ((sp-inside-comment-p)
                      (backward-char)
                      t)
                     ((sp--valid-initial-delimiter-p (sp--looking-back open))
