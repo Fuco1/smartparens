@@ -570,6 +570,8 @@ Symbol is defined as a chunk of text recognized by
                            common-lisp-mode
                            emacs-lisp-mode
                            eshell-mode
+                           fennel-mode
+                           fennel-repl-mode
                            geiser-repl-mode
                            gerbil-mode
                            inf-clojure-mode
