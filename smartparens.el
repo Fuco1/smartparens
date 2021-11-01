@@ -2953,9 +2953,10 @@ This predicate is only tested on \"insert\" action."
 (defun sp-char-escaped-p (_id action _context)
   "Return non-nil if character before point is escaped with \\."
   (when (eq action 'insert)
-    (save-excursion
-      (backward-char 1)
-      (looking-back "\\\\" 1))))
+    (unless (= (point) (point-min))
+      (save-excursion
+        (backward-char 1)
+        (looking-back "\\\\" 1)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
