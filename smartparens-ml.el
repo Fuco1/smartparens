@@ -60,6 +60,9 @@
   (sp-local-pair "`" nil :actions nil)
   ;; Disable ' because it is used in value names and types
   (sp-local-pair "'" nil :actions nil)
+  (sp-local-pair "{|" "|}" )
+  (sp-local-pair "sig" "end" )
+  (sp-local-pair "module" "end" )
   (sp-local-pair "(*" "*)" ))
 
 ;; Ignore punctuation, so we can split ~(foo) to ~foo.
