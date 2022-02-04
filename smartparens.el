@@ -3674,7 +3674,19 @@ delimiter insertion separately."
                ;; do not escape if we are looking at a closing
                ;; delimiter, that means we closed an opened string,
                ;; most likely.
-               (sp--buffer-is-string-balanced-p))
+               (sp--buffer-is-string-balanced-p)
+               ;; in some text modes like org-mode which do not
+               ;; respect escapes, an "escaped" quote will still
+               ;; behave as regular quote, but we want to ignore it to
+               ;; be logically consistent.  This will prevent a buffer
+               ;; with \" followed by newly inserted " auto-escaping
+               ;; the inserted quotes (which actually closes the
+               ;; string and makes the buffer balanced)
+               (save-excursion
+                 (backward-char (length open))
+                 (-when-let (string-start (nth 8 (sp--syntax-ppss)))
+                   (goto-char string-start)
+                   (not (sp-char-is-escaped-p)))))
       (sp--escape-region (list open) (- (point) (length open)) (point)))))
 
 ;; kept to not break people's config... remove later
