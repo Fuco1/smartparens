@@ -824,7 +824,9 @@ that depend on the active `major-mode'."
         (setq sp-escape-char (string char))))
     (unless sp-comment-char
       (when (= ?< (char-syntax char))
-        (setq sp-comment-char (string char))))))
+        (setq sp-comment-char (string char)))))
+  ;; in case no escape syntax is found, just assume the backspace
+  (unless sp-escape-char (setq sp-escape-char "\\")))
 
 (defun sp--maybe-init ()
   "Initialize the buffer if it is not already initialized.
