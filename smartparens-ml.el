@@ -60,7 +60,11 @@
   (sp-local-pair "`" nil :actions nil)
   ;; Disable ' because it is used in value names and types
   (sp-local-pair "'" nil :actions nil)
-  (sp-local-pair "(*" "*)" ))
+  (sp-local-pair "{|" "|}" )      ;; multi-line string
+  (sp-local-pair "[|" "|]" )      ;; array
+  (sp-local-pair "sig" "end" )    ;; signature
+  (sp-local-pair "module" "end" ) ;; module
+  (sp-local-pair "(*" "*)" ))     ;; comment
 
 ;; Ignore punctuation, so we can split ~(foo) to ~foo.
 (add-to-list 'sp-sexp-prefix (list 'tuareg-mode 'syntax ""))
