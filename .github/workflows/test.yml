@@ -22,7 +22,7 @@ jobs:
     - uses: purcell/setup-emacs@master
       with:
         version: ${{ matrix.emacs_version }}
-    - uses: actions/setup-python@v1.1.1
+    - uses: actions/setup-python@v3
     - uses: conao3/setup-cask@master
 
     - name: Install dependencies
