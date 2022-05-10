@@ -45,7 +45,7 @@ and much more!
 
 ## Getting Started
 
-We generally target GNU Emacs version 24.3 and newer, however,
+We generally target GNU Emacs version 26.1 and newer, however,
 everything should work mostly fine on anything newer than version 24.
 
 You can install smartparens from [MELPA](http://melpa.org/).  Once
