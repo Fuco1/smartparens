@@ -122,3 +122,15 @@ Make sure to skip even in inactive sexps."
       (sp-test--python-mode)
     (sp-rewrap-sexp '("'" . "'"))
     (sp-buffer-equals "'''f|oo'''")))
+
+(ert-deftest sp-test-python-autoinsert-colon-on-def ()
+  (sp-test-with-temp-buffer "def foo|"
+      (sp-test--python-mode)
+    (execute-kbd-macro (kbd "("))
+    (sp-buffer-equals "def foo(|):")))
+
+(ert-deftest sp-test-python-autoinsert-colon-on-class ()
+  (sp-test-with-temp-buffer "class Foo|"
+      (sp-test--python-mode)
+    (execute-kbd-macro (kbd "("))
+    (sp-buffer-equals "class Foo(|):")))

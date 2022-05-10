@@ -52,8 +52,13 @@
   :group 'smartparens)
 
 (defcustom sp-python-insert-colon-in-function-definitions t
-  "Whether to auto-insert a colon when parens insertion is
-triggered while typing a function definition"
+  "If non-nil, auto-insert a colon after parens insertion in definition.
+
+Supported definitions are:
+
+- def
+- async def
+- class"
   :group 'smartparens-python
   :type  'boolean)
 
@@ -64,14 +69,26 @@ triggered while typing a function definition"
   (add-to-list 'sp-sexp-suffix (list it 'regexp "")))
 
 (defun sp-python-maybe-add-colon-python (_id action _context)
-  "Adds a colon after parentheses in a python function definition"
+  "Adds a colon after parentheses in a python definition.
+
+Works for (async) def forms and class forms.
+
+See also the option `sp-python-insert-colon-in-function-definitions'."
   ;; here, caret supposed to be in between parens, i.e. (|)
   (when (and sp-python-insert-colon-in-function-definitions
              (eq action 'insert)
              (looking-at ")\\s-*$")
              (save-excursion
                (goto-char (line-beginning-position))
-               (re-search-forward "^\\s-*def\\b" (line-end-position))))
+               (re-search-forward
+                (rx bol
+                    (* (syntax whitespace))
+                    (? "async")
+                    (* (syntax whitespace))
+                    (or "def" "class")
+                    word-boundary)
+                (line-end-position)
+                t)))
     (save-excursion
       (forward-char) ;; skip closing paren
       (insert ":"))))
