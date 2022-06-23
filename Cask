@@ -29,4 +29,5 @@
   (depends-on "markdown-mode")
   (depends-on "hungry-delete")
   (depends-on "evil")
-  (depends-on "crystal-mode"))
+  (depends-on "crystal-mode")
+  (depends-on "go-mode"))
