@@ -5015,39 +5015,42 @@ subject to change.  Instead, use the macro `sp-get' which also
 provide shortcuts for many commonly used queries (such as length
 of opening/closing delimiter or prefix)."
   (sp--maybe-init)
-  (sp--with-case-sensitive
-    (cond
-     (sp-prefix-tag-object
-      (sp-get-sgml-tag back))
-     (sp-prefix-pair-object
-      (sp-get-paired-expression back))
-     ((memq major-mode sp-navigate-consider-sgml-tags)
-      (let ((paired (sp-get-expression back)))
-        (if (and paired
-                 (equal "<" (sp-get paired :op)))
-            ;; if the point is inside the tag delimiter, return the pair.
-            (if (sp-get paired (and (<= :beg-in (point)) (>= :end-in (point))))
-                paired
-              ;; if the tag can't be completed, we can at least return
-              ;; the <> pair
-              (or (sp-get-sgml-tag back) paired))
-          ;; we can still try the tag if the first < or > is closer than
-          ;; the pair.  This is a bit too complicated... seems like a
-          ;; more clever solution would be needed in the future, esp if
-          ;; we add the python hack.
-          (cond
-           ((and (not back)
-                 (< (save-excursion
-                      (or (search-forward "<" nil t) (point-max)))
-                    (or (sp-get paired :beg) (point-max))))
-            (or (sp-get-sgml-tag) paired))
-           ((and back
-                 (> (save-excursion
-                      (or (search-backward ">" nil t) (point-min)))
-                    (or (sp-get paired :end) (point-max))))
-            (or (sp-get-sgml-tag t) paired))
-           (t paired)))))
-     (t (sp-get-expression back)))))
+  (if (and (eq major-mode 'org-mode)
+           (sp-org--is-src-block-p))
+      (sp-org--parse-src-block 'sp-get-sexp back)
+    (sp--with-case-sensitive
+      (cond
+       (sp-prefix-tag-object
+        (sp-get-sgml-tag back))
+       (sp-prefix-pair-object
+        (sp-get-paired-expression back))
+       ((memq major-mode sp-navigate-consider-sgml-tags)
+        (let ((paired (sp-get-expression back)))
+          (if (and paired
+                   (equal "<" (sp-get paired :op)))
+              ;; if the point is inside the tag delimiter, return the pair.
+              (if (sp-get paired (and (<= :beg-in (point)) (>= :end-in (point))))
+                  paired
+                ;; if the tag can't be completed, we can at least return
+                ;; the <> pair
+                (or (sp-get-sgml-tag back) paired))
+            ;; we can still try the tag if the first < or > is closer than
+            ;; the pair.  This is a bit too complicated... seems like a
+            ;; more clever solution would be needed in the future, esp if
+            ;; we add the python hack.
+            (cond
+             ((and (not back)
+                   (< (save-excursion
+                        (or (search-forward "<" nil t) (point-max)))
+                      (or (sp-get paired :beg) (point-max))))
+              (or (sp-get-sgml-tag) paired))
+             ((and back
+                   (> (save-excursion
+                        (or (search-backward ">" nil t) (point-min)))
+                      (or (sp-get paired :end) (point-max))))
+              (or (sp-get-sgml-tag t) paired))
+             (t paired)))))
+       (t (sp-get-expression back))))))
 
 (defun sp--get-hybrid-sexp-beg ()
   "Get the beginning of hybrid sexp.
@@ -5644,6 +5647,49 @@ the executed command."
             (call-interactively com)
           (execute-kbd-macro cmd))))))
 
+;; compat with org < 9
+(unless (fboundp 'org-src--get-lang-mode)
+  (defalias 'org-src--get-lang-mode 'org-src-get-lang-mode))
+
+(defun sp-org--is-src-block-p (&optional point)
+  "Return non-nil if point is in the content part of a SRC block."
+  (setq point (or point (point)))
+  (save-excursion
+    (goto-char point)
+    (and
+     ;; in a block
+     (org-in-block-p (list "SRC"))
+     ;; but not on the BEGIN or END line
+     (not (save-excursion
+            (beginning-of-line)
+            (or (looking-at "#\\+BEGIN_SRC")
+                (looking-at "#\\+END_SRC")))))))
+
+(defun sp-org--parse-src-block (command &optional back)
+  "Parse content of org SRC block using its `major-mode'.
+
+COMMAND is the parse command that should be used, such as
+`sp-get-thing' or `sp-get-sexp'.
+
+BACK, if non-nil, means we want to parse backward."
+  (-let* (((lang content _ _ _ start)
+           (org-babel-get-src-block-info))
+          (mode (org-src--get-lang-mode lang))
+          (content-start
+           (save-excursion
+             (goto-char start)
+             (forward-line 1)
+             (point)))
+          (offset (- (point) (1- content-start))))
+    (with-temp-buffer
+      (funcall mode)
+      (insert content)
+      (goto-char offset)
+      (-when-let (thing (funcall command back))
+        (setq thing (plist-put thing :beg (+ (1- content-start) (sp-get thing :beg))))
+        (setq thing (plist-put thing :end (+ (1- content-start) (sp-get thing :end))))
+        thing))))
+
 (defun sp-get-thing (&optional back)
   "Find next thing after point, or before if BACK is non-nil.
 
@@ -5654,135 +5700,138 @@ string (`sp-get-string') or balanced expression recognized by
 If `sp-navigate-consider-symbols' is nil, only balanced
 expressions are considered."
   (sp--maybe-init)
-  (sp--with-case-sensitive
-    (cond
-     (sp-prefix-tag-object (sp-get-sgml-tag back))
-     (sp-prefix-pair-object (sp-get-paired-expression back))
-     (sp-prefix-symbol-object (sp-get-symbol back))
-     (t
-      (if back
+  (if (and (eq major-mode 'org-mode)
+           (sp-org--is-src-block-p))
+      (sp-org--parse-src-block 'sp-get-thing back)
+    (sp--with-case-sensitive
+      (cond
+       (sp-prefix-tag-object (sp-get-sgml-tag back))
+       (sp-prefix-pair-object (sp-get-paired-expression back))
+       (sp-prefix-symbol-object (sp-get-symbol back))
+       (t
+        (if back
+            (if (not sp-navigate-consider-symbols)
+                (sp-get-sexp t)
+              (save-excursion
+                (cond
+                 ((sp-point-in-empty-string)
+                  (sp-get-string t))
+                 (t
+                  (sp-skip-backward-to-symbol t nil t)
+                  (cond
+                   ;; this is an optimization, we do not need to look up
+                   ;; the "pair" expression first. If this fails, follow
+                   ;; up with regular sexps
+                   ((and (memq major-mode sp-navigate-consider-sgml-tags)
+                         (or (sp--looking-back ">")
+                             ;; sp-skip-backward-to-symbol moves the
+                             ;; point to the end of an element name in
+                             ;; js2-jsx-mode
+                             (looking-at ">"))
+                         (sp-get-sgml-tag t)))
+                   ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-closing-regexp (sp--get-allowed-pair-list)) nil))
+                    (sp-get-sexp t))
+                   ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-opening-regexp (sp--get-allowed-pair-list)) nil))
+                    (sp-get-sexp t))
+                   ((and (eq (syntax-class (syntax-after (1- (point)))) 7)
+                         (not (sp-char-is-escaped-p (1- (point)))))
+                    (if (eq t (sp-point-in-string))
+                        (save-excursion
+                          (save-restriction
+                            (widen)
+                            (-let (((beg . end) (sp-get-quoted-string-bounds)))
+                              (narrow-to-region beg end))
+                            (sp-get-stringlike-expression t)))
+                      (sp-get-string t)))
+                   ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-stringlike-regexp) nil))
+                    (sp-get-expression t))
+                   ;; We might be somewhere inside the prefix of the
+                   ;; sexp after the point.  Since the prefix can be
+                   ;; specified as regexp and not syntax class, it might
+                   ;; itself by a symbol which would invalidly get
+                   ;; picked here.
+                   (t (-when-let (sym (sp-get-symbol t))
+                        (save-excursion
+                          (sp-get sym (goto-char :end))
+                          (if (sp--valid-initial-delimiter-p (sp--looking-at (sp--get-opening-regexp (sp--get-allowed-pair-list))))
+                              (let* ((ms (match-string 0))
+                                     (pref (sp--get-prefix (point) ms)))
+                                (if (and pref
+                                         (not (equal pref "")))
+                                    (sp-get-sexp t)
+                                  sym))
+                            sym)))))))))
           (if (not sp-navigate-consider-symbols)
-              (sp-get-sexp t)
+              (sp-get-sexp nil)
             (save-excursion
               (cond
                ((sp-point-in-empty-string)
-                (sp-get-string t))
+                (sp-get-string nil))
                (t
-                (sp-skip-backward-to-symbol t nil t)
+                (sp-skip-forward-to-symbol t nil t)
                 (cond
-                 ;; this is an optimization, we do not need to look up
-                 ;; the "pair" expression first. If this fails, follow
-                 ;; up with regular sexps
                  ((and (memq major-mode sp-navigate-consider-sgml-tags)
-                       (or (sp--looking-back ">")
-                           ;; sp-skip-backward-to-symbol moves the
-                           ;; point to the end of an element name in
+                       (or (looking-at "<")
+                           ;; sp-skip-forward-to-symbol moves the point
+                           ;; to the beginning of an element name in
                            ;; js2-jsx-mode
-                           (looking-at ">"))
-                       (sp-get-sgml-tag t)))
-                 ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-closing-regexp (sp--get-allowed-pair-list)) nil))
-                  (sp-get-sexp t))
-                 ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-opening-regexp (sp--get-allowed-pair-list)) nil))
-                  (sp-get-sexp t))
-                 ((and (eq (syntax-class (syntax-after (1- (point)))) 7)
-                       (not (sp-char-is-escaped-p (1- (point)))))
+                           (and (sp--looking-back "</?" (- (point) 2))
+                                (goto-char (match-beginning 0))))
+                       (sp-get-sgml-tag)))
+                 ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-opening-regexp (sp--get-allowed-pair-list))))
+                  (sp-get-sexp nil))
+                 ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-closing-regexp (sp--get-allowed-pair-list))))
+                  (sp-get-sexp nil))
+                 ;; TODO: merge the following two conditions and use
+                 ;; `sp-get-stringlike-or-textmode-expression'
+                 ((and (eq (syntax-class (syntax-after (point))) 7)
+                       (not (sp-char-is-escaped-p)))
+                  ;; It might happen that the string delimiter we are
+                  ;; looking at is nested inside another string
+                  ;; delimited by string fences (for example nested "
+                  ;; and ' in python).  In this case we can't use
+                  ;; `sp-get-string' parser because it would pick up the
+                  ;; outer string.  So if we are inside a string and
+                  ;; `syntax-ppss' returns t as delimiter we need to use
+                  ;; `sp-get-stringlike-expression'
                   (if (eq t (sp-point-in-string))
                       (save-excursion
                         (save-restriction
                           (widen)
                           (-let (((beg . end) (sp-get-quoted-string-bounds)))
                             (narrow-to-region beg end))
-                          (sp-get-stringlike-expression t)))
-                    (sp-get-string t)))
-                 ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-stringlike-regexp) nil))
-                  (sp-get-expression t))
-                 ;; We might be somewhere inside the prefix of the
-                 ;; sexp after the point.  Since the prefix can be
-                 ;; specified as regexp and not syntax class, it might
-                 ;; itself by a symbol which would invalidly get
-                 ;; picked here.
-                 (t (-when-let (sym (sp-get-symbol t))
-                      (save-excursion
-                        (sp-get sym (goto-char :end))
-                        (if (sp--valid-initial-delimiter-p (sp--looking-at (sp--get-opening-regexp (sp--get-allowed-pair-list))))
+                          (sp-get-stringlike-expression nil)))
+                    (sp-get-string nil)))
+                 ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-stringlike-regexp)))
+                  (sp-get-expression nil))
+                 ;; it can still be that we are looking at a /prefix/ of a
+                 ;; sexp.  We should skip a symbol forward and check if it
+                 ;; is a sexp, and then maybe readjust the output.
+                 (t (let* ((sym (sp-get-symbol nil))
+                           (sym-string (and sym (sp-get sym (buffer-substring-no-properties :beg :end))))
+                           (point-before-prefix (point)))
+                      (when sym-string
+                        (if (sp--valid-initial-delimiter-p (sp--search-forward-regexp (sp--get-opening-regexp (sp--get-pair-list-context 'navigate)) nil t))
                             (let* ((ms (match-string 0))
-                                   (pref (sp--get-prefix (point) ms)))
+                                   (pref (progn
+                                           ;; need to move before the
+                                           ;; opening, so (point) evals
+                                           ;; there.
+                                           (backward-char (length ms))
+                                           (sp--get-prefix (point) ms))))
+                              ;; We use >= because the first skip to
+                              ;; symbol might have skipped some prefix
+                              ;; chars which make prefix of the symbol
+                              ;; which together make prefix of a sexp.
+                              ;; For example \foo{} in latex, where \ is
+                              ;; prefix of symbol foo and \foo is prefix
+                              ;; of {
                               (if (and pref
-                                       (not (equal pref "")))
-                                  (sp-get-sexp t)
+                                       (not (equal pref ""))
+                                       (>= point-before-prefix (- (point) (length pref))))
+                                  (sp-get-sexp nil)
                                 sym))
-                          sym)))))))))
-        (if (not sp-navigate-consider-symbols)
-            (sp-get-sexp nil)
-          (save-excursion
-            (cond
-             ((sp-point-in-empty-string)
-              (sp-get-string nil))
-             (t
-              (sp-skip-forward-to-symbol t nil t)
-              (cond
-               ((and (memq major-mode sp-navigate-consider-sgml-tags)
-                     (or (looking-at "<")
-                         ;; sp-skip-forward-to-symbol moves the point
-                         ;; to the beginning of an element name in
-                         ;; js2-jsx-mode
-                         (and (sp--looking-back "</?" (- (point) 2))
-                              (goto-char (match-beginning 0))))
-                     (sp-get-sgml-tag)))
-               ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-opening-regexp (sp--get-allowed-pair-list))))
-                (sp-get-sexp nil))
-               ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-closing-regexp (sp--get-allowed-pair-list))))
-                (sp-get-sexp nil))
-               ;; TODO: merge the following two conditions and use
-               ;; `sp-get-stringlike-or-textmode-expression'
-               ((and (eq (syntax-class (syntax-after (point))) 7)
-                     (not (sp-char-is-escaped-p)))
-                ;; It might happen that the string delimiter we are
-                ;; looking at is nested inside another string
-                ;; delimited by string fences (for example nested "
-                ;; and ' in python).  In this case we can't use
-                ;; `sp-get-string' parser because it would pick up the
-                ;; outer string.  So if we are inside a string and
-                ;; `syntax-ppss' returns t as delimiter we need to use
-                ;; `sp-get-stringlike-expression'
-                (if (eq t (sp-point-in-string))
-                    (save-excursion
-                      (save-restriction
-                        (widen)
-                        (-let (((beg . end) (sp-get-quoted-string-bounds)))
-                          (narrow-to-region beg end))
-                        (sp-get-stringlike-expression nil)))
-                  (sp-get-string nil)))
-               ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-stringlike-regexp)))
-                (sp-get-expression nil))
-               ;; it can still be that we are looking at a /prefix/ of a
-               ;; sexp.  We should skip a symbol forward and check if it
-               ;; is a sexp, and then maybe readjust the output.
-               (t (let* ((sym (sp-get-symbol nil))
-                         (sym-string (and sym (sp-get sym (buffer-substring-no-properties :beg :end))))
-                         (point-before-prefix (point)))
-                    (when sym-string
-                      (if (sp--valid-initial-delimiter-p (sp--search-forward-regexp (sp--get-opening-regexp (sp--get-pair-list-context 'navigate)) nil t))
-                          (let* ((ms (match-string 0))
-                                 (pref (progn
-                                         ;; need to move before the
-                                         ;; opening, so (point) evals
-                                         ;; there.
-                                         (backward-char (length ms))
-                                         (sp--get-prefix (point) ms))))
-                            ;; We use >= because the first skip to
-                            ;; symbol might have skipped some prefix
-                            ;; chars which make prefix of the symbol
-                            ;; which together make prefix of a sexp.
-                            ;; For example \foo{} in latex, where \ is
-                            ;; prefix of symbol foo and \foo is prefix
-                            ;; of {
-                            (if (and pref
-                                     (not (equal pref ""))
-                                     (>= point-before-prefix (- (point) (length pref))))
-                                (sp-get-sexp nil)
-                              sym))
-                        sym))))))))))))))
+                          sym)))))))))))))))
 
 (defun sp-narrow-to-sexp (arg)
   "Make text outside current balanced expression invisible.

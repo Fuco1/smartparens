@@ -1,4 +1,5 @@
 (require 'smartparens-org)
+(require 'org-src)
 
 
 ;;; star pair
@@ -153,3 +154,17 @@
       (org-mode)
     (execute-kbd-macro "foo = bar")
     (sp-buffer-equals "foo = bar")))
+
+
+;; parsing source blocks
+(ert-deftest sp-test-org-src-block-elisp-forward-sexp ()
+  (sp-test-with-temp-buffer "#+BEGIN_SRC elisp\n|(fooo ?) )\n#+END_SRC\n"
+      (org-mode)
+    (sp-forward-sexp)
+    (sp-buffer-equals "#+BEGIN_SRC elisp\n(fooo ?) )|\n#+END_SRC\n")))
+
+(ert-deftest sp-test-org-src-block-elisp-backward-sexp ()
+  (sp-test-with-temp-buffer "#+BEGIN_SRC elisp\n(fooo ?) )|\n#+END_SRC\n"
+      (org-mode)
+    (sp-backward-sexp)
+    (sp-buffer-equals "#+BEGIN_SRC elisp\n|(fooo ?) )\n#+END_SRC\n")))
