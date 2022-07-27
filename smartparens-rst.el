@@ -1,12 +1,10 @@
-;;; smartparens-rst.el --- Additional configuration for rst based modes.  -*- lexical-binding: t; -*-
+;;; smartparens-rst.el --- Additional configuration for rst based modes  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2019 Matus Goljer
 
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
-;; Created: 28th January 2019
-;; Keywords: abbrev convenience editing
-;; URL: https://github.com/Fuco1/smartparens
+;; Created: 28 January 2019
 
 ;; This file is not part of GNU Emacs.
 
@@ -31,15 +29,15 @@
 
 ;; This file provides some additional configuration for rst based
 ;; modes.  To use it, simply add:
-;;
+
 ;; (require 'smartparens-rst)
-;;
+
 ;; into your configuration.  You can use this in conjunction with the
 ;; default config or your own configuration.
-;;
+
 ;; If you have good ideas about what should be added please file an
 ;; issue on the github tracker.
-;;
+
 ;; For more info, see github readme at
 ;; https://github.com/Fuco1/smartparens
 

@@ -1,12 +1,10 @@
-;;; smartparens-latex.el --- Additional configuration for (La)TeX based modes.  -*- lexical-binding: t; -*-
+;;; smartparens-latex.el --- Additional configuration for (La)TeX based modes  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2013-2016 Matus Goljer
 
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
 ;; Created: 14 Feb 2013
-;; Keywords: abbrev convenience editing
-;; URL: https://github.com/Fuco1/smartparens
 
 ;; This file is not part of GNU Emacs.
 
@@ -31,9 +29,9 @@
 
 ;; This file provides some additional configuration for (La)TeX based
 ;; modes.  To use it, simply add:
-;;
+
 ;; (require 'smartparens-latex)
-;;
+
 ;; into your configuration.  You can use this in conjunction with the
 ;; default config or your own configuration.
 
