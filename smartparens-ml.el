@@ -63,7 +63,7 @@
   (sp-local-pair "{|" "|}" )      ;; multi-line string
   (sp-local-pair "[|" "|]" )      ;; array
   (sp-local-pair "sig" "end" )    ;; signature
-  (sp-local-pair "module" "end" ) ;; module
+  (sp-local-pair "struct" "end" ) ;; module
   (sp-local-pair "(*" "*)" ))     ;; comment
 
 ;; Ignore punctuation, so we can split ~(foo) to ~foo.
