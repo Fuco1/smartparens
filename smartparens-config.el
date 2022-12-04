@@ -128,6 +128,7 @@ ID, ACTION, CONTEXT."
 (eval-after-load 'text-mode                '(require 'smartparens-text))
 (eval-after-load 'tuareg                   '(require 'smartparens-ml))
 (eval-after-load 'fsharp-mode              '(require 'smartparens-ml))
+(eval-after-load 'unisonlang-mode          '(require 'smartparens-unison))
 (--each '(js js2-mode)
   (eval-after-load it                      '(require 'smartparens-javascript)))
 (provide 'smartparens-config)
