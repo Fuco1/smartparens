@@ -51,7 +51,7 @@
   "smartparens settings for python-mode"
   :group 'smartparens)
 
-(defcustom sp-python-insert-colon-in-function-definitions t
+(defcustom sp-python-insert-colon-in-function-definitions nil
   "If non-nil, auto-insert a colon after parens insertion in definition.
 
 Supported definitions are:
