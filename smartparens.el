@@ -5,6 +5,7 @@
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
 ;; Created: 17 Nov 2012
+;; Version: 1.11.0
 ;; Keywords: abbrev convenience editing
 ;; URL: https://github.com/Fuco1/smartparens
 
@@ -6733,8 +6734,9 @@ the point is in (see `sp-get-hybrid-sexp').
 
 With ARG numeric prefix 0 (zero) just call `kill-line'.
 
-You can customize the behaviour of this command by toggling
-`sp-hybrid-kill-excessive-whitespace'.
+You can customize the behaviour of this command by customizing
+`sp-hybrid-kill-excessive-whitespace' and
+`sp-hybrid-kill-entire-symbol'.
 
 Examples:
 
