@@ -70,7 +70,7 @@ ID, ACTION, CONTEXT."
               ;; do not consider punctuation
               (not (looking-at "[?.,;!]"))))))))
 
-;; emacs is lisp hacking enviroment, so we set up some most common
+;; emacs is lisp hacking environment, so we set up some most common
 ;; lisp modes too
 (sp-with-modes sp-lisp-modes
   ;; disable ', it's the quote character!

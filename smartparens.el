@@ -460,14 +460,14 @@ rely on the value of this variable anywhere else!")
 
 ;; TODO: get rid of this
 (defvar-local sp-wrap-point nil
-  "Save the value of point before attemt to wrap a region.
+  "Save the value of point before attempt to wrap a region.
 
 Used for restoring the original state if the wrapping is
 cancelled.")
 
 ;; TODO: get rid of this
 (defvar-local sp-wrap-mark nil
-  "Save the value of mark before attemt to wrap a region.
+  "Save the value of mark before attempt to wrap a region.
 
 Used for restoring the original state if the wrapping is
 cancelled.")
