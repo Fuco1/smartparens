@@ -1179,6 +1179,14 @@ position (before or after the region).
   :group 'smartparens)
 
 ;; navigation & manip custom
+(defcustom sp-barf-move-point-with-delimiter t
+  "If non-nil, move point when it would end outside the sexp after barf.
+
+This way, a barf operation can be immediately followed by an
+opposite slurp to undo it."
+  :type 'boolean
+  :group 'smartparens)
+
 (defcustom sp-navigate-consider-sgml-tags '(
                                             html-mode
                                             )
@@ -7386,6 +7394,11 @@ closing delimiter of the list.
 
 If the current list is empty, do nothing.
 
+If the setting `sp-barf-move-point-with-delimiter' is non-nil,
+move the point together with the closing delimiter if the point
+would end up outside of the enclosing sexp.  This way the barf
+can be always followed by a slurp to undo the change.
+
 Examples: (prefix arg in comment)
 
   (foo bar| baz)   -> (foo bar|) baz   ;; nil (defaults to 1)
@@ -7398,7 +7411,8 @@ Examples: (prefix arg in comment)
   (interactive "P")
   (let* ((raw (sp--raw-argument-p arg))
          (old-arg arg)
-         (arg (prefix-numeric-value arg)))
+         (arg (prefix-numeric-value arg))
+         (new-cl-position nil))
     (if (> arg 0)
         (if (sp-point-in-blank-sexp)
             (sp-message :blank-sexp)
@@ -7425,8 +7439,12 @@ Examples: (prefix arg in comment)
                 (sp-do-move-cl (point))
                 (sp--keep-indentation
                   (sp--indent-region :beg :end))
+                (setq new-cl-position (- (point) :cl-l))
                 (sp--run-hook-with-args :op :post-handlers 'barf-forward
-                  (list :arg arg :enc enc))))))
+                  (list :arg arg :enc enc)))))
+          (when (and sp-barf-move-point-with-delimiter
+                     (< new-cl-position (point)))
+            (goto-char new-cl-position)))
       (sp-backward-barf-sexp (sp--negate-argument old-arg)))))
 
 (defun sp-backward-barf-sexp (&optional arg)
@@ -7445,7 +7463,8 @@ Examples:
   (interactive "P")
   (let* ((raw (sp--raw-argument-p arg))
          (old-arg arg)
-         (arg (prefix-numeric-value arg)))
+         (arg (prefix-numeric-value arg))
+         (new-cl-position nil))
     (if (> arg 0)
         (if (sp-point-in-blank-sexp)
             (sp-message :blank-sexp)
@@ -7469,10 +7488,19 @@ Examples:
                 (sp--run-hook-with-args :op :pre-handlers 'barf-backward
                   (list :arg arg :enc enc)))
               (sp-get (sp-get-enclosing-sexp)
-                (sp-do-move-op (point))
+                ;; make sure that we end up on the same place, since
+                ;; sp-do-move-op might move the point to the start of
+                ;; the previous sexp (the one barfed out)
+                (save-excursion (sp-do-move-op (point)))
+                ;; skip the opening to end up inside the sexp
+                (forward-char (+ :op-l :prefix-l))
                 (sp--indent-region :beg :end)
+                (setq new-cl-position (point))
                 (sp--run-hook-with-args :op :post-handlers 'barf-backward
-                  (list :arg arg :enc enc))))))
+                  (list :arg arg :enc enc)))))
+          (when (and sp-barf-move-point-with-delimiter
+                     (> new-cl-position (point)))
+            (goto-char new-cl-position)))
       (sp-forward-barf-sexp (sp--negate-argument old-arg)))))
 
 ;; TODO: get rid of the macro anyway, it's stupid!

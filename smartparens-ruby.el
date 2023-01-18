@@ -118,6 +118,7 @@ ID, ACTION, CONTEXT."
 ID, ACTION, CONTEXT."
   (-let (((&plist :arg arg :enc enc) sp-handler-context))
     (when (equal action 'barf-backward)
+      (goto-char (sp-get enc :beg))
       (sp-ruby-delete-indentation 1)
       (indent-according-to-mode)
       (save-excursion

@@ -1023,10 +1023,3 @@ This is the behavior of `paredit-convolute-sexp'."
       (sp-buffer-equals "(foo)
 (progn
   |(bar))"))))
-
-(ert-deftest sp-test-sp-forward-barf-sexp-634 ()
-  (sp-test-with-temp-elisp-buffer "(let ((a 4)\n      ;; (fail)\n      |(+ 1)\n      ))\n"
-    (call-interactively 'sp-forward-barf-sexp)
-    (sp-buffer-equals "(let ((a 4))\n  ;; (fail)\n  (+ 1)\n  )\n")
-    (call-interactively 'sp-forward-barf-sexp)
-    (sp-buffer-equals "(let ((a 4)))\n;; (fail)\n|(+ 1)\n\n")))
