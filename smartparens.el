@@ -725,8 +725,22 @@ You can enable pre-set bindings by customizing
       (progn
         (sp--init)
         (add-hook 'self-insert-uses-region-functions 'sp-wrap--can-wrap-p nil 'local)
+        ;; Unfortunately, some modes rebind "inserting" keys to their
+        ;; own handlers but do not hand over the insertion back to
+        ;; `self-insert-command', rather, they insert via `insert'.
+        ;; Therefore, we need to call this handler in
+        ;; `post-command-hook' too (inside
+        ;; `sp--post-command-hook-handler').  The list
+        ;; `sp--special-self-insert-commands' specifies which commands
+        ;; to handle specially.
+        (add-hook 'post-self-insert-hook 'sp--post-self-insert-hook-handler nil 'local)
+        (add-hook 'pre-command-hook 'sp--save-pre-command-state nil 'local)
+        (add-hook 'post-command-hook 'sp--post-command-hook-handler nil 'local)
         (run-hooks 'smartparens-enabled-hook))
     (remove-hook 'self-insert-uses-region-functions 'sp-wrap--can-wrap-p 'local)
+    (remove-hook 'post-self-insert-hook 'sp--post-self-insert-hook-handler 'local)
+    (remove-hook 'pre-command-hook 'sp--save-pre-command-state 'local)
+    (remove-hook 'post-command-hook 'sp--post-command-hook-handler 'local)
     (run-hooks 'smartparens-disabled-hook)))
 
 (defvar smartparens-strict-mode-map
@@ -1543,14 +1557,14 @@ This check is added to the special hook
 ;; the advice in time.
 (defadvice cua-replace-region (around fix-sp-wrap activate)
   "Fix `sp-wrap' in `cua-selection-mode'."
-  (if (sp-wrap--can-wrap-p)
+  (if (and smartparens-mode (sp-wrap--can-wrap-p))
       (cua--fallback)
     ad-do-it))
 
 (defadvice cua-delete-region (around fix-sp-delete-region activate)
   "If `smartparens-strict-mode' is enabled, perform a region
 check before deleting."
-  (if smartparens-strict-mode
+  (if (and smartparens-mode smartparens-strict-mode)
       (progn
         (unless (or current-prefix-arg
                     (sp-region-ok-p (region-beginning) (region-end)))
@@ -3252,14 +3266,6 @@ last form; otherwise do nothing."
               (unless action
                 (setq sp-last-operation 'sp-self-insert))))))))))
 
-;; Unfortunately, some modes rebind "inserting" keys to their own
-;; handlers but do not hand over the insertion back to
-;; `self-insert-command', rather, they insert via `insert'.
-;; Therefore, we need to call this handler in `post-command-hook' too.
-;; The list `sp--special-self-insert-commands' specifies which
-;; commands to handle specially.
-(add-hook 'post-self-insert-hook 'sp--post-self-insert-hook-handler)
-
 ;; TODO: make a proper data structure for state tracking and describe
 ;; why we need each of these.
 (defun sp--save-pre-command-state ()
@@ -3268,8 +3274,6 @@ last form; otherwise do nothing."
     (setq sp-point-inside-string (sp-point-in-string))
     (setq sp-pre-command-point (point))
     (setq sp-buffer-modified-p (buffer-modified-p))))
-
-(add-hook 'pre-command-hook 'sp--save-pre-command-state)
 
 (defun sp--get-pair-list ()
   "Get all non-stringlike pairs.
@@ -9644,7 +9648,6 @@ has been created."
 (defadvice haskell-indentation-delete-backward-char (before sp-delete-pair-advice activate)
   (save-match-data
     (sp-delete-pair (ad-get-arg 0))))
-(add-hook 'post-command-hook 'sp--post-command-hook-handler)
 (sp--set-base-key-bindings)
 (sp--update-override-key-bindings)
 
