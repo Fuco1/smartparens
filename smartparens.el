@@ -3388,7 +3388,6 @@ provided values."
         (e (make-marker)))
     (set-marker b beg)
     (set-marker e end)
-    (set-marker-insertion-type e t)
     `(:beg ,b :end ,e :op ,open :cl ,close :prefix "")))
 
 ;; Wrapping is basically the same thing as insertion, only the closing
@@ -3979,7 +3978,7 @@ active region."
                 ((= 2 sp-wrap-repeat-last)))
                (memq sp-last-operation '(sp-self-insert sp-wrap-region))
                (or (= (point) (+ b oplen acolen))
-                   (= (point) e)))
+                   (= (point) (+ e acolen))))
           (delete-char (- acolen))
           (if (< (point) e)
               (progn (goto-char (+ b oplen))
@@ -3997,7 +3996,7 @@ active region."
             (insert (cdr active-pair))
             (setq sp-last-wrapped-region
                   (sp--make-last-wraped-region
-                   b e (car active-pair) (cdr active-pair))))
+                   b (+ e acolen) (car active-pair) (cdr active-pair))))
           (setq sp-last-operation 'sp-wrap-region)
           (sp--run-hook-with-args (car active-pair) :post-handlers 'wrap)
           sp-last-operation)))))

@@ -75,7 +75,8 @@
 (ert-deftest sp-test-wrap-repeated nil
   (let ((sp-pairs sp--test-basic-pairs))
     (sp-test-wrapping "|aM" "[[" "[[|a]]")
-    (sp-test-wrapping "Ma|" "[[" "[[a]]|")))
+    (sp-test-wrapping "Ma|" "[[" "[[a]]|")
+    (sp-test-wrapping "Ma|" "[ [" "[a] [|]")))
 
 (ert-deftest sp-test-wrap-repeated-wrap-only-pair nil
   (let ((sp-pairs
