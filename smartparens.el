@@ -852,7 +852,7 @@ See `sp--init'."
 (defun sp--update-local-pairs ()
   "Update local pairs after change or at mode initialization.
 
-This commands load all the parent major mode definitions and
+This command loads all the parent major mode definitions and
 merges them into current buffer's `sp-local-pairs'."
   ;; Combine all the definitions from the most ancient parent to the
   ;; most recent parent
@@ -2450,9 +2450,9 @@ modes, use this property on `sp-local-pair' instead."
       (sp--update-pair-list pair t))
     (when (or wrap bind) (global-set-key (read-kbd-macro (or wrap bind))
                                          `(lambda (&optional arg)
-                                            (interactive "P")
+                                            (interactive "*P")
                                             (sp-wrap-with-pair ,open))))
-    (when insert (global-set-key (kbd insert) `(lambda () (interactive) (sp-insert-pair ,open)))))
+    (when insert (global-set-key (kbd insert) `(lambda () (interactive "*") (sp-insert-pair ,open)))))
   (sp--update-local-pairs-everywhere)
   sp-pairs)
 
@@ -2570,11 +2570,11 @@ addition, there is a global per major-mode option, see
           (when (or wrap bind) (define-key map
                                  (read-kbd-macro (or wrap bind))
                                  `(lambda (&optional arg)
-                                    (interactive "P")
+                                    (interactive "*P")
                                     (sp-wrap-with-pair ,open))))
           (when insert (define-key map
                          (kbd insert)
-                         `(lambda () (interactive) (sp-insert-pair ,open))))))))
+                         `(lambda () (interactive "*") (sp-insert-pair ,open))))))))
   (sp--update-local-pairs-everywhere (-flatten (list modes)))
   sp-pairs)
 
@@ -5573,7 +5573,7 @@ You can also bind the output of this function directly to a key, like:
 This will be a function that descends down only into { } pair,
 ignoring all others."
   (lambda (&optional _arg)
-    (interactive "P")
+    (interactive "*P")
     (sp-restrict-to-pairs pairs function)))
 
 (defun sp-restrict-to-object-interactive (object function)
@@ -5597,7 +5597,7 @@ You can also bind the output of this function directly to a key, like:
 This will be a function that navigates only by using paired
 expressions, ignoring strings and sgml tags."
   (lambda (&optional _arg)
-    (interactive "P")
+    (interactive "*P")
     (sp-restrict-to-object object function)))
 
 (defun sp-prefix-tag-object (&optional _arg)
@@ -6481,7 +6481,7 @@ between the successive kills.")
 If `evil-mode' is active, copying a region will also add it to the 0 register.
 Additionally, if command was prefixed with a register, copy the region
 to that register."
-  (interactive)
+  (interactive "*")
   (let ((result
          (if dont-kill
              (copy-region-as-kill beg end)
@@ -6550,7 +6550,7 @@ Examples:
 
 Note: prefix argument is shown after the example in
 \"comment\". Assumes `sp-navigate-consider-symbols' equal to t."
-  (interactive "P")
+  (interactive "*P")
   (let* ((raw (sp--raw-argument-p arg))
          (arg (prefix-numeric-value arg))
          (n (abs arg))
@@ -6669,7 +6669,7 @@ Examples:
   blab (foo (bar baz) quux)| -> blab |
 
   (1 2 3 |4 5 6)             -> (|4 5 6) ;; \\[universal-argument]"
-  (interactive "P")
+  (interactive "*P")
   (sp-kill-sexp (sp--negate-argument arg) dont-kill))
 
 (defun sp-copy-sexp (&optional arg)
@@ -6698,7 +6698,7 @@ current one and put the point in front of it.
 
 Otherwise get the enclosing sexp and clone it below the current
 enclosing sexp."
-  (interactive)
+  (interactive "*")
   (-when-let (ok (let ((sexp (sp-get-thing)))
                    (if (not (equal (sp-get sexp :op) ""))
                        sexp
@@ -6755,7 +6755,7 @@ Examples:
 
   foo | (bar                  -> foo |               ;; C-0
          baz)                          baz)"
-  (interactive "P")
+  (interactive "*P")
   (let* ((raw (sp--raw-argument-p arg))
          (arg (prefix-numeric-value arg))
          (orig-indent (save-excursion
@@ -6818,7 +6818,7 @@ Examples:
 
   (progn                    (progn
     (some |long sexp))  ->    |)"
-  (interactive)
+  (interactive "*")
   (beginning-of-line)
   (sp-kill-hybrid-sexp nil)
   (let ((empty-last-line (save-excursion (beginning-of-line) (eobp))))
@@ -6862,7 +6862,7 @@ Examples:
 ​    |(baz quux)            |(foo bar)
 
   foo bar baz|     -> foo baz| bar ;; -1"
-  (interactive "P")
+  (interactive "*P")
   (let* ((arg (prefix-numeric-value arg))
          (n (abs arg)))
     ;; if we're inside a symbol, we need to move out of it first
@@ -6901,7 +6901,7 @@ Examples:
 
   foo bar baz  -> quux flux
   |quux flux      foo bar baz\\n|"
-  (interactive "P")
+  (interactive "*P")
   (if (numberp arg)
       (transpose-lines arg)
     (let* ((next (save-excursion
@@ -6931,7 +6931,7 @@ Examples:
                            ->
   (a,                          x = big_function_call(a,
    b) = read_user_input()                            b)"
-  (interactive)
+  (interactive "*")
   (let* ((cur (sp-get-hybrid-sexp))
          (next (save-excursion
                  (goto-char (sp-get cur :end))
@@ -6952,7 +6952,7 @@ typed text will become the last item of the previous sexp.
 
 This acts similarly to `sp-add-to-previous-sexp' but with special
 handling of empty lines."
-  (interactive)
+  (interactive "*")
   (let* ((hsexp (sp-get-hybrid-sexp))
          (prev-sexp (save-excursion
                       (goto-char (sp-get hsexp :beg))
@@ -6979,7 +6979,7 @@ the closing delimiter after the last item in the list.
 
 This acts similarly to `sp-forward-barf-sexp' but with special
 handling of empty lines."
-  (interactive)
+  (interactive "*")
   (-when-let (enc (sp-get-enclosing-sexp))
     (save-excursion
       ;; if we're looking at whitespace and end of sexp, move the
@@ -7027,7 +7027,7 @@ works better in \"line-based\" languages like C or Java.
 Because the structure is much looser in these languages, this
 command currently does not support all the prefix argument
 triggers that `sp-forward-slurp-sexp' does."
-  (interactive)
+  (interactive "*")
   (let (slurped-within-line)
     (-if-let* ((enc (sp-get-enclosing-sexp))
                (bsexp (save-excursion
@@ -7116,7 +7116,7 @@ Examples:
   ((|foo) bar baz quux) -> ((|foo bar baz quux)) ;; with \\[universal-argument]
 
   \"foo| bar\" \"baz quux\" -> \"foo| bar baz quux\""
-  (interactive "P")
+  (interactive "*P")
   (if (> (prefix-numeric-value arg) 0)
       (let ((n (abs (prefix-numeric-value arg)))
             (enc (sp-get-enclosing-sexp))
@@ -7227,7 +7227,7 @@ Examples:
   (foo bar baz (|quux)) -> ((foo bar baz |quux)) ;; with \\[universal-argument]
 
   \"foo bar\" \"baz |quux\" -> \"foo bar baz |quux\""
-  (interactive "P")
+  (interactive "*P")
   (if (> (prefix-numeric-value arg) 0)
       (let ((n (abs (prefix-numeric-value arg)))
             (enc (sp-get-enclosing-sexp))
@@ -7329,7 +7329,7 @@ Examples:
   (blab (foo bar) |baz quux) -> (blab (foo bar |baz quux)) ;; \\[universal-argument]
 
   (foo bar) (baz |quux)      -> (foo bar (baz |quux)) ;; \\[universal-argument] \\[universal-argument]"
-  (interactive "P")
+  (interactive "*P")
   (save-excursion
     (cond
      ((equal arg '(16))
@@ -7362,7 +7362,7 @@ Examples:
   (foo bar |(bar quux) blab) -> ((foo bar |bar quux) blab) ;; \\[universal-argument]
 
   (foo |bar) (baz quux)      -> ((foo |bar) baz quux) ;; \\[universal-argument] \\[universal-argument]"
-  (interactive "P")
+  (interactive "*P")
   (save-excursion
     (cond
      ((equal arg '(16))
@@ -7400,7 +7400,7 @@ Examples: (prefix arg in comment)
   (1 2 3| 4 5 6)   -> (1 2 3|) 4 5 6   ;; \\[universal-argument] (or numeric prefix 3)
 
   (foo bar| baz)   -> foo (bar| baz)   ;; -1"
-  (interactive "P")
+  (interactive "*P")
   (let* ((raw (sp--raw-argument-p arg))
          (old-arg arg)
          (arg (prefix-numeric-value arg))
@@ -7452,7 +7452,7 @@ Examples:
   ([foo bar] |baz) -> [foo bar] (|baz)
 
   (1 2 3 |4 5 6) -> 1 2 3 (|4 5 6) ;; \\[universal-argument] (or 3)"
-  (interactive "P")
+  (interactive "*P")
   (let* ((raw (sp--raw-argument-p arg))
          (old-arg arg)
          (arg (prefix-numeric-value arg))
@@ -7753,21 +7753,23 @@ Examples:
   (foo |bar baz) -> [foo |bar baz]   ;; [
 
   (foo |bar baz) -> [(foo |bar baz)] ;; \\[universal-argument] ["
-  (interactive (list
-                (catch 'done
-                  (let ((available-pairs (sp--get-pair-list-context 'wrap))
-                        ev ac (pair-prefix ""))
-                    (while (not ac)
-                      (setq ev (read-event (format "Rewrap with: %s" pair-prefix) t))
-                      (if (and (equal pair-prefix "")
-                               (eq ev 'return))
-                          (throw 'done nil))
-                      (setq pair-prefix (concat pair-prefix (format-kbd-macro (vector ev))))
-                      (unless (--any? (string-prefix-p pair-prefix (car it)) available-pairs)
-                        (user-error "Impossible pair prefix selected: %s" pair-prefix))
-                      (setq ac (--first (equal pair-prefix (car it)) available-pairs)))
-                    ac))
-                current-prefix-arg))
+  (interactive (if buffer-read-only
+                   (user-error "Buffer is read-only")
+                 (list
+                  (catch 'done
+                    (let ((available-pairs (sp--get-pair-list-context 'wrap))
+                          ev ac (pair-prefix ""))
+                      (while (not ac)
+                        (setq ev (read-event (format "Rewrap with: %s" pair-prefix) t))
+                        (if (and (equal pair-prefix "")
+                                 (eq ev 'return))
+                            (throw 'done nil))
+                        (setq pair-prefix (concat pair-prefix (format-kbd-macro (vector ev))))
+                        (unless (--any? (string-prefix-p pair-prefix (car it)) available-pairs)
+                          (user-error "Impossible pair prefix selected: %s" pair-prefix))
+                        (setq ac (--first (equal pair-prefix (car it)) available-pairs)))
+                      ac))
+                  current-prefix-arg)))
   (if (not pair)
       (sp-unwrap-sexp)
     (-when-let (enc (sp-get-enclosing-sexp))
@@ -7788,7 +7790,7 @@ Examples:
                         (length (cdr pair))
                         (- :op-l)
                         (- :cl-l))
-                  (car pair) (cdr pair)))))
+                 (car pair) (cdr pair)))))
       (sp--run-hook-with-args (car pair) :post-handlers 'rewrap-sexp
                               (list :parent (sp-get enc :op))))))
 
@@ -7803,7 +7805,7 @@ Examples:
   (foo [|bar] baz)              -> [foo (|bar) baz] ;; 1
 
   (foo {bar [|baz] quux} quack) -> [foo {bar (|baz) quux} quack] ;; 2"
-  (interactive "p")
+  (interactive "*p")
   (let ((enc (sp-get-enclosing-sexp))
         (encp (sp-get-enclosing-sexp (1+ arg))))
     (if (and enc encp)
@@ -7869,7 +7871,7 @@ Examples:
   (f|oo [bar] baz) -> (foo [|] baz)
 
   {|'foo': 'bar'}  -> {'|': 'bar'}"
-  (interactive)
+  (interactive "*")
   (-when-let (ok (sp-get-sexp))
     (sp-get ok
       (kill-region :beg-in :end-in)
@@ -7889,7 +7891,7 @@ Examples:
   (f|oo [bar] baz) -> (|)
 
   {'f|oo': 'bar'}  -> {'|': 'bar'}"
-  (interactive)
+  (interactive "*")
   (-when-let (ok (sp-get-enclosing-sexp))
     (sp-get ok
       (if (sp-point-in-blank-sexp)
@@ -7925,7 +7927,7 @@ Examples:
   (foo bar| baz)     -> foo bar| baz
 
   |(foo) (bar) (baz) -> |(foo) bar (baz) ;; 2"
-  (interactive "p")
+  (interactive "*p")
   (setq arg (or arg 1))
   (let ((sp-navigate-consider-symbols nil))
     (let ((ok (save-excursion (sp-forward-sexp arg))))
@@ -7946,7 +7948,7 @@ Examples:
   (foo bar)| (baz)   -> foo bar| (baz)
 
   (foo) (bar) (baz)| -> foo (bar) (baz) ;; 3"
-  (interactive "p")
+  (interactive "*p")
   (sp-unwrap-sexp (- (or arg 1))))
 
 (defun sp-splice-sexp (&optional arg)
@@ -7962,7 +7964,7 @@ Examples:
   (foo |(bar baz) quux) -> foo |(bar baz) quux
 
   (foo (bar| baz) quux) -> foo (bar| baz) quux ;; 2"
-  (interactive "p")
+  (interactive "*p")
   (setq arg (or arg 1))
   (-when-let (ok (sp-get-enclosing-sexp arg))
     (if (equal ";" (sp-get ok :prefix))
@@ -8010,7 +8012,7 @@ Examples:
 Note that to kill only the content and not the enclosing
 delimiters you can use \\[universal-argument] \\[sp-backward-kill-sexp].
 See `sp-backward-kill-sexp' for more information."
-  (interactive "p")
+  (interactive "*p")
   (while (> arg 0)
     (sp-splice-sexp-killing-around '(4))
     (setq arg (1- arg))))
@@ -8032,7 +8034,7 @@ Examples:
 Note that to kill only the content and not the enclosing
 delimiters you can use \\[universal-argument] \\[sp-kill-sexp].
 See `sp-kill-sexp' for more information."
-  (interactive "p")
+  (interactive "*p")
   (while (> arg 0)
     (let ((ok (sp-get-enclosing-sexp 1)))
       (if ok
@@ -8075,7 +8077,7 @@ Examples:
   (- (car x) |a 3)      -> (car x)|   ;; with arg = -1
 
   (foo (bar |baz) quux) -> |(bar baz) ;; with arg = \\[universal-argument] \\[universal-argument]"
-  (interactive "P")
+  (interactive "*P")
   (cond
    ((equal arg '(-4))
     (sp-splice-sexp-killing-forward 1))
@@ -8182,7 +8184,7 @@ We want to move the `while' before the `let'.
 ​      (do-thing 3)))              (do-thing 3)))
 
   (forward-char (sp-get env |:op-l)) -> (sp-get env (forward-char |:op-l))"
-  (interactive "p")
+  (interactive "*p")
   (save-excursion
     (when (sp-point-in-symbol)
       (sp-forward-symbol))
@@ -8232,7 +8234,7 @@ Examples:
 ​   |(do-stuff 2))        (do-stuff 2))
 
   foo bar (concat |baz quux) -> (concat |foo bar baz quux) ;; 2"
-  (interactive "p")
+  (interactive "*p")
   (sp-forward-whitespace)
   (let* ((old (point))
          (raise (progn
@@ -8267,7 +8269,7 @@ Examples:
 ​  (while not-done-yet       (execute-only-once)
 ​    (execute-only-once) ->  (while not-done-yet    ;; arg = 2
 ​   |(execute-in-loop))       |(execute-in-loop))"
-  (interactive "p")
+  (interactive "*p")
   (let (save-text)
     (save-excursion
       (sp-beginning-of-sexp)
@@ -8296,7 +8298,7 @@ With ARG being raw prefix argument \\[universal-argument], extract all the expre
 up until the end of enclosing list.
 
 If the raw prefix is negative, this behaves as \\[universal-argument] `sp-backward-barf-sexp'."
-  (interactive "P")
+  (interactive "*P")
   (if (equal arg '(-4))
       (sp-backward-barf-sexp '(4))
     (sp-select-next-thing arg)
@@ -8345,7 +8347,7 @@ expressions up until the start of enclosing list."
   ;; this is uch uglier than the "before" version, since the
   ;; calculations forward have to account for the deleted text. Figure
   ;; out a way to make it smoother.
-  (interactive "P")
+  (interactive "*P")
   (sp-select-next-thing arg)
   (sp--with-case-sensitive
     (let ((enc (sp-get-enclosing-sexp))
@@ -8425,7 +8427,7 @@ Examples:
   ([foo |bar baz] quux) -> ([foo] |[bar baz] quux)
 
   (foo bar| baz quux) -> (foo) (bar|) (baz) (quux) ;; \\[universal-argument]"
-  (interactive "P")
+  (interactive "*P")
   (cond
    ((equal arg '(4))
     (-when-let ((first-item . rest-items) (sp-get-list-items))
@@ -8508,7 +8510,7 @@ Examples:
   [foo] [bar] |[baz]                  -> [foo bar |baz] ;; -2
 
   (foo bar (baz)| (quux) (blob bluq)) -> (foo bar (baz| quux blob bluq)) ;; \\[universal-argument]"
-  (interactive "P")
+  (interactive "*P")
   (let* ((raw (sp--raw-argument-p arg))
          (arg (prefix-numeric-value arg))
          (n (abs arg))
@@ -8814,7 +8816,7 @@ Examples:
  (foo (|) bar) -> (foo | bar)
 
  |(foo bar) -> (|foo bar)"
-  (interactive "P")
+  (interactive "*P")
   (sp--with-case-sensitive
     (let* ((raw (sp--raw-argument-p arg))
            ;; if you edit 10 gigabyte files in Emacs, you're gonna have
@@ -8899,7 +8901,7 @@ Examples:
  (foo (|) bar) -> (foo | bar)
 
  (foo bar)| -> (foo bar|)"
-  (interactive "P")
+  (interactive "*P")
   (if (and sp-autodelete-wrap
            (eq sp-last-operation 'sp-wrap-region))
       (sp-backward-unwrap-sexp)
@@ -9025,7 +9027,7 @@ With ARG being Negative number -N, repeat that many times in
 backward direction.
 
 See `sp-forward-symbol' for what constitutes a symbol."
-  (interactive "p")
+  (interactive "*p")
   (sp--with-case-sensitive
     (if (> arg 0)
         (while (> arg 0)
@@ -9062,7 +9064,7 @@ With ARG being positive number N, repeat that many times.
 
 With ARG being Negative number -N, repeat that many times in
 backward direction."
-  (interactive "p")
+  (interactive "*p")
   (sp-kill-symbol arg t))
 
 (defun sp-delete-symbol (&optional arg word)
@@ -9076,7 +9078,7 @@ With ARG being Negative number -N, repeat that many times in
 backward direction.
 
 See `sp-forward-symbol' for what constitutes a symbol."
-  (interactive "p")
+  (interactive "*p")
   (let* ((kill-ring kill-ring)
          (select-enable-clipboard nil))
     (sp-kill-symbol arg word)))
@@ -9090,7 +9092,7 @@ With ARG being positive number N, repeat that many times.
 
 With ARG being Negative number -N, repeat that many times in
 backward direction."
-  (interactive "p")
+  (interactive "*p")
   (sp-delete-symbol arg t))
 
 (defun sp-backward-kill-symbol (&optional arg word)
@@ -9102,7 +9104,7 @@ With ARG being Negative number -N, repeat that many times in
 forward direction.
 
 See `sp-backward-symbol' for what constitutes a symbol."
-  (interactive "p")
+  (interactive "*p")
   (sp--with-case-sensitive
     (if (> arg 0)
         (while (> arg 0)
@@ -9139,7 +9141,7 @@ With ARG being positive number N, repeat that many times.
 
 With ARG being Negative number -N, repeat that many times in
 backward direction."
-  (interactive "p")
+  (interactive "*p")
   (sp-backward-kill-symbol arg t))
 
 (defun sp-backward-delete-symbol (&optional arg word)
@@ -9153,7 +9155,7 @@ With ARG being Negative number -N, repeat that many times in
 forward direction.
 
 See `sp-backward-symbol' for what constitutes a symbol."
-  (interactive "p")
+  (interactive "*p")
   (let* ((kill-ring kill-ring)
          (select-enable-clipboard nil))
     (sp-backward-kill-symbol arg word)))
@@ -9167,7 +9169,7 @@ With ARG being positive number N, repeat that many times.
 
 With ARG being Negative number -N, repeat that many times in
 backward direction."
-  (interactive "p")
+  (interactive "*p")
   (sp-backward-delete-symbol arg t))
 
 (defun sp-delete-region (beg end)
@@ -9177,7 +9179,7 @@ BEG and END are the bounds of region to be deleted.
 
 If that text is unbalanced, signal an error instead.
 With a prefix argument, skip the balance check."
-  (interactive "r")
+  (interactive "*r")
   (when (or current-prefix-arg
             (sp-region-ok-p beg end)
             (user-error (sp-message :unbalanced-region :return)))
@@ -9191,7 +9193,7 @@ BEG and END are the bounds of region to be killed.
 
 If that text is unbalanced, signal an error instead.
 With a prefix argument, skip the balance check."
-  (interactive "r")
+  (interactive "*r")
   (when (or current-prefix-arg
             (sp-region-ok-p beg end)
             (user-error (sp-message :unbalanced-region :return)))
@@ -9206,7 +9208,7 @@ paragraph instead, and with ARG, justify as well.
 
 Otherwise, reindent the current defun, and adjust the position
 of the point."
-  (interactive "P")
+  (interactive "*P")
   (if (sp-point-in-string-or-comment)
       (fill-paragraph arg)
     (let ((column (current-column))
@@ -9252,7 +9254,7 @@ If in a string, just insert a literal newline.
 If in a comment and if followed by invalid structure, call
 `indent-new-comment-line' to keep the invalid structure in a
 comment."
-  (interactive)
+  (interactive "*")
   (cond
    ((sp-point-in-string)
     (newline))
@@ -9267,7 +9269,7 @@ comment."
 (defun sp-comment ()
   "Insert the comment character and adjust hanging sexps such
   that it doesn't break structure."
-  (interactive)
+  (interactive "*")
   (if (sp-point-in-string-or-comment)
       (if (= 1 (length (single-key-description last-command-event))) ;; pretty hacky
           (insert (single-key-description last-command-event))
@@ -9309,17 +9311,17 @@ comment."
 
 (defun sp-wrap-round ()
   "Wrap following sexp in round parentheses."
-  (interactive)
+  (interactive "*")
   (sp-wrap-with-pair "("))
 
 (defun sp-wrap-square ()
   "Wrap following sexp in square brackets."
-  (interactive)
+  (interactive "*")
   (sp-wrap-with-pair "["))
 
 (defun sp-wrap-curly ()
   "Wrap following sexp in curly braces."
-  (interactive)
+  (interactive "*")
   (sp-wrap-with-pair "{"))
 
 
