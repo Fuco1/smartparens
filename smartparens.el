@@ -1753,13 +1753,6 @@ insert the modes."
        (progn
          ,@(mapcar (lambda (form) (append (list (car form) modes) (cdr form))) forms)))))
 
-(font-lock-add-keywords 'emacs-lisp-mode `((,(concat "("
-                                                     (regexp-opt '("sp-with-modes"
-                                                                   "sp-get"
-                                                                   "sp-compare-sexps") t)
-                                                     "\\_>")
-                                            (1 font-lock-keyword-face))))
-
 (defmacro sp--with-case-sensitive (&rest body)
   "Ensure that searching done within BODY is case-sensitive.
 
