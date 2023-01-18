@@ -3378,7 +3378,7 @@ anything."
       (regexp-opt (--map (car it) pair-list))
     "^\\<$"))
 
-(defun sp--get-last-wraped-region (beg end open close)
+(defun sp--make-last-wraped-region (beg end open close)
   "Return `sp-get-sexp' style plist about the last wrapped region.
 
 Note: this function does not retrieve the actual value of
@@ -3542,7 +3542,7 @@ OPEN and CLOSE are the delimiters."
     (sp--replace-overlay-text oend close)
     (setq sp-last-operation 'sp-wrap-region)
     (setq sp-last-wrapped-region
-          (sp--get-last-wraped-region
+          (sp--make-last-wraped-region
            (overlay-start obeg) (overlay-end oend)
            open close))
     (cond
@@ -3987,7 +3987,7 @@ active region."
                      (goto-char (- e cllen))
                      (insert (cdr active-pair))
                      (setq sp-last-wrapped-region
-                           (sp--get-last-wraped-region
+                           (sp--make-last-wraped-region
                             (+ b oplen) (point)
                             (car active-pair) (cdr active-pair)))
                      (goto-char (+ b oplen acolen)))
@@ -3996,7 +3996,7 @@ active region."
             (goto-char e)
             (insert (cdr active-pair))
             (setq sp-last-wrapped-region
-                  (sp--get-last-wraped-region
+                  (sp--make-last-wraped-region
                    b e (car active-pair) (cdr active-pair))))
           (setq sp-last-operation 'sp-wrap-region)
           (sp--run-hook-with-args (car active-pair) :post-handlers 'wrap)
@@ -7784,7 +7784,7 @@ Examples:
           (unless keep-old
             (delete-char :op-l))
           (setq sp-last-wrapped-region
-                (sp--get-last-wraped-region
+                (sp--make-last-wraped-region
                  :beg (+ :end
                         (length (car pair))
                         (length (cdr pair))
