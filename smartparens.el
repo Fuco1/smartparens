@@ -4891,6 +4891,32 @@ counting (stack) algorithm."
               (setq hit :no-more)))))
       re)))
 
+(defun sp-get-string-or-nested-string (&optional back)
+  "Get a string with `sp-get-string' or `sp-get-stringlike-expression'.
+
+It might happen that the string delimiter we are looking at is
+nested inside another string delimited by string fences (for
+example nested \" and ' in python).  In this case we can't use
+`sp-get-string' parser because it would pick up the outer string.
+
+So if we are inside a string and `syntax-ppss' returns t as
+delimiter we need to use `sp-get-stringlike-expression'.  The
+same situation happens when the character following the point has
+syntax class 7 (string) or char syntax 34 (same thing as syntax
+class but less general), but the character different from what
+`syntax-ppss' returns as the outer string delimiter."
+  (if (let ((in-string (sp-point-in-string)))
+        (or (eq t in-string)
+            (and (not (eq in-string nil))
+                 (not (eq in-string (char-after))))))
+      (save-excursion
+        (save-restriction
+          (widen)
+          (-let (((beg . end) (sp-get-quoted-string-bounds)))
+            (narrow-to-region beg end))
+          (sp-get-stringlike-expression back)))
+    (sp-get-string back)))
+
 (defun sp-use-textmode-stringlike-parser-p ()
   "Test if we should use textmode stringlike parser or not."
   (let ((modes (-filter 'symbolp sp-navigate-use-textmode-stringlike-parser))
@@ -4912,20 +4938,8 @@ on it when calling directly."
     ;; `sp-get-string'
     (if (and delimiter
              (= (length delimiter) 1)
-             ;; TODO: this "smart" behaviour is duplicated in
-             ;; `sp-get-thing', maybe the whole string parsing could
-             ;; be extracted to some common function (actually we
-             ;; should probably use this one from `sp-get-thing')
              (eq (char-syntax (string-to-char delimiter)) 34))
-        (if (eq t (sp-point-in-string))
-            ;; TODO: this is duplicated in `sp-get-thing', move to a function
-            (save-excursion
-              (save-restriction
-                (widen)
-                (-let (((beg . end) (sp-get-quoted-string-bounds)))
-                  (narrow-to-region beg end))
-                (sp-get-stringlike-expression back)))
-          (sp-get-string back))
+        (sp-get-string-or-nested-string back)
       (sp-get-stringlike-expression back))))
 
 (defun sp-get-expression (&optional back)
@@ -5695,14 +5709,7 @@ expressions are considered."
                   (sp-get-sexp t))
                  ((and (eq (syntax-class (syntax-after (1- (point)))) 7)
                        (not (sp-char-is-escaped-p (1- (point)))))
-                  (if (eq t (sp-point-in-string))
-                      (save-excursion
-                        (save-restriction
-                          (widen)
-                          (-let (((beg . end) (sp-get-quoted-string-bounds)))
-                            (narrow-to-region beg end))
-                          (sp-get-stringlike-expression t)))
-                    (sp-get-string t)))
+                  (sp-get-string-or-nested-string t))
                  ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-stringlike-regexp) nil))
                   (sp-get-expression t))
                  ;; We might be somewhere inside the prefix of the
@@ -5746,22 +5753,7 @@ expressions are considered."
                ;; `sp-get-stringlike-or-textmode-expression'
                ((and (eq (syntax-class (syntax-after (point))) 7)
                      (not (sp-char-is-escaped-p)))
-                ;; It might happen that the string delimiter we are
-                ;; looking at is nested inside another string
-                ;; delimited by string fences (for example nested "
-                ;; and ' in python).  In this case we can't use
-                ;; `sp-get-string' parser because it would pick up the
-                ;; outer string.  So if we are inside a string and
-                ;; `syntax-ppss' returns t as delimiter we need to use
-                ;; `sp-get-stringlike-expression'
-                (if (eq t (sp-point-in-string))
-                    (save-excursion
-                      (save-restriction
-                        (widen)
-                        (-let (((beg . end) (sp-get-quoted-string-bounds)))
-                          (narrow-to-region beg end))
-                        (sp-get-stringlike-expression nil)))
-                  (sp-get-string nil)))
+                (sp-get-string-or-nested-string nil))
                ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-stringlike-regexp)))
                 (sp-get-expression nil))
                ;; it can still be that we are looking at a /prefix/ of a

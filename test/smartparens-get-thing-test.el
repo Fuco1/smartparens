@@ -174,3 +174,13 @@ picked up, causing `sp-get-thing' to take the 2nd previous one."
       (sp-get (sp-get-symbol t)
         (should (equal :beg 1))
         (should (equal :end 4))))))
+
+(ert-deftest sp-test-python--get-thing-nested-string-forward ()
+  (sp-test-with-temp-buffer "\"foo bar| 'baz qux' fux\""
+      (python-mode)
+    (should (equal (sp-get-thing) (list :beg 10 :end 19 :op "'" :cl "'" :prefix "" :suffix "")))))
+
+(ert-deftest sp-test-python--get-thing-nested-string-backward ()
+  (sp-test-with-temp-buffer "\"foo bar 'baz qux' |fux\""
+      (python-mode)
+    (should (equal (sp-get-thing t) (list :beg 10 :end 19 :op "'" :cl "'" :prefix "" :suffix "")))))
