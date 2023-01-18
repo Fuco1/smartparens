@@ -2694,17 +2694,21 @@ works again as usual.")
 (defvar-local sp-wrap-tag-overlays nil
   "Cons pair of tag wrap overlays.")
 
-(defvar sp-pair-overlay-keymap (make-sparse-keymap)
+(defvar sp-pair-overlay-keymap
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-g")
+      '(menu-item nil sp-remove-active-pair-overlay :filter
+                  (lambda (cmd)
+                    (unless (bound-and-true-p company-my-keymap)
+                      cmd))))
+    map)
   "Keymap for the pair overlays.")
-(define-key sp-pair-overlay-keymap (kbd "C-g")
-  '(menu-item nil sp-remove-active-pair-overlay :filter
-              (lambda (cmd)
-                (unless (bound-and-true-p company-my-keymap)
-                  cmd))))
 
-(defvar sp-wrap-overlay-keymap (make-sparse-keymap)
+(defvar sp-wrap-overlay-keymap
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-g") 'sp-wrap-cancel)
+    map)
   "Keymap for the wrap overlays.")
-(define-key sp-wrap-overlay-keymap (kbd "C-g") 'sp-wrap-cancel)
 
 (defun sp--overlays-at (&optional pos)
   "Wrapper around `overlays-at' to get smartparens overlays.
