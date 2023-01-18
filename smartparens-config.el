@@ -106,6 +106,7 @@ ID, ACTION, CONTEXT."
 (eval-after-load 'crystal-mode             '(require 'smartparens-crystal))
 (eval-after-load 'elixir-mode              '(require 'smartparens-elixir))
 (eval-after-load 'enh-ruby-mode            '(require 'smartparens-ruby))
+(eval-after-load 'erlang-mode              '(require 'smartparens-erlang))
 (eval-after-load 'ess                      '(require 'smartparens-ess))
 (eval-after-load 'go-mode                  '(require 'smartparens-go))
 (eval-after-load 'haskell-interactive-mode '(require 'smartparens-haskell))
