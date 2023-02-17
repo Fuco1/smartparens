@@ -27,7 +27,7 @@
 
 (require 'smartparens)
 
-(--each '(elixir-mode)
+(--each '(elixir-mode elixir-ts-mode})
   (add-to-list 'sp-sexp-suffix (list it 'regexp "")))
 
 (defvar sp-elixir-builtins
@@ -135,7 +135,7 @@ ID, ACTION, CONTEXT."
       (indent-according-to-mode)
       (move-marker m nil nil))))
 
-(sp-with-modes 'elixir-mode
+(sp-with-modes '(elixir-mode elixir-ts-mode)
   (sp-local-pair "do" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :skip-match 'sp-elixir-skip-def-p
