@@ -1,6 +1,6 @@
 ;;; smartparens-elixir.el --- Configuration for Elixir.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2017 Matúš Goljer
+;; Copyright (C) 2017-2018, 2020 Matúš Goljer
 
 ;; Author: Matúš Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matúš Goljer <matus.goljer@gmail.com>

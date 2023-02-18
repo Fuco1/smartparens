@@ -1,6 +1,6 @@
 ;;; smartparens-ess.el --- Smartparens Extension for Emacs Speaks Statistics  -*- lexical-binding: t; -*-
 
-;; Copyright (c) 2015-2016 Bernhard Pröll
+;; Copyright (c) 2016-2018, 2020-2021 Bernhard Pröll, Matus Goljer
 
 ;; Author: Bernhard Pröll
 ;; Maintainer: Bernhard Pröll

@@ -1,6 +1,6 @@
 ;;; smartparens-rst.el --- Additional configuration for rst based modes.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2019 Matus Goljer
+;; Copyright (C) 2019-2020 Matus Goljer
 
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>

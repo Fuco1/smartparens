@@ -1,6 +1,6 @@
 ;;; smartparens-latex.el --- Additional configuration for (La)TeX based modes.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2013-2016 Matus Goljer
+;; Copyright (C) 2013-2019 Matus Goljer
 
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>

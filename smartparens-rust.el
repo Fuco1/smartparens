@@ -1,6 +1,6 @@
 ;;; smartparens-rust.el --- Additional configuration for Rust based modes.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2015 Wilfred Hughes
+;; Copyright (C) 2015-2019 Wilfred Hughes
 
 ;; Created: 3 November 2015
 ;; Keywords: abbrev convenience editing
