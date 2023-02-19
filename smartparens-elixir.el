@@ -27,7 +27,7 @@
 
 (require 'smartparens)
 
-(--each '(elixir-mode elixir-ts-mode})
+(--each '(elixir-mode elixir-ts-mode)
   (add-to-list 'sp-sexp-suffix (list it 'regexp "")))
 
 (defvar sp-elixir-builtins
