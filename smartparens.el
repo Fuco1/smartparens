@@ -57,6 +57,7 @@
 (require 'dash)
 (require 'thingatpt)
 (require 'help-mode) ;; for help-xref-following #85
+(require 'loadhist)
 
 (declare-function cua-replace-region "cua-base") ; FIXME: remove this when we drop support for old emacs
 (declare-function cua-delete-region "cua-base")
@@ -129,12 +130,8 @@ better orientation."
                                    sp-use-paredit-bindings
                                    sp-use-smartparens-bindings
                                    ))
-        (commands (cl-loop for i in (cdr
-                                     (assoc-string
-                                      (file-truename (locate-library "smartparens"))
-                                      (--map (cons (file-truename (car it)) (cdr it))
-                                             load-history)))
-                           if (and (consp i) (eq (car i) 'defun) (commandp (cdr i)))
+        (commands (cl-loop for i in (cdr (feature-symbols 'smartparens))
+                           if (and (eq (car-safe i) 'defun) (commandp (cdr i)))
                            collect (cdr i))))
     (with-current-buffer (get-buffer-create "*Smartparens cheat sheet*")
       (let ((standard-output (current-buffer))
