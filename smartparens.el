@@ -1478,7 +1478,8 @@ The value of `comment-start' is used if the major mode is not found."
   :group 'smartparens)
 
 (defcustom sp-highlight-wrap-tag-overlay t
-  "If non-nil, wrap tag overlays are highlighted during editing of the wrapping tag pair."
+  "If non-nil, wrap tag overlays are highlighted during editing
+of the wrapping tag pair."
   :type 'boolean
   :group 'smartparens)
 
@@ -2922,13 +2923,15 @@ On escape action use the value of CONTEXT."
     (texmathp)))
 
 (defun sp-point-before-eol-p (_id action _context)
-  "Return t if point is followed by optional white spaces and end of line, nil otherwise.
+  "Return t if point is followed by optional white spaces and end of
+line, nil otherwise.
 This predicate is only tested on \"insert\" action."
   (when (eq action 'insert)
     (sp--looking-at-p "\\s-*$")))
 
 (defun sp-point-after-bol-p (id action _context)
-  "Return t if point follows beginning of line and possibly white spaces, nil otherwise.
+  "Return t if point follows beginning of line and possibly white
+spaces, nil otherwise.
 This predicate is only tested on \"insert\" action."
   (when (eq action 'insert)
     (sp--looking-back-p (concat "^\\s-*" (regexp-quote id)))))
@@ -5565,7 +5568,8 @@ combine it with:
 
 You can also bind the output of this function directly to a key, like:
 
-  (global-set-key (kbd ...) (sp-restrict-to-pairs-interactive \"{\" 'sp-down-sexp))
+  (global-set-key (kbd ...)
+    (sp-restrict-to-pairs-interactive \"{\" 'sp-down-sexp))
 
 This will be a function that descends down only into { } pair,
 ignoring all others."
@@ -7197,7 +7201,8 @@ Examples:
     (sp-backward-slurp-sexp (sp--negate-argument arg))))
 
 (defun sp-backward-slurp-sexp (&optional arg)
-  "Add the sexp preceding the current list in it by moving the opening delimiter.
+  "Add the sexp preceding the current list in it by moving the
+opening delimiter.
 
 If the current list is the first in a parent list, extend that
 list (and possibly apply recursively until we can extend a list
@@ -7208,7 +7213,8 @@ If arg is N, apply this function that many times.
 If arg is negative -N, extend the closing pair instead (that is,
 forward).
 
-If ARG is raw prefix \\[universal-argument], extend all the way to the beginning of the parent list.
+If ARG is raw prefix \\[universal-argument], extend all the way
+to the beginning of the parent list.
 
 If both the current expression and the expression to be slurped
 are strings, they are joined together.
@@ -8248,7 +8254,8 @@ Examples:
   (sp-forward-whitespace))
 
 (defun sp-emit-sexp (&optional arg)
-  "Move all expression preceding point except the first one out of the current list.
+  "Move all expression preceding point except the first one out of
+the current list.
 
 With ARG positive N, keep that many expressions from the start of
 the current list.
@@ -8740,14 +8747,16 @@ considered balanced expressions."
   (sp-select-next-thing (sp--negate-argument arg) point))
 
 (defun sp-select-next-thing-exchange (&optional arg point)
-  "Just like `sp-select-next-thing' but run `exchange-point-and-mark' afterwards."
+  "Just like `sp-select-next-thing' but run `exchange-point-and-mark'
+afterwards."
   (interactive "P")
   (prog1
       (sp-select-next-thing arg point)
     (exchange-point-and-mark)))
 
 (defun sp-select-previous-thing-exchange (&optional arg point)
-  "Just like `sp-select-previous-thing' but run `exchange-point-and-mark' afterwards."
+  "Just like `sp-select-previous-thing' but run `exchange-point-and-mark'
+afterwards."
   (interactive "P")
   (prog1
       (sp-select-previous-thing arg point)
@@ -9430,7 +9439,8 @@ support custom pairs."
   (interactive))
 
 (defun sp-highlight-current-sexp (_arg)
-  "Highlight the expression returned by the next command, preserving point position."
+  "Highlight the expression returned by the next command, preserving
+point position."
   (interactive "P")
   (let* ((cmd (read-key-sequence "" t))
          (com (key-binding cmd)))
