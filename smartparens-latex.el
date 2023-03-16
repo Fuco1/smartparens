@@ -88,12 +88,7 @@ ID, ACTION, CONTEXT."
 (add-to-list 'sp-navigate-skip-match
              '((tex-mode plain-tex-mode latex-mode) . sp--backslash-skip-match))
 
-(sp-with-modes '(
-                 tex-mode
-                 plain-tex-mode
-                 latex-mode
-                 LaTeX-mode
-                 )
+(sp-with-modes '(tex-mode plain-tex-mode latex-mode LaTeX-mode)
   (sp-local-pair "`" "'"
                  :actions '(:rem autoskip)
                  :skip-match 'sp-latex-skip-match-apostrophe
