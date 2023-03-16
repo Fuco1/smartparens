@@ -62,21 +62,6 @@
       (goto-char (sp-get sp-last-wrapped-region :beg-in))
       (insert " "))))
 
-(defun sp-latex-skip-match-apostrophe (ms _mb me)
-  "MS, MB, ME."
-  (when (equal ms "'")
-    (save-excursion
-      (goto-char me)
-      (looking-at-p "\\sw"))))
-
-(defun sp-latex-skip-double-quote (_id action _context)
-  "ID, ACTION, CONTEXT."
-  (when (eq action 'insert)
-    (when (looking-at-p "''''")
-      (delete-char -2)
-      (delete-char 2)
-      (forward-char 2))))
-
 (defun sp-latex-point-after-backslash (id action _context)
   "Return t if point follows a backslash, nil otherwise.
 This predicate is only tested on \"insert\" action.
@@ -89,11 +74,9 @@ ID, ACTION, CONTEXT."
              '((tex-mode plain-tex-mode latex-mode) . sp--backslash-skip-match))
 
 (sp-with-modes '(tex-mode plain-tex-mode latex-mode LaTeX-mode)
-  (sp-local-pair "`" "'"
-                 :actions '(:rem autoskip)
-                 :skip-match 'sp-latex-skip-match-apostrophe
-                 :unless '(sp-latex-point-after-backslash sp-in-math-p))
-  ;; math modes, yay.  The :actions are provided automatically if
+  ;; Disable pairs that interfere with AucTeX.
+  (sp-local-pair "`" nil :actions nil)
+  (sp-local-pair "\"" nil :actions nil)
   ;; these pairs do not have global definitions.
   (sp-local-pair "$" "$")
   (sp-local-pair "\\[" "\\]"
@@ -103,13 +86,6 @@ ID, ACTION, CONTEXT."
   (sp-local-pair "\\\\(" nil :actions nil)
   (sp-local-pair "'" nil :actions nil)
   (sp-local-pair "\\\"" nil :actions nil)
-
-  ;; quote should insert ``'' instead of double quotes.  If we ever
-  ;; need to insert ", C-q is our friend.
-  (sp-local-pair "``" "''"
-                 :trigger "\""
-                 :unless '(sp-latex-point-after-backslash sp-in-math-p)
-                 :post-handlers '(sp-latex-skip-double-quote))
 
   ;; add the prefix function sticking to {} pair
   (sp-local-pair "{" nil :prefix "\\\\\\(\\sw\\|\\s_\\)*")
