@@ -77,25 +77,27 @@ ID, ACTION, CONTEXT."
   ;; Disable pairs that interfere with AucTeX.
   (sp-local-pair "`" nil :actions nil)
   (sp-local-pair "\"" nil :actions nil)
+
+  ;; Math modes, yay.  The :actions are provided automatically if
   ;; these pairs do not have global definitions.
   (sp-local-pair "$" "$")
   (sp-local-pair "\\[" "\\]"
                  :unless '(sp-latex-point-after-backslash))
 
-  ;; disable useless pairs.
+  ;; Disable useless pairs.
   (sp-local-pair "\\\\(" nil :actions nil)
   (sp-local-pair "'" nil :actions nil)
   (sp-local-pair "\\\"" nil :actions nil)
 
-  ;; add the prefix function sticking to {} pair
+  ;; Add the prefix function sticking to {} pair.
   (sp-local-pair "{" nil :prefix "\\\\\\(\\sw\\|\\s_\\)*")
 
-  ;; do not add more space when slurping
+  ;; Do not add more space when slurping.
   (sp-local-pair "{" "}")
   (sp-local-pair "(" ")")
   (sp-local-pair "[" "]")
 
-  ;; pairs for big brackets.  Needs more research on what pairs are
+  ;; Pairs for big brackets.  Needs more research on what pairs are
   ;; useful to add here.  Post suggestions if you know some.
   (sp-local-pair "\\left(" "\\right)"
                  :trigger "\\l("
