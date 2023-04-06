@@ -46,6 +46,7 @@
 
 (declare-function rust-mode "rust-mode")
 (declare-function rustic-mode "rustic-mode")
+(declare-function rust-ts-mode "rust-ts-mode")
 
 (defun sp-in-rust-lifetime-context (&rest _args)
   "Return t if point is in a Rust context where ' represents a lifetime.
@@ -124,7 +125,7 @@ ARGS."
        ((eq action 'navigate)
         (and (not on-comparison) (not on-fn-return-type) (not on-match-branch))))))))
 
-(sp-with-modes '(rust-mode rustic-mode)
+(sp-with-modes '(rust-mode rustic-mode rust-ts-mode)
   (sp-local-pair "'" "'"
                  :unless '(sp-in-comment-p sp-in-string-quotes-p sp-in-rust-lifetime-context)
                  :post-handlers'(:rem sp-escape-quotes-after-insert))
@@ -136,6 +137,7 @@ ARGS."
 ;; (|foo).bar -> (foo.bar)
 (add-to-list 'sp-sexp-suffix (list #'rust-mode 'regexp ""))
 (add-to-list 'sp-sexp-suffix (list #'rustic-mode 'regexp ""))
+(add-to-list 'sp-sexp-suffix (list #'rust-ts-mode 'regexp ""))
 
 (provide 'smartparens-rust)
 
