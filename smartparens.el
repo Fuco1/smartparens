@@ -688,7 +688,10 @@ Symbol is defined as a chunk of text recognized by
      "Point not deep enough")
     (:different-type
      "The expressions to be joined are of different type"
-     "Expressions are of different type"))
+     "Expressions are of different type")
+    (:no-enclosing-expression
+     "Point is not inside enclosing expression"
+     "No enclosing expression"))
   "List of predefined messages to be displayed by `sp-message'.
 
 Each element is a list consisting of a keyword and one or more
@@ -8560,7 +8563,7 @@ not necessarily represent a valid balanced expression!"
        ((and raw (= arg 4))
         (let ((enc (sp-get-enclosing-sexp)))
           (if (not enc)
-              (error "No enclosing expression")
+              (sp-message :no-enclosing-expression)
             (save-excursion
               (goto-char (sp-get enc :end-in))
               (-when-let (ok (sp-get-thing t))
@@ -8582,7 +8585,7 @@ not necessarily represent a valid balanced expression!"
        ((and raw (= arg -4))
         (let ((enc (sp-get-enclosing-sexp)))
           (if (not enc)
-              (error "No enclosing expression")
+              (sp-message :no-enclosing-expression)
             (save-excursion
               (goto-char (sp-get enc :beg-in))
               (-when-let (ok (sp-get-thing))
@@ -8600,7 +8603,7 @@ not necessarily represent a valid balanced expression!"
        ((and raw (= (abs arg) 16))
         (let ((enc (sp-get-enclosing-sexp)))
           (if (not enc)
-              (error "No enclosing expression")
+              (sp-message :no-enclosing-expression)
             (sp-get enc (setq beg :beg) (setq end :end)
                     (setq op :op) (setq cl :cl)
                     (setq prefix :prefix)
@@ -8651,7 +8654,7 @@ not necessarily represent a valid balanced expression!"
        ((= arg 0)
         (let ((enc (sp-get-enclosing-sexp)))
           (if (not enc)
-              (error "No enclosing expression")
+              (sp-message :no-enclosing-expression)
             (save-excursion
               (goto-char (sp-get enc :beg-in))
               (-when-let (ok (sp-get-thing))
