@@ -153,3 +153,15 @@
       (org-mode)
     (execute-kbd-macro "foo = bar")
     (sp-buffer-equals "foo = bar")))
+
+(ert-deftest sp-test-org-do-not-pair-quote-in-elisp-block ()
+  (sp-test-with-temp-buffer "#+begin_src elisp
+|
+#+end_src
+"
+      (org-mode)
+    (execute-kbd-macro "'asd")
+    (sp-buffer-equals "#+begin_src elisp
+'asd|
+#+end_src
+")))
