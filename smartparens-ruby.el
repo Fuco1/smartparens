@@ -293,9 +293,9 @@ MS, ME, MB."
         (sp-ruby-method-p "end"))))
 
 (add-to-list 'sp-navigate-skip-match
-             '((ruby-base-mode enh-ruby-mode motion-mode) . sp--ruby-skip-match))
+             '((ruby-mode ruby-ts-mode enh-ruby-mode motion-mode) . sp--ruby-skip-match))
 
-(dolist (mode '(ruby-base-mode motion-mode))
+(dolist (mode '(ruby-mode ruby-ts-mode motion-mode))
   (add-to-list 'sp-sexp-suffix `(,mode syntax "")))
 
 (sp-with-modes '(ruby-base-mode enh-ruby-mode motion-mode)
