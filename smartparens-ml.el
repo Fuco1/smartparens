@@ -1,7 +1,7 @@
 ;;; smartparens-ml.el --- Additional configuration for ML languages  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2016-2017 Ta Quang Trung
-;; Copyright (C) 2017 Matus Goljer
+;; Copyright (C) 2016-2019 Ta Quang Trung
+;; Copyright (C) 2017, 2022 Matus Goljer
 
 ;; Author: Ta Quang Trung <taquangtrungvn@gmail.com>
 ;;         Matus Goljer <matus.goljer@gmail.com>
@@ -63,7 +63,7 @@
   (sp-local-pair "{|" "|}" )      ;; multi-line string
   (sp-local-pair "[|" "|]" )      ;; array
   (sp-local-pair "sig" "end" )    ;; signature
-  (sp-local-pair "module" "end" ) ;; module
+  (sp-local-pair "struct" "end" ) ;; module
   (sp-local-pair "(*" "*)" ))     ;; comment
 
 ;; Ignore punctuation, so we can split ~(foo) to ~foo.

@@ -1,6 +1,6 @@
 ;;; smartparens.el --- Automatic insertion, wrapping and paredit-like navigation with user defined pairs. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012-2016 Matus Goljer
+;; Copyright (C) 2012-2023 Matus Goljer
 
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
@@ -57,6 +57,7 @@
 (require 'dash)
 (require 'thingatpt)
 (require 'help-mode) ;; for help-xref-following #85
+(require 'loadhist)
 
 (declare-function cua-replace-region "cua-base") ; FIXME: remove this when we drop support for old emacs
 (declare-function cua-delete-region "cua-base")
@@ -129,12 +130,8 @@ better orientation."
                                    sp-use-paredit-bindings
                                    sp-use-smartparens-bindings
                                    ))
-        (commands (cl-loop for i in (cdr
-                                     (assoc-string
-                                      (file-truename (locate-library "smartparens"))
-                                      (--map (cons (file-truename (car it)) (cdr it))
-                                             load-history)))
-                           if (and (consp i) (eq (car i) 'defun) (commandp (cdr i)))
+        (commands (cl-loop for i in (cdr (feature-symbols 'smartparens))
+                           if (and (eq (car-safe i) 'defun) (commandp (cdr i)))
                            collect (cdr i))))
     (with-current-buffer (get-buffer-create "*Smartparens cheat sheet*")
       (let ((standard-output (current-buffer))
@@ -1333,14 +1330,14 @@ cease to be configurable."
 
 Each item is a list with three properties:
 - major mode
-- a constant symbol 'regexp or 'syntax
+- a constant symbol \\='regexp or \\='syntax
 - a regexp or a string containing syntax class codes.
 
-If the second argument is 'regexp, the third argument is
+If the second argument is \\='regexp, the third argument is
 interpreted as a regexp to search backward from the start of an
 expression.
 
-If the second argument is 'syntax, the third argument is
+If the second argument is \\='syntax, the third argument is
 interpreted as string containing syntax codes that will be
 skipped.
 
@@ -1359,14 +1356,14 @@ by specifying its :prefix property."
 
 Each item is a list with three properties:
 - major mode
-- a constant symbol 'regexp or 'syntax
+- a constant symbol \\='regexp or \\='syntax
 - a regexp or a string containing syntax class codes.
 
-If the second argument is 'regexp, the third argument is
+If the second argument is \\='regexp, the third argument is
 interpreted as a regexp to search forward from the end of an
 expression.
 
-If the second argument is 'syntax, the third argument is
+If the second argument is \\='syntax, the third argument is
 interpreted as string containing syntax codes that will be
 skipped.
 
@@ -1400,7 +1397,7 @@ Note: the old default behaviour was the reverse, it would split
 the sexp, but this is hardly ever what you want.
 
 You can add a post-handler on string pair and check for
-'split-string action to add concatenation operators of the
+\\='split-string action to add concatenation operators of the
 language you work in (in each `major-mode' you can have a separate
 hook).
 
@@ -1408,21 +1405,21 @@ For example, in PHP the string concatenation operator is a
 dot (.), so you would add:
 
   (defun my-php-post-split-handler (_ action _)
-    (when (eq action 'split-sexp)
+    (when (eq action \\='split-sexp)
       (just-one-space)
       (insert \".  . \")
       (backward-char 3)))
 
-  (sp-local-pair 'php-mode \"'\" nil
-   :post-handlers '(my-php-post-split-handler))
+  (sp-local-pair \\='php-mode \"\\='\" nil
+   :post-handlers \\='(my-php-post-split-handler))
 
 Then
 
-  echo 'foo |baz';
+  echo \\='foo |baz\\=';
 
 results in
 
-  echo 'foo' . | . 'baz';"
+  echo \\='foo\\=' . | . \\='baz\\=';"
   :type 'boolean
   :group 'smartparens)
 
@@ -1434,7 +1431,7 @@ If non-nil, `sp-kill-hybrid-sexp' will delete all whitespace
 up until next hybrid sexp if the point is at the end of line or
 on a blank line.
 
-When it is set to 'kill, whitespace will be appended to the sexp
+When it is set to \\='kill, whitespace will be appended to the sexp
 in kill ring."
   :type '(choice
           (const :tag "Delete" t)
@@ -1481,7 +1478,8 @@ The value of `comment-start' is used if the major mode is not found."
   :group 'smartparens)
 
 (defcustom sp-highlight-wrap-tag-overlay t
-  "If non-nil, wrap tag overlays are highlighted during editing of the wrapping tag pair."
+  "If non-nil, wrap tag overlays are highlighted during editing
+of the wrapping tag pair."
   :type 'boolean
   :group 'smartparens)
 
@@ -1494,7 +1492,7 @@ matching paren in the echo area if not visible on screen."
 (defcustom sp-message-width 'frame
   "Length of information and error messages to display.
 
-If set to 'frame (the default), messages are chosen based of the
+If set to \\='frame (the default), messages are chosen based of the
 frame width.  t means chose the default (verbose) message, nil
 means mute.  Integers specify the maximum width."
   :type '(choice (const :tag "Fit to frame" frame)
@@ -1525,7 +1523,7 @@ kill \"subwords\" when `subword-mode' is active."
 (defun sp--delete-selection-supersede-p ()
   "Decide if the current command should delete the region or not.
 
-This check is used as value of 'delete-selection property on the
+This check is used as value of \\='delete-selection property on the
 command symbol."
   (if (or (equal current-prefix-arg '(4))
           (sp-region-ok-p (region-beginning) (region-end)))
@@ -2321,7 +2319,7 @@ this pair.  Possible values are:
 - wrap    - wrap an active region with the pair defined by opening
   delimiter if this is typed while region is active.
 - autoskip - if the sexp is active or `sp-autoskip-closing-pair' is
-  set to 'always, skip over the closing delimiter if user types its
+  set to \\='always, skip over the closing delimiter if user types its
   characters in order.
 - navigate - enable this pair for navigation/highlight and strictness
   checks
@@ -2513,7 +2511,7 @@ the global list is replaced.  If you wish to both add and remove
 things with single call, use \"((:add ...) (:rem ...))\" as an
 argument.  Therefore,
 
-  :when '(:add my-test)
+  :when \\='(:add my-test)
 
 would mean \"use the global settings for this pair, but also this
 additional test\". If no value is provided for list arguments,
@@ -2925,13 +2923,15 @@ On escape action use the value of CONTEXT."
     (texmathp)))
 
 (defun sp-point-before-eol-p (_id action _context)
-  "Return t if point is followed by optional white spaces and end of line, nil otherwise.
+  "Return t if point is followed by optional white spaces and end of
+line, nil otherwise.
 This predicate is only tested on \"insert\" action."
   (when (eq action 'insert)
     (sp--looking-at-p "\\s-*$")))
 
 (defun sp-point-after-bol-p (id action _context)
-  "Return t if point follows beginning of line and possibly white spaces, nil otherwise.
+  "Return t if point follows beginning of line and possibly white
+spaces, nil otherwise.
 This predicate is only tested on \"insert\" action."
   (when (eq action 'insert)
     (sp--looking-back-p (concat "^\\s-*" (regexp-quote id)))))
@@ -3761,7 +3761,7 @@ In other words, if any pair can be inserted using a trigger, only
 pairs insertable by trigger are returned.
 
 ACTION is an implementation detail.  Usually it has the value
-'insert when we determine pairs to insert.  On repeated wrapping
+\\='insert when we determine pairs to insert.  On repeated wrapping
 however we pass the value 'wrap.  This will be refactored away in
 the upcoming version."
   (setq looking-fn (or looking-fn 'sp--looking-back-p))
@@ -4031,7 +4031,7 @@ call this state \"active sexp\".  The setting
 expression become inactive.
 
 For example, pressing ( is followed by inserting the pair (|).  If
-we then type 'word' and follow by ), the result should be (word)|
+we then type \\='word\\=' and follow by ), the result should be (word)|
 instead of (word)|).
 
 This behaviour can be customized by various settings of
@@ -4040,7 +4040,7 @@ This behaviour can be customized by various settings of
 Additionally, this behaviour can be selectively disabled for
 specific pairs by removing their \"autoskip\" action.  You can
 achieve this by using `sp-pair' or `sp-local-pair' with
-\":actions '(:rem autoskip)\"."
+\":actions \\='(:rem autoskip)\"."
   (sp--with-case-sensitive
     (when (or (and (eq sp-autoskip-closing-pair t)
                    sp-pair-overlay-list
@@ -5568,7 +5568,8 @@ combine it with:
 
 You can also bind the output of this function directly to a key, like:
 
-  (global-set-key (kbd ...) (sp-restrict-to-pairs-interactive \"{\" 'sp-down-sexp))
+  (global-set-key (kbd ...)
+    (sp-restrict-to-pairs-interactive \"{\" \\='sp-down-sexp))
 
 This will be a function that descends down only into { } pair,
 ignoring all others."
@@ -5591,8 +5592,8 @@ combine it with:
 You can also bind the output of this function directly to a key, like:
 
   (global-set-key (kbd ...) (sp-restrict-to-object-interactive
-                             'sp-prefix-pair-object
-                             'sp-forward-sexp))
+                             \\='sp-prefix-pair-object
+                             \\='sp-forward-sexp))
 
 This will be a function that navigates only by using paired
 expressions, ignoring strings and sgml tags."
@@ -7200,7 +7201,8 @@ Examples:
     (sp-backward-slurp-sexp (sp--negate-argument arg))))
 
 (defun sp-backward-slurp-sexp (&optional arg)
-  "Add the sexp preceding the current list in it by moving the opening delimiter.
+  "Add the sexp preceding the current list in it by moving the
+opening delimiter.
 
 If the current list is the first in a parent list, extend that
 list (and possibly apply recursively until we can extend a list
@@ -7211,7 +7213,8 @@ If arg is N, apply this function that many times.
 If arg is negative -N, extend the closing pair instead (that is,
 forward).
 
-If ARG is raw prefix \\[universal-argument], extend all the way to the beginning of the parent list.
+If ARG is raw prefix \\[universal-argument], extend all the way
+to the beginning of the parent list.
 
 If both the current expression and the expression to be slurped
 are strings, they are joined together.
@@ -7870,7 +7873,7 @@ Examples:
 
   (f|oo [bar] baz) -> (foo [|] baz)
 
-  {|'foo': 'bar'}  -> {'|': 'bar'}"
+  {|\\='foo\\=': \\='bar\\='}  -> {\\='|\\=': \\='bar\\='}"
   (interactive "*")
   (-when-let (ok (sp-get-sexp))
     (sp-get ok
@@ -7979,7 +7982,7 @@ Examples:
   "Save the text in the region between BEG and END inside EXPR,
 then delete EXPR and insert the saved text.
 
-If optional argument JUPM-END is equal to the symbol 'end move
+If optional argument JUPM-END is equal to the symbol \\='end move
 the point after the re-inserted text."
   (let (str p)
     (setq str (buffer-substring-no-properties beg end))
@@ -8251,7 +8254,8 @@ Examples:
   (sp-forward-whitespace))
 
 (defun sp-emit-sexp (&optional arg)
-  "Move all expression preceding point except the first one out of the current list.
+  "Move all expression preceding point except the first one out of
+the current list.
 
 With ARG positive N, keep that many expressions from the start of
 the current list.
@@ -8743,14 +8747,16 @@ considered balanced expressions."
   (sp-select-next-thing (sp--negate-argument arg) point))
 
 (defun sp-select-next-thing-exchange (&optional arg point)
-  "Just like `sp-select-next-thing' but run `exchange-point-and-mark' afterwards."
+  "Just like `sp-select-next-thing' but run `exchange-point-and-mark'
+afterwards."
   (interactive "P")
   (prog1
       (sp-select-next-thing arg point)
     (exchange-point-and-mark)))
 
 (defun sp-select-previous-thing-exchange (&optional arg point)
-  "Just like `sp-select-previous-thing' but run `exchange-point-and-mark' afterwards."
+  "Just like `sp-select-previous-thing' but run `exchange-point-and-mark'
+afterwards."
   (interactive "P")
   (prog1
       (sp-select-previous-thing arg point)
@@ -9433,7 +9439,8 @@ support custom pairs."
   (interactive))
 
 (defun sp-highlight-current-sexp (_arg)
-  "Highlight the expression returned by the next command, preserving point position."
+  "Highlight the expression returned by the next command, preserving
+point position."
   (interactive "P")
   (let* ((cmd (read-key-sequence "" t))
          (com (key-binding cmd)))

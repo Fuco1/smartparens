@@ -1,6 +1,6 @@
 ;;; smartparens-markdown.el --- Additional configuration for Markdown based modes.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2017 Matus Goljer
+;; Copyright (C) 2017-2018 Matus Goljer
 
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>

@@ -1,6 +1,6 @@
 ;;; smartparens-scala.el --- Additional configuration for Scala based modes.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2015 Greg Nwosu
+;; Copyright (C) 2015-2018, 2021 Greg Nwosu
 
 ;; Author: Greg Nwosu <greg.nwosu@gmail.com>
 ;; Maintainer: Greg Nwosu <greg.nwosu@gmail.com>

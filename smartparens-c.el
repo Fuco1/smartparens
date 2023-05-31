@@ -1,5 +1,7 @@
 ;;; smartparens-c.el --- Additional configuration for C/C++ mode.  -*- lexical-binding: t; -*-
 ;;
+;; Copyright (C) 2019-2020, 2022 Naoya Yamashita, Matus Goljer
+;;
 ;; Author: Naoya Yamashita <conao3@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
 ;; Created: 23 June 2019

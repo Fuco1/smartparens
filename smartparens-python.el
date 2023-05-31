@@ -1,6 +1,6 @@
 ;;; smartparens-python.el --- Additional configuration for Python based modes.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2015-2016 Matus Goljer
+;; Copyright (C) 2015-2018, 2020, 2022-2023 Matus Goljer
 
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>

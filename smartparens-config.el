@@ -1,6 +1,6 @@
 ;;; smartparens-config.el --- Default configuration for smartparens package  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2013-2016 Matus Goljer
+;; Copyright (C) 2013-2020, 2022-2023 Matus Goljer
 
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
@@ -76,6 +76,21 @@ ID, ACTION, CONTEXT."
   ;; disable ', it's the quote character!
   (sp-local-pair "'" nil :actions nil))
 
+(eval-after-load 'org
+  '(progn
+     (defun sp-lisp-in-lisp-src-block-p (_id _action _context)
+       (when (org-in-src-block-p)
+         (let* ((el (org-element-at-point))
+                (lang (org-element-property :language el))
+                (mode (intern (concat
+                               (if (string= lang "elisp") "emacs-lisp" lang)
+                               "-mode"))))
+           (memq mode sp-lisp-modes))))
+
+     ;; Disable ' pairing in lisp org source blocks
+     (sp-local-pair 'org-mode "'" "'"
+                    :unless '(:add sp-lisp-in-lisp-src-block-p))))
+
 (sp-with-modes (-difference sp-lisp-modes sp-clojure-modes)
   ;; also only use the pseudo-quote inside strings where it serve as
   ;; hyperlink.
@@ -105,6 +120,7 @@ ID, ACTION, CONTEXT."
 (eval-after-load 'clojure-mode             '(require 'smartparens-clojure))
 (eval-after-load 'crystal-mode             '(require 'smartparens-crystal))
 (eval-after-load 'elixir-mode              '(require 'smartparens-elixir))
+(eval-after-load 'elixir-ts-mode           '(require 'smartparens-elixir))
 (eval-after-load 'enh-ruby-mode            '(require 'smartparens-ruby))
 (eval-after-load 'erlang-mode              '(require 'smartparens-erlang))
 (eval-after-load 'ess                      '(require 'smartparens-ess))

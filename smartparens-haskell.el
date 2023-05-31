@@ -1,6 +1,6 @@
 ;;; smartparens-haskell.el --- Additional configuration for Haskell based modes.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2015 Michael Xavier
+;; Copyright (C) 2015, 2017-2018 Michael Xavier, Matus Goljer
 
 ;; Author: Michael Xavier <michael@michaelxavier.net>
 ;; Maintainer: Michael Xavier <michael@michaelxavier.net>
