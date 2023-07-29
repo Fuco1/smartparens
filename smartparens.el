@@ -9085,7 +9085,7 @@ backward direction.
 
 See `sp-forward-symbol' for what constitutes a symbol."
   (interactive "*p")
-  (let* ((kill-ring kill-ring)
+  (let* ((kill-ring nil)
          (select-enable-clipboard nil))
     (sp-kill-symbol arg word)))
 
@@ -9162,7 +9162,7 @@ forward direction.
 
 See `sp-backward-symbol' for what constitutes a symbol."
   (interactive "*p")
-  (let* ((kill-ring kill-ring)
+  (let* ((kill-ring nil)
          (select-enable-clipboard nil))
     (sp-backward-kill-symbol arg word)))
 
