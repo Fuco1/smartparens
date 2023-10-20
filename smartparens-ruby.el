@@ -293,12 +293,12 @@ MS, ME, MB."
         (sp-ruby-method-p "end"))))
 
 (add-to-list 'sp-navigate-skip-match
-             '((ruby-mode enh-ruby-mode motion-mode) . sp--ruby-skip-match))
+             '((ruby-mode ruby-ts-mode enh-ruby-mode motion-mode) . sp--ruby-skip-match))
 
-(dolist (mode '(ruby-mode motion-mode))
+(dolist (mode '(ruby-mode ruby-ts-mode motion-mode))
   (add-to-list 'sp-sexp-suffix `(,mode syntax "")))
 
-(sp-with-modes '(ruby-mode enh-ruby-mode motion-mode)
+(sp-with-modes '(ruby-base-mode enh-ruby-mode motion-mode)
   (sp-local-pair "do" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :unless '(sp-ruby-in-string-or-word-p sp-in-comment-p)
