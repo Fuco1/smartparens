@@ -45,6 +45,7 @@
 (require 'smartparens)
 
 (declare-function rust-mode "rust-mode")
+(declare-function rust-ts-mode "rust-ts-mode")
 (declare-function rustic-mode "rustic-mode")
 
 (defun sp-in-rust-lifetime-context (&rest _args)
@@ -124,7 +125,7 @@ ARGS."
        ((eq action 'navigate)
         (and (not on-comparison) (not on-fn-return-type) (not on-match-branch))))))))
 
-(sp-with-modes '(rust-mode rustic-mode)
+(sp-with-modes '(rust-mode rust-ts-mode rustic-mode)
   (sp-local-pair "'" "'"
                  :unless '(sp-in-comment-p sp-in-string-quotes-p sp-in-rust-lifetime-context)
                  :post-handlers'(:rem sp-escape-quotes-after-insert))
@@ -135,6 +136,7 @@ ARGS."
 ;; Rust has no sexp suffices.  This fixes slurping
 ;; (|foo).bar -> (foo.bar)
 (add-to-list 'sp-sexp-suffix (list #'rust-mode 'regexp ""))
+(add-to-list 'sp-sexp-suffix (list #'rust-ts-mode 'regexp ""))
 (add-to-list 'sp-sexp-suffix (list #'rustic-mode 'regexp ""))
 
 (provide 'smartparens-rust)
