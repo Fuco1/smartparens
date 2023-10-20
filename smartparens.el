@@ -6619,6 +6619,23 @@ Note: prefix argument is shown after the example in
             (when (= 0 sp-successive-kill-preserve-whitespace)
               (kill-append sp-last-kill-whitespace nil)))))))))
 
+(defun sp-delete-sexp (&optional arg)
+  "Delete the balanced expression following point.
+
+This is exactly like calling `sp-kill-sexp'
+except deleted sexp does not go to the clipboard or kill ring.
+
+With ARG being positive number N, repeat that many times.
+
+With ARG being Negative number -N, repeat that many times in
+backward direction.
+
+See also `sp-kill-sexp' examples."
+  (interactive "*p")
+  (let* ((kill-ring nil)
+         (select-enable-clipboard nil))
+    (sp-kill-sexp arg)))
+
 (defun sp--cleanup-after-kill ()
   (unless (save-match-data (looking-back "^[\t\s]+" (1- (line-beginning-position))))
     (let ((bdel (save-excursion
@@ -6672,6 +6689,23 @@ Examples:
   (1 2 3 |4 5 6)             -> (|4 5 6) ;; \\[universal-argument]"
   (interactive "*P")
   (sp-kill-sexp (sp--negate-argument arg) dont-kill))
+
+(defun sp-backward-delete-sexp (&optional arg)
+  "Delete the balanced expression preceding point.
+
+This is exactly like calling `sp-backword-kill-sexp'
+except deleted sexp does not go to the clipboard or kill ring.
+
+With ARG being positive number N, repeat that many times.
+
+With ARG being Negative number -N, repeat that many times in
+forward direction.
+
+See also `sp-backward-kill-sexp' examples."
+  (interactive "*p")
+  (let* ((kill-ring nil)
+         (select-enable-clipboard nil))
+    (sp-backward-kill-sexp arg)))
 
 (defun sp-copy-sexp (&optional arg)
   "Copy the following ARG expressions to the kill-ring.
