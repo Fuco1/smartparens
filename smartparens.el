@@ -6622,6 +6622,20 @@ Note: prefix argument is shown after the example in
             (when (= 0 sp-successive-kill-preserve-whitespace)
               (kill-append sp-last-kill-whitespace nil)))))))))
 
+(defmacro sp-save-kill-ring (&rest forms)
+  "Run FORMS while preserving `kill-ring'.
+
+Any changes to `kill-ring' inside this macro will be reversed
+after exiting.
+
+The changes are usually done by functions suck as `kill-region',
+`copy-region-as-kill', `kill-append' and similar."
+  (declare (indent 0))
+  `(let* ((kill-ring nil)
+          (kill-ring-yank-pointer nil)
+          (select-enable-clipboard nil))
+     ,@forms))
+
 (defun sp-delete-sexp (&optional arg)
   "Delete the balanced expression following point.
 
@@ -6635,8 +6649,7 @@ backward direction.
 
 See also `sp-kill-sexp' examples."
   (interactive "*p")
-  (let* ((kill-ring nil)
-         (select-enable-clipboard nil))
+  (sp-save-kill-ring
     (sp-kill-sexp arg)))
 
 (defun sp--cleanup-after-kill ()
@@ -6706,8 +6719,7 @@ forward direction.
 
 See also `sp-backward-kill-sexp' examples."
   (interactive "*p")
-  (let* ((kill-ring nil)
-         (select-enable-clipboard nil))
+  (sp-save-kill-ring
     (sp-backward-kill-sexp arg)))
 
 (defun sp-copy-sexp (&optional arg)
@@ -9122,8 +9134,7 @@ backward direction.
 
 See `sp-forward-symbol' for what constitutes a symbol."
   (interactive "*p")
-  (let* ((kill-ring nil)
-         (select-enable-clipboard nil))
+  (sp-save-kill-ring
     (sp-kill-symbol arg word)))
 
 (defun sp-delete-word (&optional arg)
@@ -9199,8 +9210,7 @@ forward direction.
 
 See `sp-backward-symbol' for what constitutes a symbol."
   (interactive "*p")
-  (let* ((kill-ring nil)
-         (select-enable-clipboard nil))
+  (sp-save-kill-ring
     (sp-backward-kill-symbol arg word)))
 
 (defun sp-backward-delete-word (&optional arg)
