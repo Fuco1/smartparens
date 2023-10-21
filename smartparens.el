@@ -642,6 +642,7 @@ Symbol is defined as a chunk of text recognized by
                          js-jsx-mode
                          js2-jsx-mode
                          rjsx-mode
+                         tsx-ts-mode
                          )
   "List of HTML modes.")
 
