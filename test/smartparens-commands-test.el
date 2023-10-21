@@ -1023,3 +1023,29 @@ This is the behavior of `paredit-convolute-sexp'."
       (sp-buffer-equals "(foo)
 (progn
   |(bar))"))))
+
+(ert-deftest sp-test-sp-delete-word-not-changing-kill-ring nil
+  "#1097"
+  (sp-test-with-temp-elisp-buffer "|hello world"
+    (setq kill-ring '("one" "two" "three" "four" "five"))
+    (sp-kill-word 1)
+    (sp-delete-word 1)
+    (yank)
+    (sp-buffer-equals "hello")))
+
+(ert-deftest sp-test-sp-backward-delete-word-not-changing-kill-ring nil
+  "#1040"
+  (sp-test-with-temp-elisp-buffer "hello world one two three|"
+    (setq kill-ring '("one" "two" "three" "four" "five"))
+    (sp-backward-delete-word 1)
+    (sp-backward-delete-word 1)
+    (yank)
+    (sp-buffer-equals "hello world one one")))
+
+(ert-deftest sp-test-sp-backward-delete-no-error-with-empty-kill-ring nil
+  "#1115"
+  (sp-test-with-temp-elisp-buffer "hello world one two three|"
+    (setq kill-ring nil)
+    (call-interactively 'sp-backward-delete-word)
+    (call-interactively 'sp-backward-delete-word)
+    (sp-buffer-equals "hello world one ")))
