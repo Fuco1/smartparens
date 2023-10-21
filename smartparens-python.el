@@ -65,7 +65,7 @@ Supported definitions are:
 ;; Python has no sexp suffices.  This fixes slurping
 ;; (|sys).path.append---the dot should not travel with the closing
 ;; paren
-(--each '(python-mode inferior-python-mode)
+(--each '(python-mode python-ts-mode inferior-python-mode)
   (add-to-list 'sp-sexp-suffix (list it 'regexp "")))
 
 (defun sp-python-maybe-add-colon-python (_id action _context)
@@ -93,7 +93,7 @@ See also the option `sp-python-insert-colon-in-function-definitions'."
       (forward-char) ;; skip closing paren
       (insert ":"))))
 
-(sp-with-modes 'python-mode
+(sp-with-modes '(python-mode python-ts-mode)
   (sp-local-pair "'" "'" :unless '(sp-in-comment-p sp-in-string-quotes-p) :post-handlers '(:add sp-python-fix-tripple-quotes))
   (sp-local-pair "\"" "\"" :post-handlers '(:add sp-python-fix-tripple-quotes))
   (sp-local-pair "'''" "'''")
