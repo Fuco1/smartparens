@@ -67,6 +67,17 @@ You may want to try `smartparens-strict-mode`. This enforces that
 pairs are always balanced, so commands like `kill-line` keep your code
 well-formed.
 
+You can also use `use-package` to install and setup `smartparens`.  A minimal config is:
+
+``` elisp
+(use-package smartparens-mode
+  :ensure smartparens  ;; install the package
+  :hook (prog-mode text-mode markdown-mode) ;; add `smartparens-mode` to these hooks
+  :config
+  ;; load default config
+  (require 'smartparens-config))
+```
+
 ## Usage
 
 Inside Emacs, `M-x sp-cheat-sheet` will show you all the commands
@@ -132,7 +143,6 @@ If you want to support this project, you can:
 Other Emacs projects that deal with pairs include:
 
 * [autopair](https://github.com/capitaomorte/autopair)
-* [textmate](http://code.google.com/p/emacs-textmate/)
 * [wrap-region](https://github.com/rejeep/wrap-region)
 * [electric-pair-mode](http://www.emacswiki.org/emacs/ElectricPair)
 * [paredit](http://emacswiki.org/emacs/ParEdit)
