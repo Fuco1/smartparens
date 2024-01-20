@@ -66,7 +66,7 @@
 
 ;; all the pairs are expanded only if followed by "SPC" event.  This
 ;; will reduce false positives like 'dIFficult' to trigger.
-(sp-with-modes '(lua-mode)
+(sp-with-modes '(lua-mode lua-ts-mode)
   (sp-local-pair "if" "end"
                  :when '(("SPC"))
                  :unless '(sp-in-comment-p sp-in-string-p)
