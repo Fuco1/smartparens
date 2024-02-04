@@ -565,6 +565,9 @@ Symbol is defined as a chunk of text recognized by
                            clojurec-mode
                            clojurescript-mode
                            clojurex-mode
+                           clojure-ts-mode
+                           clojurescript-ts-mode
+                           clojurec-ts-mode
                            common-lisp-mode
                            emacs-lisp-mode
                            eshell-mode
@@ -597,6 +600,9 @@ Symbol is defined as a chunk of text recognized by
                               clojurec-mode
                               clojurescript-mode
                               clojurex-mode
+                              clojure-ts-mode
+                              clojurescript-ts-mode
+                              clojurec-ts-mode
                               inf-clojure-mode
                               )
   "List of Clojure-related modes."
