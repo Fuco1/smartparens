@@ -117,7 +117,8 @@ ID, ACTION, CONTEXT."
 ;; macro, you MUST supply the major mode argument.
 
 (eval-after-load 'cc-mode                  '(require 'smartparens-c))
-(eval-after-load 'clojure-mode             '(require 'smartparens-clojure))
+(--each '(clojure-mode clojure-ts-mode)
+  (eval-after-load it                      '(require 'smartparens-clojure)))
 (eval-after-load 'crystal-mode             '(require 'smartparens-crystal))
 (eval-after-load 'elixir-mode              '(require 'smartparens-elixir))
 (eval-after-load 'elixir-ts-mode           '(require 'smartparens-elixir))
