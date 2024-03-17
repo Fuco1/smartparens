@@ -617,6 +617,7 @@ Symbol is defined as a chunk of text recognized by
                                              asm-mode
                                              makefile-gmake-mode
                                              haml-mode
+                                             yaml-mode
                                              )
   "List of modes that should not reindent after kill."
   :type '(repeat symbol)
