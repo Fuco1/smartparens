@@ -165,3 +165,40 @@
 'asd|
 #+end_src
 ")))
+
+;; 1031
+(ert-deftest sp-test-org-no-text-pairs-inside-code--slash ()
+  (sp-test-with-temp-buffer "hello ~code|~"
+      (org-mode)
+    (execute-kbd-macro "/")
+    (sp-buffer-equals "hello ~code/|~")))
+
+(ert-deftest sp-test-org-no-text-pairs-inside-code--star ()
+  (sp-test-with-temp-buffer "hello ~code|~"
+      (org-mode)
+    (execute-kbd-macro "/")
+    (sp-buffer-equals "hello ~code/|~")))
+
+(ert-deftest sp-test-org-no-text-pairs-inside-code--underscore ()
+  (sp-test-with-temp-buffer "hello ~code|~"
+      (org-mode)
+    (execute-kbd-macro "/")
+    (sp-buffer-equals "hello ~code/|~")))
+
+(ert-deftest sp-test-org-no-text-pairs-inside-code-equal--slash ()
+  (sp-test-with-temp-buffer "hello =code|="
+      (org-mode)
+    (execute-kbd-macro "/")
+    (sp-buffer-equals "hello =code/|=")))
+
+(ert-deftest sp-test-org-no-text-pairs-inside-code-equal--star ()
+  (sp-test-with-temp-buffer "hello =code|="
+      (org-mode)
+    (execute-kbd-macro "/")
+    (sp-buffer-equals "hello =code/|=")))
+
+(ert-deftest sp-test-org-no-text-pairs-inside-code-equal--underscore ()
+  (sp-test-with-temp-buffer "hello =code|="
+      (org-mode)
+    (execute-kbd-macro "/")
+    (sp-buffer-equals "hello =code/|=")))

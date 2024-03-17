@@ -58,12 +58,26 @@ This predicate is only tested on \"insert\" action."
   (when (eq action 'insert)
     (sp--looking-back-p (concat "\\[" (regexp-quote id)))))
 
+(defun sp-org-inside-inline-code (_id action _context)
+  (when (eq action 'insert)
+    (when-let ((expr (sp-get-stringlike-expression)))
+      (sp-get expr (member :op '("~" "="))))))
+
 (sp-with-modes 'org-mode
   (sp-local-pair "*" "*"
-                 :unless '(sp-point-after-word-p sp-point-at-bol-p)
+                 :unless '(sp-point-after-word-p
+                           sp-point-at-bol-p
+                           sp-org-inside-inline-code
+                           )
                  :skip-match 'sp--org-skip-asterisk)
-  (sp-local-pair "_" "_" :unless '(sp-point-after-word-p))
-  (sp-local-pair "/" "/" :unless '(sp-point-after-word-p sp-org-point-after-left-square-bracket-p) :post-handlers '(("[d1]" "SPC")))
+  (sp-local-pair "_" "_" :unless '(sp-point-after-word-p
+                                   sp-org-inside-inline-code
+                                   ))
+  (sp-local-pair "/" "/" :unless '(sp-point-after-word-p
+                                   sp-org-point-after-left-square-bracket-p
+                                   sp-org-inside-inline-code
+                                   )
+                 :post-handlers '(("[d1]" "SPC")))
   (sp-local-pair "~" "~" :unless '(sp-point-after-word-p) :post-handlers '(("[d1]" "SPC")))
   (sp-local-pair "=" "=" :unless '(sp-point-after-word-p) :post-handlers '(("[d1]" "SPC")))
   (sp-local-pair "«" "»"))
