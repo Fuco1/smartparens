@@ -298,7 +298,7 @@ MS, ME, MB."
 (dolist (mode '(ruby-mode ruby-ts-mode motion-mode))
   (add-to-list 'sp-sexp-suffix `(,mode syntax "")))
 
-(sp-with-modes '(ruby-base-mode enh-ruby-mode motion-mode)
+(sp-with-modes '(ruby-mode ruby-ts-mode enh-ruby-mode motion-mode)
   (sp-local-pair "do" "end"
                  :when '(("SPC" "RET" "<evil-ret>"))
                  :unless '(sp-ruby-in-string-or-word-p sp-in-comment-p)
