@@ -9365,6 +9365,23 @@ comment."
               (forward-line 1)
               (indent-according-to-mode))))))))
 
+(defun sp-comment-sexp ()
+  "Insert the comment character after point.
+
+If there is a hanging sexp after the point, comment out the
+entire hybrid sexp."
+  (interactive)
+  (save-excursion
+    (let* ((exp (if (sp-point-in-string)
+                    (sp-get-string)
+                  (sp-get-thing)))
+           (hexp (progn
+                   (sp-get exp (goto-char :end-suf))
+                   (sp-get-hybrid-sexp))))
+      (comment-or-uncomment-region
+       (sp-get exp (goto-char :beg-prf))
+       (sp-get hexp (goto-char :end-suf))))))
+
 (defun sp-wrap-round ()
   "Wrap following sexp in round parentheses."
   (interactive "*")
