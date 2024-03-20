@@ -3223,7 +3223,7 @@ this value during execution of the handler."
 
 If ACTION is nil, evaluate FORMS and set it to the value of the
 last form; otherwise do nothing."
-  (declare (debug (form body)))
+  (declare (debug (symbolp body)))
   `(unless ,action
      (setq ,action (progn ,@forms))))
 
@@ -3236,7 +3236,7 @@ last form; otherwise do nothing."
     (when smartparens-mode
       (sp--with-case-sensitive
         (catch 'done
-          (let (action)
+          (let ((action nil))
             (when (region-active-p)
               (condition-case err
                   (sp-wrap--initialize)
