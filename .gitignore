@@ -3,3 +3,6 @@ elpa
 *~*
 docs/_build
 .dir-locals-2.el
+.eask
+.cask
+.elsa
