@@ -1,3 +1,11 @@
+(sp-ert-deftest sp-test-skip-forward-to-symbol
+  ;; check that the syntax property is observed when determining
+  ;; syntax #851 #1195
+  (sp-test-with-temp-elisp-buffer "| -foo-bar"
+    (put-text-property 2 3 'syntax-table '(1))
+    (sp-skip-forward-to-symbol)
+    (sp-buffer-equals " -|foo-bar")))
+
 (defun sp-test--get-expression-skip-before-arrow (ms mb me)
   (save-excursion
     (goto-char me)

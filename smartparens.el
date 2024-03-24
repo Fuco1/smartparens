@@ -1845,6 +1845,50 @@ P is the point at which we run `syntax-ppss'"
             (list p (point-min) (point-max))
             (sp-state-last-syntax-ppss-result sp-state) (syntax-ppss p)))))
 
+(defun sp-get-buffer-char-syntax (&optional p)
+  "Get syntax class of a character at P.
+
+If P is nil, defaults to `point'.
+
+This function takes into account text property `syntax-table'
+which can override mode-specific syntax for a character and so
+only makes sense to retrieve information about a character at a
+specific position in a specific buffer.
+
+The raw syntax descriptor is retrieved using `syntax-after' and
+the code is decoded with `syntax-class'."
+  (setq p (or p (point)))
+  (let ((parse-sexp-lookup-properties t))
+    (if-let ((syntax (syntax-after p)))
+        (syntax-class-to-char (syntax-class syntax))
+      ;; This is a fallback compatible with (char-syntax
+      ;; (following-char)) or `previous-char'.  They return 0 as the
+      ;; character code, for which syntax is 95 (?_) for some reason
+      ;; (probably to make the first/last character of the buffer have
+      ;; symbol boundary so the whole word counts as a symbol, including
+      ;; the very first character)
+      ?_)))
+
+(defun sp-syntax-after (&optional p)
+  "Get syntax descriptor of a character after P.
+
+Syntax descriptor is a character describing the syntax
+code (integer).
+
+See `sp-get-buffer-char-syntax'."
+  (setq p (or p (point)))
+  (sp-get-buffer-char-syntax p))
+
+(defun sp-syntax-before (&optional p)
+  "Get syntax descriptor of a character before P.
+
+Syntax descriptor is a character describing the syntax
+code (integer).
+
+See `sp-get-buffer-char-syntax'."
+  (setq p (or p (point)))
+  (sp-get-buffer-char-syntax (1- p)))
+
 (defun sp-point-in-string (&optional p)
   "Return non-nil if point is inside string or documentation string.
 
@@ -1873,7 +1917,7 @@ If optional argument P is present test this instead off point."
             ;; ender" class in elisp-mode, but we just want it to be
             ;; treated as whitespace
             (and (< p (point-max))
-                 (memq (char-syntax (char-after p)) '(?< ?>))
+                 (memq (sp-syntax-after p) '(?< ?>))
                  (not (eq (char-after p) ?\n)))
             ;; we also need to test the special syntax flag for comment
             ;; starters and enders, because `syntax-ppss' does not yet
@@ -1908,8 +1952,8 @@ are in either word or symbol class."
   (save-excursion
     (goto-char p)
     (and (/= 0 (following-char))
-         (memq (char-syntax (following-char)) '(?w ?_))
-         (memq (char-syntax (preceding-char)) '(?w ?_)))))
+         (memq (sp-syntax-after) '(?w ?_))
+         (memq (sp-syntax-before) '(?w ?_)))))
 
 (defun sp--single-key-description (event)
   "Return a description of the last EVENT.
@@ -4421,8 +4465,7 @@ If the point is not inside a quoted string, return nil."
                      (when (not (or (eobp)
                                     (sp-point-in-comment)
                                     (looking-at "[[:space:]]+\\s<")
-                                    (and (eq (char-syntax
-                                              (char-after pp)) ?>)
+                                    (and (eq (sp-syntax-after pp) ?>)
                                          (not (eq (char-after pp) ?\n)))
                                     (/= (logand
                                          (lsh 1 18)
@@ -4944,7 +4987,7 @@ on it when calling directly."
     ;; `sp-get-string'
     (if (and delimiter
              (= (length delimiter) 1)
-             (eq (char-syntax (string-to-char delimiter)) 34))
+             (eq (char-syntax (string-to-char delimiter)) ?\"))
         (sp-get-string-or-nested-string back)
       (sp-get-stringlike-expression back))))
 
@@ -7585,7 +7628,9 @@ Examples:
                                  (or in-comment (not (sp-point-in-comment))))
                             (and (,looking allowed-strings)
                                  (or in-comment (not (sp-point-in-comment))))))
-                   (or (member (char-syntax (,next-char-fn)) '(?< ?> ?! ?| ?\ ?\\ ?\" ?' ?.))
+                   (or (member
+                        ,(if forward '(sp-syntax-after) '(sp-syntax-before))
+                        '(?< ?> ?! ?| ?\ ?\\ ?\" ?' ?.))
                        (/= 0 (logand (lsh 1 20) (car (syntax-after
                                                       ,(if forward
                                                            '(point)
@@ -7703,7 +7748,7 @@ Examples:
             ;; something in \sw or \s_
             (while (cond
                     ((eobp) nil)
-                    ((not (memq (char-syntax (following-char)) '(?w ?_)))
+                    ((not (memq (sp-syntax-after) '(?w ?_)))
                      (forward-char)
                      t)
                     ;; if allowed is empty, the regexp matches anything
@@ -7716,13 +7761,13 @@ Examples:
                         (or (not allowed)
                             (not (or (sp--valid-initial-delimiter-p (sp--looking-at open))
                                      (sp--valid-initial-delimiter-p (sp--looking-at close)))))
-                        (or (memq (char-syntax (following-char)) '(?w ?_))
+                        (or (memq (sp-syntax-after) '(?w ?_))
                             ;; Specifically for lisp, we consider
                             ;; sequences of ?\<ANYTHING> a symbol
                             ;; sequence
                             (and (eq (char-before) ??)
-                                 (eq (char-syntax (following-char)) ?\\))
-                            (and (eq (char-syntax (char-before)) ?\\))))
+                                 (eq (sp-syntax-after) ?\\))
+                            (and (eq (sp-syntax-before) ?\\))))
               (forward-char))
             (setq n (1- n)))
         (sp-backward-symbol n)))))
@@ -7761,7 +7806,7 @@ Examples:
           (while (> n 0)
             (while (cond
                     ((bobp) nil)
-                    ((not (memq (char-syntax (preceding-char)) '(?w ?_)))
+                    ((not (memq (sp-syntax-before) '(?w ?_)))
                      (backward-char)
                      t)
                     ((sp--valid-initial-delimiter-p (sp--looking-back open))
@@ -7771,13 +7816,12 @@ Examples:
             (while (and (not (bobp))
                         (not (or (sp--valid-initial-delimiter-p (sp--looking-back open))
                                  (sp--valid-initial-delimiter-p (sp--looking-back close))))
-                        (or (memq (char-syntax (preceding-char)) '(?w ?_))
+                        (or (memq (sp-syntax-before) '(?w ?_))
                             ;; Specifically for lisp, we consider
                             ;; sequences of ?\<ANYTHING> a symbol
                             ;; sequence
                             (and (eq (char-before (1- (point))) ??)
-                                 (eq (char-syntax (preceding-char)) ?\\))
-                            ))
+                                 (eq (sp-syntax-before) ?\\))))
               (backward-char))
             ;; skip characters which are symbols with prefix flag
             (while (and (not (eobp))

@@ -995,3 +995,10 @@ end")))
     (equal (sp-get-thing t) '(:beg 1 :end 642 :op "module" :cl "end" :prefix "" :suffix ""))
     (goto-char (point-min))
     (equal (sp-get-thing) '(:beg 1 :end 642 :op "module" :cl "end" :prefix "" :suffix ""))))
+
+;; #851
+(ert-deftest sp-test-ruby-get-symbol-questionmark-suffix ()
+  (sp-test-with-temp-buffer "|foo = 2.even?\nbar = 2.odd?\n"
+      (ruby-mode)
+    (sp-kill-hybrid-sexp 1)
+    (sp-buffer-equals "|\nbar = 2.odd?\n")))
