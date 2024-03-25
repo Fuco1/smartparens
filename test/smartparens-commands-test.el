@@ -807,6 +807,31 @@ be."
    (((mode 'js))
     ("{|'foo': 'bar'}" "{'|': 'bar'}"))))
 
+(sp-test-command sp-clone-sexp
+  ((nil
+    ;; from #938 later in the thread
+    ("|(foo (bar) baz)" "(foo (bar) baz)\n|(foo (bar) baz)")
+    ("(foo |(bar) baz)" "(foo (bar)\n     |(bar) baz)")
+    ("(foo (bar) |baz)" "(foo (bar) baz)\n(foo (bar) |baz)")
+    ("(foo (bar) baz)|" "(foo (bar) baz)|")
+
+    ("(foo (bar)| 'baz 'qux)" "(foo (bar) 'baz 'qux)\n(foo (bar)| 'baz 'qux)")
+    ("(foo (bar) 'baz '|qux)" "(foo (bar) 'baz 'qux)\n(foo (bar) 'baz '|qux)")
+
+    ;; from #938 OP
+    ("(defun my-smartparens-hook ()
+  (setq sp-base-key-bindings 'paredit)
+  (define-key smartparens-|mode-map (kbd \"C-, C-y\")  #'sp-clone-sexp)
+  (define-key smartparens-mode-map (kbd \"C-k\")      #'kill-sexp)
+  (define-key smartparens-mode-map (kbd \"C-M-t\")    #'sp-transpose-sexp)
+  )" "(defun my-smartparens-hook ()
+  (setq sp-base-key-bindings 'paredit)
+  (define-key smartparens-mode-map (kbd \"C-, C-y\")  #'sp-clone-sexp)
+  (define-key smartparens-|mode-map (kbd \"C-, C-y\")  #'sp-clone-sexp)
+  (define-key smartparens-mode-map (kbd \"C-k\")      #'kill-sexp)
+  (define-key smartparens-mode-map (kbd \"C-M-t\")    #'sp-transpose-sexp)
+  )"))))
+
 (defun sp--test-sp-rewrap-sexp (initial pair expected &optional keep)
   (sp-test-with-temp-elisp-buffer initial
     (sp-rewrap-sexp pair keep)
