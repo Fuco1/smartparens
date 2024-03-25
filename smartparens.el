@@ -5571,7 +5571,7 @@ both have to be considered by the parser."
 PAIRS is either an opening delimiter of a list of opening
 delimiters.
 
-FUNCTION is a function symbol.
+FUNCTION is an interactive function (command) symbol.
 
 For example, you can restrict function `sp-down-sexp' to the
 pair (\"{\" . \"}\") for easier navigation of blocks in C-like
