@@ -79,3 +79,12 @@
     (smartparens-strict-mode 1)
     (sp-backward-delete-char)
     (sp-buffer-equals "\" | \"")))
+
+(ert-deftest sp-test-delete-pair-dont-delete-with-active-region ()
+  "Fixes #703"
+  (sp-test-with-temp-elisp-buffer "(|
+
+M)"
+    (smartparens-strict-mode -1)
+    (call-interactively 'backward-delete-char)
+    (should (equal (buffer-string) "()"))))

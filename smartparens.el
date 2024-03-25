@@ -4241,6 +4241,7 @@ is remove the just added wrapping."
   ;; multiple character, so let him do that
   (sp--with-case-sensitive
     (when (and (= arg 1)
+               (not (use-region-p))
                smartparens-mode)
       (if (and sp-autodelete-wrap
                (eq sp-last-operation 'sp-wrap-region))
