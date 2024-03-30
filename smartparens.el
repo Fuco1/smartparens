@@ -9756,12 +9756,15 @@ has been created."
 (defadvice company--insert-candidate (after sp-company--insert-candidate activate)
   "If `smartparens-mode' is active, we check if the completed string
 has a pair definition.  If so, we insert the closing pair."
-  (when (and ad-return-value smartparens-mode)
+  (when (and ad-return-value
+             smartparens-mode
+             (not (sp-get-enclosing-sexp)))
     (sp-insert-pair))
   ad-return-value)
 
 (defadvice hippie-expand (after sp-auto-complete-advice activate)
-  (when smartparens-mode
+  (when (and smartparens-mode
+             (not (sp-get-enclosing-sexp)))
     (sp-insert-pair)))
 
 (defvar sp--mc/cursor-specific-vars
