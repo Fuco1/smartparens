@@ -92,3 +92,11 @@ thesmeves and would not break unrelated pair)"
       (latex-mode)
     (execute-kbd-macro "``")
     (sp-buffer-equals "$foo ``| baz$")))
+
+;; #834
+(ert-deftest sp-test-latex-wrap-with-trigger ()
+  "A region should be wrapped with a pair if trigger key is pressed."
+  (sp-test-with-temp-buffer "foo Mbar baz| bam"
+      (latex-mode)
+    (execute-kbd-macro "\"")
+    (sp-buffer-equals "foo ``bar baz''| bam")))

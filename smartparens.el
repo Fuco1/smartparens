@@ -2027,7 +2027,8 @@ BODY, do nothing."
 (defvar sp--self-insert-commands
   '(self-insert-command
     org-self-insert-command
-    LaTeX-insert-left-brace)
+    LaTeX-insert-left-brace
+    latex-insert-left-brace)
    "List of commands that are some sort of `self-insert-command'.
 
 Many modes rebind \"self-inserting\" keys to \"smart\" versions
@@ -2041,6 +2042,12 @@ of pairs and wraps.")
   '(
     TeX-insert-dollar
     TeX-insert-quote
+    ;; At some point the TeX and LaTeX functions were renamed to
+    ;; lower-case names.  This broke some code dealing with these
+    ;; modes, so we just add both versions for now.
+    tex-insert-dollar
+    tex-insert-quote
+    latex-insert-quote
     quack-insert-opening-paren
     quack-insert-closing-paren
     quack-insert-opening-bracket
