@@ -9,6 +9,7 @@
 
 (development
   (depends-on "f")
+  (depends-on "yasnippet")
   (depends-on "ert-runner")
   (depends-on "undercover")
   (depends-on "shut-up")
