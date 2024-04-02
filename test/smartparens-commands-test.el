@@ -276,7 +276,23 @@ be."
     ("(f|oo)  #'(bar)" "(f|oo  #'(bar))"))
    (((sp-sexp-prefix '((emacs-lisp-mode regexp "\\(?:['`]*,@?\\|[',`]\\)"))))
     ("(fo|o) `',(bar)" "(fo|o `',(bar))")
-    ("(fo|o) ,@(bar)" "(fo|o ,@(bar))"))))
+    ("(fo|o) ,@(bar)" "(fo|o ,@(bar))"))
+   (((mode 'clojure))
+    ;; was sp-test-clojure-slurp-with-prefix
+    ("(foo|) #{...}" "(foo| #{...})")
+    ("(foo|) ^{:a 1}" "(foo| ^{:a 1})")
+    ("(foo|) #(xyzzy 1 2 %)" "(foo| #(xyzzy 1 2 %))")
+    ("(foo|) #_(comment reader macro)" "(foo| #_(comment reader macro))")
+    ("(foo|) ~unquote-me" "(foo| ~unquote-me)")
+    ("(foo|) `~'unquote-me" "(foo| `~'unquote-me)")
+    ("(foo|) ~@(splice-me)" "(foo| ~@(splice-me))")
+    ("(foo|) `(quote-me)" "(foo| `(quote-me))")
+    ("(foo|) @(deref-me)" "(foo| @(deref-me))")
+    ("(foo|) @deref-me" "(foo| @deref-me)")
+    ("(foo|) #?@(:clj [3 4] :cljs [5 6])" "(foo| #?@(:clj [3 4] :cljs [5 6]))")
+    ("(foo|) #?(:clj Double/NaN\n :cljs js/NaN\n :default nil)"
+     ;; longer because slurp causes "autoformat"
+     "(foo| #?(:clj Double/NaN\n        :cljs js/NaN\n        :default nil))"))))
 
 (sp-test-command sp-backward-slurp-sexp
   ((nil
@@ -306,6 +322,16 @@ be."
 
     ("(foo)\nbar ;; baz (f|oo baz)\n(quux)"
      "(foo)\nbar ;; baz (f|oo) baz\n(quux)"))
+
+   (((mode 'clojure))
+    ("(|#{...})" "(|)#{...}")
+    ("(|#(xyzzy 1 2 %))" "(|)#(xyzzy 1 2 %)")
+    ("(|#_(comment reader macro))" "(|)#_(comment reader macro)")
+    ("(|#?@(:clj [3 4] :cljs [5 6]))" "(|)#?@(:clj [3 4] :cljs [5 6])")
+    ("(|#?(:clj     Double/NaN
+      :cljs    js/NaN
+      :default nil))"
+     "(|)#?(:clj     Double/NaN\n     :cljs    js/NaN\n     :default nil)"))
 
    (((mode 'racket)
      (sp-sexp-prefix '((racket-mode regexp "#?['`,]@?"))))
