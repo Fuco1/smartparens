@@ -1084,3 +1084,7 @@ This is the behavior of `paredit-convolute-sexp'."
     (call-interactively 'sp-backward-delete-word)
     (call-interactively 'sp-backward-delete-word)
     (sp-buffer-equals "hello world one ")))
+
+;; Local Variables:
+;; eval: (add-to-list 'imenu-generic-expression '("Command test" "\\(^(sp-test-command +\\)\\(\\_<.+\\_>\\)" 2))
+;; End:
