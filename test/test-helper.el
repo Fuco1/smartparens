@@ -111,6 +111,27 @@ Finally, FORMS are run."
            (delete-char -1))
          ,@forms))))
 
+(defmacro sp-test-kbd-macro (initial macro result &rest forms)
+  "Run an interactive test by emulating keyboard macro.
+
+First, a buffer is initialized usint `sp-test-with-temp-buffer',
+then the MACRO is executed via `execute-kbd-macro' and finally
+buffer is compared to an expected RESULT using
+`sp-buffer-equals'.
+
+Keyword arguments :let, :init-form, :mode are supported, see
+`sp-ert-deftest'."
+  (let* ((let-form (plist-get forms :let))
+         (init-form (plist-get forms :init-form))
+         (mode (plist-get forms :mode)))
+    `(let ,let-form
+       (sp-test-with-temp-buffer ,initial
+           ,(append init-form `(,(cadr mode)))
+         (execute-kbd-macro ,macro)
+         (sp-buffer-equals ,result)))))
+
+(put 'sp-test-kbd-macro 'sp-ert-deftest-keywords (list :let :init-form :mode))
+
 (defmacro sp-test-with-temp-elisp-buffer (initial &rest forms)
   "Setup a new `emacs-lisp-mode' test buffer.
 
@@ -172,15 +193,54 @@ BINDING is a list (kbd command)."
   "Generate `ert-deftest' declarations out of FORMS.
 
 Each form of FORMS represents a single test.  NAME is suffixed by
-the dash and numeric index of the test."
+the dash and numeric index of the test.
+
+Some keyword arguments inside FORMS are interpreted as keys in a
+plist:
+
+- :let => A form in a format accepted by first argument of
+  `let'.  If non-nil, it wraps every generated test instance and
+  can be used to to set up the test environment.
+- :init-form => A form run before the test to set up the environment.
+- :mode => a symbol of the `major-mode' to activate.  This is a
+  convenient shorter form of :init-form.
+
+These forms are not handled by this macro but are passed to the
+test forms which are expected to interpret them.  Whether or not
+these properties are passed to the child form as keyword
+arguments is governed by the symbol property
+`sp-ert-deftest-keywords', see `get', `put', `symbol-plist'.
+
+If the first non plist key/value argument is a string, it is
+interpreted as a docstring and no test case is generated from
+it."
   (declare (indent 1))
   (let* ((index 0)
+         (let-form (plist-get forms :let))
+         (init-form (plist-get forms :init-form))
+         (mode (plist-get forms :mode))
+         (forms (-> forms
+                    (map-delete :let)
+                    (map-delete :init-form)
+                    (map-delete :mode)))
          (forms
           (mapcar
            (lambda (form)
              (setq index (1+ index))
-             `(ert-deftest ,(intern (concat (symbol-name name) "-" (number-to-string index))) ()
-                ,form))
+             (let ((supported-keywords
+                    (get (car form) 'sp-ert-deftest-keywords)))
+               `(ert-deftest ,(intern (concat
+                                       (symbol-name name)
+                                       "-"
+                                       (number-to-string index)))
+                    ()
+                  (,@form
+                   ,@(when (member :let supported-keywords)
+                       `(:let ,let-form))
+                   ,@(when (member :init-form supported-keywords)
+                       `(:init-form ,init-form))
+                   ,@(when (member :mode supported-keywords)
+                       `(:mode ,mode))))))
            (if (stringp (car forms)) (cdr forms) forms))))
     `(progn ,@forms)))
 
