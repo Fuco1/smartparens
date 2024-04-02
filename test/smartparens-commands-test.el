@@ -198,6 +198,16 @@ be."
     ;; @}
     )))
 
+(sp-test-command sp-forward-symbol
+  ((nil
+    ("|foo bar" "foo| bar" "foo bar|"))
+   (((mode 'clojure))
+    ("|(map #(identity) {:a 1})"
+     "(map| #(identity) {:a 1})"
+     "(map #(identity|) {:a 1})"
+     "(map #(identity) {:a| 1})"
+     "(map #(identity) {:a 1|})"))))
+
 (sp-test-command sp-forward-parallel-sexp
   ((nil
     ("|foo" "foo|")

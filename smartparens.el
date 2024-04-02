@@ -1889,6 +1889,52 @@ See `sp-get-buffer-char-syntax'."
   (setq p (or p (point)))
   (sp-get-buffer-char-syntax (1- p)))
 
+(defun sp-syntax-after-is-prefix (&optional p)
+  "Check that the character after P has prefix syntax.
+
+Prefix syntax can either come from the global major-mode syntax
+table, from the text property syntax-table or from the syntax
+flag (20)."
+  (setq p (or p (point)))
+  (let ((parse-sexp-lookup-properties t))
+    (when-let ((syntax (syntax-after p)))
+      (or (= (syntax-class syntax) 6)
+          (/= 0 (logand (lsh 1 20) (car syntax)))))))
+
+(defun sp-syntax-before-is-prefix (&optional p)
+  "Check that the character before P has prefix syntax.
+
+Prefix syntax can either come from the global major-mode syntax
+table, from the text property syntax-table or from the syntax
+flag (20)."
+  (setq p (or p (point)))
+  (let ((parse-sexp-lookup-properties t))
+    (when-let ((syntax (syntax-after (1- p))))
+      (or (= (syntax-class syntax) 6)
+          (/= 0 (logand (lsh 1 20) (car syntax)))))))
+
+(defun sp-syntax-after-is-word-or-symbol (&optional p)
+  "Check that the character after P has word or symbol syntax.
+
+In case the character has a special syntax flag 'p', meaning a
+prefix, it is not recognized as a word or symbol syntax even when
+regularly the character would be (for example according to the
+syntax table)."
+  (setq p (or p (point)))
+  (and (memq (sp-syntax-after p) '(?w ?_))
+       (not (sp-syntax-after-is-prefix p))))
+
+(defun sp-syntax-before-is-word-or-symbol (&optional p)
+  "Check that the character before P has word or symbol syntax.
+
+In case the character has a special syntax flag 'p', meaning a
+prefix, it is not recognized as a word or symbol syntax even when
+regularly the character would be (for example according to the
+syntax table)."
+  (setq p (or p (point)))
+  (and (memq (sp-syntax-before p) '(?w ?_))
+       (not (sp-syntax-before-is-prefix p))))
+
 (defun sp-point-in-string (&optional p)
   "Return non-nil if point is inside string or documentation string.
 
@@ -5408,7 +5454,13 @@ returned.  Symbol is defined as a chunk of text recognized by
 `sp-forward-symbol'.
 
 The return value is a plist with the same format as the value
-returned by `sp-get-sexp'."
+returned by `sp-get-sexp'.
+
+A symbol can also be a prefix of a sexp as determined by
+`sp-sexp-prefix' or a suffix as determined by `sp-sexp-suffix'.
+Such a symbol is not returned by this function because it is
+semantically not a symbol but a part of the next paired
+expression."
   (sp--maybe-init)
   (let (b e last-or-first)
     (save-excursion
@@ -7639,10 +7691,9 @@ Examples:
                    (or (member
                         ,(if forward '(sp-syntax-after) '(sp-syntax-before))
                         '(?< ?> ?! ?| ?\ ?\\ ?\" ?' ?.))
-                       (/= 0 (logand (lsh 1 20) (car (syntax-after
-                                                      ,(if forward
-                                                           '(point)
-                                                         '(1- (point)))))))
+                       ,(if forward
+                            '(sp-syntax-after-is-prefix (point))
+                          '(sp-syntax-before-is-prefix (point)))
                        (unless in-comment (sp-point-in-comment))
                        ;; This is the case where we are starting at
                        ;; pair (looking at it) and there is some
@@ -7756,7 +7807,7 @@ Examples:
             ;; something in \sw or \s_
             (while (cond
                     ((eobp) nil)
-                    ((not (memq (sp-syntax-after) '(?w ?_)))
+                    ((not (sp-syntax-after-is-word-or-symbol))
                      (forward-char)
                      t)
                     ;; if allowed is empty, the regexp matches anything
@@ -7769,7 +7820,7 @@ Examples:
                         (or (not allowed)
                             (not (or (sp--valid-initial-delimiter-p (sp--looking-at open))
                                      (sp--valid-initial-delimiter-p (sp--looking-at close)))))
-                        (or (memq (sp-syntax-after) '(?w ?_))
+                        (or (sp-syntax-after-is-word-or-symbol)
                             ;; Specifically for lisp, we consider
                             ;; sequences of ?\<ANYTHING> a symbol
                             ;; sequence
@@ -7814,7 +7865,7 @@ Examples:
           (while (> n 0)
             (while (cond
                     ((bobp) nil)
-                    ((not (memq (sp-syntax-before) '(?w ?_)))
+                    ((not (sp-syntax-before-is-word-or-symbol))
                      (backward-char)
                      t)
                     ((sp--valid-initial-delimiter-p (sp--looking-back open))
@@ -7824,7 +7875,7 @@ Examples:
             (while (and (not (bobp))
                         (not (or (sp--valid-initial-delimiter-p (sp--looking-back open))
                                  (sp--valid-initial-delimiter-p (sp--looking-back close))))
-                        (or (memq (sp-syntax-before) '(?w ?_))
+                        (or (sp-syntax-before-is-word-or-symbol)
                             ;; Specifically for lisp, we consider
                             ;; sequences of ?\<ANYTHING> a symbol
                             ;; sequence
