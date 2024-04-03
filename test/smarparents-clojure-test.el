@@ -24,7 +24,7 @@
      :default nil)M)"))
 
 (sp-ert-deftest sp-test-clojure-wrap-with-fence-prefix
-    :let ((sp-pairs sp--test-basic-pairs))
+  :let ((sp-pairs sp--test-basic-pairs))
   :mode 'clojure-mode
   "Ensure correct wrap-pair over #-prefixed expressions."
   (sp-test-kbd-macro "|#\"...\"M" "(" "(#\"...\")")
