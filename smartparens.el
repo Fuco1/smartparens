@@ -9524,7 +9524,11 @@ After the next command the pair will automatically disappear."
 
 (defcustom sp-show-pair-from-inside nil
   "If non-nil, highlight the enclosing pair if immediately after
-the opening delimiter or before the closing delimiter."
+the opening delimiter or before the closing delimiter.
+
+This option does not disable highlighting of pairs from outside
+the expression.  If a pair can be highlighted from the outside,
+it is preferred to the one highlighted from the inside."
   :type 'boolean
   :group 'show-smartparens)
 
@@ -9699,26 +9703,28 @@ matching paren in the echo area if not visible on screen."
             (let* ((pair-list (sp--get-allowed-pair-list))
                    (opening (sp--get-opening-regexp pair-list))
                    (closing (sp--get-closing-regexp pair-list))
-                   (allowed (and sp-show-pair-from-inside (sp--get-allowed-regexp))))
+                   (allowed (sp--get-allowed-regexp pair-list))
+                   (stringlike (sp--get-stringlike-regexp)))
               (cond
                ;; if we are in a situation "()|", we should highlight the
                ;; regular pair and not the string pair "from inside"
                ((and (not (sp--evil-normal-state-p))
                      (not (sp--evil-motion-state-p))
                      (not (sp--evil-visual-state-p))
-                     (sp--looking-back (if sp-show-pair-from-inside allowed closing)))
+                     (sp--looking-back (if sp-show-pair-from-inside allowed closing))
+                     (not (looking-at opening)))
                 (scan-and-place-overlays (match-string 0) :back))
                ((or (and (or (sp--evil-normal-state-p)
                              (sp--evil-motion-state-p)
                              (sp--evil-visual-state-p))
-                         (sp--looking-at (sp--get-allowed-regexp)))
-                    (sp--looking-at (if sp-show-pair-from-inside allowed opening))
-                    (looking-at (sp--get-stringlike-regexp))
+                         (looking-at allowed))
+                    (looking-at (if sp-show-pair-from-inside allowed opening))
+                    (looking-at stringlike)
                     (and (memq major-mode sp-navigate-consider-sgml-tags)
                          (looking-at "<")))
                 (scan-and-place-overlays (match-string 0)))
                ((or (sp--looking-back (if sp-show-pair-from-inside allowed closing))
-                    (sp--looking-back (sp--get-stringlike-regexp))
+                    (sp--looking-back stringlike)
                     (and (memq major-mode sp-navigate-consider-sgml-tags)
                          (sp--looking-back ">")))
                 (scan-and-place-overlays (match-string 0) :back))
