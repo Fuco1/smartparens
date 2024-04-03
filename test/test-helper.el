@@ -121,16 +121,14 @@ buffer is compared to an expected RESULT using
 
 Keyword arguments :let, :init-form, :mode are supported, see
 `sp-ert-deftest'."
-  (let* ((let-form (plist-get forms :let))
-         (init-form (plist-get forms :init-form))
+  (let* ((init-form (plist-get forms :init-form))
          (mode (plist-get forms :mode)))
-    `(let ,let-form
-       (sp-test-with-temp-buffer ,initial
-           ,(append init-form `(,(cadr mode)))
-         (execute-kbd-macro ,macro)
-         (sp-buffer-equals ,result)))))
+    `(sp-test-with-temp-buffer ,initial
+         ,(append init-form `(,(cadr mode)))
+       (execute-kbd-macro ,macro)
+       (sp-buffer-equals ,result))))
 
-(put 'sp-test-kbd-macro 'sp-ert-deftest-keywords (list :let :init-form :mode))
+(put 'sp-test-kbd-macro 'sp-ert-deftest-keywords (list :init-form :mode))
 
 (defmacro sp-test-complex (initial form result &rest forms)
   "Run an interactive test by evaluating FORM.
@@ -143,16 +141,14 @@ Keyword arguments :let, :init-form, :mode are supported, see
 `sp-ert-deftest'."
   (declare (indent 1)
            (debug (form form body)))
-  (let* ((let-form (plist-get forms :let))
-         (init-form (plist-get forms :init-form))
+  (let* ((init-form (plist-get forms :init-form))
          (mode (plist-get forms :mode)))
-    `(let ,let-form
-       (sp-test-with-temp-buffer ,initial
-           ,(append init-form `(,(cadr mode)))
-         ,form
-         (sp-buffer-equals ,result)))))
+    `(sp-test-with-temp-buffer ,initial
+         ,(append init-form `(,(cadr mode)))
+       ,form
+       (sp-buffer-equals ,result))))
 
-(put 'sp-test-complex 'sp-ert-deftest-keywords (list :let :init-form :mode))
+(put 'sp-test-complex 'sp-ert-deftest-keywords (list :init-form :mode))
 
 (defmacro sp-test-with-temp-elisp-buffer (initial &rest forms)
   "Setup a new `emacs-lisp-mode' test buffer.
@@ -227,10 +223,10 @@ plist:
 - :mode => a symbol of the `major-mode' to activate.  This is a
   convenient shorter form of :init-form.
 
-These forms are not handled by this macro but are passed to the
-test forms which are expected to interpret them.  Whether or not
-these properties are passed to the child form as keyword
-arguments is governed by the symbol property
+These forms except :let are not handled by this macro but are
+passed to the test forms which are expected to interpret them.
+Whether or not these properties are passed to the child form as
+keyword arguments is governed by the symbol property
 `sp-ert-deftest-keywords', see `get', `put', `symbol-plist'.
 
 If the first non plist key/value argument is a string, it is
@@ -256,13 +252,12 @@ it."
                                        "-"
                                        (number-to-string index)))
                     ()
-                  (,@form
-                   ,@(when (member :let supported-keywords)
-                       `(:let ,let-form))
-                   ,@(when (member :init-form supported-keywords)
-                       `(:init-form ,init-form))
-                   ,@(when (member :mode supported-keywords)
-                       `(:mode ,mode))))))
+                  (let ,let-form
+                    (,@form
+                     ,@(when (member :init-form supported-keywords)
+                         `(:init-form ,init-form))
+                     ,@(when (member :mode supported-keywords)
+                         `(:mode ,mode)))))))
            (if (stringp (car forms)) (cdr forms) forms))))
     `(progn ,@forms)))
 
