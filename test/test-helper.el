@@ -132,6 +132,28 @@ Keyword arguments :let, :init-form, :mode are supported, see
 
 (put 'sp-test-kbd-macro 'sp-ert-deftest-keywords (list :let :init-form :mode))
 
+(defmacro sp-test-complex (initial form result &rest forms)
+  "Run an interactive test by evaluating FORM.
+
+First, a buffer is initialized usint `sp-test-with-temp-buffer',
+then the FORM is executed and finally buffer is compared to an
+expected RESULT using `sp-buffer-equals'.
+
+Keyword arguments :let, :init-form, :mode are supported, see
+`sp-ert-deftest'."
+  (declare (indent 1)
+           (debug (form form body)))
+  (let* ((let-form (plist-get forms :let))
+         (init-form (plist-get forms :init-form))
+         (mode (plist-get forms :mode)))
+    `(let ,let-form
+       (sp-test-with-temp-buffer ,initial
+           ,(append init-form `(,(cadr mode)))
+         ,form
+         (sp-buffer-equals ,result)))))
+
+(put 'sp-test-complex 'sp-ert-deftest-keywords (list :let :init-form :mode))
+
 (defmacro sp-test-with-temp-elisp-buffer (initial &rest forms)
   "Setup a new `emacs-lisp-mode' test buffer.
 
