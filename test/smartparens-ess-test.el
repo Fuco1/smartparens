@@ -82,3 +82,18 @@ kill it as a word/symbol"
         (sp-test--ess-mode)
       (execute-kbd-macro "\\(foo")
       (sp-buffer-equals "\"\\(foo|\\)\""))))
+
+;; #821
+(sp-ert-deftest sp-test-ess-backwards-kill-word
+  :mode 'ess-r-mode
+  (sp-test-complex "c(\"test\", \"one\")|"
+    (sp-backward-kill-word 1)
+    "c(\"test\", \"|\")")
+  (sp-test-complex "c(\"test\", \"one\"|)"
+    (sp-backward-kill-word 1)
+    "c(\"test\", \"|\")")
+  (sp-test-complex "ggplot(mtcars, aes(mpg, am)) +
+  facet_wrap|()"
+    (sp-backward-kill-word 1)
+    "ggplot(mtcars, aes(mpg, am)) +
+  facet_|()"))
