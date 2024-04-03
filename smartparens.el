@@ -813,9 +813,7 @@ after the smartparens indicator in the mode list."
 (defun turn-on-smartparens-strict-mode ()
   "Turn on `smartparens-strict-mode'."
   (interactive)
-  (unless (or (member major-mode sp-ignore-modes-list)
-              (and (not (derived-mode-p 'comint-mode))
-                   (eq (get major-mode 'mode-class) 'special)))
+  (when (sp--should-turn-on-p)
     (smartparens-strict-mode 1)))
 
 ;;;###autoload
@@ -823,6 +821,10 @@ after the smartparens indicator in the mode list."
   "Turn off `smartparens-strict-mode'."
   (interactive)
   (smartparens-strict-mode -1))
+
+(make-obsolete 'turn-off-smartparens-strict-mode
+               "this function is marked for deletion."
+               "2024-04-03")
 
 (defun sp--init ()
   "Initialize the buffer local smartparens state.
@@ -943,6 +945,15 @@ MODES."
   smartparens-mode
   turn-on-smartparens-mode)
 
+(defun sp--should-turn-on-p ()
+  "Return non-nil if `smartparens-global-mode' should be turned on.
+
+The same check is also used for
+`smartparens-global-strict-mode'."
+  (not (or (member major-mode sp-ignore-modes-list)
+           (and (not (derived-mode-p 'comint-mode))
+                (eq (get major-mode 'mode-class) 'special)))))
+
 ;;;###autoload
 (defun turn-on-smartparens-mode ()
   "Turn on `smartparens-mode'.
@@ -958,16 +969,18 @@ Additionally, buffers on `sp-ignore-modes-list' are ignored.
 You can still turn on smartparens in these mode manually (or
 in mode's startup-hook etc.) by calling `smartparens-mode'."
   (interactive)
-  (unless (or (member major-mode sp-ignore-modes-list)
-              (and (not (derived-mode-p 'comint-mode))
-                   (eq (get major-mode 'mode-class) 'special)))
-    (smartparens-mode t)))
+  (when (sp--should-turn-on-p)
+    (smartparens-mode 1)))
 
 ;;;###autoload
 (defun turn-off-smartparens-mode ()
   "Turn off `smartparens-mode'."
   (interactive)
   (smartparens-mode -1))
+
+(make-obsolete 'turn-off-smartparens-mode
+               "this function is marked for deletion."
+               "2024-04-03")
 
 ;; insert custom
 (defcustom sp-autoinsert-pair t
@@ -9570,22 +9583,33 @@ support custom pairs."
 ;;;###autoload
 (define-globalized-minor-mode show-smartparens-global-mode
   show-smartparens-mode
-  turn-on-show-smartparens-mode)
+  turn-on-show-smartparens-mode
+  :group 'show-smartparens)
 
 ;;;###autoload
 (defun turn-on-show-smartparens-mode ()
-  "Turn on `show-smartparens-mode'."
+  "Turn on `show-smartparens-mode'.
+
+This function is used to turn on `show-smartparens-global-mode'.
+
+Major modes on `sp-ignore-modes-list' are ignored when turning on
+the globalized mode.
+
+You can still turn on `show-smartparens-mode' manually by calling
+\\[show-smartparens-mode.]"
   (interactive)
-  (unless (or (member major-mode sp-ignore-modes-list)
-              (and (not (derived-mode-p 'comint-mode))
-                   (eq (get major-mode 'mode-class) 'special)))
-    (show-smartparens-mode t)))
+  (unless (member major-mode sp-ignore-modes-list)
+    (show-smartparens-mode 1)))
 
 ;;;###autoload
 (defun turn-off-show-smartparens-mode ()
   "Turn off `show-smartparens-mode'."
   (interactive)
   (show-smartparens-mode -1))
+
+(make-obsolete 'turn-off-show-smartparens-mode
+               "this function is marked for deletion."
+               "2024-04-03")
 
 (defun sp-show-enclosing-pair ()
   "Highlight the enclosing pair around point."
