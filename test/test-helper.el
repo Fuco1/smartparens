@@ -261,4 +261,14 @@ it."
            (if (stringp (car forms)) (cdr forms) forms))))
     `(progn ,@forms)))
 
+(defconst sp-test-font-lock-keywords
+  `((,(rx "(sp-ert-deftest"
+          (1+ space)
+          (group
+           (1+ (or (syntax word)
+                   (syntax symbol)))))
+     (1 font-lock-function-name-face))))
+
+(font-lock-add-keywords 'emacs-lisp-mode sp-test-font-lock-keywords)
+
 ;;; test-helper.el ends here
