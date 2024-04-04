@@ -4561,7 +4561,10 @@ If the point is not inside a quoted string, return nil."
 
 (cl-defun sp--skip-match-p (ms mb me
                                &key
-                               (global-skip (cdr (--first (memq major-mode (car it)) sp-navigate-skip-match)))
+                               (global-skip
+                                (cdr (--first
+                                      (memq major-mode (car it))
+                                      sp-navigate-skip-match)))
                                (pair-skip (sp-get-pair ms :skip-match)))
   "Return non-nil if this match should be skipped.
 
@@ -4839,7 +4842,8 @@ and the skip-match predicate."
         (unless (or (save-match-data
                       (save-excursion
                         (goto-char (match-beginning 0))
-                        (or (sp--looking-back-p "\\\\" 2) ;; assumes \ is always the escape... bad?
+                        ;; assumes \ is always the escape... bad?
+                        (or (sp--looking-back-p "\\\\" 2)
                             (and (eq major-mode 'emacs-lisp-mode)
                                  (not (sp-point-in-string))
                                  (sp--looking-back-p "?" 1)))))
