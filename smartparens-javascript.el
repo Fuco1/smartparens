@@ -46,19 +46,30 @@
 
 (require 'smartparens)
 
+(defvar sp--javascript-modes '(
+                               js-mode
+                               javascript-mode
+                               js2-mode
+                               typescript-mode
+                               rjsx-mode
+                               js-ts-mode
+                               typescript-ts-mode
+                               tsx-ts-mode
+                               )
+  "List of JavaScript modes.")
+
 ;; (|sys).path.append---the dot should not travel with the closing
 ;; paren
-(--each '(
-          js-mode
-          javascript-mode
-          js2-mode
-          typescript-mode
-          rjsx-mode
-          js-ts-mode
-          typescript-ts-mode
-          tsx-ts-mode
-          )
+(--each sp--javascript-modes
   (add-to-list 'sp-sexp-suffix (list it 'regexp "")))
+
+(defun sp-javascript-skip-match-angle-bracket (ms mb _me)
+  "Non-nil if we should ignore the bracket as valid delimiter."
+  (and (string= ms ">") (= (char-before mb) ?=)))
+
+(sp-with-modes sp--javascript-modes
+  (sp-local-pair "<" ">"
+                 :skip-match 'sp-javascript-skip-match-angle-bracket))
 
 (provide 'smartparens-javascript)
 ;;; smartparens-javascript.el ends here

@@ -43,3 +43,23 @@
   return |<a href=\"/\">Top</a>;
 }
 ")))
+
+(ert-deftest sp-test-javascript-skip-arrow-fn-bracket ()
+  "#872"
+  (sp-test-with-temp-buffer "|const test = () => {
+  console.log('test')
+}M"
+      (sp-test--javascript-mode)
+    (call-interactively 'sp-kill-region)
+    (should (equal (buffer-string) ""))))
+
+(ert-deftest sp-test-javascript-skip-arrow-fn-bracket-region-ok ()
+  "#872 The region should not be OK because it contains unclosed bracket.
+
+Before, the > character caused it to skip into the `console'
+token over the bracket and this made the region appear OK."
+  (sp-test-with-temp-buffer "|const test = () => {M
+  console.log('test')
+}"
+      (sp-test--javascript-mode)
+    (should (not (sp-region-ok-p (region-beginning) (region-end))))))
