@@ -2322,6 +2322,27 @@ The value is fetched from `sp-local-pairs'.
 If PROP is non-nil, return the value of that property instead."
   (sp--get-pair-definition open sp-local-pairs prop))
 
+(defun sp-get-pairs-from-match (match)
+  "Get the definition of local pairs from MATCH.
+
+MATCH can be either opening or closing delimiter.  Since one
+closing delimiter can be shared by multiple pair definitions (for
+example ruby def-end and module-end pairs), this function returns
+a list of possible pairs.
+
+The pairs are fetched from `sp-local-pairs'."
+  (--filter
+   (or (equal (plist-get it :open) match)
+       (equal (plist-get it :close) match))
+   sp-local-pairs))
+
+(defun sp-get-skip-function-from-match (match)
+  "Get the :skip-match property of a pair from MATCH.
+
+MATCH can be either opening or closing delimiter, see
+`sp-get-pairs-from-match'."
+  (plist-get (car (sp-get-pairs-from-match match)) :skip-match))
+
 (defun sp--merge-pair-configurations (specific &optional current)
   "Merge SPECIFIC pair configuration to the CURRENT configuration.
 
@@ -2659,7 +2680,16 @@ can use this to skip over expressions that serve multiple
 functions, such as if/end pair or unary if in Ruby or * in
 markdown when it signifies list item instead of emphasis.  In
 addition, there is a global per major-mode option, see
-`sp-navigate-skip-match'."
+`sp-navigate-skip-match'.
+
+Please take notice that in case of multiple pairs sharing the
+same closing delimiter, they must all use the same SKIP-MATCH
+function or at least handle the skip logic for the closing
+delimiter in the same way, without assuming what the
+corresponding opening delimiter is.  This is because when the
+search is performed smartparens doesn't know yet which concrete
+pair it would parse upon only encountering the closing
+delimiter."
   (if (eq actions :rem)
       (dolist (m (-flatten (list modes)))
         (let ((mode-pairs (assq m sp-pairs)))
@@ -4168,21 +4198,23 @@ achieve this by using `sp-pair' or `sp-local-pair' with
       (cl-letf (((symbol-function 'sp--get-allowed-stringlike-list)
                  (lambda ()
                    (--filter (and (sp--do-action-p (car it) 'autoskip)
-                                  (equal (car it) (cdr it))) sp-pair-list))))
+                                  (equal (car it) (cdr it)))
+                             sp-pair-list))))
         ;; these two are pretty hackish ~_~
-        (cl-labels ((get-sexp
+        (cl-labels ((inc-end
+                     (thing)
+                     (when thing
+                       (plist-put thing :end (1+ (sp-get thing :end)))))
+                    (get-sexp
                      (last)
                      (delete-char -1)
-                     (insert " ")
-                     (prog1 (sp-get-sexp)
-                       (delete-char -1)
+                     (prog1 (inc-end (sp-get-sexp))
                        (insert last)))
                     (get-enclosing-sexp
                      (last)
                      (delete-char -1)
-                     (insert " ")
-                     (prog1 (sp-get-enclosing-sexp)
-                       (delete-char -1)
+                     (prog1  (inc-end (sp-get-enclosing-sexp))
+                       (sp-get-enclosing-sexp)
                        (insert last))))
           (let ((last (or last (sp--single-key-description last-command-event))))
             (-if-let (active-sexp
@@ -4236,7 +4268,7 @@ achieve this by using `sp-pair' or `sp-local-pair' with
                          (or (not (sp-point-in-string))
                              (not (sp-char-is-escaped-p (1- (point))))))
                     (-when-let (re (cond
-                                    ((= (point) (sp-get active-sexp :beg))
+                                    ((= (1- (point)) (sp-get active-sexp :beg))
                                      ;; we are in front of a string-like sexp
                                      (when sp-autoskip-opening-pair
                                        (if test-only t
@@ -4565,7 +4597,7 @@ If the point is not inside a quoted string, return nil."
                                 (cdr (--first
                                       (memq major-mode (car it))
                                       sp-navigate-skip-match)))
-                               (pair-skip (sp-get-pair ms :skip-match)))
+                               (pair-skip (sp-get-skip-function-from-match ms)))
   "Return non-nil if this match should be skipped.
 
 This function uses two tests, one specified in
@@ -4587,11 +4619,7 @@ be a function call that sets the match data."
         (pair-skip (make-symbol "pair-skip")))
     `(and ,form
           (let* ((,match (match-string 0))
-                 (,pair-skip (or (sp-get-pair ,match :skip-match)
-                                 (sp-get-pair (car (--first
-                                                    (equal (cdr it) ,match)
-                                                    sp-pair-list))
-                                              :skip-match))))
+                 (,pair-skip (sp-get-skip-function-from-match ,match)))
             (not (sp--skip-match-p
                   ,match
                   (match-beginning 0)
@@ -4848,10 +4876,24 @@ and the skip-match predicate."
                                  (not (sp-point-in-string))
                                  (sp--looking-back-p "?" 1)))))
                     ;; TODO: HACK: global-skip is hack here!!!
-                    (sp--skip-match-p match (match-beginning 0) (match-end 0)
-                                      :pair-skip (or skip-fn
-                                                     (sp-get-pair match :skip-match))
-                                      :global-skip nil))
+                    (sp--skip-match-p
+                     match (match-beginning 0) (match-end 0)
+                     :pair-skip (or skip-fn
+                                    (sp-get-skip-function-from-match match))
+                     ;; TODO: should this be removed?
+                     :global-skip nil))
+          (setq hit (match-data)))))
+    hit))
+
+(defun sp--find-next-paired-delimiter (needle search-fn-f &optional limit)
+  "Find the next paired delimiter, considering the escapes
+and the skip-match predicate."
+  (let (hit match)
+    (while (and (not hit)
+                (funcall search-fn-f needle limit t))
+      (save-match-data
+        (setq match (match-string-no-properties 0))
+        (unless (sp--skip-match-p match (match-beginning 0) (match-end 0))
           (setq hit (match-data)))))
     hit))
 
@@ -5073,11 +5115,20 @@ By default, this is enabled in all modes derived from
   (let ((pre (sp--get-allowed-regexp))
         (sre (sp--get-stringlike-regexp))
         (search-fn (if (not back) 'sp--search-forward-regexp 'sp--search-backward-regexp))
+        ;; start of paired delimiter
         (ps (if back (1- (point-min)) (1+ (point-max))))
+        ;; start of string delimiter
         (ss (if back (1- (point-min)) (1+ (point-max))))
-        (string-delim nil))
+        (string-delim nil)
+        (paired-delim nil))
     (setq ps (if (equal pre "") ps
-               (or (save-excursion (funcall search-fn pre nil t)) ps)))
+               (or (--when-let (save-excursion
+                                 (sp--find-next-paired-delimiter pre search-fn))
+                     (setq paired-delim (match-string 0))
+                     (save-match-data
+                       (set-match-data it)
+                       (if back (match-beginning 0) (match-end 0))))
+                   ps)))
     (setq ss (if (equal sre "") ss
                (or (--when-let (save-excursion
                                  (sp--find-next-stringlike-delimiter sre search-fn))
@@ -7702,7 +7753,11 @@ Examples:
                                  (sp-point-in-string)
                                  (not (sp-point-in-string (,inc (point)))))
                             (and (,looking allowed-pairs)
-                                 (or in-comment (not (sp-point-in-comment))))
+                                 (or in-comment (not (sp-point-in-comment)))
+                                 (not (sp--skip-match-p
+                                       (match-string-no-properties 0)
+                                       (match-beginning 0)
+                                       (match-end 0))))
                             (and (,looking allowed-strings)
                                  (or in-comment (not (sp-point-in-comment))))))
                    (or (member
