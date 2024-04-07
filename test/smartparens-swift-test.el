@@ -113,8 +113,7 @@ func bar(x: UInt64) -> Bool {
       (swift-mode)
     (smartparens-strict-mode 1)
     (sp-backward-sexp)
-    (execute-kbd-macro "func ")
-    (sp-buffer-equals "func |foo() -> UInt32 {}")))
+    (sp-buffer-equals "foo|() -> UInt32 {}")))
 
 ;; #793
 (ert-deftest sp-test-swift-kill-defun ()

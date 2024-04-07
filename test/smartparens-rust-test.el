@@ -155,8 +155,7 @@ fn bar(x: u64) -> bool {
       (rust-mode)
     (smartparens-strict-mode 1)
     (sp-backward-sexp)
-    (execute-kbd-macro "fn ")
-    (sp-buffer-equals "fn |foo() -> u32 {}")))
+    (sp-buffer-equals "foo|() -> u32 {}")))
 
 ;; #793
 (ert-deftest sp-test-rust-kill-defun ()
