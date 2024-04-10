@@ -13,7 +13,7 @@
       (delete-backward-char 1)
       (should (equal (buffer-string) "\\{")))))
 
-(ert-deftest sp-test-delete-pair-closing ()
+(ert-deftest sp-test-delete-pair-opening ()
   (let ((sp-pairs sp--test-basic-pairs))
     (sp-test-with-temp-elisp-buffer "\\{|"
       (smartparens-strict-mode -1)
