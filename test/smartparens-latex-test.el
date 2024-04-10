@@ -22,7 +22,7 @@
     (sp-backward-slurp-sexp 2)
     (sp-buffer-equals "foo ((bar)(baz)|)")
     (sp-backward-barf-sexp 2)
-    (sp-buffer-equals "foo (bar)(baz)|()")))
+    (sp-buffer-equals "foo (bar)(baz)(|)")))
 
 (ert-deftest sp-test-latex-insert-space-on-backward-slurp-where-necessary ()
   (sp-test-with-temp-buffer "foo bar(baz|)"
