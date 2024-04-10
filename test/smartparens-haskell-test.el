@@ -1,4 +1,4 @@
-(require 'haskell-mode)
+(require 'haskell)
 (require 'smartparens-haskell)
 
 ;; #710
