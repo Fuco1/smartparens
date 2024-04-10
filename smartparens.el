@@ -1858,6 +1858,24 @@ P is the point at which we run `syntax-ppss'"
             (list p (point-min) (point-max))
             (sp-state-last-syntax-ppss-result sp-state) (syntax-ppss p)))))
 
+(eval-when-compile
+  (defalias 'sp--syntax-class-to-char 'syntax-class-to-char)
+  (when (version< emacs-version "28.1")
+    ;; Ripped from Emacs 27.0 subr.el.
+    ;; See Github Issue#946 and Emacs bug#31692.
+    (defun sp--syntax-class-to-char (syntax)
+      "Return the syntax char of CLASS, described by an integer.
+For example, if SYNTAX is word constituent (the integer 2), the
+character ‘w’ (119) is returned.
+
+This is a compat function for `syntax-class-to-char'."
+      (let ((spec " .w_()'\"$\\/<>@!|"))
+        (if (and (fixnump syntax)
+                 (>= syntax 0)
+                 (< syntax 16))
+            (aref spec syntax)
+          (error "args out of range"))))))
+
 (defun sp-get-buffer-char-syntax (&optional p)
   "Get syntax class of a character at P.
 
@@ -1873,7 +1891,7 @@ the code is decoded with `syntax-class'."
   (setq p (or p (point)))
   (let ((parse-sexp-lookup-properties t))
     (if-let ((syntax (syntax-after p)))
-        (syntax-class-to-char (syntax-class syntax))
+        (sp--syntax-class-to-char (syntax-class syntax))
       ;; This is a fallback compatible with (char-syntax
       ;; (following-char)) or `previous-char'.  They return 0 as the
       ;; character code, for which syntax is 95 (?_) for some reason
