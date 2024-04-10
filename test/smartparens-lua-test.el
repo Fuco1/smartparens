@@ -1,8 +1,5 @@
-(require 'ert)
 (require 'smartparens)
 (require 'lua-mode)
-
-
 
 (ert-deftest sp-test-lua-complete-block-in-code ()
   "When inserting the beginning of a block, insert the matching end"

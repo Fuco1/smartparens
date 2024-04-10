@@ -1,4 +1,3 @@
-(require 'ert)
 (require 'smartparens)
 (require 'tuareg)
 

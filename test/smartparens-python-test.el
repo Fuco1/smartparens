@@ -1,4 +1,3 @@
-(require 'ert)
 (require 'smartparens-python)
 
 (defun sp-test--python-mode ()

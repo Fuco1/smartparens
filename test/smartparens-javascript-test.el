@@ -1,4 +1,3 @@
-(require 'ert)
 (require 'smartparens-javascript)
 (require 'js2-mode)
 

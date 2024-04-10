@@ -15,7 +15,6 @@
 ;; (when (require 'undercover nil t)
 ;;   (undercover "smartparens*.el"))
 
-(require 'ert)
 (require 'dash)
 (require 'f)
 (require 'cl-lib)

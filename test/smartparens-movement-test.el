@@ -1,5 +1,4 @@
 (require 'smartparens)
-(require 'ert)
 
 (ert-deftest sp-test-next-sexp ()
   (sp-test-with-temp-elisp-buffer "|(foo) (bar)"
