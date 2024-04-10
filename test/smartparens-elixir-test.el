@@ -118,7 +118,7 @@ end"
 end"
     '(:beg 1 :end 87 :op "defmodule" :cl "end" :prefix "" :suffix "")))
 
-(ert-deftest sp-test-elixir-parse-bodyless-defp-w-keyword-list ()
+(ert-deftest sp-test-elixir-parse-bodyless-def-w-keyword-list ()
   "Parse bodyless defp correctly with keyword-list body"
   (sp-test-elixir-parse "|defmodule HelloWorld do
   def hello

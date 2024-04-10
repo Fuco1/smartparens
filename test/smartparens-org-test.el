@@ -66,7 +66,7 @@
     (execute-kbd-macro "foo /bar")
     (sp-buffer-equals "foo /bar|/")))
 
-(ert-deftest sp-test-org-do-not-insert-star-pair-after-word ()
+(ert-deftest sp-test-org-do-not-insert-slash-pair-after-word ()
   (sp-test-with-temp-buffer "|"
       (org-mode)
     (execute-kbd-macro "foo bar/ baz")
@@ -98,7 +98,7 @@
     (execute-kbd-macro "foo ~bar")
     (sp-buffer-equals "foo ~bar|~")))
 
-(ert-deftest sp-test-org-do-not-insert-star-pair-after-word ()
+(ert-deftest sp-test-org-do-not-insert-tilde-pair-after-word ()
   (sp-test-with-temp-buffer "|"
       (org-mode)
     (execute-kbd-macro "foo bar~ baz")
@@ -130,7 +130,7 @@
     (execute-kbd-macro "foo =bar")
     (sp-buffer-equals "foo =bar|=")))
 
-(ert-deftest sp-test-org-do-not-insert-star-pair-after-word ()
+(ert-deftest sp-test-org-do-not-insert-equals-pair-after-word ()
   (sp-test-with-temp-buffer "|"
       (org-mode)
     (execute-kbd-macro "foo bar= baz")
