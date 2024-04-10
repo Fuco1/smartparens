@@ -33,7 +33,7 @@ end"))))
       (should
        (sp-ruby-eq-ignore-indent (buffer-string) expected)))))
 
-(ert-deftest sp-test-ruby-slurp-forward ()
+(sp-ert-deftest sp-test-ruby-slurp-forward
   (sp-ruby-test-slurp-assert 1 "
 if teXst
 end
@@ -249,7 +249,7 @@ end
 
   )
 
-(ert-deftest sp-test-ruby-slurp-backward ()
+(sp-ert-deftest sp-test-ruby-slurp-backward
   (sp-ruby-test-slurp-assert -1 "
 foo.bar
 begin X
@@ -425,7 +425,7 @@ end
 
   )
 
-(ert-deftest sp-test-ruby-slurp-on-single-line ()
+(sp-ert-deftest sp-test-ruby-slurp-on-single-line
   (sp-ruby-test-slurp-assert 1 "
 test {X} test
 " :=> "
@@ -452,7 +452,7 @@ test { test; test }
 
 )
 
-(ert-deftest sp-test-ruby-slurp-with-inline-blocks ()
+(sp-ert-deftest sp-test-ruby-slurp-with-inline-blocks
   (sp-ruby-test-slurp-assert 1 "
 if teXst
 end
@@ -502,7 +502,7 @@ end
       (should
        (sp-ruby-eq-ignore-indent (buffer-string) expected)))))
 
-(ert-deftest sp-test-ruby-barf-forward ()
+(sp-ert-deftest sp-test-ruby-barf-forward
   (sp-ruby-test-barf-assert 1 "
 if teXst
   foo
@@ -612,7 +612,7 @@ end
 ")
   )
 
-(ert-deftest sp-test-ruby-barf-backward ()
+(sp-ert-deftest sp-test-ruby-barf-backward
   (sp-ruby-test-barf-assert -1 "
 begin
   fooX
@@ -702,7 +702,7 @@ end
 ")
   )
 
-(ert-deftest sp-test-ruby-barf-on-single-line ()
+(sp-ert-deftest sp-test-ruby-barf-on-single-line
   (sp-ruby-test-barf-assert 1 "
 test { Xtest }
 " :=> "
@@ -768,7 +768,7 @@ foo = if true
       (should
        (sp-ruby-eq-ignore-indent (buffer-string) expected)))))
 
-(ert-deftest sp-test-ruby-splice ()
+(sp-ert-deftest sp-test-ruby-splice
   (sp-ruby-test-splice-assert 1 "
 if teXst
 end
