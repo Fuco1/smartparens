@@ -1862,8 +1862,6 @@ P is the point at which we run `syntax-ppss'"
 (defalias 'sp--syntax-class-to-char
   (if (fboundp 'syntax-class-to-char)
       #'syntax-class-to-char
-    ;; Ripped from Emacs 27.0 subr.el.
-    ;; See Github Issue#946 and Emacs bug#31692.
     (lambda (syntax)
       "Return the syntax char of CLASS, described by an integer.
 For example, if SYNTAX is word constituent (the integer 2), the
