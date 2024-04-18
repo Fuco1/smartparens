@@ -13,16 +13,23 @@ jobs:
           - '26.1'
           - '26.2'
           - '26.3'
+          - '27.1'
+          - '27.2'
+          - '28.1'
+          - '28.2'
+          - '29.1'
+          - '29.2'
+          - '29.3'
           - 'snapshot'
         include:
           - emacs_version: 'snapshot'
             allow_failure: true
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
     - uses: purcell/setup-emacs@master
       with:
         version: ${{ matrix.emacs_version }}
-    - uses: actions/setup-python@v1.1.1
+    - uses: actions/setup-python@v5
     - uses: conao3/setup-cask@master
 
     - name: Install dependencies
