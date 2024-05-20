@@ -2127,22 +2127,20 @@ handle insertion and reinsertion of pairs and wraps.
 
 The `sp--post-self-insert-hook-handler' is called in the
 `post-command-hook' for these commands."
-  (let ((special-self-insert-commands
-         `(
-           ,@(when (and (boundp 'AUCTeX-version)
-                        (version<= AUCTeX-version "14.0.5"))
-               '(TeX-insert-dollar))
-           tex-insert-quote
-           TeX-insert-quote
-           quack-insert-opening-paren
-           quack-insert-closing-paren
-           quack-insert-opening-bracket
-           quack-insert-closing-bracket
-           racket-insert-closing-paren
-           racket-insert-closing-bracket
-           racket-insert-closing-brace
-           )))
-    (memq this-command special-self-insert-commands)))
+  (memq this-command
+        `(
+          ,@(and (boundp 'AUCTeX-version) (version<= AUCTeX-version "14.0.5")
+                 '(TeX-insert-dollar))
+          tex-insert-quote
+          TeX-insert-quote
+          quack-insert-opening-paren
+          quack-insert-closing-paren
+          quack-insert-opening-bracket
+          quack-insert-closing-bracket
+          racket-insert-closing-paren
+          racket-insert-closing-bracket
+          racket-insert-closing-brace
+          )))
 
 (defun sp--signum (x)
   "Return 1 if X is positive, -1 if negative, 0 if zero."
