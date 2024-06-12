@@ -691,7 +691,10 @@ Symbol is defined as a chunk of text recognized by
      "Point not deep enough")
     (:different-type
      "The expressions to be joined are of different type"
-     "Expressions are of different type"))
+     "Expressions are of different type")
+    (:no-enclosing-expression
+     "Point is not inside enclosing expression"
+     "No enclosing expression"))
   "List of predefined messages to be displayed by `sp-message'.
 
 Each element is a list consisting of a keyword and one or more
@@ -5986,8 +5989,9 @@ A numeric arg specifies to move up by that many enclosing expressions.
 
 See also `narrow-to-region' and `narrow-to-defun'."
   (interactive "p")
-  (-when-let (enc (sp-get-enclosing-sexp arg))
-    (sp-get enc (narrow-to-region :beg-prf :end))))
+  (-if-let (enc (sp-get-enclosing-sexp arg))
+      (sp-get enc (narrow-to-region :beg-prf :end))
+    (sp-message :no-enclosing-expression)))
 
 (defun sp-forward-sexp (&optional arg)
   "Move forward across one balanced expression.
@@ -6280,11 +6284,13 @@ Examples:
          (last-point -1))
     (if (and raw (= (abs arg) 16))
         ;; jump to the beginning/end of current list
-        (-when-let (enc (sp-get-enclosing-sexp))
-          (if (> arg 0)
-              (goto-char (sp-get enc :beg-in))
-            (goto-char (sp-get enc :end-in)))
-          (setq ok enc))
+        (-if-let (enc (sp-get-enclosing-sexp))
+            (progn
+              (if (> arg 0)
+                  (goto-char (sp-get enc :beg-in))
+                (goto-char (sp-get enc :end-in)))
+              (setq ok enc))
+          (sp-message :no-enclosing-expression))
       ;; otherwise descend normally
       (while (and ok (> n 0))
         (setq ok (sp-get-sexp (< arg 0)))
@@ -6940,7 +6946,7 @@ current one and put the point in front of it.
 Otherwise get the enclosing sexp and clone it below the current
 enclosing sexp."
   (interactive "*")
-  (-when-let (ok (let ((sexp (sp-get-thing)))
+  (-if-let (ok (let ((sexp (sp-get-thing)))
                    (if (not (equal (sp-get sexp :op) ""))
                        sexp
                      (sp-get-enclosing-sexp))))
@@ -6965,7 +6971,8 @@ enclosing sexp."
           (insert-buffer-substring-no-properties
            (current-buffer) :beg-prf :end-suf))
         (newline-and-indent))
-      (sp-indent-defun))))
+      (sp-indent-defun))
+    (sp-message :no-enclosing-expression)))
 
 (defun sp-kill-hybrid-sexp (arg)
   "Kill a line as if with `kill-line', but respecting delimiters.
@@ -7360,84 +7367,84 @@ Examples:
   (interactive "*P")
   (if (> (prefix-numeric-value arg) 0)
       (let ((n (abs (prefix-numeric-value arg)))
-            (enc (sp-get-enclosing-sexp))
             (in-comment (sp-point-in-comment))
             next-thing ok)
-        (when enc
-          (save-excursion
-            (if (sp--raw-argument-p arg)
-                (progn
-                  (goto-char (sp-get enc :end-suf))
-                  (setq next-thing (sp-get-enclosing-sexp))
-                  (when next-thing
-                    (goto-char (sp-get next-thing :end-in))
-                    (sp--run-hook-with-args (sp-get enc :op) :pre-handlers 'slurp-forward
-                                            (list :arg arg :enc enc :next-thing next-thing))
-                    (sp-get enc (insert :cl :suffix))
+        (-if-let (enc (sp-get-enclosing-sexp))
+            (save-excursion
+              (if (sp--raw-argument-p arg)
+                  (progn
                     (goto-char (sp-get enc :end-suf))
-                    (delete-char (sp-get enc (- (+ :cl-l :suffix-l))))
-                    (sp--indent-region (sp-get enc :beg-prf) (sp-get next-thing :end))
-                    (sp--run-hook-with-args (sp-get enc :op) :post-handlers 'slurp-forward
-                                            (list :arg arg :enc enc :next-thing next-thing))))
-              (while (> n 0)
-                (goto-char (sp-get enc :end-suf))
-                (setq ok enc)
-                (setq next-thing (sp-get-thing nil))
-                (while (sp-compare-sexps next-thing ok <)
-                  (goto-char (sp-get next-thing :end-suf))
-                  (setq ok next-thing)
-                  (setq next-thing (sp-get-thing nil)))
-                ;; do not allow slurping into a different context from
-                ;; inside a comment
-                (if (and in-comment
-                         (save-excursion
-                           (sp-get next-thing
-                             (goto-char :beg)
-                             (not (sp-point-in-comment)))))
-                    (progn
-                      (sp-message :cant-slurp-context)
-                      (setq n -1))
-                  (if ok
+                    (setq next-thing (sp-get-enclosing-sexp))
+                    (when next-thing
+                      (goto-char (sp-get next-thing :end-in))
+                      (sp--run-hook-with-args (sp-get enc :op) :pre-handlers 'slurp-forward
+                                              (list :arg arg :enc enc :next-thing next-thing))
+                      (sp-get enc (insert :cl :suffix))
+                      (goto-char (sp-get enc :end-suf))
+                      (delete-char (sp-get enc (- (+ :cl-l :suffix-l))))
+                      (sp--indent-region (sp-get enc :beg-prf) (sp-get next-thing :end))
+                      (sp--run-hook-with-args (sp-get enc :op) :post-handlers 'slurp-forward
+                                              (list :arg arg :enc enc :next-thing next-thing))))
+                (while (> n 0)
+                  (goto-char (sp-get enc :end-suf))
+                  (setq ok enc)
+                  (setq next-thing (sp-get-thing nil))
+                  (while (sp-compare-sexps next-thing ok <)
+                    (goto-char (sp-get next-thing :end-suf))
+                    (setq ok next-thing)
+                    (setq next-thing (sp-get-thing nil)))
+                  ;; do not allow slurping into a different context from
+                  ;; inside a comment
+                  (if (and in-comment
+                           (save-excursion
+                             (sp-get next-thing
+                               (goto-char :beg)
+                               (not (sp-point-in-comment)))))
                       (progn
-                        (if (and (equal (sp-get next-thing :cl) "\"")
-                                 (equal (sp-get ok :cl) "\""))
-                            (progn
-                              (sp--join-sexp ok next-thing)
-                              (goto-char (- (sp-get next-thing :end) 2))
-                              (plist-put enc :end (- (sp-get next-thing :end) 2)))
-                          (let ((inner-sexp
-                                 (save-excursion
-                                   (goto-char (sp-get ok :end-in))
-                                   (sp-get-thing t))))
-                            (delete-char (sp-get ok (- (+ :cl-l :suffix-l))))
-                            ;; this calculation corrects the absence
-                            ;; of already deleted cls
-                            (goto-char (- (sp-get next-thing :end-suf)
-                                          (sp-get ok (+ :cl-l :suffix-l))))
-                            ;; only insert space if not inserting it
-                            ;; would merge two sexps together
-                            (when (and (sp-get ok (/= :len-in 0))
-                                       (sp-compare-sexps
-                                        inner-sexp
-                                        (sp-get-thing t))
-                                       (= (sp-get ok :end-suf)
-                                          (sp-get next-thing :beg-prf)))
-                              (save-excursion
-                                (goto-char (sp-get ok :end-in))
-                                (insert " "))))
-                          (sp--run-hook-with-args
-                           (sp-get enc :op) :pre-handlers 'slurp-forward
-                           (list :arg arg :enc enc :ok ok :next-thing next-thing))
-                          (sp-get ok (insert :cl :suffix))
-                          (sp--indent-region (sp-get ok :beg-prf) (point))
-                          ;; HACK: update the "enc" data structure if ok==enc
-                          (when (= (sp-get enc :beg) (sp-get ok :beg)) (plist-put enc :end (point)))
-                          (sp--run-hook-with-args
-                           (sp-get enc :op) :post-handlers 'slurp-forward
-                           (list :arg arg :enc enc :ok ok :next-thing next-thing)))
-                        (setq n (1- n)))
-                    (sp-message :cant-slurp)
-                    (setq n -1))))))))
+                        (sp-message :cant-slurp-context)
+                        (setq n -1))
+                    (if ok
+                        (progn
+                          (if (and (equal (sp-get next-thing :cl) "\"")
+                                   (equal (sp-get ok :cl) "\""))
+                              (progn
+                                (sp--join-sexp ok next-thing)
+                                (goto-char (- (sp-get next-thing :end) 2))
+                                (plist-put enc :end (- (sp-get next-thing :end) 2)))
+                            (let ((inner-sexp
+                                   (save-excursion
+                                     (goto-char (sp-get ok :end-in))
+                                     (sp-get-thing t))))
+                              (delete-char (sp-get ok (- (+ :cl-l :suffix-l))))
+                              ;; this calculation corrects the absence
+                              ;; of already deleted cls
+                              (goto-char (- (sp-get next-thing :end-suf)
+                                            (sp-get ok (+ :cl-l :suffix-l))))
+                              ;; only insert space if not inserting it
+                              ;; would merge two sexps together
+                              (when (and (sp-get ok (/= :len-in 0))
+                                         (sp-compare-sexps
+                                          inner-sexp
+                                          (sp-get-thing t))
+                                         (= (sp-get ok :end-suf)
+                                            (sp-get next-thing :beg-prf)))
+                                (save-excursion
+                                  (goto-char (sp-get ok :end-in))
+                                  (insert " "))))
+                            (sp--run-hook-with-args
+                             (sp-get enc :op) :pre-handlers 'slurp-forward
+                             (list :arg arg :enc enc :ok ok :next-thing next-thing))
+                            (sp-get ok (insert :cl :suffix))
+                            (sp--indent-region (sp-get ok :beg-prf) (point))
+                            ;; HACK: update the "enc" data structure if ok==enc
+                            (when (= (sp-get enc :beg) (sp-get ok :beg)) (plist-put enc :end (point)))
+                            (sp--run-hook-with-args
+                             (sp-get enc :op) :post-handlers 'slurp-forward
+                             (list :arg arg :enc enc :ok ok :next-thing next-thing)))
+                          (setq n (1- n)))
+                      (sp-message :cant-slurp)
+                      (setq n -1))))))
+          (sp-message :no-enclosing-expression)))
     (sp-backward-slurp-sexp (sp--negate-argument arg))))
 
 (defun sp-backward-slurp-sexp (&optional arg)
@@ -7473,82 +7480,82 @@ Examples:
   (interactive "*P")
   (if (> (prefix-numeric-value arg) 0)
       (let ((n (abs (prefix-numeric-value arg)))
-            (enc (sp-get-enclosing-sexp))
             (in-comment (sp-point-in-comment))
             next-thing ok)
-        (when enc
-          (save-excursion
-            (if (sp--raw-argument-p arg)
-                (progn
+        (-if-let (enc (sp-get-enclosing-sexp))
+            (save-excursion
+              (if (sp--raw-argument-p arg)
+                  (progn
+                    (goto-char (sp-get enc :beg-prf))
+                    (setq next-thing (sp-get-enclosing-sexp))
+                    (when next-thing
+                      (delete-char (sp-get enc (+ :op-l :prefix-l)))
+                      (goto-char (sp-get next-thing :beg-in))
+                      (sp--run-hook-with-args
+                       (sp-get enc :op) :pre-handlers 'slurp-backward
+                       (list :arg arg :enc enc :next-thing next-thing))
+                      (sp-get enc (insert :prefix :op))
+                      (sp--indent-region (sp-get next-thing :beg-in) (sp-get enc :end))
+                      (sp--run-hook-with-args
+                       (sp-get enc :op) :post-handlers 'slurp-backward
+                       (list :arg arg :enc enc :next-thing next-thing))))
+                (while (> n 0)
                   (goto-char (sp-get enc :beg-prf))
-                  (setq next-thing (sp-get-enclosing-sexp))
-                  (when next-thing
-                    (delete-char (sp-get enc (+ :op-l :prefix-l)))
-                    (goto-char (sp-get next-thing :beg-in))
-                    (sp--run-hook-with-args
-                     (sp-get enc :op) :pre-handlers 'slurp-backward
-                     (list :arg arg :enc enc :next-thing next-thing))
-                    (sp-get enc (insert :prefix :op))
-                    (sp--indent-region (sp-get next-thing :beg-in) (sp-get enc :end))
-                    (sp--run-hook-with-args
-                     (sp-get enc :op) :post-handlers 'slurp-backward
-                     (list :arg arg :enc enc :next-thing next-thing))))
-              (while (> n 0)
-                (goto-char (sp-get enc :beg-prf))
-                (setq ok enc)
-                (setq next-thing (sp-get-thing t))
-                (while (sp-compare-sexps next-thing ok > :end)
-                  (goto-char (sp-get next-thing :beg-prf))
-                  (setq ok next-thing)
-                  (setq next-thing (sp-get-thing t)))
-                ;; do not allow slurping into a different context from
-                ;; inside a comment
-                (if (and in-comment
-                         (save-excursion
-                           (sp-get next-thing
-                             (goto-char :beg)
-                             (not (sp-point-in-comment)))))
-                    (progn
-                      (sp-message :cant-slurp-context)
-                      (setq n -1))
-                  (if ok
+                  (setq ok enc)
+                  (setq next-thing (sp-get-thing t))
+                  (while (sp-compare-sexps next-thing ok > :end)
+                    (goto-char (sp-get next-thing :beg-prf))
+                    (setq ok next-thing)
+                    (setq next-thing (sp-get-thing t)))
+                  ;; do not allow slurping into a different context from
+                  ;; inside a comment
+                  (if (and in-comment
+                           (save-excursion
+                             (sp-get next-thing
+                               (goto-char :beg)
+                               (not (sp-point-in-comment)))))
                       (progn
-                        (if (and (equal (sp-get next-thing :cl) "\"")
-                                 (equal (sp-get ok :cl) "\""))
-                            (progn
-                              (sp--join-sexp next-thing ok)
+                        (sp-message :cant-slurp-context)
+                        (setq n -1))
+                    (if ok
+                        (progn
+                          (if (and (equal (sp-get next-thing :cl) "\"")
+                                   (equal (sp-get ok :cl) "\""))
+                              (progn
+                                (sp--join-sexp next-thing ok)
+                                (goto-char (sp-get next-thing :beg-prf))
+                                (plist-put enc :beg (sp-get next-thing :beg)))
+                            (let ((inner-sexp
+                                   (save-excursion
+                                     (goto-char (sp-get ok :beg-in))
+                                     (sp-get-thing))))
+                              (delete-char (sp-get ok (+ :op-l :prefix-l)))
                               (goto-char (sp-get next-thing :beg-prf))
-                              (plist-put enc :beg (sp-get next-thing :beg)))
-                          (let ((inner-sexp
-                                 (save-excursion
-                                   (goto-char (sp-get ok :beg-in))
-                                   (sp-get-thing))))
-                            (delete-char (sp-get ok (+ :op-l :prefix-l)))
-                            (goto-char (sp-get next-thing :beg-prf))
-                            ;; only insert space if not inserting it
-                            ;; would merge two sexps together
-                            (when (and (sp-get ok (/= :len-in 0))
-                                       (= (sp-get ok (- (sp-get inner-sexp :end)
-                                                        :op-l :prefix-l))
-                                          (sp-get (sp-get-thing) :end))
-                                       (= (sp-get ok :beg-prf)
-                                          (sp-get next-thing :end-suf)))
-                              (save-excursion
-                                (goto-char (sp-get ok (- :beg-in :op-l :prefix-l)))
-                                (insert " "))))
-                          (sp--run-hook-with-args
-                           (sp-get enc :op) :pre-handlers 'slurp-backward
-                           (list :arg arg :enc enc :ok ok :next-thing next-thing))
-                          (sp-get ok (insert :prefix :op))
-                          (sp--indent-region (point) (sp-get ok :end))
-                          ;; HACK: update the "enc" data structure if ok==enc
-                          (when (sp-compare-sexps enc ok) (plist-put enc :beg (- (point) (sp-get ok :op-l))))
-                          (sp--run-hook-with-args
-                           (sp-get enc :op) :post-handlers 'slurp-backward
-                           (list :arg arg :enc enc :ok ok :next-thing next-thing)))
-                        (setq n (1- n)))
-                    (sp-message :cant-slurp)
-                    (setq n -1))))))))
+                              ;; only insert space if not inserting it
+                              ;; would merge two sexps together
+                              (when (and (sp-get ok (/= :len-in 0))
+                                         (= (sp-get ok (- (sp-get inner-sexp :end)
+                                                          :op-l :prefix-l))
+                                            (sp-get (sp-get-thing) :end))
+                                         (= (sp-get ok :beg-prf)
+                                            (sp-get next-thing :end-suf)))
+                                (save-excursion
+                                  (goto-char (sp-get ok (- :beg-in :op-l :prefix-l)))
+                                  (insert " "))))
+                            (sp--run-hook-with-args
+                             (sp-get enc :op) :pre-handlers 'slurp-backward
+                             (list :arg arg :enc enc :ok ok :next-thing next-thing))
+                            (sp-get ok (insert :prefix :op))
+                            (sp--indent-region (point) (sp-get ok :end))
+                            ;; HACK: update the "enc" data structure if ok==enc
+                            (when (sp-compare-sexps enc ok) (plist-put enc :beg (- (point) (sp-get ok :op-l))))
+                            (sp--run-hook-with-args
+                             (sp-get enc :op) :post-handlers 'slurp-backward
+                             (list :arg arg :enc enc :ok ok :next-thing next-thing)))
+                          (setq n (1- n)))
+                      (sp-message :cant-slurp)
+                      (setq n -1))))))
+          (sp-message :no-enclosing-expression)))
     (sp-forward-slurp-sexp (sp--negate-argument arg))))
 
 (defun sp-add-to-previous-sexp (&optional arg)
@@ -7652,32 +7659,35 @@ Examples: (prefix arg in comment)
         (if (sp-point-in-blank-sexp)
             (sp-message :blank-sexp)
           (save-excursion
-            (let ((enc (sp-get-enclosing-sexp)))
-              (sp-get enc
-                (cond
-                 ((and raw (= arg 4))
-                  (sp-get (sp-get-thing t)
-                    (goto-char :end-suf)))
-                 (t
-                  (goto-char :end-in)
-                  (sp-backward-sexp arg)
-                  (when (<= (point) :beg)
-                    (goto-char :beg-in))))
-                ;; we know for sure there is at least one thing in the list
-                (let ((back (sp-get-thing t)))
-                  (if (sp-compare-sexps back enc)
-                      (goto-char :beg-in)
-                    (goto-char (sp-get back :end-suf))))
-                (sp--run-hook-with-args :op :pre-handlers 'barf-forward
-                  (list :arg arg :enc enc)))
-              (sp-get (sp-get-enclosing-sexp)
-                (sp-do-move-cl (point))
-                (sp--keep-indentation
-                  (sp--indent-region :beg :end))
-                (setq new-cl-position (- (point) :cl-l))
-                (sp--run-hook-with-args :op :post-handlers 'barf-forward
-                  (list :arg arg :enc enc)))))
+            (-if-let (enc (sp-get-enclosing-sexp))
+                (progn
+                  (sp-get enc
+                    (cond
+                     ((and raw (= arg 4))
+                      (sp-get (sp-get-thing t)
+                        (goto-char :end-suf)))
+                     (t
+                      (goto-char :end-in)
+                      (sp-backward-sexp arg)
+                      (when (<= (point) :beg)
+                        (goto-char :beg-in))))
+                    ;; we know for sure there is at least one thing in the list
+                    (let ((back (sp-get-thing t)))
+                      (if (sp-compare-sexps back enc)
+                          (goto-char :beg-in)
+                        (goto-char (sp-get back :end-suf))))
+                    (sp--run-hook-with-args :op :pre-handlers 'barf-forward
+                                            (list :arg arg :enc enc)))
+                  (sp-get (sp-get-enclosing-sexp)
+                    (sp-do-move-cl (point))
+                    (sp--keep-indentation
+                      (sp--indent-region :beg :end))
+                    (setq new-cl-position (- (point) :cl-l))
+                    (sp--run-hook-with-args :op :post-handlers 'barf-forward
+                                            (list :arg arg :enc enc))))
+              (sp-message :no-enclosing-expression)))
           (when (and sp-barf-move-point-with-delimiter
+                     new-cl-position
                      (< new-cl-position (point)))
             (goto-char new-cl-position)))
       (sp-backward-barf-sexp (sp--negate-argument old-arg)))))
@@ -7704,36 +7714,39 @@ Examples:
         (if (sp-point-in-blank-sexp)
             (sp-message :blank-sexp)
           (save-excursion
-            (let ((enc (sp-get-enclosing-sexp)))
-              (sp-get enc
-                (cond
-                 ((and raw (= arg 4))
-                  (sp-get (sp-get-thing)
-                    (goto-char :beg-prf)))
-                 (t
-                  (goto-char :beg-in)
-                  (sp-forward-sexp arg)
-                  (when (>= (point) :end)
-                    (goto-char :end-in))))
-                ;; we know for sure there is at least one thing in the list
-                (let ((next (sp-get-thing)))
-                  (if (sp-compare-sexps next enc)
-                      (goto-char :end-in)
-                    (goto-char (sp-get next :beg-prf))))
-                (sp--run-hook-with-args :op :pre-handlers 'barf-backward
-                  (list :arg arg :enc enc)))
-              (sp-get (sp-get-enclosing-sexp)
-                ;; make sure that we end up on the same place, since
-                ;; sp-do-move-op might move the point to the start of
-                ;; the previous sexp (the one barfed out)
-                (save-excursion (sp-do-move-op (point)))
-                ;; skip the opening to end up inside the sexp
-                (forward-char (+ :op-l :prefix-l))
-                (sp--indent-region :beg :end)
-                (setq new-cl-position (point))
-                (sp--run-hook-with-args :op :post-handlers 'barf-backward
-                  (list :arg arg :enc enc)))))
+            (-if-let (enc (sp-get-enclosing-sexp))
+                (progn
+                  (sp-get enc
+                    (cond
+                     ((and raw (= arg 4))
+                      (sp-get (sp-get-thing)
+                        (goto-char :beg-prf)))
+                     (t
+                      (goto-char :beg-in)
+                      (sp-forward-sexp arg)
+                      (when (>= (point) :end)
+                        (goto-char :end-in))))
+                    ;; we know for sure there is at least one thing in the list
+                    (let ((next (sp-get-thing)))
+                      (if (sp-compare-sexps next enc)
+                          (goto-char :end-in)
+                        (goto-char (sp-get next :beg-prf))))
+                    (sp--run-hook-with-args :op :pre-handlers 'barf-backward
+                                            (list :arg arg :enc enc)))
+                  (sp-get (sp-get-enclosing-sexp)
+                    ;; make sure that we end up on the same place, since
+                    ;; sp-do-move-op might move the point to the start of
+                    ;; the previous sexp (the one barfed out)
+                    (save-excursion (sp-do-move-op (point)))
+                    ;; skip the opening to end up inside the sexp
+                    (forward-char (+ :op-l :prefix-l))
+                    (sp--indent-region :beg :end)
+                    (setq new-cl-position (point))
+                    (sp--run-hook-with-args :op :post-handlers 'barf-backward
+                                            (list :arg arg :enc enc))))
+              (sp-message :no-enclosing-expression)))
           (when (and sp-barf-move-point-with-delimiter
+                     new-cl-position
                      (> new-cl-position (point)))
             (goto-char new-cl-position)))
       (sp-forward-barf-sexp (sp--negate-argument old-arg)))))
@@ -8019,27 +8032,29 @@ Examples:
                   current-prefix-arg)))
   (if (not pair)
       (sp-unwrap-sexp)
-    (-when-let (enc (sp-get-enclosing-sexp))
-      (save-excursion
-        (sp-get enc
-          (goto-char :end)
-          (unless keep-old
-            (delete-char (- :cl-l)))
-          (insert (cdr pair))
-          (goto-char :beg)
-          (insert (car pair))
-          (unless keep-old
-            (delete-char :op-l))
-          (setq sp-last-wrapped-region
-                (sp--make-last-wraped-region
-                 :beg (+ :end
-                        (length (car pair))
-                        (length (cdr pair))
-                        (- :op-l)
-                        (- :cl-l))
-                 (car pair) (cdr pair)))))
-      (sp--run-hook-with-args (car pair) :post-handlers 'rewrap-sexp
-                              (list :parent (sp-get enc :op))))))
+    (-if-let (enc (sp-get-enclosing-sexp))
+        (progn
+          (save-excursion
+            (sp-get enc
+              (goto-char :end)
+              (unless keep-old
+                (delete-char (- :cl-l)))
+              (insert (cdr pair))
+              (goto-char :beg)
+              (insert (car pair))
+              (unless keep-old
+                (delete-char :op-l))
+              (setq sp-last-wrapped-region
+                    (sp--make-last-wraped-region
+                     :beg (+ :end
+                             (length (car pair))
+                             (length (cdr pair))
+                             (- :op-l)
+                             (- :cl-l))
+                     (car pair) (cdr pair)))))
+          (sp--run-hook-with-args (car pair) :post-handlers 'rewrap-sexp
+                                  (list :parent (sp-get enc :op))))
+      (sp-message :no-enclosing-expression))))
 
 (defun sp-swap-enclosing-sexp (&optional arg)
   "Swap the enclosing delimiters of this and the parent expression.
@@ -8139,7 +8154,7 @@ Examples:
 
   {'f|oo': 'bar'}  -> {'|': 'bar'}"
   (interactive "*")
-  (-when-let (ok (sp-get-enclosing-sexp))
+  (-if-let (ok (sp-get-enclosing-sexp))
     (sp-get ok
       (if (sp-point-in-blank-sexp)
           (progn
@@ -8154,7 +8169,8 @@ Examples:
                      (skip-chars-backward "\t\n ")
                      (point))))
           (kill-region beg end)
-          (goto-char beg))))))
+          (goto-char beg))))
+    (sp-message :no-enclosing-expression)))
 
 (defun sp-unwrap-sexp (&optional arg)
   "Unwrap the following expression.
@@ -8213,14 +8229,15 @@ Examples:
   (foo (bar| baz) quux) -> foo (bar| baz) quux ;; 2"
   (interactive "*p")
   (setq arg (or arg 1))
-  (-when-let (ok (sp-get-enclosing-sexp arg))
+  (-if-let (ok (sp-get-enclosing-sexp arg))
     (if (equal ";" (sp-get ok :prefix))
         (sp-get ok
           (save-excursion
             (goto-char :beg)
             (-when-let (enc (sp-get-enclosing-sexp arg))
               (sp--unwrap-sexp enc))))
-      (sp--unwrap-sexp ok))))
+      (sp--unwrap-sexp ok))
+    (sp-message :no-enclosing-expression)))
 
 (defun sp--splice-sexp-do-killing (beg end expr &optional jump-end)
   "Save the text in the region between BEG and END inside EXPR,
@@ -8283,16 +8300,17 @@ delimiters you can use \\[universal-argument] \\[sp-kill-sexp].
 See `sp-kill-sexp' for more information."
   (interactive "*p")
   (while (> arg 0)
-    (let ((ok (sp-get-enclosing-sexp 1)))
-      (if ok
-          (let ((next (sp-get-thing t)))
-            (if (sp-compare-sexps next ok)
-                (sp-kill-sexp '(16))
-              (sp--splice-sexp-do-killing
-               (sp-get next :end) ;search backward
-               (sp-get ok :beg-in)
-               ok 'end)))
-        (setq arg -1)))
+    (-if-let* ((ok (sp-get-enclosing-sexp 1))
+               (next (sp-get-thing t)))
+        (progn
+          (if (sp-compare-sexps next ok)
+              (sp-kill-sexp '(16))
+            (sp--splice-sexp-do-killing
+             (sp-get next :end) ;search backward
+             (sp-get ok :beg-in)
+             ok 'end))
+          (setq arg -1))
+      (sp-message :no-enclosing-expression))
     (setq arg (1- arg))))
 
 (defun sp-splice-sexp-killing-around (&optional arg)
@@ -8355,55 +8373,57 @@ Examples:
                       (skip-chars-forward "\t\n ")
                       (sp-get-enclosing-sexp 1)))
                 (sp-get-enclosing-sexp 1)))))
-      (when ok
-        (when (and (sp-point-in-comment)
-                   (not inside-comment-inside-sexp))
-          (let ((cb (sp-get-comment-bounds)))
-            (goto-char (if (> num-arg 0) (car cb) (cdr cb)))))
-        (sp-skip-backward-to-symbol)
-        (-let* ((next (sp--next-thing-selection arg))
-                ((from . to)
-                 (cond
-                  ((and (sp-point-in-comment)
-                        (not inside-comment-inside-sexp))
-                   (if (> num-arg 0)
-                       ;; only extends to keep the comment if raising
-                       ;; towards the end.
-                       (cons (car (sp-get-comment-bounds))
-                             (sp-get next :end-suf))
-                     (sp-get next (cons :beg-prf :end-suf))))
-                  ((and (sp-point-in-comment)
-                        inside-comment-inside-sexp)
-                   (sp-get next (cons :beg-prf :end-suf)))
-                  ;; If we are splicing before a comment, the
-                  ;; comment might be connected to the sexp
-                  ;; after it, so we better don't kill it.  Only
-                  ;; do that if the comment is on its own line
-                  ;; though, otherwise it is connected to the
-                  ;; sexp before it.
-                  ((save-excursion
-                     (skip-chars-forward "\t\n ")
-                     (when (and (> num-arg 0)
-                                (sp-point-in-comment)
-                                (save-excursion
-                                  (skip-chars-backward "\t ")
-                                  (bolp)))
-                       (cons (point) (sp-get next :end-suf)))))
-                  ;; similarly, if there is a comment before
-                  ;; this sexp, keep it.
-                  ((save-excursion
-                     (sp-backward-symbol)
-                     (when (and (> num-arg 0)
-                                (sp-point-in-comment)
-                                (goto-char (car (sp-get-comment-bounds)))
-                                (> (point) (sp-get ok :beg))
-                                (save-excursion
-                                  (skip-chars-backward "\t ")
-                                  (bolp)))
-                       (cons (point) (sp-get next :end-suf)))))
-                  (t (sp-get next (cons :beg-prf :end-suf))))))
-          (sp--splice-sexp-do-killing from to
-                                      ok (if (> num-arg 0) nil 'end))))))))
+      (if ok
+          (progn
+            (when (and (sp-point-in-comment)
+                       (not inside-comment-inside-sexp))
+              (let ((cb (sp-get-comment-bounds)))
+                (goto-char (if (> num-arg 0) (car cb) (cdr cb)))))
+            (sp-skip-backward-to-symbol)
+            (-let* ((next (sp--next-thing-selection arg))
+                    ((from . to)
+                     (cond
+                      ((and (sp-point-in-comment)
+                            (not inside-comment-inside-sexp))
+                       (if (> num-arg 0)
+                           ;; only extends to keep the comment if raising
+                           ;; towards the end.
+                           (cons (car (sp-get-comment-bounds))
+                                 (sp-get next :end-suf))
+                         (sp-get next (cons :beg-prf :end-suf))))
+                      ((and (sp-point-in-comment)
+                            inside-comment-inside-sexp)
+                       (sp-get next (cons :beg-prf :end-suf)))
+                      ;; If we are splicing before a comment, the
+                      ;; comment might be connected to the sexp
+                      ;; after it, so we better don't kill it.  Only
+                      ;; do that if the comment is on its own line
+                      ;; though, otherwise it is connected to the
+                      ;; sexp before it.
+                      ((save-excursion
+                         (skip-chars-forward "\t\n ")
+                         (when (and (> num-arg 0)
+                                    (sp-point-in-comment)
+                                    (save-excursion
+                                      (skip-chars-backward "\t ")
+                                      (bolp)))
+                           (cons (point) (sp-get next :end-suf)))))
+                      ;; similarly, if there is a comment before
+                      ;; this sexp, keep it.
+                      ((save-excursion
+                         (sp-backward-symbol)
+                         (when (and (> num-arg 0)
+                                    (sp-point-in-comment)
+                                    (goto-char (car (sp-get-comment-bounds)))
+                                    (> (point) (sp-get ok :beg))
+                                    (save-excursion
+                                      (skip-chars-backward "\t ")
+                                      (bolp)))
+                           (cons (point) (sp-get next :end-suf)))))
+                      (t (sp-get next (cons :beg-prf :end-suf))))))
+              (sp--splice-sexp-do-killing from to
+                                          ok (if (> num-arg 0) nil 'end))))
+        (sp-message :no-enclosing-expression))))))
 
 (defalias 'sp-raise-sexp 'sp-splice-sexp-killing-around)
 
@@ -8437,33 +8457,34 @@ We want to move the `while' before the `let'.
       (sp-forward-symbol))
     (when (looking-at-p " ")
       (just-one-space))
-    (let* ((old-buffer-size (buffer-size))
-           (enc (sp-get-enclosing-sexp))
-           (inner-close (sp-get enc (delete-and-extract-region
-                                     (save-excursion
-                                       (goto-char :end-in)
-                                       (sp-backward-whitespace))
-                                     :end)))
-           (inner-raise (sp-get enc (delete-and-extract-region
-                                     :beg-prf
-                                     (save-excursion
-                                       (sp-forward-whitespace)))))
-           (whitespace (sp-get enc
-                         ;; this happens when the entire inside sexp was removed.
-                         (when (= old-buffer-size (+ (buffer-size) :len))
-                           (delete-and-extract-region
-                            (save-excursion
-                              (goto-char :beg-prf)
-                              (max (line-beginning-position) (sp-backward-whitespace)))
-                            :beg-prf))))
-           (encp (sp-get-enclosing-sexp arg)))
-      (sp-get encp
-        (goto-char :end)
-        (insert inner-close)
-        (goto-char :beg-prf)
-        (insert inner-raise (if whitespace whitespace ""))
-        (sp-get (sp-get-enclosing-sexp)
-          (sp--indent-region :beg :end)))))
+    (-if-let (enc (sp-get-enclosing-sexp))
+        (let* ((old-buffer-size (buffer-size))
+               (inner-close (sp-get enc (delete-and-extract-region
+                                         (save-excursion
+                                           (goto-char :end-in)
+                                           (sp-backward-whitespace))
+                                         :end)))
+               (inner-raise (sp-get enc (delete-and-extract-region
+                                         :beg-prf
+                                         (save-excursion
+                                           (sp-forward-whitespace)))))
+               (whitespace (sp-get enc
+                             ;; this happens when the entire inside sexp was removed.
+                             (when (= old-buffer-size (+ (buffer-size) :len))
+                               (delete-and-extract-region
+                                (save-excursion
+                                  (goto-char :beg-prf)
+                                  (max (line-beginning-position) (sp-backward-whitespace)))
+                                :beg-prf))))
+               (encp (sp-get-enclosing-sexp arg)))
+          (sp-get encp
+            (goto-char :end)
+            (insert inner-close)
+            (goto-char :beg-prf)
+            (insert inner-raise (if whitespace whitespace ""))
+            (sp-get (sp-get-enclosing-sexp)
+              (sp--indent-region :beg :end))))
+      (sp-message :no-enclosing-expression)))
   (indent-according-to-mode))
 
 (defun sp-absorb-sexp (&optional arg)
@@ -8550,33 +8571,34 @@ If the raw prefix is negative, this behaves as \\[universal-argument] `sp-backwa
   (if (equal arg '(-4))
       (sp-backward-barf-sexp '(4))
     (sp-select-next-thing arg)
-    (let ((enc (sp-get-enclosing-sexp))
-          save-text b e nl)
-      (save-excursion
-        ;; TODO: extract this use pattern into general "get X things
-        ;; with or without surrounding whitespace."
-        (setq b (region-beginning))
-        (setq e (region-end))
-        (goto-char (sp-get enc :end-in))
-        (if (save-excursion
-              (skip-chars-backward "\t ")
-              (bolp))
-            (let ((whitespace (sp-get-whitespace)))
-              (sp-get whitespace (when (= :beg e)
-                                   (delete-region :beg :end))))
-          (setq nl t))
-        (setq save-text (delete-and-extract-region b e))
-        (when nl
-          (let ((whitespace (sp-get-whitespace)))
-            (sp-get whitespace (delete-region :beg :end))))
-        (goto-char (sp-get enc :beg-prf))
-        (insert save-text "\n")
-        (sp-get enc (sp--indent-region :beg-prf :end)))
-      ;; if we're at an empty line, remove it
-      (when (string-match-p "^[\n\t ]+\\'" (thing-at-point 'line))
-        (let ((b (bounds-of-thing-at-point 'line)))
-          (delete-region (car b) (cdr b))))
-      (goto-char (sp-get enc :beg-prf)))))
+    (-if-let (enc (sp-get-enclosing-sexp))
+        (let (save-text b e nl)
+          (save-excursion
+            ;; TODO: extract this use pattern into general "get X things
+            ;; with or without surrounding whitespace."
+            (setq b (region-beginning))
+            (setq e (region-end))
+            (goto-char (sp-get enc :end-in))
+            (if (save-excursion
+                  (skip-chars-backward "\t ")
+                  (bolp))
+                (let ((whitespace (sp-get-whitespace)))
+                  (sp-get whitespace (when (= :beg e)
+                                       (delete-region :beg :end))))
+              (setq nl t))
+            (setq save-text (delete-and-extract-region b e))
+            (when nl
+              (let ((whitespace (sp-get-whitespace)))
+                (sp-get whitespace (delete-region :beg :end))))
+            (goto-char (sp-get enc :beg-prf))
+            (insert save-text "\n")
+            (sp-get enc (sp--indent-region :beg-prf :end)))
+          ;; if we're at an empty line, remove it
+          (when (string-match-p "^[\n\t ]+\\'" (thing-at-point 'line))
+            (let ((b (bounds-of-thing-at-point 'line)))
+              (delete-region (car b) (cdr b))))
+          (goto-char (sp-get enc :beg-prf)))
+      (sp-message :no-enclosing-expression))))
 
 (defun sp-extract-after-sexp (&optional arg)
   "Move the expression after point after the enclosing balanced expression.
@@ -8598,43 +8620,44 @@ expressions up until the start of enclosing list."
   (interactive "*P")
   (sp-select-next-thing arg)
   (sp--with-case-sensitive
-    (let ((enc (sp-get-enclosing-sexp))
-          (dws 0)                       ;length of deleted whitespace
-          save-text b e nl)
-      (save-excursion
-        (setq b (region-beginning))
-        (setq e (region-end))
-        (goto-char (sp-get enc :end-in))
-        (if (save-excursion
-              (skip-chars-backward "\t ")
-              (bolp))
+    (-if-let (enc (sp-get-enclosing-sexp))
+        (let ((dws 0)                       ;length of deleted whitespace
+              save-text b e nl)
+          (save-excursion
+            (setq b (region-beginning))
+            (setq e (region-end))
+            (goto-char (sp-get enc :end-in))
+            (if (save-excursion
+                  (skip-chars-backward "\t ")
+                  (bolp))
+                (let ((whitespace (sp-get-whitespace)))
+                  (sp-get whitespace
+                    (when (= :beg e)
+                      (delete-region :beg :end)
+                      (setq dws (- :end :beg)))))
+              (setq nl t))
+            (setq save-text (delete-and-extract-region b e))
+            (when nl
+              (let ((whitespace (sp-get-whitespace)))
+                (sp-get whitespace (delete-region :beg :end))
+                (sp-get whitespace (setq dws (+ dws (- :end :beg))))))
+            (sp-get enc (goto-char (- :end (length save-text) dws)))
+            (insert "\n" save-text)
+            (sp-get enc (sp--indent-region :beg-prf :end))
+            (setq e (point)))
+          ;; if we're at an empty line, remove it
+          (setq dws 0)                      ; variable reuse, ugly :/
+          (when (string-match-p "^[\n\t ]+\\'" (thing-at-point 'line))
+            (let ((b (bounds-of-thing-at-point 'line)))
+              (delete-region (car b) (cdr b))
+              (setq dws (- (cdr b) (car b)))))
+          (when (sp--looking-back (sp--get-opening-regexp) nil t)
             (let ((whitespace (sp-get-whitespace)))
               (sp-get whitespace
-                (when (= :beg e)
-                  (delete-region :beg :end)
-                  (setq dws (- :end :beg)))))
-          (setq nl t))
-        (setq save-text (delete-and-extract-region b e))
-        (when nl
-          (let ((whitespace (sp-get-whitespace)))
-            (sp-get whitespace (delete-region :beg :end))
-            (sp-get whitespace (setq dws (+ dws (- :end :beg))))))
-        (sp-get enc (goto-char (- :end (length save-text) dws)))
-        (insert "\n" save-text)
-        (sp-get enc (sp--indent-region :beg-prf :end))
-        (setq e (point)))
-      ;; if we're at an empty line, remove it
-      (setq dws 0)                      ; variable reuse, ugly :/
-      (when (string-match-p "^[\n\t ]+\\'" (thing-at-point 'line))
-        (let ((b (bounds-of-thing-at-point 'line)))
-          (delete-region (car b) (cdr b))
-          (setq dws (- (cdr b) (car b)))))
-      (when (sp--looking-back (sp--get-opening-regexp) nil t)
-        (let ((whitespace (sp-get-whitespace)))
-          (sp-get whitespace
-            (delete-region :beg :end)
-            (setq dws (- :end :beg)))))
-      (goto-char (- e dws)))))
+                (delete-region :beg :end)
+                (setq dws (- :end :beg)))))
+          (goto-char (- e dws)))
+      (sp-message :no-enclosing-expression))))
 
 (defun sp-forward-whitespace (&optional arg)
   "Skip forward past the whitespace characters.
@@ -8694,7 +8717,7 @@ Examples:
     (let ((should-split-as-string
            (and sp-split-sexp-always-split-as-string
                 (sp-point-in-string))))
-      (-when-let (ok (if should-split-as-string
+      (-if-let (ok (if should-split-as-string
                          (save-excursion
                            (goto-char (car (sp-get-quoted-string-bounds)))
                            (sp-get-sexp))
@@ -8707,7 +8730,8 @@ Examples:
                 (save-excursion (insert :op)))
             (forward-char (- (prog1 (sp-backward-whitespace t) (insert :cl))))
             (save-excursion (sp-forward-whitespace) (insert :op)))
-          (sp--run-hook-with-args :op :post-handlers 'split-sexp)))))))
+          (sp--run-hook-with-args :op :post-handlers 'split-sexp))
+        (sp-message :no-enclosing-expression))))))
 
 (defun sp--join-sexp (prev next)
   "Join the expressions PREV and NEXT if they are of the same type.
@@ -8804,7 +8828,7 @@ not necessarily represent a valid balanced expression!"
        ((and raw (= arg 4))
         (let ((enc (sp-get-enclosing-sexp)))
           (if (not enc)
-              (error "No enclosing expression")
+              (sp-message :no-enclosing-expression)
             (save-excursion
               (goto-char (sp-get enc :end-in))
               (-when-let (ok (sp-get-thing t))
@@ -8826,7 +8850,7 @@ not necessarily represent a valid balanced expression!"
        ((and raw (= arg -4))
         (let ((enc (sp-get-enclosing-sexp)))
           (if (not enc)
-              (error "No enclosing expression")
+              (sp-message :no-enclosing-expression)
             (save-excursion
               (goto-char (sp-get enc :beg-in))
               (-when-let (ok (sp-get-thing))
@@ -8844,7 +8868,7 @@ not necessarily represent a valid balanced expression!"
        ((and raw (= (abs arg) 16))
         (let ((enc (sp-get-enclosing-sexp)))
           (if (not enc)
-              (error "No enclosing expression")
+              (sp-message :no-enclosing-expression)
             (sp-get enc (setq beg :beg) (setq end :end)
                     (setq op :op) (setq cl :cl)
                     (setq prefix :prefix)
@@ -8895,7 +8919,7 @@ not necessarily represent a valid balanced expression!"
        ((= arg 0)
         (let ((enc (sp-get-enclosing-sexp)))
           (if (not enc)
-              (error "No enclosing expression")
+              (sp-message :no-enclosing-expression)
             (save-excursion
               (goto-char (sp-get enc :beg-in))
               (-when-let (ok (sp-get-thing))
