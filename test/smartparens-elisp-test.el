@@ -25,3 +25,54 @@ punctuation was considered invalid."
     (sp-backward-delete-char)
     (sp-backward-delete-char)
     (sp-buffer-equals ";; `a-symbol-name'? I|")))
+
+(prog1 "#781"
+  (ert-deftest sp-test-slurp-insert-space-for-style--next-sexp-paren-no-space ()
+    (sp-test-with-temp-elisp-buffer "(foo|)(bar)"
+      (call-interactively 'sp-forward-slurp-sexp)
+      (sp-buffer-equals "(foo| (bar))")
+      (call-interactively 'sp-forward-barf-sexp)
+      (sp-buffer-equals "(foo|) (bar)")
+      (call-interactively 'sp-forward-slurp-sexp)
+      (sp-buffer-equals "(foo| (bar))")))
+
+  (ert-deftest sp-test-slurp-insert-space-for-style--next-sexp-paren-space ()
+    (sp-test-with-temp-elisp-buffer "(foo|) (bar)"
+      (call-interactively 'sp-forward-slurp-sexp)
+      (sp-buffer-equals "(foo| (bar))")
+      (call-interactively 'sp-forward-barf-sexp)
+      (sp-buffer-equals "(foo|) (bar)")
+      (call-interactively 'sp-forward-slurp-sexp)
+      (sp-buffer-equals "(foo| (bar))")))
+
+  (ert-deftest sp-test-slurp-insert-space-for-style--next-sexp-symbol-no-space ()
+    (sp-test-with-temp-elisp-buffer "(foo|)bar"
+      (call-interactively 'sp-forward-slurp-sexp)
+      (sp-buffer-equals "(foo| bar)")
+      (call-interactively 'sp-forward-barf-sexp)
+      (sp-buffer-equals "(foo|) bar")
+      (call-interactively 'sp-forward-slurp-sexp)
+      (sp-buffer-equals "(foo| bar)")))
+
+  (ert-deftest sp-test-slurp-insert-space-for-style--next-sexp-symbol-space ()
+    (sp-test-with-temp-elisp-buffer "(foo|) bar"
+      (call-interactively 'sp-forward-slurp-sexp)
+      (sp-buffer-equals "(foo| bar)")
+      (call-interactively 'sp-forward-barf-sexp)
+      (sp-buffer-equals "(foo|) bar")
+      (call-interactively 'sp-forward-slurp-sexp)
+      (sp-buffer-equals "(foo| bar)")))
+
+  (ert-deftest sp-test-slurp-insert-space-for-style--no-extra-space-from-empty-sexp ()
+    (sp-test-with-temp-elisp-buffer "(|)foo"
+      (call-interactively 'sp-forward-slurp-sexp)
+      (sp-buffer-equals "(|foo)")
+      (call-interactively 'sp-forward-barf-sexp)
+      (sp-buffer-equals "(|)foo")))
+
+  (ert-deftest sp-test-slurp-insert-space-for-style--next-on-new-line ()
+    (sp-test-with-temp-elisp-buffer "(foo|)\n(bar)"
+      (call-interactively 'sp-forward-slurp-sexp)
+      (sp-buffer-equals "(foo|\n (bar))")
+      (call-interactively 'sp-forward-barf-sexp)
+      (sp-buffer-equals "(foo|)\n(bar)"))))

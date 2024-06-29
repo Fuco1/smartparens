@@ -7362,7 +7362,12 @@ Examples:
       (let ((n (abs (prefix-numeric-value arg)))
             (enc (sp-get-enclosing-sexp))
             (in-comment (sp-point-in-comment))
-            next-thing ok)
+            next-thing ok
+            ;; At some places we mutate the value of `ok'
+            ;; destructively (updating the end).  The original value
+            ;; is useful in the handlers for manipulating the
+            ;; surroundings, so we copy it here.
+            ok-orig)
         (when enc
           (save-excursion
             (if (sp--raw-argument-p arg)
@@ -7387,6 +7392,7 @@ Examples:
                   (goto-char (sp-get next-thing :end-suf))
                   (setq ok next-thing)
                   (setq next-thing (sp-get-thing nil)))
+                (setq ok-orig (copy-sequence ok))
                 ;; do not allow slurping into a different context from
                 ;; inside a comment
                 (if (and in-comment
@@ -7427,14 +7433,14 @@ Examples:
                                 (insert " "))))
                           (sp--run-hook-with-args
                            (sp-get enc :op) :pre-handlers 'slurp-forward
-                           (list :arg arg :enc enc :ok ok :next-thing next-thing))
+                           (list :arg arg :enc enc :ok ok :ok-orig ok-orig :next-thing next-thing))
                           (sp-get ok (insert :cl :suffix))
                           (sp--indent-region (sp-get ok :beg-prf) (point))
                           ;; HACK: update the "enc" data structure if ok==enc
                           (when (= (sp-get enc :beg) (sp-get ok :beg)) (plist-put enc :end (point)))
                           (sp--run-hook-with-args
                            (sp-get enc :op) :post-handlers 'slurp-forward
-                           (list :arg arg :enc enc :ok ok :next-thing next-thing)))
+                           (list :arg arg :enc enc :ok ok :ok-orig ok-orig :next-thing next-thing)))
                         (setq n (1- n)))
                     (sp-message :cant-slurp)
                     (setq n -1))))))))

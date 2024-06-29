@@ -70,9 +70,21 @@ ID, ACTION, CONTEXT."
               ;; do not consider punctuation
               (not (looking-at "[?.,;!]"))))))))
 
+(defun sp-lisp-insert-space-after-slurp (_id action _context)
+  (-let (((&plist :ok-orig :next-thing) sp-handler-context))
+    (when (and (eq action 'slurp-forward)
+               (sp-get ok-orig (/= :beg-in :end-in)))
+      (save-excursion
+        (sp-get ok-orig (goto-char :end-in))
+        (skip-syntax-backward " ")
+        (unless (looking-at-p (rx (or whitespace eol)))
+          (insert " "))))))
+
 ;; emacs is lisp hacking environment, so we set up some most common
 ;; lisp modes too
 (sp-with-modes sp-lisp-modes
+  (sp-local-pair "(" nil :post-handlers '(:add sp-lisp-insert-space-after-slurp))
+  (sp-local-pair "[" nil :post-handlers '(:add sp-lisp-insert-space-after-slurp))
   ;; disable ', it's the quote character!
   (sp-local-pair "'" nil :actions nil))
 
