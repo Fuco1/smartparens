@@ -725,7 +725,10 @@ be."
   ((nil
     ("[foo]|" "[foo|]")
     ("\\{foo\\}|" "\\{foo|\\}")
-    ("\"foo\\\\\"|" "\"foo\\\\|\""))))
+    ("\"foo\\\\\"|" "\"foo\\\\|\"")
+    ("(|)" "|"))
+   (((sp-delete-blank-sexps t))
+    ("[|   ]" "|"))))
 
 (ert-deftest sp-test-command-sp-backward-delete-char-hungry-delete-mode ()
   "In `hungry-delete-mode' we should kill all whitespace."
