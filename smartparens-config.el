@@ -131,6 +131,7 @@ ID, ACTION, CONTEXT."
 (eval-after-load 'cc-mode                  '(require 'smartparens-c))
 (--each '(clojure-mode clojure-ts-mode)
   (eval-after-load it                      '(require 'smartparens-clojure)))
+(eval-after-load 'coq-mode                 '(require 'smartparens-coq))
 (eval-after-load 'crystal-mode             '(require 'smartparens-crystal))
 (eval-after-load 'elixir-mode              '(require 'smartparens-elixir))
 (eval-after-load 'elixir-ts-mode           '(require 'smartparens-elixir))
