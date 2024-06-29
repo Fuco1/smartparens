@@ -743,6 +743,8 @@ You can enable pre-set bindings by customizing
         (add-hook 'pre-command-hook 'sp--save-pre-command-state nil 'local)
         (add-hook 'post-command-hook 'sp--post-command-hook-handler nil 'local)
         (run-hooks 'smartparens-enabled-hook))
+    (when smartparens-strict-mode
+      (smartparens-strict-mode -1))
     (remove-hook 'self-insert-uses-region-functions 'sp-wrap--can-wrap-p 'local)
     (remove-hook 'post-self-insert-hook 'sp--post-self-insert-hook-handler 'local)
     (remove-hook 'pre-command-hook 'sp--save-pre-command-state 'local)
