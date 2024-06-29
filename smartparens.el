@@ -1536,8 +1536,11 @@ kill \"subwords\" when `subword-mode' is active."
   :group 'smartparens)
 
 (defcustom sp-delete-blank-sexps nil
-  "If non-nil, allow deletion of enclosing pair when it only
-  contains whitespace."
+  "If non-nil, automatically delete enclosing pair when it only
+contains whitespace.
+
+This setting only has effect if `smartparens-strict-mode' is
+active."
   :type 'boolean
   :group 'smartparens)
 
@@ -1835,18 +1838,19 @@ If optional argument P is present test this instead of point."
 
 If optional argument P is present test this instead of point.
 
-Returns a cons containing the position of the beginning and end
-delimiters.
+If the sexp around the point is blank, the return value is a cons
+containing the beginning and end of the expression.
 
 Warning: it is only safe to call this when point is inside a
 sexp, otherwise the call may be very slow."
   (save-excursion
     (when p (goto-char p))
     (-when-let (enc (sp-get-enclosing-sexp))
-      (sp-get enc (when (string-match-p
-                         "\\`[ \t\n]*\\'"
-                         (buffer-substring-no-properties :beg-in :end-in))
-                    (cons :beg :end))))))
+      (sp-get enc
+        (when (string-match-p
+               "\\`[ \t\n]*\\'"
+               (buffer-substring-no-properties :beg-in :end-in))
+          (cons :beg :end))))))
 
 (defun sp-char-is-escaped-p (&optional point)
   "Test if the char at POINT is escaped or not.
