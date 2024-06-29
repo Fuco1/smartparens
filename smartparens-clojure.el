@@ -57,10 +57,10 @@
 
 ;; Match "`" with "`" in strings and comments
 (sp-with-modes sp-clojure-modes
+  (sp-local-pair "'" nil :actions nil)
   (sp-local-pair "`" "`"
                  :when '(sp-in-string-p
-                         sp-in-comment-p)
-                 :unless '(sp-lisp-invalid-hyperlink-p)))
+                         sp-in-comment-p)))
 
 (provide 'smartparens-clojure)
 ;;; smartparens-clojure.el ends here
