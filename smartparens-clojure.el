@@ -44,8 +44,15 @@
 (defvar sp-clojure-prefix "\\(?:[@`'#~,_?^]+\\)"
   "Prefix used in `sp-sexp-prefix' for clojure modes.")
 
-(dolist (mode '(clojure-mode clojurescript-mode clojurec-mode cider-repl-mode
-                clojure-ts-mode clojurescript-ts-mode clojurec-ts-mode))
+(dolist (mode '(
+                cider-repl-mode
+                clojure-mode
+                clojure-ts-mode
+                clojurec-mode
+                clojurec-ts-mode
+                clojurescript-mode
+                clojurescript-ts-mode
+                ))
   (add-to-list 'sp-sexp-prefix `(,mode regexp ,sp-clojure-prefix)))
 
 ;; Match "`" with "`" in strings and comments
