@@ -56,14 +56,14 @@
 (defun sp-ruby-forward-sexp ()
   "Wrapper for `ruby-forward-sexp' based on `enh-ruby-mode'."
   (interactive)
-  (if (boundp 'enh-ruby-forward-sexp)
+  (if (fboundp 'enh-ruby-forward-sexp)
       (enh-ruby-forward-sexp)
     (ruby-forward-sexp)))
 
 (defun sp-ruby-backward-sexp ()
   "Wrapper for `ruby-backward-sexp' based on `enh-ruby-mode'."
   (interactive)
-  (if (boundp 'enh-ruby-backward-sexp)
+  (if (fboundp 'enh-ruby-backward-sexp)
       (enh-ruby-backward-sexp)
     (ruby-backward-sexp)))
 
