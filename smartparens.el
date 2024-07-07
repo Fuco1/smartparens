@@ -5853,7 +5853,7 @@ Pair object is anything delimited by pairs from `sp-pair-list'."
       (execute-kbd-macro cmd))))
 
 (defun sp-prefix-symbol-object (&optional _arg)
-  "Read the command and invoke it on the next pair object.
+  "Read the command and invoke it on the next symbol object.
 
 If you specify a regular emacs prefix argument this is passed to
 the executed command.  Therefore, executing
