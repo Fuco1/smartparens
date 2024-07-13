@@ -128,7 +128,8 @@ ID, ACTION, CONTEXT."
 ;; automatically.  If you want to call sp-local-pair outside this
 ;; macro, you MUST supply the major mode argument.
 
-(eval-after-load 'cc-mode                  '(require 'smartparens-c))
+(--each '(cc-mode c-ts-mode)
+  (eval-after-load it                      '(require 'smartparens-c)))
 (--each '(clojure-mode clojure-ts-mode)
   (eval-after-load it                      '(require 'smartparens-clojure)))
 (eval-after-load 'coq-mode                 '(require 'smartparens-coq))
