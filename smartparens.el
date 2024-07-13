@@ -612,6 +612,8 @@ Symbol is defined as a chunk of text recognized by
 (defcustom sp-c-modes '(
                         c-mode
                         c++-mode
+                        c-ts-mode
+                        c++-ts-mode
                         )
   "List of C-related modes."
   :type '(repeat symbol)
