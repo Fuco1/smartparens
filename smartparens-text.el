@@ -1,4 +1,4 @@
-;;; smartparens-latex.el --- Additional configuration for text-mode.  -*- lexical-binding: t; -*-
+;;; smartparens-text.el --- Additional configuration for text-mode.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2017-2018 Matus Goljer
 
