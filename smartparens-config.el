@@ -144,6 +144,7 @@ ID, ACTION, CONTEXT."
 (eval-after-load 'haskell-mode             '(require 'smartparens-haskell))
 (--each sp--html-modes
   (eval-after-load it                      '(require 'smartparens-html)))
+(eval-after-load 'css-mode                 '(require 'smartparens-css))
 (eval-after-load 'latex                    '(require 'smartparens-latex))
 (eval-after-load 'lua-mode                 '(require 'smartparens-lua))
 (eval-after-load 'lua-ts-mode              '(require 'smartparens-lua))
