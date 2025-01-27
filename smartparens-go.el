@@ -45,8 +45,9 @@
 (require 'smartparens)
 
 (declare-function go-mode "go-mode")
+(declare-function go-ts-mode "go-ts-mode")
 
-(sp-with-modes 'go-mode
+(sp-with-modes '(go-mode go-ts-mode)
   (sp-local-pair "{" nil :post-handlers '(("||\n[i]" "RET")))
   (sp-local-pair "/*" "*/" :post-handlers '(("| " "SPC")
                                             ("* ||\n[i]" "RET"))))
@@ -54,6 +55,7 @@
 ;; Go has no sexp suffices.  This fixes slurping
 ;; (|foo).bar -> (foo.bar)
 (add-to-list 'sp-sexp-suffix (list #'go-mode 'regexp ""))
+(add-to-list 'sp-sexp-suffix (list #'go-ts-mode 'regexp ""))
 
 (provide 'smartparens-go)
 
