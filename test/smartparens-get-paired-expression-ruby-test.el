@@ -32,3 +32,21 @@
 (ert-deftest sp-test-get-paired-expression-ruby-backward-fail ()
   (sp-test--paired-expression-parse-in-ruby "de end|" nil t)
   )
+
+(defun sp-test--thing-parse-in-ruby (initial result &optional back)
+  (let ((sp-pairs '((t . ((:open "def"   :close "end" :actions (insert wrap autoskip navigate))
+                          (:open "if"    :close "end" :actions (insert wrap autoskip navigate))
+                          (:open "do"    :close "end" :actions (insert wrap autoskip navigate))
+                          (:open "begin" :close "end" :actions (insert wrap autoskip navigate))
+                          (:open "(" :close ")" :actions (insert wrap autoskip navigate)))))))
+    (sp-test-with-temp-buffer initial
+        (ruby-mode)
+      (should (equal (sp-get-thing back) result)))))
+
+(ert-deftest sp-test-get-thing-generic-string-ruby ()
+  (sp-test--thing-parse-in-ruby "C = |%w(asd)#asdas"
+				'(:beg 5 :end 12 :op "%" :cl ")" :prefix "" :suffix ""))
+  ;; It's not exactly reversible, but this way is backward compatible
+  (sp-test--thing-parse-in-ruby "C = %w(asd)|#asdas"
+				'(:beg 7 :end 12 :op "(" :cl ")" :prefix "" :suffix "") t))
+  
