@@ -28,8 +28,8 @@
 
 ;;; Commentary:
 
-;; This file provides some additional configuration for Swift.  To use
-;; it, simply add:
+;; This file provides some additional configuration for Swift. To use it in
+;; conjunction with either `swift-mode' or `swift-ts-mode', simply add:
 ;;
 ;; (require 'smartparens-config)
 ;;
@@ -46,6 +46,7 @@
 (require 'smartparens)
 
 (declare-function swift-mode "swift-mode")
+(declare-function swift-ts-mode "swift-ts-mode")
 
 (defun sp-swift-skip-match-angle-bracket (_ms _mb me)
   "Non-nil if we should ignore the bracket as valid delimiter."
@@ -102,15 +103,16 @@
        ((eq action 'navigate)
         (and (not on-comparison) (not on-fn-return-type) (not on-range-operator))))))))
 
-(sp-with-modes '(swift-mode)
+(sp-with-modes '(swift-mode swift-ts-mode)
   (sp-local-pair "<" ">"
                  :when '(sp-swift-filter-angle-brackets)
                  :skip-match 'sp-swift-skip-match-angle-bracket)
   (sp-local-pair "\"\"\"" "\"\"\""))
 
-;; Swift has no sexp suffices.  This fixes slurping
+;; Swift has no sexp suffixes.  This fixes slurping
 ;; (|foo).bar -> (foo.bar)
-(add-to-list 'sp-sexp-suffix (list #'swift-mode 'regexp ""))
+(dolist (mode '(swift-mode swift-ts-mode))
+  (add-to-list 'sp-sexp-suffix (list mode 'regexp "")))
 
 (provide 'smartparens-swift)
 
