@@ -200,13 +200,31 @@ be."
 
 (sp-test-command sp-forward-symbol
   ((nil
-    ("|foo bar" "foo| bar" "foo bar|"))
+    ("|foo bar" "foo| bar" "foo bar|")
+    ("|,foo ,bar" ",foo| ,bar" ",foo ,bar|")
+    ("|'foo 'bar" "'foo| 'bar" "'foo 'bar|"))
    (((mode 'clojure))
     ("|(map #(identity) {:a 1})"
      "(map| #(identity) {:a 1})"
      "(map #(identity|) {:a 1})"
      "(map #(identity) {:a| 1})"
-     "(map #(identity) {:a 1|})"))))
+     "(map #(identity) {:a 1|})")
+    ("|foo' 'bar qu'ux" "foo'| 'bar qu'ux" "foo' 'bar| qu'ux" "foo' 'bar qu'ux|")
+    ("|and# ~x ~@next" "and#| ~x ~@next" "and# ~x| ~@next" "and# ~x ~@next|"))))
+
+(sp-test-command sp-backward-symbol
+  ((nil
+    ("foo bar|" "foo |bar" "|foo bar")
+    (",foo ,bar|" ",foo ,|bar" ",|foo ,bar" "|,foo ,bar")
+    ("'foo 'bar|" "'foo '|bar" "'|foo 'bar" "|'foo 'bar"))
+   (((mode 'clojure))
+    ("(map #(identity) {:a 1})|"
+     "(map #(identity) {:a |1})"
+     "(map #(identity) {|:a 1})"
+     "(map #(|identity) {:a 1})"
+     "(|map #(identity) {:a 1})")
+    ("foo' 'bar qu'ux|" "foo' 'bar |qu'ux" "foo' '|bar qu'ux" "|foo' 'bar qu'ux")
+    ("and# ~x ~@next|" "and# ~x ~@|next" "and# ~|x ~@next" "|and# ~x ~@next"))))
 
 (sp-test-command sp-forward-parallel-sexp
   ((nil
