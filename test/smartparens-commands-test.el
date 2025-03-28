@@ -226,6 +226,28 @@ be."
     ("foo' 'bar qu'ux|" "foo' 'bar |qu'ux" "foo' '|bar qu'ux" "|foo' 'bar qu'ux")
     ("and# ~x ~@next|" "and# ~x ~@|next" "and# ~|x ~@next" "|and# ~x ~@next"))))
 
+(sp-test-command sp-skip-forward-to-symbol
+  ((nil
+    ("foo|   bar" "foo   |bar")
+    ("foo| 'bar" "foo '|bar")
+    ("foo|   [bar baz]" "foo   |[bar baz]"))))
+
+(sp-test-command sp-wrap-round
+  ((nil
+    ("|foo bar" "(|foo) bar")
+    ("fo|o bar" "(|foo) bar")
+    ("foo| bar" "foo (|bar)")
+    ("'|foo" "'(|foo)")
+    ("'f|oo" "(|'foo)")
+    ("|'foo" "(|'foo)"))
+   (((mode 'clojure))
+    ("f|n?" "(|fn?)")
+    ("fn|?" "(|fn?)")
+    ("|#(foo)" "(|#(foo))")
+    ("#|(foo)" "#(|(foo))")
+    ("?|#(:clj x)" "(|?#(:clj x))")
+    ("?#|(:clj x)" "?#(|(:clj x))"))))
+
 (sp-test-command sp-forward-parallel-sexp
   ((nil
     ("|foo" "foo|")

@@ -1972,7 +1972,7 @@ is done by passing CHECK-PREFIX-FLAG as nil."
           (and check-prefix-flag
                (/= 0 (logand (lsh 1 20) (car syntax))))))))
 
-(defun sp-syntax-after-is-word-or-symbol (check-prefix-flag &optional p)
+(defun sp-syntax-after-is-word-or-symbol (&optional p)
   "Check that the character after P has word or symbol syntax.
 
 In case the character has a special syntax flag 'p', meaning a
@@ -1981,7 +1981,7 @@ regularly the character would be (for example according to the
 syntax table)."
   (setq p (or p (point)))
   (and (memq (sp-syntax-after p) '(?w ?_))
-       (not (sp-syntax-after-is-prefix check-prefix-flag p))))
+       (not (sp-syntax-after-is-prefix (not (sp-syntax-before-is-word-or-symbol t)) p))))
 
 (defun sp-syntax-before-is-word-or-symbol (check-prefix-flag &optional p)
   "Check that the character before P has word or symbol syntax.
@@ -7816,8 +7816,10 @@ Examples:
                         ,(if forward '(sp-syntax-after) '(sp-syntax-before))
                         '(?< ?> ?! ?| ?\ ?\\ ?\" ?' ?.))
                        ,(if forward
-                            '(sp-syntax-after-is-prefix t (point))
-                          '(sp-syntax-before-is-prefix t (point)))
+                            ;; ignore prefix syntax not in a prefix position
+                            '(and (not (sp-syntax-before-is-word-or-symbol t))
+                                  (sp-syntax-after-is-prefix t))
+                          '(sp-syntax-before-is-prefix t))
                        (unless in-comment (sp-point-in-comment))
                        ;; This is the case where we are starting at
                        ;; pair (looking at it) and there is some
@@ -7931,7 +7933,7 @@ Examples:
             ;; something in \sw or \s_
             (while (cond
                     ((eobp) nil)
-                    ((not (sp-syntax-after-is-word-or-symbol t))
+                    ((not (sp-syntax-after-is-word-or-symbol))
                      (forward-char)
                      t)
                     ;; if allowed is empty, the regexp matches anything
@@ -7944,7 +7946,7 @@ Examples:
                         (or (not allowed)
                             (not (or (sp--valid-initial-delimiter-p (sp--looking-at open))
                                      (sp--valid-initial-delimiter-p (sp--looking-at close)))))
-                        (or (sp-syntax-after-is-word-or-symbol nil) ;; now inside symbol so ignore prefix flag
+                        (or (sp-syntax-after-is-word-or-symbol)
                             ;; Specifically for lisp, we consider
                             ;; sequences of ?\<ANYTHING> a symbol
                             ;; sequence
