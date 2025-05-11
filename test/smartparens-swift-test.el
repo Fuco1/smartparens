@@ -123,3 +123,10 @@ func bar(x: UInt64) -> Bool {
     (mark-whole-buffer)
     (call-interactively 'sp-kill-region)
     (should (equal (buffer-string) ""))))
+
+(ert-deftest sp-test-swift-string-interp-paren ()
+  "String interpolation should not escape closing paren"
+  (sp-test-with-temp-buffer "print(\"foo is: |\")"
+      (swift-mode)
+    (execute-kbd-macro "\\(")
+    (sp-buffer-equals "print(\"foo is: \\(|)\")")))

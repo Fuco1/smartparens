@@ -107,7 +107,8 @@
   (sp-local-pair "<" ">"
                  :when '(sp-swift-filter-angle-brackets)
                  :skip-match 'sp-swift-skip-match-angle-bracket)
-  (sp-local-pair "\"\"\"" "\"\"\""))
+  (sp-local-pair "\"\"\"" "\"\"\"")
+  (sp-local-pair "\\(" ")" :actions '(wrap insert) :when '(sp-in-string-p)))
 
 ;; Swift has no sexp suffixes.  This fixes slurping
 ;; (|foo).bar -> (foo.bar)
