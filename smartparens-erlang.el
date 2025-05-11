@@ -46,10 +46,11 @@
 
 (declare-function erlang-mode "erlang-mode")
 
-(sp-with-modes 'erlang-mode
+(sp-with-modes '(erlang-mode erlang-ts-mode)
   (sp-local-pair "`" "'"
-                 :when '(sp-in-comment-p)))
+                 :when '(sp-in-comment-p))
+  (sp-local-pair "<<" ">>")
+  (sp-local-pair "#{" "}"))
 
 (provide 'smartparens-erlang)
-
 ;;; smartparens-erlang.el ends here
