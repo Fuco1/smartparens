@@ -133,6 +133,10 @@ ARGS."
                  :when '(sp-rust-filter-angle-brackets)
                  :skip-match 'sp-rust-skip-match-angle-bracket))
 
+  (dolist (open '("<" "{" "[" "("))
+    (sp-local-pair '(rust-mode rust-ts-mode rustic-mode)
+                   open nil :post-handlers '(:add ("||\n[i]" "RET"))))
+
 ;; Rust has no sexp suffices.  This fixes slurping
 ;; (|foo).bar -> (foo.bar)
 (add-to-list 'sp-sexp-suffix (list #'rust-mode 'regexp ""))
