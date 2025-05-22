@@ -6,3 +6,5 @@ docs/_build
 .eask
 .cask
 .elsa
+
+dist/
