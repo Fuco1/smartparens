@@ -103,6 +103,19 @@ which may not be on the same line."
                     ((bobp) (throw 'definition nil)))))
           (forward-line -1))))))
 
+(defun sp-elixir-bitstring-open-p (open-delim action context)
+  "Test whether a bitstring opener is being inserted.
+
+When OPEN-DELIM is \"<<\", ACTION is 'insert, and CONTEXT is 'code,
+indicating that potentially a bitstring is being inserted, checks
+whether none of the operators \"<<~\" and \"<<<\" is being entered."
+    (if (and (string= open-delim "<<")
+             (eq action 'insert)
+             (eq context 'code))
+        (not (or (looking-back "<<<[^<]" (- (point) 4))
+                 (looking-back "<<~" (- (point) 3))))
+      t))
+
 (defun sp-elixir-do-block-post-handler (_id action _context)
   "Insert \"do\" keyword and indent the new block.
 ID, ACTION, CONTEXT."
@@ -208,6 +221,9 @@ ID, ACTION, CONTEXT."
                  :when '(("RET" "<evil-ret>"))
                  :skip-match 'sp-elixir-skip-keyword-list-def-p
                  :post-handlers '(sp-elixir-empty-do-block-post-handler))
+  (sp-local-pair "<<" ">>"
+                 :when '((sp-elixir-bitstring-open-p))
+                 :unless '(sp-in-comment-p sp-in-string-p))
   )
 
 (provide 'smartparens-elixir)
