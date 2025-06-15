@@ -7070,6 +7070,19 @@ Examples:
             (when (> need-indent 0)
               (insert (make-string need-indent ?\ ))))))))))
 
+(defun sp-delete-hybrid-sexp (&optional arg)
+  "Delete a line as if with `kill-line', but respecting delimiters.
+
+This is exactly like calling `sp-kill-hybrid-sexp'
+except deleted sexp does not go to the clipboard or kill ring.
+
+With ARG numeric prefix 0 (zero) just call `kill-line'.
+
+See also `sp-kill-hybrid-sexp' examples."
+  (interactive "*p")
+  (sp-save-kill-ring
+    (sp-kill-hybrid-sexp arg)))
+
 (defun sp-kill-whole-line ()
   "Kill current line in sexp-aware manner.
 
