@@ -5602,15 +5602,12 @@ This function simply transforms BOUNDS, which is a cons (BEG
 . END) into format compatible with `sp-get-sexp'."
   (let* ((op (char-to-string (char-after (car bounds))))
          (cl (char-to-string (char-before (cdr bounds)))))
-    ;; if the closing and opening isn't the same token, we should
-    ;; return nil
-    (when (equal op cl)
-      (list :beg (car bounds)
-            :end (cdr bounds)
-            :op cl
-            :cl cl
-            :prefix (sp--get-prefix (car bounds) op)
-            :suffix (sp--get-suffix (cdr bounds) cl)))))
+    (list :beg (car bounds)
+          :end (cdr bounds)
+          :op op
+          :cl cl
+          :prefix (sp--get-prefix (car bounds) op)
+          :suffix (sp--get-suffix (cdr bounds) cl))))
 
 (defun sp-get-string (&optional back)
   "Find the nearest string after point, or before if BACK is non-nil.
@@ -5931,7 +5928,9 @@ expressions are considered."
                   (sp-get-sexp t))
                  ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-opening-regexp (sp--get-allowed-pair-list)) nil))
                   (sp-get-sexp t))
-                 ((and (eq (syntax-class (syntax-after (1- (point)))) 7)
+                 ((and (memq (syntax-class
+			      (syntax-after (1- (point))))
+			     '(7 15))
                        (not (sp-char-is-escaped-p (1- (point)))))
                   (sp-get-string-or-nested-string t))
                  ((sp--valid-initial-delimiter-p (sp--looking-back (sp--get-stringlike-regexp) nil))
@@ -5975,7 +5974,8 @@ expressions are considered."
                 (sp-get-sexp nil))
                ;; TODO: merge the following two conditions and use
                ;; `sp-get-stringlike-or-textmode-expression'
-               ((and (eq (syntax-class (syntax-after (point))) 7)
+               ((and (memq (syntax-class (syntax-after (point)))
+			   '(7 15))
                      (not (sp-char-is-escaped-p)))
                 (sp-get-string-or-nested-string nil))
                ((sp--valid-initial-delimiter-p (sp--looking-at (sp--get-stringlike-regexp)))
