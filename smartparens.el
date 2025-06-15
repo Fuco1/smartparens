@@ -5337,10 +5337,15 @@ See `sp-get-hybrid-sexp' for definition."
                      (point)))))
       (let ((p (progn (when (sp-point-in-symbol) (sp-backward-sexp)) (point)))
             (le (line-end-position))
-            (cur (--if-let (save-excursion (sp-forward-sexp)) it (list :beg (1+ (point-max))))) ;hack
+            (cur (--if-let (save-excursion (sp-forward-sexp)) it
+                   (list :beg (1+ (point-max)) :end (1+ (point-max))))) ;hack
             last)
-        (if (> (sp-get cur :beg) le)
-            (if (sp-point-in-blank-line) le (skip-prefix-backward le))
+        (if (sp-get cur (or (< :beg p) (> :beg le)))
+            ;; if next sexp began after line end or there wasn't one (in which
+            ;; case we got parent sexp, which began before point) then return
+            ;; up to line end (or end of parent sexp, if it is before line end)
+            (if (sp-point-in-blank-line) le
+              (skip-prefix-backward (min le (sp-get cur :end-in))))
           (while (sp-get cur
                    (and cur
                         (< :beg le)
