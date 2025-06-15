@@ -1352,6 +1352,12 @@ cease to be configurable."
   :type 'boolean
   :group 'smartparens)
 
+(defcustom sp-navigate-parallel-stop-at-ends nil
+  "If non-nil, parallel sexp movements stop when hitting the end of
+the containing sexp rather than looping back to the other end."
+  :type 'boolean
+  :group 'smartparens)
+
 (defcustom sp-sexp-prefix nil
   "Alist of `major-mode' specific prefix specification.
 
@@ -6220,8 +6226,12 @@ that is the first child of the enclosing sexp as defined by
                    (progn
                      (goto-char (sp-get next :end))
                      next)
-                 (goto-char (sp-get next :beg-in))
-                 (sp-forward-sexp)))))))
+                 (if sp-navigate-parallel-stop-at-ends
+                     (if (= (point) (sp-get next :end-in))
+                         (user-error "End of containing sexp")
+                       (goto-char (sp-get next :end-in)))
+                   (goto-char (sp-get next :beg-in))
+                   (sp-forward-sexp))))))))
       re)))
 
 (defun sp-backward-parallel-sexp (&optional arg)
@@ -6253,8 +6263,12 @@ is the last child of the enclosing sexp as defined by
                    (progn
                      (goto-char (sp-get prev :beg))
                      prev)
-                 (goto-char (sp-get prev :end-in))
-                 (sp-backward-sexp)))))))
+                 (if sp-navigate-parallel-stop-at-ends
+                     (if (= (point) (sp-get prev :beg-in))
+                         (user-error "End of containing sexp")
+                       (goto-char (sp-get prev :beg-in)))
+                   (goto-char (sp-get prev :end-in))
+                   (sp-backward-sexp))))))))
       re)))
 
 (defun sp--raw-argument-p (arg)
