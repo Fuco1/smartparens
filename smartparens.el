@@ -1093,6 +1093,34 @@ See also `sp-skip-closing-pair'."
   :type 'boolean
   :group 'smartparens)
 
+(defcustom sp-auto-narrow-kill-region nil
+  "If non-nil, `sp-kill-region' will always try to kill as much as possible.
+
+When user selects a region which deletion would make the buffer
+unbalanced, try to find the most permissible
+region (i.e. largest) that when removed leaves the buffer
+balanced.
+
+This allows for more sloppy region selection when trying to clean
+up some code.
+
+Example:
+
+  (let (|(foo bar)
+        (one two))
+    body here)M
+
+With this setting enabled calling `sp-kill-region' will result in
+
+  (let (|M)
+    body here)
+
+instead of an error.
+
+The same applies to `sp-delete-region'."
+  :type 'boolean
+  :group 'smartparens)
+
 (defcustom sp-undo-pairs-separately nil
   "If non-nil, put an `undo-boundary' before each inserted pair.
 
@@ -9489,7 +9517,13 @@ If that text is unbalanced, signal an error instead.
 With a prefix argument, skip the balance check."
   (interactive "*r")
   (when (or current-prefix-arg
-            (sp-region-ok-p beg end)
+            (-let [(&plist :ok ok :last-good-sexp last-good-sexp) (sp-get-region-info beg end)]
+              (if (and (not ok)
+                       sp-auto-narrow-kill-region)
+                  (when last-good-sexp
+                    (setq end (sp-get last-good-sexp :end-suf))
+                    (goto-char end))
+                ok))
             (user-error (sp-message :unbalanced-region :return)))
     (setq this-command 'kill-region)
     (kill-region beg end)))
@@ -9513,7 +9547,37 @@ of the point."
         (indent-sexp))
       (sp--back-to-indentation column indentation))))
 
-(cl-defun sp-region-ok-p (start end)
+(defun sp-get-region-info (start end)
+  "Get information about region between START and END.
+
+See `sp-region-ok-p' for explanation of what constitutes a
+balanced region.
+
+The return value is a plist with the following keys:
+
+ :ok - non-nil if the region is balanced
+ :last-good-sexp - last sexp in the region which is part of a
+ balanced region starting at START"
+  (save-excursion
+    (save-restriction
+      (when (eq (sp-point-in-string start) (sp-point-in-string end))
+        (narrow-to-region start end)
+        (let ((regex (sp--get-allowed-regexp (-difference sp-pair-list (sp--get-allowed-pair-list))))
+              (last-good-sexp))
+          (goto-char (point-min))
+          (while (or (prog1 (let ((ok (sp-forward-sexp)))
+                              (when ok
+                                (setq last-good-sexp ok))
+                              ok)
+                       (sp-skip-forward-to-symbol))
+                     ;; skip impossible delimiters
+                     (when (looking-at-p regex)
+                       (goto-char (match-end 0)))))
+          (list
+           :ok (looking-at-p "[[:blank:]\n]*\\'")
+           :last-good-sexp last-good-sexp))))))
+
+(defun sp-region-ok-p (start end)
   "Test if region between START and END is balanced.
 
 A balanced region is one where all opening delimiters are matched
@@ -9523,18 +9587,7 @@ This function does *not* check that the delimiters are correctly
 ordered, that is [(]) is correct even though it is not logically
 properly balanced."
   (interactive "r")
-  (save-excursion
-    (save-restriction
-      (when (eq (sp-point-in-string start) (sp-point-in-string end))
-        (narrow-to-region start end)
-        (let ((regex (sp--get-allowed-regexp (-difference sp-pair-list (sp--get-allowed-pair-list)))))
-          (goto-char (point-min))
-          (while (or (prog1 (sp-forward-sexp)
-                       (sp-skip-forward-to-symbol))
-                     ;; skip impossible delimiters
-                     (when (looking-at-p regex)
-                       (goto-char (match-end 0)))))
-          (looking-at-p "[[:blank:]\n]*\\'"))))))
+  (plist-get (sp-get-region-info start end) :ok))
 
 (defun sp-newline ()
   "Insert a newline and indent it.
