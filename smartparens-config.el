@@ -141,8 +141,8 @@ ID, ACTION, CONTEXT."
   (eval-after-load it                      '(require 'smartparens-erlang)))
 (eval-after-load 'ess                      '(require 'smartparens-ess))
 (eval-after-load 'go-mode                  '(require 'smartparens-go))
-(eval-after-load 'haskell-interactive-mode '(require 'smartparens-haskell))
-(eval-after-load 'haskell-mode             '(require 'smartparens-haskell))
+(--each '(haskell-mode haskell-interactive-mode purescript-mode)
+  (eval-after-load it                      '(require 'smartparens-haskell)))
 (--each sp--html-modes
   (eval-after-load it                      '(require 'smartparens-html)))
 (eval-after-load 'latex                    '(require 'smartparens-latex))

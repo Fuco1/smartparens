@@ -78,6 +78,14 @@ So we ignore that pair when at the end of word."
                  :skip-match 'sp-haskell-skip-apostrophe)
   (sp-local-pair "\\(" nil :actions nil))
 
+(sp-with-modes 'purescript-mode
+  (sp-local-pair "'" nil
+                 :unless '(sp-point-after-word-p
+                           sp-haskell-strict-ignore-apostrophe-after-word)
+                 :skip-match 'sp-haskell-skip-apostrophe)
+  (sp-local-pair "\\{" nil :actions nil)
+  (sp-local-pair "\\(" nil :actions nil))
+
 (defun sp--inferior-haskell-mode-backward-bound-fn ()
   "Limit the backward search to the prompt if point is on prompt."
   (-when-let (limit (cond ((bound-and-true-p comint-last-prompt)
