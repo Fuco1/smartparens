@@ -69,7 +69,7 @@ This predicate is only tested on \"insert\" action."
     (goto-char mb)
     (save-match-data (looking-at "^\\* "))))
 
-(sp-with-modes '(markdown-mode gfm-mode)
+(sp-with-modes '(markdown-mode markdown-ts-mode gfm-mode)
   (sp-local-pair "*" "*"
                  :unless '(sp--gfm-point-after-word-p sp-point-at-bol-p)
                  :post-handlers '(("[d1]" "SPC"))
@@ -77,7 +77,7 @@ This predicate is only tested on \"insert\" action."
   (sp-local-pair "**" "**")
   (sp-local-pair "_" "_" :unless '(sp-point-after-word-p)))
 
-(sp-with-modes 'markdown-mode
+(sp-with-modes '(markdown-mode markdown-ts-mode)
   (sp-local-pair "```" "```"))
 
 (sp-with-modes 'gfm-mode
