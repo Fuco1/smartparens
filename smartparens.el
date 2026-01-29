@@ -623,6 +623,7 @@ Symbol is defined as a chunk of text recognized by
 (defcustom sp-no-reindent-after-kill-modes '(
                                              python-mode
                                              python-ts-mode
+                                             purescript-mode
                                              coffee-mode
                                              asm-mode
                                              makefile-gmake-mode
