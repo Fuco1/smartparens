@@ -740,8 +740,8 @@ You can enable pre-set bindings by customizing
         ;; `self-insert-command', rather, they insert via `insert'.
         ;; Therefore, we need to call this handler in
         ;; `post-command-hook' too (inside
-        ;; `sp--post-command-hook-handler').  The list
-        ;; `sp--special-self-insert-commands' specifies which commands
+        ;; `sp--post-command-hook-handler').  The function
+        ;; `sp--special-self-insert-command-p' specifies which commands
         ;; to handle specially.
         (add-hook 'post-self-insert-hook 'sp--post-self-insert-hook-handler nil 'local)
         (add-hook 'pre-command-hook 'sp--save-pre-command-state nil 'local)
@@ -2132,9 +2132,7 @@ BODY, do nothing."
 ;; Please contribute these if you come across some!
 (defvar sp--self-insert-commands
   '(self-insert-command
-    org-self-insert-command
-    LaTeX-insert-left-brace
-    latex-insert-left-brace)
+    org-self-insert-command)
    "List of commands that are some sort of `self-insert-command'.
 
 Many modes rebind \"self-inserting\" keys to \"smart\" versions
@@ -2143,36 +2141,6 @@ insertion to `self-insert-command'.  Smartparens needs to be able
 to distinguish these to properly handle insertion and reinsertion
 of pairs and wraps.")
 
-;; Please contribute these if you come across some!
-(defvar sp--special-self-insert-commands
-  '(
-    TeX-insert-dollar
-    TeX-insert-quote
-    ;; At some point the TeX and LaTeX functions were renamed to
-    ;; lower-case names.  This broke some code dealing with these
-    ;; modes, so we just add both versions for now.
-    tex-insert-dollar
-    tex-insert-quote
-    latex-insert-quote
-    quack-insert-opening-paren
-    quack-insert-closing-paren
-    quack-insert-opening-bracket
-    quack-insert-closing-bracket
-    racket-insert-closing-paren
-    racket-insert-closing-bracket
-    racket-insert-closing-brace
-    )
-   "List of commands which are handled as if they were `self-insert-command's.
-
-Some modes redefine \"self-inserting\" keys to \"smart\" versions
-which do some additional processing but do _not_ delegate the
-insertion to `self-insert-command', instead inserting via
-`insert'.  Smartparens needs to be able to distinguish these to
-properly handle insertion and reinsertion of pairs and wraps.
-
-The `sp--post-self-insert-hook-handler' is called in the
-`post-command-hook' for these commands.")
-
 (defun sp--self-insert-command-p ()
   "Return non-nil if `this-command' is some sort of `self-insert-command'."
   (memq this-command sp--self-insert-commands))
@@ -2180,9 +2148,29 @@ The `sp--post-self-insert-hook-handler' is called in the
 (defun sp--special-self-insert-command-p ()
   "Return non-nil if `this-command' is \"special\" self insert command.
 
-A special self insert command is one that inserts a character but
-does not trigger `post-self-insert-hook'."
-  (memq this-command sp--special-self-insert-commands))
+Some modes redefine \"self-inserting\" keys to \"smart\" versions
+which do some additional processing but do _not_ delegate the
+insertion to `self-insert-command', instead inserting via
+`insert' and not triggering the `post-self-insert-hook'.
+Smartparens needs to be able to distinguish these to properly
+handle insertion and reinsertion of pairs and wraps.
+
+The `sp--post-self-insert-hook-handler' is called in the
+`post-command-hook' for these commands."
+  (memq this-command
+        `(
+          ,@(and (boundp 'AUCTeX-version) (version<= AUCTeX-version "14.0.5")
+                 '(TeX-insert-dollar))
+          tex-insert-quote
+          TeX-insert-quote
+          quack-insert-opening-paren
+          quack-insert-closing-paren
+          quack-insert-opening-bracket
+          quack-insert-closing-bracket
+          racket-insert-closing-paren
+          racket-insert-closing-bracket
+          racket-insert-closing-brace
+          )))
 
 (defun sp--signum (x)
   "Return 1 if X is positive, -1 if negative, 0 if zero."
