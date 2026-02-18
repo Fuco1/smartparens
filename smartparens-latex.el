@@ -100,7 +100,8 @@ ID, ACTION, CONTEXT."
                  :unless '(sp-latex-point-after-backslash sp-in-math-p))
   ;; math modes, yay.  The :actions are provided automatically if
   ;; these pairs do not have global definitions.
-  (sp-local-pair "$" "$")
+  (sp-local-pair "$" "$"
+                 :unless '(sp-latex-point-after-backslash))
   (sp-local-pair "\\[" "\\]"
                  :unless '(sp-latex-point-after-backslash))
 
