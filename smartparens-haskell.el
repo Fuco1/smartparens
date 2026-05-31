@@ -110,7 +110,8 @@ So we ignore that pair when at the end of word."
 If the point is after the last prompt, limit the backward search
 only for the propmt.
 
-If the point is before the last prompt, limit the forward search up until the prompt start."
+If the point is before the last prompt, limit the forward search up
+until the prompt start."
   (setq sp-forward-bound-fn 'sp--inferior-haskell-mode-forward-bound-fn)
   (setq sp-backward-bound-fn 'sp--inferior-haskell-mode-backward-bound-fn))
 

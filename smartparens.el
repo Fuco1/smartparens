@@ -718,6 +718,10 @@ default, which should be the most verbose option available.")
   :group 'editing
   :prefix "sp-")
 
+;; Forward declaration: `smartparens-strict-mode' is defined below via
+;; `define-minor-mode' but referenced in `smartparens-mode' above it.
+(defvar smartparens-strict-mode)
+
 ;;;###autoload
 (define-minor-mode smartparens-mode
   "Toggle smartparens mode.
@@ -1590,22 +1594,27 @@ This check is added to the special hook
 
 ;; TODO: this function was removed from Emacs, we should get rid of
 ;; the advice in time.
-(defadvice cua-replace-region (around fix-sp-wrap activate)
-  "Fix `sp-wrap' in `cua-selection-mode'."
-  (if (and smartparens-mode (sp-wrap--can-wrap-p))
-      (cua--fallback)
-    ad-do-it))
+;; `defadvice' is obsolete as of Emacs 30.1 but is kept here
+;; deliberately: the legacy advices below rely on `ad-do-it' to wrap
+;; the original command, and porting them to `advice-add' is left as a
+;; separate behaviour-affecting change (see the TODO above).
+(with-suppressed-warnings ((obsolete defadvice))
+  (defadvice cua-replace-region (around fix-sp-wrap activate)
+    "Fix `sp-wrap' in `cua-selection-mode'."
+    (if (and smartparens-mode (sp-wrap--can-wrap-p))
+        (cua--fallback)
+      ad-do-it))
 
-(defadvice cua-delete-region (around fix-sp-delete-region activate)
-  "If `smartparens-strict-mode' is enabled, perform a region
+  (defadvice cua-delete-region (around fix-sp-delete-region activate)
+    "If `smartparens-strict-mode' is enabled, perform a region
 check before deleting."
-  (if (and smartparens-mode smartparens-strict-mode)
-      (progn
-        (unless (or current-prefix-arg
-                    (sp-region-ok-p (region-beginning) (region-end)))
-          (user-error (sp-message :unbalanced-region :return)))
-        ad-do-it)
-    ad-do-it))
+    (if (and smartparens-mode smartparens-strict-mode)
+        (progn
+          (unless (or current-prefix-arg
+                      (sp-region-ok-p (region-beginning) (region-end)))
+            (user-error (sp-message :unbalanced-region :return)))
+          ad-do-it)
+      ad-do-it)))
 
 
 
@@ -1915,7 +1924,8 @@ The raw syntax descriptor is retrieved using `syntax-after' and
 the code is decoded with `syntax-class'."
   (setq p (or p (point)))
   (let ((parse-sexp-lookup-properties t))
-    (if-let ((syntax (syntax-after p)))
+    (let ((syntax (syntax-after p)))
+      (if syntax
         (sp--syntax-class-to-char (syntax-class syntax))
       ;; This is a fallback compatible with (char-syntax
       ;; (following-char)) or `previous-char'.  They return 0 as the
@@ -1923,7 +1933,7 @@ the code is decoded with `syntax-class'."
       ;; (probably to make the first/last character of the buffer have
       ;; symbol boundary so the whole word counts as a symbol, including
       ;; the very first character)
-      ?_)))
+      ?_))))
 
 (defun sp-syntax-after (&optional p)
   "Get syntax descriptor of a character after P.
@@ -1954,10 +1964,11 @@ flag (20).  The flag must be ignored once inside a symbol, this
 is done by passing CHECK-PREFIX-FLAG as nil."
   (setq p (or p (point)))
   (let ((parse-sexp-lookup-properties t))
-    (when-let ((syntax (syntax-after p)))
-      (or (= (syntax-class syntax) 6)
-          (and check-prefix-flag
-               (/= 0 (logand (lsh 1 20) (car syntax))))))))
+    (let ((syntax (syntax-after p)))
+      (when syntax
+        (or (= (syntax-class syntax) 6)
+            (and check-prefix-flag
+                 (/= 0 (logand (ash 1 20) (car syntax)))))))))
 
 (defun sp-syntax-before-is-prefix (check-prefix-flag &optional p)
   "Check that the character before P has prefix syntax.
@@ -1968,15 +1979,16 @@ flag (20).  The flag must be ignored once inside a symbol, this
 is done by passing CHECK-PREFIX-FLAG as nil."
   (setq p (or p (point)))
   (let ((parse-sexp-lookup-properties t))
-    (when-let ((syntax (syntax-after (1- p))))
-      (or (= (syntax-class syntax) 6)
-          (and check-prefix-flag
-               (/= 0 (logand (lsh 1 20) (car syntax))))))))
+    (let ((syntax (syntax-after (1- p))))
+      (when syntax
+        (or (= (syntax-class syntax) 6)
+            (and check-prefix-flag
+                 (/= 0 (logand (ash 1 20) (car syntax)))))))))
 
 (defun sp-syntax-after-is-word-or-symbol (&optional p)
   "Check that the character after P has word or symbol syntax.
 
-In case the character has a special syntax flag 'p', meaning a
+In case the character has a special syntax flag \='p\=', meaning a
 prefix, it is not recognized as a word or symbol syntax even when
 regularly the character would be (for example according to the
 syntax table)."
@@ -1987,7 +1999,7 @@ syntax table)."
 (defun sp-syntax-before-is-word-or-symbol (check-prefix-flag &optional p)
   "Check that the character before P has word or symbol syntax.
 
-In case the character has a special syntax flag 'p', meaning a
+In case the character has a special syntax flag \='p\=', meaning a
 prefix, it is not recognized as a word or symbol syntax even when
 regularly the character would be (for example according to the
 syntax table)."
@@ -2030,13 +2042,13 @@ If optional argument P is present test this instead off point."
             ;; know if we are inside a comment or not (e.g. / can be a
             ;; division or comment starter...).
             (-when-let (s (car (syntax-after p)))
-              (or (and (/= 0 (logand (lsh 1 16) s))
+              (or (and (/= 0 (logand (ash 1 16) s))
                        (nth 4 (syntax-ppss (+ p 2))))
-                  (and (/= 0 (logand (lsh 1 17) s))
+                  (and (/= 0 (logand (ash 1 17) s))
                        (nth 4 (syntax-ppss (+ p 1))))
-                  (and (/= 0 (logand (lsh 1 18) s))
+                  (and (/= 0 (logand (ash 1 18) s))
                        (nth 4 (syntax-ppss (- p 1))))
-                  (and (/= 0 (logand (lsh 1 19) s))
+                  (and (/= 0 (logand (ash 1 19) s))
                        (nth 4 (syntax-ppss (- p 2)))))))))))
 
 (defun sp-point-in-string-or-comment (&optional p)
@@ -2946,7 +2958,13 @@ argument TYPE restrict overlays to only those with given type."
      ((not overlays) nil)
      ((not (cdr overlays)) (car overlays))
      (t
-      (--reduce (if (< (sp--get-overlay-length it) (sp--get-overlay-length acc)) it acc) overlays)))))
+      ;; Return the shortest overlay, keeping the earliest one on ties.
+      ;; `--min-by' keeps the accumulator (earlier element) when the
+      ;; predicate is non-nil, so `>=' reproduces the previous
+      ;; `--reduce'-based selection exactly while avoiding a spurious
+      ;; "value unused" byte-compile warning from the `--reduce'
+      ;; expansion.
+      (--min-by (>= (sp--get-overlay-length it) (sp--get-overlay-length other)) overlays)))))
 
 (defun sp--pair-overlay-create (start end id)
   "Create an overlay over the currently inserted pair.
@@ -3028,10 +3046,10 @@ Also remove all pair overlays if point moved backwards and
   (when sp-pair-overlay-list
     (setq sp-previous-point (point))))
 
-(defun sp--reset-memoization (&rest ignored)
+(defun sp--reset-memoization (&rest _ignored)
   "Reset memoization as a safety precaution.
 
-IGNORED is a dummy argument used to eat up arguments passed from
+The dummy argument is used to eat up arguments passed from
 the hook where this is executed."
   (setf (sp-state-last-syntax-ppss-point sp-state) nil
         (sp-state-last-syntax-ppss-result sp-state) nil))
@@ -3523,7 +3541,7 @@ extra boundary conditions depending on parens."
          (end (cadr parens)))
     (sp--wrap-regexp (regexp-opt strings) start end)))
 
-(defun sp--strict-regexp-opt (strings &optional ignored)
+(defun sp--strict-regexp-opt (strings &optional _ignored)
   "Like regexp-opt, but with extra boundary conditions to ensure
 that the strings are not matched in-symbol."
   (if strings
@@ -3955,7 +3973,7 @@ pairs insertable by trigger are returned.
 
 ACTION is an implementation detail.  Usually it has the value
 \\='insert when we determine pairs to insert.  On repeated wrapping
-however we pass the value 'wrap.  This will be refactored away in
+however we pass the value \\='wrap.  This will be refactored away in
 the upcoming version."
   (setq looking-fn (or looking-fn 'sp--looking-back-p))
   (setq action (or action 'insert))
@@ -4614,10 +4632,10 @@ If the point is not inside a quoted string, return nil."
                                     (and (eq (sp-syntax-after pp) ?>)
                                          (not (eq (char-after pp) ?\n)))
                                     (/= (logand
-                                         (lsh 1 18)
+                                         (ash 1 18)
                                          (car (syntax-after pp))) 0)
                                     (/= (logand
-                                         (lsh 1 19)
+                                         (ash 1 19)
                                          (car (syntax-after pp))) 0)))
                        (backward-char 1)))
                    (point))))
@@ -5166,12 +5184,10 @@ By default, this is enabled in all modes derived from
         (ps (if back (1- (point-min)) (1+ (point-max))))
         ;; start of string delimiter
         (ss (if back (1- (point-min)) (1+ (point-max))))
-        (string-delim nil)
-        (paired-delim nil))
+        (string-delim nil))
     (setq ps (if (equal pre "") ps
                (or (--when-let (save-excursion
                                  (sp--find-next-paired-delimiter pre search-fn))
-                     (setq paired-delim (match-string 0))
                      (save-match-data
                        (set-match-data it)
                        (if back (match-beginning 0) (match-end 0))))
@@ -7780,7 +7796,6 @@ Examples:
   (let ((inc (if forward '1+ '1-))
         (dec (if forward '1- '1+))
         (forward-fn (if forward 'forward-char 'backward-char))
-        (next-char-fn (if forward 'following-char 'preceding-char))
         (looking (if forward 'sp--looking-at 'sp--looking-back))
         (prefix-fn (if forward 'sp--get-suffix 'sp--get-prefix))
         (eob-test (if forward '(eobp) '(bobp)))
@@ -8011,7 +8026,7 @@ Examples:
               (backward-char))
             ;; skip characters which are symbols with prefix flag
             (while (and (not (eobp))
-                        (/= 0 (logand (lsh 1 20) (car (syntax-after (point))))))
+                        (/= 0 (logand (ash 1 20) (car (syntax-after (point))))))
               (forward-char 1))
             (setq n (1- n)))
         (sp-forward-symbol n)))))
@@ -8175,7 +8190,7 @@ Examples:
 
   (f|oo [bar] baz) -> (|)
 
-  {'f|oo': 'bar'}  -> {'|': 'bar'}"
+  {\\='f|oo\\=': \\='bar\\='}  -> {\\='|\\=': \\='bar\\='}"
   (interactive "*")
   (-when-let (ok (sp-get-enclosing-sexp))
     (sp-get ok
@@ -9554,7 +9569,7 @@ comment."
    ((sp-point-in-string)
     (newline))
    ((sp-point-in-comment)
-    (if (sp-region-ok-p (point) (point-at-eol))
+    (if (sp-region-ok-p (point) (line-end-position))
         (progn (newline-and-indent) (ignore-errors (indent-sexp)))
       (indent-new-comment-line)))
    (t
@@ -9955,28 +9970,34 @@ has been created."
 
 
 ;; global initialization
-(defadvice delete-backward-char (before sp-delete-pair-advice activate)
-  (save-match-data
-    (sp-delete-pair (ad-get-arg 0))))
-(defadvice haskell-indentation-delete-backward-char (before sp-delete-pair-advice activate)
-  (save-match-data
-    (sp-delete-pair (ad-get-arg 0))))
+;; `defadvice' is obsolete as of Emacs 30.1; the advices below are kept
+;; on the legacy advice mechanism on purpose because they rely on
+;; `ad-get-arg' and `ad-return-value'.  Suppress only the obsolete-macro
+;; warning here without changing behaviour.
+(with-suppressed-warnings ((obsolete defadvice))
+  (defadvice delete-backward-char (before sp-delete-pair-advice activate)
+    (save-match-data
+      (sp-delete-pair (ad-get-arg 0))))
+  (defadvice haskell-indentation-delete-backward-char (before sp-delete-pair-advice activate)
+    (save-match-data
+      (sp-delete-pair (ad-get-arg 0)))))
 (sp--set-base-key-bindings)
 (sp--update-override-key-bindings)
 
-(defadvice company--insert-candidate (after sp-company--insert-candidate activate)
-  "If `smartparens-mode' is active, we check if the completed string
+(with-suppressed-warnings ((obsolete defadvice))
+  (defadvice company--insert-candidate (after sp-company--insert-candidate activate)
+    "If `smartparens-mode' is active, we check if the completed string
 has a pair definition.  If so, we insert the closing pair."
-  (when (and ad-return-value
-             smartparens-mode
-             (not (sp-get-enclosing-sexp)))
-    (sp-insert-pair))
-  ad-return-value)
+    (when (and ad-return-value
+               smartparens-mode
+               (not (sp-get-enclosing-sexp)))
+      (sp-insert-pair))
+    ad-return-value)
 
-(defadvice hippie-expand (after sp-auto-complete-advice activate)
-  (when (and smartparens-mode
-             (not (sp-get-enclosing-sexp)))
-    (sp-insert-pair)))
+  (defadvice hippie-expand (after sp-auto-complete-advice activate)
+    (when (and smartparens-mode
+               (not (sp-get-enclosing-sexp)))
+      (sp-insert-pair))))
 
 (defvar sp--mc/cursor-specific-vars
   '(

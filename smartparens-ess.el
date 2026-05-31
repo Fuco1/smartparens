@@ -40,6 +40,7 @@
 (require 'rx)
 
 (defvar ess-roxy-str)
+(defvar ess-roxy-re)
 
 (declare-function ess-roxy-indent-on-newline "ess-roxy")
 
@@ -53,12 +54,15 @@
                (list mode 'regexp
                      (rx (zero-or-more (or word (syntax symbol)))))))
 
-(defadvice sp-backward-kill-symbol (around sp-ess-backward-kill-symbol activate)
-  "#821 For the purpose of killing words and symbols, we remove
+;; `defadvice' is obsolete as of Emacs 30.1; kept deliberately because
+;; the advice relies on `ad-do-it' to wrap the original command.
+(with-suppressed-warnings ((obsolete defadvice))
+  (defadvice sp-backward-kill-symbol (around sp-ess-backward-kill-symbol activate)
+    "#821 For the purpose of killing words and symbols, we remove
 the prefix resolution because it is not necessary.  We want to
 treat function prefix as word or symbol to be deleted."
-  (let ((sp-sexp-prefix nil))
-    ad-do-it))
+    (let ((sp-sexp-prefix nil))
+      ad-do-it)))
 
 ;; slurping follows Google's R style guide
 ;; see https://google.github.io/styleguide/Rguide.xml
@@ -73,12 +77,12 @@ ID, ACTION, CONTEXT."
         ;; (|)   x ---> (x)
         (when (looking-back (rx (syntax open-parenthesis)
                                 (one-or-more space)) nil)
-          (cycle-spacing 0 nil 'single-shot))
+          (just-one-space 0))
         (cond
          ;; (|)if(cond) ---> (|if (cond))
          ((member (sp-get sxp :prefix) '("if" "for" "while"))
           (goto-char (sp-get sxp :beg))
-          (cycle-spacing 1 nil 'single-shot))
+          (just-one-space 1))
          ;; (|)v [,2] <- if(x > 1) ---> (v[,2] <- if (x > 1))
          ((and
            (member (sp-get sxp :op) '("[" "("))
@@ -92,7 +96,7 @@ ID, ACTION, CONTEXT."
                    (sp-backward-sexp)
                    (thing-at-point 'word 'noprop))
                  '("if" "for" "while"))))
-          (cycle-spacing 0 nil 'single-shot))
+          (just-one-space 0))
          ;; (|[...])%in% ---> ([...] %in%|)
          ((or (looking-at "%") (looking-back "%" nil))
           (just-one-space))
@@ -108,16 +112,16 @@ ID, ACTION, CONTEXT."
         ;; x  (|) ---> (x)
         (when (looking-at (rx (one-or-more space)
                               (syntax close-parenthesis)))
-          (cycle-spacing 0 nil 'single-shot))
+          (just-one-space 0))
         ;; if(cond){} (|) ---> (if (cond) {}|)
         (cond ((member (sp-get sxp :prefix) '("if" "for" "while"))
                (goto-char (sp-get sxp :beg))
-               (cycle-spacing 1 nil 'single-shot))
+               (just-one-space 1))
               ;; for style reasons there should be a space before curly
               ;; brackets and binary operators
               ((and (member (sp-get sxp :op) '("{" "%"))
                     (not (looking-at (rx (syntax close-parenthesis)))))
-               (cycle-spacing 1 nil 'single-shot))
+               (just-one-space 1))
               ;; v[2](|) ---> (v[2]|)
               ((and
                 (not (member (thing-at-point 'word 'noprop)
@@ -128,7 +132,7 @@ ID, ACTION, CONTEXT."
                           (or (syntax close-parenthesis)
                               (char "(")
                               (char "["))))))
-               (cycle-spacing 0 nil 'single-shot))
+               (just-one-space 0))
               ;; 1 , 2 (|) ---> (1, 2)
               ((looking-at
                 (rx (zero-or-more space) "," (zero-or-more space)))
@@ -146,7 +150,7 @@ ARGS."
       (progn
         (save-excursion (ess-roxy-indent-on-newline))
         (when (looking-back ess-roxy-str nil)
-          (cycle-spacing 3 nil t)))
+          (just-one-space 3)))
     (newline)
     (indent-according-to-mode)
     (forward-line -1)

@@ -119,15 +119,18 @@ newly formed pair (which was a single-quote \"...\" pair)."
             (goto-char :beg)
             (insert (make-string 2 (aref id 0)))))))))
 
-(defadvice python-indent-dedent-line-backspace
-    (around sp-backward-delete-char-advice activate)
-  "Fix indend."
-  (if smartparens-strict-mode
-      (cl-letf (((symbol-function 'delete-backward-char)
-                 (lambda (arg &optional killp)
-                   (sp-backward-delete-char arg))))
-        ad-do-it)
-    ad-do-it))
+;; `defadvice' is obsolete as of Emacs 30.1; kept deliberately because
+;; the advice relies on `ad-do-it' to wrap the original command.
+(with-suppressed-warnings ((obsolete defadvice))
+  (defadvice python-indent-dedent-line-backspace
+      (around sp-backward-delete-char-advice activate)
+    "Fix indend."
+    (if smartparens-strict-mode
+        (cl-letf (((symbol-function 'delete-backward-char)
+                   (lambda (arg &optional killp)
+                     (sp-backward-delete-char arg))))
+          ad-do-it)
+      ad-do-it)))
 
 (provide 'smartparens-python)
 ;;; smartparens-python.el ends here

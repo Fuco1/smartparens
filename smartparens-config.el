@@ -45,6 +45,10 @@
 
 (require 'smartparens)
 
+(declare-function org-in-src-block-p "org")
+(declare-function org-element-at-point "org-element")
+(declare-function org-element-property "org-element-ast")
+
 (defun sp-lisp-invalid-hyperlink-p (_id action _context)
   "Test if there is an invalid hyperlink in a Lisp docstring.
 ID, ACTION, CONTEXT."
@@ -71,7 +75,7 @@ ID, ACTION, CONTEXT."
               (not (looking-at "[?.,;!]"))))))))
 
 (defun sp-lisp-insert-space-after-slurp (_id action _context)
-  (-let (((&plist :ok-orig :next-thing) sp-handler-context))
+  (-let (((&plist :ok-orig) sp-handler-context))
     (when (and (eq action 'slurp-forward)
                (sp-get ok-orig (/= :beg-in :end-in)))
       (save-excursion

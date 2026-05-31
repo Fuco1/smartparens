@@ -60,8 +60,9 @@ This predicate is only tested on \"insert\" action."
 
 (defun sp-org-inside-inline-code (_id action _context)
   (when (eq action 'insert)
-    (when-let ((expr (sp-get-stringlike-expression)))
-      (sp-get expr (member :op '("~" "="))))))
+    (let ((expr (sp-get-stringlike-expression)))
+      (when expr
+        (sp-get expr (member :op '("~" "=")))))))
 
 (sp-with-modes 'org-mode
   (sp-local-pair "*" "*"

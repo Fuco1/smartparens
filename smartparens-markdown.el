@@ -52,7 +52,8 @@
 
 
 (defun sp-gfm-electric-backquote-p (_id action _context)
-  "Do not insert ```...``` pair if that would be handled by `markdown-electric-backquote'."
+  "Do not insert ```...``` pair if it would be handled elsewhere.
+That is, when `markdown-electric-backquote' would handle it."
   (and (eq action 'insert)
        markdown-gfm-use-electric-backquote
        (sp--looking-back-p "^```")))

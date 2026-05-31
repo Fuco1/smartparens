@@ -1,10 +1,11 @@
 name: CI
-on: [push]
+on: [push, pull_request]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         emacs_version:
           - '27.1'
@@ -15,12 +16,13 @@ jobs:
           - '29.2'
           - '29.3'
           - '29.4'
+          - '30.1'
           - 'snapshot'
         include:
           - emacs_version: 'snapshot'
             allow_failure: true
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - uses: purcell/setup-emacs@master
       with:
         version: ${{ matrix.emacs_version }}
@@ -32,12 +34,78 @@ jobs:
 
     - name: Run tests
       if: matrix.allow_failure != true
-      run: |
-        cask exec ert-runner --reporter ert+duration
-        cask exec emacs --eval "(setq byte-compile-error-on-warn t)" -L . --batch -f batch-byte-compile smartparens.el smartparens-*[^pkg].el
+      run: cask exec ert-runner --reporter ert+duration
 
     - name: Run tests (allow failure)
       if: matrix.allow_failure == true
+      run: cask exec ert-runner --reporter ert+duration || true
+
+  byte-compile:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        emacs_version:
+          - '27.1'
+          - '27.2'
+          - '28.1'
+          - '28.2'
+          - '29.1'
+          - '29.2'
+          - '29.3'
+          - '29.4'
+          - '30.1'
+          - 'snapshot'
+        # Byte-compilation runs with warnings treated as errors
+        # (byte-compile-error-on-warn). The sources are warning-free on
+        # every supported Emacs version: the dash --reduce that
+        # triggered a spurious "value unused" warning was replaced by an
+        # equivalent --min-by, the 3-arg cycle-spacing calls (dropped in
+        # Emacs 29.1) were replaced by the equivalent just-one-space,
+        # and the legacy defadvice forms (obsolete as of Emacs 30.1) are
+        # wrapped in with-suppressed-warnings since they intentionally
+        # keep the legacy advice mechanism.
+        include:
+          - emacs_version: 'snapshot'
+            allow_failure: true
+    steps:
+    - uses: actions/checkout@v5
+    - uses: purcell/setup-emacs@master
+      with:
+        version: ${{ matrix.emacs_version }}
+
+    # Only the hard dependency (dash) is required to byte-compile the
+    # sources. The optional major-mode packages are not required at
+    # compile time, so dash alone is installed here via package.el.
+    # This keeps the byte-compile gate independent of the Cask setup
+    # used by the test job.
+    - name: Install dependencies
+      run: >
+        emacs --batch
+        --eval "(require 'package)"
+        --eval "(add-to-list 'package-archives '(\"melpa\" . \"https://melpa.org/packages/\") t)"
+        --eval "(package-initialize)"
+        --eval "(package-refresh-contents)"
+        --eval "(package-install 'dash)"
+
+    - name: Byte-compile (-Werror) and load
+      if: matrix.allow_failure != true
       run: |
-        cask exec ert-runner --reporter ert+duration || true
-        cask exec emacs --eval "(setq byte-compile-error-on-warn t)" -L . --batch -f batch-byte-compile smartparens.el smartparens-*[^pkg].el || true
+        emacs --batch --eval "(package-initialize)" \
+          --eval "(setq byte-compile-error-on-warn t)" \
+          -L . -f batch-byte-compile \
+          smartparens.el smartparens-*[^pkg].el
+        emacs --batch --eval "(package-initialize)" -L . \
+          --eval "(require 'smartparens)" \
+          --eval "(require 'smartparens-config)"
+
+    - name: Byte-compile (-Werror) and load (allow failure)
+      if: matrix.allow_failure == true
+      run: |
+        emacs --batch --eval "(package-initialize)" \
+          --eval "(setq byte-compile-error-on-warn t)" \
+          -L . -f batch-byte-compile \
+          smartparens.el smartparens-*[^pkg].el || true
+        emacs --batch --eval "(package-initialize)" -L . \
+          --eval "(require 'smartparens)" \
+          --eval "(require 'smartparens-config)" || true
