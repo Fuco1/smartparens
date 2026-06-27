@@ -187,6 +187,10 @@ ID, ACTION, CONTEXT."
   (sp-local-tag "bi" "\\begin{itemize}" "\\end{itemize}")
   (sp-local-tag "be" "\\begin{enumerate}" "\\end{enumerate}"))
 
+;; Punctuation shouldn’t travel with the closing paren, or get slurped too early
+(--each '(tex-mode plain-tex-mode latex-mode LaTeX-mode)
+  (add-to-list 'sp-sexp-suffix (list it 'regexp "")))
+
 (provide 'smartparens-latex)
 
 ;;; smartparens-latex.el ends here
