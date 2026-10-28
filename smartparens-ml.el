@@ -62,8 +62,12 @@
   (sp-local-pair "'" nil :actions nil)
   (sp-local-pair "{|" "|}" )      ;; multi-line string
   (sp-local-pair "[|" "|]" )      ;; array
-  (sp-local-pair "sig" "end" )    ;; signature
-  (sp-local-pair "struct" "end" ) ;; module
+  (sp-local-pair "sig" "end"      ;; signature
+                 :when '(("SPC" "RET" "<evil-ret>"))
+                 :unless '(sp-in-comment-p sp-in-string-p sp-point-after-word-p))
+  (sp-local-pair "struct" "end"   ;; module
+                 :when '(("SPC" "RET" "<evil-ret>"))
+                 :unless '(sp-in-comment-p sp-in-string-p sp-point-after-word-p))
   (sp-local-pair "(*" "*)" ))     ;; comment
 
 ;; Ignore punctuation, so we can split ~(foo) to ~foo.
