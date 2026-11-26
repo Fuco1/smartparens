@@ -8271,7 +8271,10 @@ the point after the re-inserted text."
     (delete-region (sp-get expr :beg-prf) (sp-get expr :end))
     (save-excursion
       (insert str)
-      (sp--indent-region (sp-get expr :beg-prf) (point))
+      (unless (or (memq major-mode sp-no-reindent-after-kill-modes)
+                  (memq indent-line-function
+                        sp-no-reindent-after-kill-indent-line-functions))
+        (sp--indent-region (sp-get expr :beg-prf) (point)))
       (setq p (point)))
     (when (eq jump-end 'end) (goto-char p))))
 
